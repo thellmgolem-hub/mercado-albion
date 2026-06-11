@@ -352,6 +352,7 @@ class IntelTests(unittest.TestCase):
         self.assertEqual(len(top), 1)
         self.assertEqual(top[0]["item_id"], "T4_TESTSWORD")
         self.assertEqual(top[0]["valor_estimado"], 100)
+        self.assertEqual(top[0]["valor_trash_estimado"], 30)  # 30% padrão
         inv = {t["item_id"]: t for t in top_inv}
         self.assertEqual(inv["T4_LOOT"]["unidades"], 5)
         self.assertIsNone(inv["T4_LOOT"]["valor_estimado"])  # sem preço ref.
@@ -404,6 +405,40 @@ class DivergenceTests(unittest.TestCase):
         self.assertAlmostEqual(s["demanda_ratio"], 3.0, places=1)
         self.assertAlmostEqual(s["preco_ratio"], 1.0, places=2)
         self.assertAlmostEqual(s["volume_dia"], 50.0, places=0)
+
+
+class SignalValidationTests(unittest.TestCase):
+    def test_validate_signals_measures_realized_return(self):
+        import time as _time
+        from datetime import datetime, timedelta, timezone
+        from albion import gameinfo
+
+        now = datetime.now(timezone.utc)
+        emitted = _time.time() - 2 * 86400  # sinal de 2 dias atrás
+        target_day = datetime.fromtimestamp(
+            emitted + 86400, timezone.utc).strftime("%Y-%m-%d")
+
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                aodp.db.execute(
+                    "INSERT INTO demand_signal_log VALUES (?,?,?,?,?,?,?,?)",
+                    ("americas", emitted, "T4_TESTSWORD", 30, 3.0,
+                     100.0, 1.0, 50))
+                # 1 dia após o sinal, o VWAP foi 110 -> retorno +10%
+                aodp.db.execute(
+                    "INSERT INTO history VALUES (?,?,?,?,?,?,?,?,?)",
+                    ("americas", "T4_TESTSWORD", "Martlock", 1, 24,
+                     f"{target_day}T00:00:00", 50, 110.0, 0))
+                aodp.db.commit()
+                res = gameinfo.validate_signals(aodp.db, "americas",
+                                                horizon_days=1)
+            finally:
+                aodp.db.close()
+
+        self.assertEqual(res["n"], 1)
+        self.assertEqual(res["hit_rate_pct"], 100.0)
+        self.assertAlmostEqual(res["retorno_medio_pct"], 10.0, places=1)
 
 
 class SeasonalityAndScoreTests(unittest.TestCase):

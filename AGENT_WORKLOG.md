@@ -736,3 +736,27 @@ configuraveis (trash rate) e regear forecasts com backtest de alertas.
 Proximos passos: clusters de morte (zvz/gank) com item_combat_tags, aplicar
 trash_rate/regear nos valores do painel, z-score de destruicao com mais dias,
 backtest de alertas de divergencia (mesma infra do backtest de flips).
+
+## 2026-06-11 - Trash rate aplicado, log de sinais, validacao e risco (Claude)
+
+- destruction_top() agora retorna valor_trash_estimado (valor x
+  trash_rate_base lido de economic_assumptions; padrao 0.30 marcado como nao
+  validado). CLI 'intel top' ganhou a coluna Pos-trash; tooltip na UI explica
+  a taxa configuravel.
+- Tabela demand_signal_log: o servidor persiste os sinais de divergencia
+  1x/hora (dentro do loop, com lock para uso seguro da conexao) — e o
+  pre-requisito do backtest de alertas prometido-vs-realizado.
+- validate_signals(): retorno do preco apos o sinal (VWAP no dia D+1/D+3),
+  hit rate, media/mediana/extremos. CLI 'intel validate' (N=0 ate os sinais
+  envelhecerem — estrutura testada com sintetico: +10% detectado).
+- risk_summary(): risco estrutural com o que e publico hoje — mortes por
+  KillArea x hora UTC + batalhas grandes (>=15 kills) como proxy de ZvZ com
+  guildas/jogadores/fama. CLI 'intel risk'. Validacao real: 782 mortes na
+  hora 17 UTC (~70M de fama), 2 ZvZ detectadas (44 players/4 guildas;
+  27 players/22 guildas).
+- 22 testes OK (validate_signals sintetico +10%; trash 30% no top).
+  Assets v=20260611-6.
+
+Proximos: clusters formais com item_combat_tags e classificacao gank/zvz por
+arsenal (tabela editavel, preenchimento conservador), paineis de risco e
+validacao na UI, calibracao do trash_rate e do regear pelo proprio log.

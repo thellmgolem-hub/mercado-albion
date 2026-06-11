@@ -174,6 +174,12 @@ class AODP:
               killer_units INTEGER, inventory_units INTEGER,
               PRIMARY KEY (server, day, item_id)
             );
+            CREATE TABLE IF NOT EXISTS demand_signal_log (
+              server TEXT, generated_at REAL, item_id TEXT,
+              demanda_dia_recente REAL, demanda_ratio REAL,
+              preco_recente REAL, preco_ratio REAL, volume_dia REAL,
+              PRIMARY KEY (server, generated_at, item_id)
+            );
             CREATE TABLE IF NOT EXISTS economic_assumptions (
               key TEXT PRIMARY KEY, value REAL, source TEXT,
               confidence TEXT, updated_at REAL, notes TEXT

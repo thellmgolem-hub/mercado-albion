@@ -1291,7 +1291,7 @@ async function loadIntel() {
       {
         key: 'valor', label: 'Valor destruído (est.)', value: (r) => r.valor_estimado,
         html: (r) => r.valor_estimado
-          ? `<span class="silver profit-neg">${fmt(r.valor_estimado)}</span>` : '—',
+          ? `<span class="silver profit-neg" title="pós-trash (~${Math.round((r.trash_rate ?? 0.3) * 100)}% destruído de fato): ${fmt(r.valor_trash_estimado)} — taxa configurável, não validada">${fmt(r.valor_estimado)}</span>` : '—',
       },
     ];
     renderTable('intelTable', cols, items.map((r) => ({ ...r, _copy: r.name_pt })),

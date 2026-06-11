@@ -276,8 +276,11 @@ def destruction_top(con, server, days: float = 1, role: str = "victim",
         LIMIT :lim
     """, {"srv": server, "delta": f"-{days} days", "role": role,
           "lim": limit}).fetchall()
+    trash = get_assumption(con, "trash_rate_base", 0.30)
     return [{"item_id": r[0], "unidades": r[1], "eventos": r[2],
-             "preco_ref": r[3], "valor_estimado": r[4]} for r in rows]
+             "preco_ref": r[3], "valor_estimado": r[4],
+             "valor_trash_estimado": round(r[4] * trash) if r[4] else None,
+             "trash_rate": trash} for r in rows]
 
 
 DEFAULT_ASSUMPTIONS = [
@@ -416,6 +419,103 @@ def demand_price_divergence(con, server, recent_days: int = 2,
             })
     out.sort(key=lambda o: -(o["demanda_ratio"] or 99))
     return out[:limit]
+
+
+def log_signals(aodp, signals) -> int:
+    """Persiste os sinais de divergência para backtest futuro (prometido
+    vs realizado). Chamado pelo loop do servidor ~1x/hora."""
+    now = time.time()
+    with aodp.db_lock:
+        aodp.db.executemany(
+            "INSERT OR IGNORE INTO demand_signal_log VALUES (?,?,?,?,?,?,?,?)",
+            [(aodp.server, now, s["item_id"], s["demanda_dia_recente"],
+              s.get("demanda_ratio"), s["preco_recente"], s["preco_ratio"],
+              s["volume_dia"]) for s in signals])
+        aodp.db.commit()
+    return len(signals)
+
+
+def validate_signals(con, server, horizon_days: int = 1):
+    """Backtest dos alertas de divergência: o preço subiu após o sinal?
+
+    Compara o preço no momento do alerta com o VWAP diário `horizon_days`
+    depois (history q1, cidades reais). Só avalia sinais antigos o
+    suficiente para o horizonte já ter fechado.
+    """
+    rows = con.execute("""
+        WITH sinais AS (
+          SELECT generated_at, item_id, preco_recente, demanda_ratio,
+                 date(generated_at, 'unixepoch', '+' || :h || ' days') AS alvo
+          FROM demand_signal_log
+          WHERE server = :srv
+            AND generated_at < strftime('%s', 'now') - :h * 86400
+        ),
+        precos AS (
+          SELECT item_id, substr(ts, 1, 10) AS day,
+                 SUM(item_count * avg_price) * 1.0 / SUM(item_count) AS vwap
+          FROM history
+          WHERE server = :srv AND time_scale = 24 AND quality = 1
+            AND item_count > 0 AND avg_price > 0
+            AND city IN ('Bridgewatch','Caerleon','Fort Sterling',
+                         'Lymhurst','Martlock','Thetford')
+          GROUP BY item_id, day
+        )
+        SELECT s.item_id, s.generated_at, s.preco_recente, s.demanda_ratio,
+               p.vwap
+        FROM sinais s
+        JOIN precos p ON p.item_id = s.item_id AND p.day = s.alvo
+        WHERE s.preco_recente > 0
+    """, {"srv": server, "h": horizon_days}).fetchall()
+    if not rows:
+        return {"n": 0, "horizon_days": horizon_days}
+    returns = [(vwap / p0 - 1) for (_, _, p0, _, vwap) in rows]
+    returns.sort()
+    hits = sum(1 for r in returns if r > 0)
+    return {
+        "n": len(returns),
+        "horizon_days": horizon_days,
+        "hit_rate_pct": round(100 * hits / len(returns), 1),
+        "retorno_medio_pct": round(100 * sum(returns) / len(returns), 2),
+        "retorno_mediano_pct": round(100 * returns[len(returns) // 2], 2),
+        "pior_pct": round(100 * returns[0], 2),
+        "melhor_pct": round(100 * returns[-1], 2),
+    }
+
+
+def risk_summary(con, server, days: float = 1):
+    """Risco estrutural com o que é público HOJE (Location vem nulo):
+    mortes por KillArea × hora UTC + batalhas grandes (proxy de ZvZ)."""
+    by_area_hour = con.execute("""
+        SELECT kill_area, substr(ts, 12, 2) AS hora_utc,
+               COUNT(*) AS mortes, SUM(total_victim_kill_fame) AS fama
+        FROM kill_events
+        WHERE server = :srv
+          AND ts >= strftime('%Y-%m-%dT%H:%M:%S', 'now', :delta)
+        GROUP BY kill_area, hora_utc
+        ORDER BY mortes DESC
+    """, {"srv": server, "delta": f"-{days} days"}).fetchall()
+    zvz = con.execute("""
+        SELECT b.battle_id, b.start_time, b.total_kills, b.total_fame,
+               b.players, b.cluster_name,
+               COUNT(DISTINCT e.entity_id) AS guildas
+        FROM battle_summaries b
+        LEFT JOIN battle_entities e
+          ON e.server = b.server AND e.battle_id = b.battle_id
+         AND e.entity_type = 'guild'
+        WHERE b.server = :srv AND b.total_kills >= 15
+          AND b.start_time >= strftime('%Y-%m-%dT%H:%M:%S', 'now', :delta)
+        GROUP BY b.battle_id
+        ORDER BY b.total_fame DESC LIMIT 15
+    """, {"srv": server, "delta": f"-{days} days"}).fetchall()
+    return {
+        "por_area_hora": [{"kill_area": a or "?", "hora_utc": h,
+                           "mortes": m, "fama": f}
+                          for a, h, m, f in by_area_hour],
+        "zvz_recentes": [{"battle_id": b, "inicio": s, "kills": k,
+                          "fama": f, "jogadores": p, "zona": c,
+                          "guildas": g}
+                         for b, s, k, f, p, c, g in zvz],
+    }
 
 
 def intel_status(con, server):

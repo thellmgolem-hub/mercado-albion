@@ -1168,6 +1168,38 @@ def cmd_intel(args, fmt):
             rows = [{"tabela": k, "valor": str(v)} for k, v in st.items()]
             emit(rows, [("tabela", "Tabela"), ("valor", "Valor")], fmt)
             return
+        if args.acao == "risk":
+            res = gameinfo.risk_summary(con, config.DEFAULT_SERVER,
+                                        days=args.days)
+            if fmt == "json":
+                print(json.dumps(res, ensure_ascii=False, indent=2))
+                return
+            info("Mortes por área × hora UTC (Location da API vem nulo; "
+                 "KillArea é o melhor proxy público hoje).")
+            emit(res["por_area_hora"][:args.limit],
+                 [("kill_area", "Área"), ("hora_utc", "Hora UTC"),
+                  ("mortes", "Mortes"), ("fama", "Fama destruída")], fmt)
+            if res["zvz_recentes"]:
+                info("Batalhas grandes recentes (proxy de ZvZ, >=15 kills):")
+                emit(res["zvz_recentes"],
+                     [("inicio", "Início"), ("zona", "Zona"),
+                      ("kills", "Kills"), ("jogadores", "Jogadores"),
+                      ("guildas", "Guildas"), ("fama", "Fama")], fmt)
+            return
+        if args.acao == "validate":
+            out = [gameinfo.validate_signals(con, config.DEFAULT_SERVER,
+                                             horizon_days=h)
+                   for h in (1, 3)]
+            info("Backtest dos alertas de divergência: retorno do preço após"
+                 " o sinal (precisa de sinais logados há 1+/3+ dias — o"
+                 " servidor loga 1x/hora).")
+            emit(out, [("horizon_days", "Horizonte (dias)"), ("n", "N"),
+                       ("hit_rate_pct", "Acerto %"),
+                       ("retorno_medio_pct", "Retorno médio %"),
+                       ("retorno_mediano_pct", "Mediano %"),
+                       ("pior_pct", "Pior %"), ("melhor_pct", "Melhor %")],
+                 fmt)
+            return
         if args.acao == "signals":
             sigs = gameinfo.demand_price_divergence(
                 con, config.DEFAULT_SERVER, limit=args.limit)
@@ -1202,6 +1234,7 @@ def cmd_intel(args, fmt):
             "eventos": t["eventos"],
             "preco_ref": t["preco_ref"],
             "valor_estimado": t["valor_estimado"],
+            "valor_trash_estimado": t.get("valor_trash_estimado"),
         })
     papel = {"victim": "perdidos pelas vítimas",
              "killer": "usados pelos killers"}.get(args.role, args.role)
@@ -1211,7 +1244,8 @@ def cmd_intel(args, fmt):
     emit(rows, [("item", "Item"), ("tier_ench", "T.E"),
                 ("unidades", "Unidades"), ("eventos", "Eventos"),
                 ("preco_ref", "Preço ref."),
-                ("valor_estimado", "Valor estimado")], fmt)
+                ("valor_estimado", "Valor estimado"),
+                ("valor_trash_estimado", "Pós-trash")], fmt)
 
 
 def cmd_pos(args, fmt):
@@ -1565,7 +1599,8 @@ def build_parser():
 
     p = sub.add_parser("intel", parents=[common],
                        help="killboard: coleta pública e índice de destruição")
-    p.add_argument("acao", choices=("collect", "top", "signals", "status"))
+    p.add_argument("acao", choices=("collect", "top", "signals", "risk",
+                                    "validate", "status"))
     p.add_argument("--source", choices=("events", "battles", "all"),
                    default="all", help="fonte da coleta (padrão: all)")
     p.add_argument("--pages", type=int, default=config.GAMEINFO_EVENT_PAGES,

@@ -779,6 +779,7 @@ def _auto_collect_loop():
     tick = 60 * max(1, min(config.AUTO_INTEL_INTERVAL_MIN,
                            config.AUTO_COLLECT_INTERVAL_MIN))
     last_market = 0.0
+    last_signal_log = 0.0
     while True:
         time.sleep(tick)
         try:
@@ -786,6 +787,14 @@ def _auto_collect_loop():
             gameinfo.ingest_events(aodp)
             gameinfo.ingest_battles(aodp)
             gameinfo.aggregate_demand_daily(aodp)
+            # snapshot horário dos sinais -> demand_signal_log (backtest)
+            if time.time() - last_signal_log >= 3600:
+                with aodp.db_lock:
+                    sigs = gameinfo.demand_price_divergence(
+                        aodp.db, aodp.server)
+                if sigs:
+                    gameinfo.log_signals(aodp, sigs)
+                last_signal_log = time.time()
         except Exception:
             pass  # registrado em public_data_runs quando possível
         try:
