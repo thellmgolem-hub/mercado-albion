@@ -760,3 +760,27 @@ backtest de alertas de divergencia (mesma infra do backtest de flips).
 Proximos: clusters formais com item_combat_tags e classificacao gank/zvz por
 arsenal (tabela editavel, preenchimento conservador), paineis de risco e
 validacao na UI, calibracao do trash_rate e do regear pelo proprio log.
+
+## 2026-06-11 - Classificacao de mortes, tags de combate e paineis (Claude)
+
+- Tabelas: static_items (catalogo espelhado no SQLite p/ joins do killboard;
+  sync no startup e no intel collect) e item_combat_tags (editavel; seed
+  conservador SO de montarias de carga por padrao de id — mula/boi/mamute;
+  classificacao por arsenal fica para curadoria manual, como o plano exige).
+- classification_summary(): classes estruturais por porte (gank_provavel
+  <=2 participantes, small_scale 3-14, zvz >=15) + flags economicas: vitima
+  com traje de coleta vestido (join static_items cat=gathering), com montaria
+  de carga (tag) e com inventario 10+ unidades (interdicao de transporte).
+- CLI 'intel risk' agora abre com a classificacao; endpoints novos
+  GET /api/intel/risk e GET /api/intel/validate; paineis 'Guerra e risco'
+  (classes + vitimas economicas + tabela de ZvZ) e linha de backtest dos
+  alertas anexada ao painel de divergencia quando N>0.
+- Validacao real (1.020 mortes/24h): 66,5% gank_provavel, 33,5% small_scale,
+  40 vitimas coletoras, 39 com montaria de carga, 593 com inventario 10+ —
+  o canal de interdicao de transporte e muito maior do que se imaginava.
+- 22 testes OK; assets v=20260611-7; console limpo.
+
+Proximos: curadoria manual de item_combat_tags por arma (gank/zvz por
+arsenal), alertas de rota para coletores ('evite X por 2h'), calibracao do
+trash_rate/regear quando validate acumular N, ordens de servico (service
+orders) por perfil.

@@ -482,6 +482,91 @@ def validate_signals(con, server, horizon_days: int = 1):
     }
 
 
+def seed_combat_tags(aodp) -> int:
+    """Tags de combate conservadoras e editáveis (item_combat_tags).
+
+    Só o que é defensável por padrão de id: montarias de transporte.
+    Classificações por arsenal (gank/zvz por arma) ficam para preenchimento
+    manual/curado, como o plano exige.
+    """
+    with aodp.db_lock:
+        cur = aodp.db.execute("""
+            INSERT OR IGNORE INTO item_combat_tags
+            SELECT item_id, 'transport', 'alta', 'padrão de id',
+                   'montaria de carga'
+            FROM static_items
+            WHERE (item_id LIKE 'T_\\_MOUNT_OX' ESCAPE '\\'
+                   OR item_id LIKE 'T_\\_MOUNT_MULE' ESCAPE '\\'
+                   OR item_id LIKE '%MOUNT_MAMMOTH_TRANSPORT%')
+              AND item_id NOT LIKE 'UNIQUE%'
+        """)
+        aodp.db.commit()
+        return cur.rowcount
+
+
+def classification_summary(con, server, days: float = 1):
+    """Classifica mortes por porte e flags econômicas (estrutural + tags).
+
+    Conservador: 'gank_provavel' = <=2 participantes; 'zvz' = >=15;
+    vítima coletora = traje de coleta vestido; transporte = montaria de
+    carga (tag) ou inventário com 10+ unidades.
+    """
+    params = {"srv": server, "delta": f"-{days} days"}
+    classes = con.execute("""
+        SELECT CASE WHEN n_participants >= 15 THEN 'zvz'
+                    WHEN n_participants <= 2 THEN 'gank_provavel'
+                    ELSE 'small_scale' END AS classe,
+               COUNT(*) AS mortes,
+               SUM(total_victim_kill_fame) AS fama
+        FROM kill_events
+        WHERE server = :srv
+          AND ts >= strftime('%Y-%m-%dT%H:%M:%S', 'now', :delta)
+        GROUP BY classe ORDER BY mortes DESC
+    """, params).fetchall()
+    gatherers = con.execute("""
+        SELECT COUNT(DISTINCT eq.event_id)
+        FROM kill_event_equipment eq
+        JOIN kill_events ke
+          ON ke.server = eq.server AND ke.event_id = eq.event_id
+        JOIN static_items si ON si.item_id = eq.item_id
+        WHERE eq.server = :srv AND eq.role = 'victim'
+          AND eq.slot IN ('Head', 'Armor', 'Shoes')
+          AND si.cat = 'gathering'
+          AND ke.ts >= strftime('%Y-%m-%dT%H:%M:%S', 'now', :delta)
+    """, params).fetchone()[0]
+    transport_mount = con.execute("""
+        SELECT COUNT(DISTINCT eq.event_id)
+        FROM kill_event_equipment eq
+        JOIN kill_events ke
+          ON ke.server = eq.server AND ke.event_id = eq.event_id
+        WHERE eq.server = :srv AND eq.role = 'victim' AND eq.slot = 'Mount'
+          AND eq.item_id IN (SELECT item_id FROM item_combat_tags
+                             WHERE role_tag = 'transport')
+          AND ke.ts >= strftime('%Y-%m-%dT%H:%M:%S', 'now', :delta)
+    """, params).fetchone()[0]
+    heavy_inventory = con.execute("""
+        SELECT COUNT(*) FROM (
+          SELECT eq.event_id, SUM(eq.count) AS s
+          FROM kill_event_equipment eq
+          JOIN kill_events ke
+            ON ke.server = eq.server AND ke.event_id = eq.event_id
+          WHERE eq.server = :srv AND eq.role = 'victim'
+            AND eq.slot = 'Inventory'
+            AND ke.ts >= strftime('%Y-%m-%dT%H:%M:%S', 'now', :delta)
+          GROUP BY eq.event_id HAVING s >= 10)
+    """, params).fetchone()[0]
+    total = sum(c[1] for c in classes) or 1
+    return {
+        "classes": [{"classe": c, "mortes": m, "fama": f,
+                     "pct": round(100 * m / total, 1)}
+                    for c, m, f in classes],
+        "vitimas_coletoras": gatherers,
+        "vitimas_montaria_transporte": transport_mount,
+        "vitimas_inventario_pesado": heavy_inventory,
+        "total_mortes": total,
+    }
+
+
 def risk_summary(con, server, days: float = 1):
     """Risco estrutural com o que é público HOJE (Location vem nulo):
     mortes por KillArea × hora UTC + batalhas grandes (proxy de ZvZ)."""

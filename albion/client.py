@@ -174,6 +174,15 @@ class AODP:
               killer_units INTEGER, inventory_units INTEGER,
               PRIMARY KEY (server, day, item_id)
             );
+            CREATE TABLE IF NOT EXISTS static_items (
+              item_id TEXT PRIMARY KEY, name_pt TEXT, cat TEXT, sub TEXT,
+              tier INTEGER, ench INTEGER, weight REAL
+            );
+            CREATE TABLE IF NOT EXISTS item_combat_tags (
+              item_id TEXT, role_tag TEXT, confidence TEXT, source TEXT,
+              notes TEXT,
+              PRIMARY KEY (item_id, role_tag)
+            );
             CREATE TABLE IF NOT EXISTS demand_signal_log (
               server TEXT, generated_at REAL, item_id TEXT,
               demanda_dia_recente REAL, demanda_ratio REAL,
@@ -490,6 +499,21 @@ class AODP:
                      result["history_series"], ok, error))
                 self.db.commit()
         return result
+
+    def sync_static_items(self, items: list[dict]) -> int:
+        """Espelha o catálogo de itens no SQLite (joins do killboard etc.)."""
+        with self.db_lock:
+            n = self.db.execute(
+                "SELECT COUNT(*) FROM static_items").fetchone()[0]
+            if n == len(items):
+                return 0
+            self.db.execute("DELETE FROM static_items")
+            self.db.executemany(
+                "INSERT OR REPLACE INTO static_items VALUES (?,?,?,?,?,?,?)",
+                [(i["id"], i["pt"], i["cat"], i["sub"], i["tier"],
+                  i["ench"], i["w"]) for i in items])
+            self.db.commit()
+        return len(items)
 
     # ---------------------------------------------------------------- posições
 

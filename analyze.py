@@ -1143,6 +1143,8 @@ def cmd_intel(args, fmt):
     if args.acao == "collect":
         aodp = make_aodp()
         gameinfo.ensure_assumptions(aodp)
+        aodp.sync_static_items(ItemDB().items)
+        gameinfo.seed_combat_tags(aodp)
         results = []
         if args.source in ("events", "all"):
             results.append(gameinfo.ingest_events(aodp, max_pages=args.pages))
@@ -1171,9 +1173,21 @@ def cmd_intel(args, fmt):
         if args.acao == "risk":
             res = gameinfo.risk_summary(con, config.DEFAULT_SERVER,
                                         days=args.days)
+            cls = gameinfo.classification_summary(
+                con, config.DEFAULT_SERVER, days=args.days)
             if fmt == "json":
-                print(json.dumps(res, ensure_ascii=False, indent=2))
+                print(json.dumps({**res, "classificacao": cls},
+                                 ensure_ascii=False, indent=2))
                 return
+            info(f"Classificação estrutural de {cls['total_mortes']} mortes "
+                 f"(janela {args.days:g}d): "
+                 + " · ".join(f"{c['classe']} {c['pct']}%"
+                              for c in cls["classes"])
+                 + f" | vítimas coletoras: {cls['vitimas_coletoras']}"
+                 f" · com montaria de carga: "
+                 f"{cls['vitimas_montaria_transporte']}"
+                 f" · com inventário 10+: "
+                 f"{cls['vitimas_inventario_pesado']}")
             info("Mortes por área × hora UTC (Location da API vem nulo; "
                  "KillArea é o melhor proxy público hoje).")
             emit(res["por_area_hora"][:args.limit],

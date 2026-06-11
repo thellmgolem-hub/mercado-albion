@@ -811,9 +811,42 @@ def _auto_collect_loop():
 def _start_auto_collect():
     from albion import gameinfo
     gameinfo.ensure_assumptions(aodp)
+    aodp.sync_static_items(db.items)
+    gameinfo.seed_combat_tags(aodp)
     if config.AUTO_COLLECT_INTERVAL_MIN > 0:
         threading.Thread(target=_auto_collect_loop, daemon=True,
                          name="auto-collect").start()
+
+
+@app.get("/api/intel/risk")
+def intel_risk(days: float = Query(1, gt=0, le=30)):
+    """Risco estrutural: classes de morte, vítimas econômicas e ZvZ."""
+    from albion import gameinfo
+    con = _cache_connection()
+    if con is None:
+        return {}
+    try:
+        return {
+            **gameinfo.risk_summary(con, aodp.server, days=days),
+            "classificacao": gameinfo.classification_summary(
+                con, aodp.server, days=days),
+        }
+    finally:
+        con.close()
+
+
+@app.get("/api/intel/validate")
+def intel_validate():
+    from albion import gameinfo
+    con = _cache_connection()
+    if con is None:
+        return {"horizons": []}
+    try:
+        return {"horizons": [
+            gameinfo.validate_signals(con, aodp.server, horizon_days=h)
+            for h in (1, 3)]}
+    finally:
+        con.close()
 
 
 @app.get("/api/intel/signals")

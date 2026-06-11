@@ -1348,6 +1348,48 @@ async function loadSignals() {
   }
 }
 
+async function loadRisk() {
+  const st = $('riskStatus');
+  try {
+    const res = await api('/api/intel/risk', { days: 1 });
+    const cls = res.classificacao || {};
+    if (!cls.total_mortes) {
+      st.textContent = 'sem mortes coletadas ainda';
+      $('riskTable').innerHTML = '';
+      return;
+    }
+    st.innerHTML = (cls.classes || []).map((c) =>
+      `<b>${esc(c.classe)}</b> ${c.pct}% (${fmt(c.mortes)})`).join(' · ') +
+      ` — vítimas coletoras: <b>${fmt(cls.vitimas_coletoras)}</b>` +
+      ` · com montaria de carga: <b>${fmt(cls.vitimas_montaria_transporte)}</b>` +
+      ` · com inventário 10+: <b>${fmt(cls.vitimas_inventario_pesado)}</b>`;
+    const zvz = res.zvz_recentes || [];
+    if (!zvz.length) { $('riskTable').innerHTML = ''; return; }
+    const cols = [
+      { key: 'inicio', label: 'Início (UTC)', align: 'l', value: (r) => r.inicio, html: (r) => esc((r.inicio || '').slice(0, 16).replace('T', ' ')) },
+      { key: 'zona', label: 'Zona', align: 'l', value: (r) => r.zona, html: (r) => esc(r.zona || '—') },
+      { key: 'kills', label: 'Kills', value: (r) => r.kills, html: (r) => fmt(r.kills) },
+      { key: 'jog', label: 'Jogadores', value: (r) => r.jogadores, html: (r) => fmt(r.jogadores) },
+      { key: 'gld', label: 'Guildas', value: (r) => r.guildas, html: (r) => fmt(r.guildas) },
+      { key: 'fama', label: 'Fama destruída', value: (r) => r.fama, html: (r) => `<span class="silver profit-neg">${fmt(r.fama)}</span>` },
+    ];
+    renderTable('riskTable', cols, zvz, { sortKey: 'fama' });
+  } catch (e) {
+    st.textContent = '';
+  }
+}
+
+async function loadSignalValidation() {
+  try {
+    const res = await api('/api/intel/validate');
+    const h1 = (res.horizons || []).find((h) => h.horizon_days === 1);
+    if (h1 && h1.n > 0) {
+      $('sigStatus').textContent +=
+        ` · backtest dos alertas (D+1): ${h1.hit_rate_pct}% de acerto, retorno mediano ${h1.retorno_mediano_pct}% (N=${h1.n})`;
+    }
+  } catch (e) { /* opcional */ }
+}
+
 async function refreshWatchCount() {
   try {
     const w = await api('/api/watchlist');
@@ -1519,8 +1561,10 @@ async function init() {
   loadSurvival();
   loadHeatmap();
   loadIntel();
-  loadSignals();
-  setInterval(loadSignals, 10 * 60 * 1000);
+  loadSignals().then(loadSignalValidation);
+  loadRisk();
+  setInterval(() => { loadSignals().then(loadSignalValidation); loadRisk(); },
+    10 * 60 * 1000);
   runDiscover();
 }
 
