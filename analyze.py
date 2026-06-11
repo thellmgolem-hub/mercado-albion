@@ -672,6 +672,18 @@ def cmd_watch(args, fmt):
 def cmd_collect(args, fmt):
     db = ItemDB()
     aodp = make_aodp()
+    if args.skip_if_recent:
+        with aodp.db_lock:
+            last = aodp.db.execute(
+                "SELECT MAX(started_at) FROM collection_runs"
+                " WHERE server=? AND ok=1", [aodp.server]).fetchone()[0]
+        if last is not None:
+            import time as _time
+            age_min = (_time.time() - last) / 60
+            if age_min < args.skip_if_recent:
+                info(f"Última coleta há {age_min:.0f} min"
+                     f" (< {args.skip_if_recent}) — nada a fazer.")
+                return
     item_ids = None
     if args.itens:
         item_ids = [i["id"] for i in resolve_items(db, ",".join(args.itens))]
@@ -971,6 +983,9 @@ def build_parser():
     p.add_argument("--days", type=int, default=30,
                    help="janela de histórico (padrão: 30)")
     p.add_argument("--max-items", type=int, default=config.COLLECT_MAX_ITEMS)
+    p.add_argument("--skip-if-recent", type=int, metavar="MIN",
+                   help="não coleta se a última rodada OK tiver menos de MIN "
+                        "minutos (evita duplicar com o servidor aberto)")
     p.set_defaults(func=cmd_collect)
 
     p = sub.add_parser("survival", parents=[common],
