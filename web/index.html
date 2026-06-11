@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mercado Albion — Américas</title>
+<link rel="stylesheet" href="style.css?v=20260611-2">
+<link rel="icon" href="/icon/T4_BAG?size=64">
+</head>
+<body>
+
+<header>
+  <div class="brand">Mercado Albion <span class="server">AMÉRICAS</span></div>
+  <div class="gold-ticker" id="goldTicker">ouro: …</div>
+  <div class="cache-status" id="cacheStatus"></div>
+  <div class="spacer"></div>
+  <label class="premium-toggle" title="Com premium o imposto de venda é 4%; sem premium, 8%">
+    <input type="checkbox" id="premiumToggle" checked> Premium (imposto 4%)
+  </label>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="dashboard" class="active">Início</button>
+  <button data-tab="precos">Preços</button>
+  <button data-tab="flips">Flips</button>
+  <button data-tab="scanner">Scanner</button>
+  <button data-tab="vender">Onde Vender</button>
+  <button data-tab="historico">Item Lab</button>
+</nav>
+
+<main>
+
+<!-- ============================ INÍCIO ============================ -->
+<section class="tab active" id="tab-dashboard">
+  <div class="section-head">
+    <div>
+      <h1>Recomendações agora</h1>
+      <div class="sub">Rotas reais seguras · volume histórico · dados frescos · score multifator absoluto</div>
+    </div>
+    <div class="field-row">
+      <button class="btn" id="dashCollect" title="Busca preços e histórico frescos de todos os itens da watchlist">Coletar watchlist</button>
+      <button class="btn secondary" id="dashRecsRefresh">Atualizar</button>
+    </div>
+  </div>
+  <div class="status" id="dashRecsStatus"></div>
+  <div class="table-wrap" id="dashRecsTable"></div>
+
+  <div class="section-head" style="margin-top:22px">
+    <div>
+      <h1>Persistência das ordens</h1>
+      <div class="sub">Quanto tempo a ordem do topo sobrevive — medido nas suas coletas repetidas (proxy de flip fantasma)</div>
+    </div>
+  </div>
+  <div class="status" id="survStatus"></div>
+  <div class="table-wrap" id="survTable"></div>
+</section>
+
+<!-- ============================ PREÇOS ============================ -->
+<section class="tab" id="tab-precos">
+  <div class="controls">
+    <div class="field item-search-field">
+      <label>Item (nome em português, inglês ou id — atalhos: "t6", "4.1", "@2")</label>
+      <div class="picker" id="precosPicker"></div>
+    </div>
+    <div class="field">
+      <label>Qualidades</label>
+      <div class="chips" id="precosQuals"></div>
+    </div>
+    <button class="btn secondary" id="precosRefresh" title="Ignora o cache local e busca agora na API">Atualizar agora</button>
+  </div>
+  <div id="precosCard"></div>
+  <div class="status" id="precosStatus"></div>
+  <div class="table-wrap" id="precosTable"></div>
+  <p class="hint">Favoritos: <span id="favList" class="chips"></span></p>
+  <p class="hint"><b>Venda mín.</b> = anúncio de venda mais barato (preço de compra instantânea) ·
+     <b>Compra máx.</b> = ordem de compra mais alta (preço de venda instantânea) ·
+     A idade indica quando alguém viu aquele mercado pela última vez — dados da
+     comunidade (Albion Online Data Project) só atualizam quando um jogador com o
+     cliente de coleta abre o mercado.</p>
+</section>
+
+<!-- ============================ FLIPS ============================ -->
+<section class="tab" id="tab-flips">
+  <div class="section-head">
+    <div>
+      <h1>Descobrir flips</h1>
+      <div class="sub">Busca por características do mercado, sem item pré-selecionado</div>
+    </div>
+    <button class="btn" id="discoverRun">Pesquisar</button>
+  </div>
+  <div class="controls discovery-controls">
+    <div class="field">
+      <label>Categoria</label>
+      <select id="discCat"></select>
+    </div>
+    <div class="field">
+      <label>Subcategoria</label>
+      <select id="discSub" disabled><option value="">todas</option></select>
+    </div>
+    <div class="field">
+      <label>Tier</label>
+      <div class="field-row">
+        <select id="discTierMin"></select> <span class="muted">a</span> <select id="discTierMax"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Encanto</label>
+      <select id="discEnch"></select>
+    </div>
+    <div class="field">
+      <label>Qualidade</label>
+      <select id="discQuality"></select>
+    </div>
+    <div class="field">
+      <label>Volume/dia mín.</label>
+      <input type="number" id="discMinVolume" value="20" min="0" step="10">
+    </div>
+    <div class="field">
+      <label>Dias ativos mín.</label>
+      <input type="number" id="discMinActiveDays" value="2" min="0" step="1">
+    </div>
+    <div class="field">
+      <label>Idade compra</label>
+      <input type="number" id="discMaxAgeBuy" value="720" min="0" step="30">
+    </div>
+    <div class="field">
+      <label>Idade venda</label>
+      <input type="number" id="discMaxAgeSell" value="720" min="0" step="30">
+    </div>
+    <div class="field">
+      <label>Lucro mín.</label>
+      <input type="number" id="discMinProfit" value="0" step="500">
+    </div>
+    <div class="field">
+      <label>ROI mín. %</label>
+      <input type="number" id="discMinRoi" value="" step="1" placeholder="—">
+    </div>
+    <div class="field">
+      <label>Período volume</label>
+      <select id="discHistoryDays">
+        <option value="7" selected>7 dias</option>
+        <option value="30">30 dias</option>
+        <option value="90">90 dias</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Resultados</label>
+      <select id="discLimit">
+        <option>10</option><option selected>25</option><option>50</option><option>100</option>
+      </select>
+    </div>
+  </div>
+  <div class="status" id="discoverStatus"></div>
+  <div class="table-wrap discovery-table" id="discoverTable"></div>
+
+  <div class="controls">
+    <div class="field item-search-field">
+      <label>Adicionar item</label>
+      <div class="picker" id="flipsPicker"></div>
+    </div>
+    <div class="field">
+      <label>Itens selecionados</label>
+      <div class="chips" id="flipsItems"></div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="field">
+      <label>Qualidades</label>
+      <div class="chips" id="flipsQuals"></div>
+    </div>
+    <div class="field">
+      <label>Como comprar</label>
+      <select id="flipsBuyMode">
+        <option value="instant">Instantânea (pego anúncio de venda)</option>
+        <option value="order">Ordem de compra (+2,5% taxa)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Como vender</label>
+      <select id="flipsSellMode">
+        <option value="instant">Instantânea (preencho ordem de compra)</option>
+        <option value="order">Ordem de venda (+2,5% taxa)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Lucro mínimo</label>
+      <input type="number" id="flipsMinProfit" value="0" step="500">
+    </div>
+    <div class="field">
+      <label>Mesma cidade</label>
+      <div class="field-row"><input type="checkbox" id="flipsSameCity"> <span class="muted">incluir</span></div>
+    </div>
+    <button class="btn" id="flipsRun">Calcular flips</button>
+  </div>
+  <div class="status" id="flipsStatus"></div>
+  <div class="table-wrap" id="flipsTable"></div>
+  <p class="hint">Clique em uma linha para copiar o nome do item (cole na busca do mercado do jogo).
+     Fórmulas: compra instantânea = preço · ordem de compra = preço × 1,025 ·
+     venda instantânea = preço × (1 − imposto) · ordem de venda = preço × (1 − imposto − 2,5%).
+     No <b>Mercado Negro</b> a venda é sempre contra as ordens do sistema (instantânea) e
+     um item de qualidade alta pode preencher ordens de qualidade menor.</p>
+</section>
+
+<!-- ============================ SCANNER ============================ -->
+<section class="tab" id="tab-scanner">
+  <div class="preset-row">
+    <button class="btn secondary" data-preset="bm">⚫ Reais → Mercado Negro</button>
+    <button class="btn secondary" data-preset="royal">🏰 Entre cidades reais</button>
+    <button class="btn secondary" data-preset="mm">📊 Mercado interno (ordem → ordem)</button>
+  </div>
+  <div class="controls">
+    <div class="field">
+      <label>Categoria</label>
+      <select id="scanCat"></select>
+    </div>
+    <div class="field">
+      <label>Subcategoria</label>
+      <select id="scanSub"><option value="">todas</option></select>
+    </div>
+    <div class="field">
+      <label>Tier</label>
+      <div class="field-row">
+        <select id="scanTierMin"></select> <span class="muted">a</span> <select id="scanTierMax"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Encanto</label>
+      <div class="chips" id="scanEnch"></div>
+    </div>
+    <div class="field">
+      <label>Qualidades</label>
+      <div class="chips" id="scanQuals"></div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="field">
+      <label>Comprar em</label>
+      <div class="cities-box chips" id="scanBuyCities"></div>
+    </div>
+    <div class="field">
+      <label>Vender em</label>
+      <div class="cities-box chips" id="scanSellCities"></div>
+    </div>
+    <div class="field">
+      <label>Como comprar</label>
+      <select id="scanBuyMode">
+        <option value="instant">Instantânea</option>
+        <option value="order">Ordem de compra</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Como vender</label>
+      <select id="scanSellMode">
+        <option value="instant">Instantânea</option>
+        <option value="order">Ordem de venda</option>
+      </select>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="field">
+      <label>Lucro mín.</label>
+      <input type="number" id="scanMinProfit" value="2000" step="1000">
+    </div>
+    <div class="field">
+      <label>ROI mín. %</label>
+      <input type="number" id="scanMinRoi" value="" step="5" placeholder="—">
+    </div>
+    <div class="field">
+      <label>Idade máx. compra (min)</label>
+      <input type="number" id="scanMaxAgeBuy" value="180" step="30">
+    </div>
+    <div class="field">
+      <label>Idade máx. venda (min)</label>
+      <input type="number" id="scanMaxAgeSell" value="180" step="30">
+    </div>
+    <div class="field">
+      <label>Máx. itens</label>
+      <select id="scanMaxItems">
+        <option>100</option><option selected>300</option><option>500</option><option>800</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Volume diário</label>
+      <div class="field-row"><input type="checkbox" id="scanVolume" checked> <span class="muted">buscar</span></div>
+    </div>
+    <div class="field">
+      <label>Mesma cidade</label>
+      <div class="field-row"><input type="checkbox" id="scanSameCity"> <span class="muted">incluir</span></div>
+    </div>
+    <button class="btn" id="scanRun">Escanear</button>
+    <button class="btn secondary" id="scanExport" disabled>Exportar CSV</button>
+    <button class="btn secondary" id="scanClearHidden" disabled>Restaurar ocultas</button>
+  </div>
+  <div class="status" id="scanStatus"></div>
+  <div class="table-wrap" id="scanTable"></div>
+  <p class="hint"><b>Pot./dia</b> = lucro × mín(volume diário na origem, no destino) — estimativa
+     do teto diário realista da rota. Linhas com dados velhos provavelmente são
+     "flips fantasmas" (a ordem já foi consumida). Use o ✕ para ocultar uma linha já executada.</p>
+</section>
+
+<!-- ============================ ONDE VENDER ============================ -->
+<section class="tab" id="tab-vender">
+  <div class="controls">
+    <div class="field item-search-field">
+      <label>O que você tem para vender?</label>
+      <div class="picker" id="venderPicker"></div>
+    </div>
+    <div class="field">
+      <label>Qualidades</label>
+      <div class="chips" id="venderQuals"></div>
+    </div>
+    <button class="btn secondary" id="venderRefresh">Atualizar agora</button>
+  </div>
+  <div id="venderCard"></div>
+  <div class="status" id="venderStatus"></div>
+  <div class="table-wrap" id="venderTable"></div>
+  <p class="hint">Ranqueado pelo <b>líquido</b> (já descontados imposto de venda
+     e, no caso de ordem, a taxa de anúncio de 2,5%). Venda <b>instantânea</b> = você
+     preenche a ordem de compra mais alta agora. <b>Ordem</b> = você anuncia pelo menor
+     preço de venda atual e espera vender.</p>
+</section>
+
+<!-- ============================ ITEM LAB ============================ -->
+<section class="tab" id="tab-historico">
+  <div class="section-head">
+    <div>
+      <h1>Item Lab</h1>
+      <div class="sub">Preço médio, volume, tendência, z-score, momentum e qualidade do dado</div>
+    </div>
+  </div>
+  <div class="controls">
+    <div class="field item-search-field">
+      <label>Item</label>
+      <div class="picker" id="histPicker"></div>
+    </div>
+    <div class="field">
+      <label>Cidades</label>
+      <div class="cities-box chips" id="histCities"></div>
+    </div>
+    <div class="field">
+      <label>Qualidade</label>
+      <select id="histQuality"></select>
+    </div>
+    <div class="field">
+      <label>Período</label>
+      <select id="histDays">
+        <option value="1">24 horas</option>
+        <option value="7">7 dias</option>
+        <option value="30" selected>30 dias</option>
+        <option value="90">90 dias</option>
+        <option value="180">180 dias</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Escala</label>
+      <select id="histScale">
+        <option value="24" selected>diária</option>
+        <option value="6">6 horas</option>
+        <option value="1">por hora</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Dados novos</label>
+      <div class="field-row">
+        <input type="checkbox" id="histFetchNew">
+        <span class="muted" title="Busca na API em vez de usar só o cache local (consome rate limit)">buscar da API</span>
+      </div>
+    </div>
+    <button class="btn" id="histRun">Carregar</button>
+    <button class="btn secondary" id="histWatch" title="Adiciona o item à watchlist de coleta">+ watchlist</button>
+  </div>
+  <div class="status" id="histStatus"></div>
+  <div class="lab-panel" id="histLabPanel">
+    <div class="lab-summary" id="histLabSummary"></div>
+    <div class="lab-grid" id="histLabCards"></div>
+  </div>
+  <div class="charts">
+    <div class="chart-box"><canvas id="histPriceChart"></canvas></div>
+    <div class="chart-box small"><canvas id="histVolChart"></canvas></div>
+  </div>
+</section>
+
+</main>
+
+<div id="toast"></div>
+<button class="glossary-fab" id="glossaryOpen" type="button" title="Glossário econômico">?</button>
+<div class="glossary-modal" id="glossaryModal" aria-hidden="true">
+  <div class="glossary-backdrop" id="glossaryCloseBackdrop"></div>
+  <div class="glossary-card" role="dialog" aria-modal="true" aria-labelledby="glossaryTitle">
+    <div class="glossary-head">
+      <h2 id="glossaryTitle">Glossário do economês</h2>
+      <button class="mini-btn" id="glossaryClose" type="button">fechar</button>
+    </div>
+    <div class="glossary-grid">
+      <div><b>ROI</b><span>Retorno sobre o investimento. Lucro líquido dividido pelo custo.</span></div>
+      <div><b>PnL</b><span>Profit and Loss. Resultado financeiro: lucro ou prejuízo.</span></div>
+      <div><b>Spread</b><span>Diferença entre preço de compra e preço de venda.</span></div>
+      <div><b>VWAP</b><span>Preço médio ponderado por volume. Dá mais peso aos dias com mais vendas.</span></div>
+      <div><b>Z-score</b><span>Quanto o preço atual desvia da tendência histórica, em desvios padrão dos resíduos (não confunde tendência com anomalia).</span></div>
+      <div><b>Score</b><span>Nota 0–100 com réguas absolutas (lucro, potencial/dia, liquidez em escala log + frescor e ROI). Comparável entre consultas e dias.</span></div>
+      <div><b>Momentum</b><span>Força/direção recente do movimento de preço.</span></div>
+      <div><b>Volatilidade</b><span>Quanto o preço oscila. Alta volatilidade significa mais risco.</span></div>
+      <div><b>Liquidez</b><span>Facilidade de comprar ou vender sem ficar preso no item.</span></div>
+      <div><b>Freq.</b><span>Dias com venda dentro do período analisado.</span></div>
+      <div><b>Pot./dia</b><span>Lucro × liquidez diária × taxa de captura (20%). O volume da AODP é um piso (só conta quando alguém abre o mercado) e ninguém captura o dia inteiro — o teto teórico fica no tooltip.</span></div>
+      <div><b>Persistência</b><span>% de vezes que a ordem do topo ainda existia na coleta seguinte, por idade da ordem. Quanto mais velha, maior o risco de flip fantasma.</span></div>
+      <div><b>Slippage</b><span>Piora do preço médio quando você compra/vende muitas unidades.</span></div>
+      <div><b>Drawdown</b><span>Maior queda acumulada de uma estratégia antes de recuperar.</span></div>
+      <div><b>Backtest</b><span>Teste de uma regra usando dados históricos, com taxas e restrições.</span></div>
+      <div><b>Livro de ordens</b><span>Lista de ordens de compra e venda por preço e quantidade.</span></div>
+      <div><b>Profundidade</b><span>Quantidade disponível em cada nível de preço do livro.</span></div>
+      <div><b>Conf.</b><span>Confiança do dado, hoje baseada principalmente no frescor das duas pontas.</span></div>
+    </div>
+  </div>
+</div>
+<script src="vendor/chart.umd.min.js"></script>
+<script src="app.js?v=20260611-2"></script>
+</body>
+</html>
