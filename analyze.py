@@ -712,7 +712,7 @@ def cmd_recommend(args, fmt):
         min_active_days=args.min_active_days, history_days=args.history_days,
         max_age_buy=args.max_age_buy, max_age_sell=args.max_age_sell,
         buy_cities=args.buy_cities, sell_cities=args.sell_cities,
-        limit=args.limit)
+        capture_rate=config.CAPTURE_RATE, limit=args.limit)
     cov = res.get("coverage", {})
     info(f"{res.get('items_considered', 0)} itens avaliados · cobertura: "
          f"{cov.get('price_items', 0)}/{cov.get('catalog_items', 0)} com preço, "
@@ -728,7 +728,8 @@ def cmd_lab(args, fmt):
     from app import item_analysis
     res = item_analysis(item=args.item, cities=args.cities,
                         quality=args.quality, time_scale=args.scale,
-                        days=args.days, cache_only=not args.fetch)
+                        days=args.days, max_age=config.HISTORY_TTL,
+                        cache_only=not args.fetch)
     if fmt == "json":
         print(json.dumps(res, ensure_ascii=False, indent=2))
         return
@@ -804,6 +805,202 @@ def cmd_survival(args, fmt):
     emit(rows, [("lado", "Lado"), ("idade_da_ordem", "Idade da ordem"),
                 ("pares", "Pares"), ("persistiu_pct", "Persistiu %"),
                 ("gap_mediano_min", "Gap mediano (min)")], fmt)
+
+
+def _movers_24h(limit=5):
+    """Maiores variações de preço (venda mín., q1) na watchlist em ~24 h."""
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        return []
+    import time as _time
+    now = _time.time()
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        rows = con.execute("""
+            WITH wl AS (SELECT item_id FROM watchlist WHERE server=:srv),
+            recent AS (
+              SELECT item_id, city, sell_price_min, fetched_at,
+                     ROW_NUMBER() OVER (PARTITION BY item_id, city
+                                        ORDER BY fetched_at DESC) rn
+              FROM price_snapshots
+              WHERE server=:srv AND quality=1 AND sell_price_min > 0
+                AND item_id IN (SELECT item_id FROM wl)
+                AND fetched_at >= :recente),
+            antigo AS (
+              SELECT item_id, city, sell_price_min,
+                     ROW_NUMBER() OVER (PARTITION BY item_id, city
+                                        ORDER BY fetched_at DESC) rn
+              FROM price_snapshots
+              WHERE server=:srv AND quality=1 AND sell_price_min > 0
+                AND item_id IN (SELECT item_id FROM wl)
+                AND fetched_at BETWEEN :ini AND :fim)
+            SELECT r.item_id, r.city, a.sell_price_min, r.sell_price_min
+            FROM recent r JOIN antigo a
+              ON a.item_id = r.item_id AND a.city = r.city
+            WHERE r.rn = 1 AND a.rn = 1
+        """, {"srv": config.DEFAULT_SERVER, "recente": now - 6 * 3600,
+              "ini": now - 36 * 3600, "fim": now - 18 * 3600}).fetchall()
+    finally:
+        con.close()
+    movers = []
+    for item_id, city, old, new in rows:
+        if old and new and old > 500:  # ignora micro-preços ruidosos
+            movers.append({"item_id": item_id, "city": city, "old": old,
+                           "new": new, "pct": round(100 * (new / old - 1), 1)})
+    movers.sort(key=lambda m: -abs(m["pct"]))
+    return movers[:limit * 2]
+
+
+def cmd_report(args, fmt):
+    """Relatório do dia: recomendações, backtest, movers e cobertura."""
+    from app import recommendations
+    db = ItemDB()
+    # chamada direta à função do app: todos os defaults Query() precisam
+    # ser passados explicitamente
+    rec = recommendations(
+        limit=args.top, premium=args.premium, max_age_buy=720,
+        max_age_sell=720, min_daily_volume=20, min_active_days=2,
+        history_days=7, capture_rate=config.CAPTURE_RATE)
+    cov = rec.get("coverage", {})
+    lines = ["**Mercado Albion — relatório** (Américas)"]
+    lines.append(f"Cobertura: {cov.get('price_items', 0)} itens com preço · "
+                 f"{cov.get('history_items', 0)} com histórico · "
+                 f"watchlist coletada a cada "
+                 f"{config.AUTO_COLLECT_INTERVAL_MIN} min")
+
+    opps = rec.get("opportunities", [])[:args.top]
+    if opps:
+        lines.append("")
+        lines.append(f"**Top {len(opps)} oportunidades agora** "
+                     "(lucro líq./un · Pot./dia realista · confiança):")
+        for o in opps:
+            meta = db.get(o["item_id"]) or {}
+            lines.append(
+                f"- `{o['opportunity_score']:.0f}` {meta.get('pt', o['item_id'])} "
+                f"T{o['tier']}.{o['ench']} — {city_pt(o['buy_city'])} → "
+                f"{city_pt(o['sell_city'])}: {fmt_int(o['profit'])} prata "
+                f"({o['roi_pct']:.0f}%) · {fmt_int(o.get('daily_realistic') or 0)}/dia"
+                f" · conf. {o['confidence_label']}")
+    else:
+        lines.append("Sem oportunidades com os filtros padrão agora.")
+
+    movers = _movers_24h(limit=5)
+    if movers:
+        lines.append("")
+        lines.append("**Maiores variações (~24 h, venda mín. q1):**")
+        for m in movers:
+            meta = db.get(m["item_id"]) or {}
+            seta = "▲" if m["pct"] > 0 else "▼"
+            lines.append(f"- {seta} {m['pct']:+.1f}% {meta.get('pt', m['item_id'])}"
+                         f" em {city_pt(m['city'])}: {fmt_int(m['old'])} → "
+                         f"{fmt_int(m['new'])}")
+
+    try:
+        from albion import backtest as backtest_mod
+        db_path = (DATA / "cache.db").resolve()
+        con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+        try:
+            metas = {i["id"]: i for i in db.items}
+            bt = backtest_mod.signal_backtest(con, config.DEFAULT_SERVER,
+                                              metas, premium=args.premium)
+        finally:
+            con.close()
+        ov = bt.get("overall", {})
+        if ov.get("n"):
+            lines.append("")
+            lines.append(f"**Backtest** ({bt['run_pairs_used']} pares de coleta):"
+                         f" acerto {ov['hit_rate_pct']}% · captura "
+                         f"{ov['capture_pct']}% do lucro prometido")
+    except sqlite3.Error:
+        pass
+
+    text = "\n".join(lines)
+    print(text)
+    if args.discord:
+        url = config.DISCORD_WEBHOOK_URL
+        if not url:
+            die("DISCORD_WEBHOOK_URL vazio em albion/config.py — cole a URL "
+                "do webhook do canal e tente de novo.")
+        import httpx
+        for i in range(0, len(text), 1900):
+            r = httpx.post(url, json={"content": text[i:i + 1900]}, timeout=20)
+            r.raise_for_status()
+        info("Relatório publicado no Discord.")
+
+
+def cmd_journals(args, fmt):
+    """Margem de diários: comprar vazio, vender cheio (o 'salário' da fama).
+
+    Não desconta a fama gasta para encher — é exatamente o que o crafter
+    avalia: quanto o mercado paga pela fama dele em cada família/tier.
+    """
+    from albion.flips import age_minutes, sell_revenue
+    db = ItemDB()
+    empties = [i for i in db.items
+               if "_JOURNAL_" in i["id"] and i["id"].endswith("_EMPTY")]
+    if args.tier_min:
+        empties = [i for i in empties if i["tier"] >= args.tier_min]
+    if args.tier_max:
+        empties = [i for i in empties if i["tier"] <= args.tier_max]
+    if args.family:
+        fam = args.family.upper()
+        empties = [i for i in empties if f"_{fam}_" in i["id"] + "_"]
+    if not empties:
+        die("Nenhum diário corresponde aos filtros.")
+    pairs = [(e, db.get(e["id"][:-6] + "_FULL")) for e in empties]
+    pairs = [(e, f) for e, f in pairs if f]
+    ids = [x["id"] for e, f in pairs for x in (e, f)]
+    aodp = make_aodp()
+    price_rows = api_guard(lambda: aodp.get_prices(ids, config.CITIES,
+                                                   max_age=args.max_age))
+    best = {}
+    for r in price_rows:
+        if r["quality"] != 1:
+            continue
+        d = best.setdefault(r["item_id"], {})
+        sp, bp = r["sell_price_min"] or 0, r["buy_price_max"] or 0
+        if sp > 0 and (not d.get("buy") or sp < d["buy"][0]):
+            d["buy"] = (sp, r["city"], age_minutes(r["sell_price_min_date"]))
+        if bp > 0 and (not d.get("sell_inst") or bp > d["sell_inst"][0]):
+            d["sell_inst"] = (bp, r["city"], age_minutes(r["buy_price_max_date"]))
+        if sp > 0 and (not d.get("sell_ord") or sp > d["sell_ord"][0]):
+            d["sell_ord"] = (sp, r["city"], age_minutes(r["sell_price_min_date"]))
+    rows = []
+    for e, f in pairs:
+        be, bf = best.get(e["id"], {}), best.get(f["id"], {})
+        if "buy" not in be:
+            continue
+        cost = be["buy"][0]
+        m_inst = (round(sell_revenue(bf["sell_inst"][0], "instant",
+                                     args.premium) - cost)
+                  if "sell_inst" in bf else None)
+        m_ord = (round(sell_revenue(bf["sell_ord"][0], "order",
+                                    args.premium) - cost)
+                 if "sell_ord" in bf else None)
+        rows.append({
+            "diario": e["pt"].replace(" (Vazio)", ""),
+            "tier": e["tier"],
+            "vazio": cost,
+            "cidade_compra": city_pt(be["buy"][1]),
+            "cheio_inst": bf.get("sell_inst", (None,))[0],
+            "cheio_ordem": bf.get("sell_ord", (None,))[0],
+            "margem_inst": m_inst,
+            "margem_ordem": m_ord,
+            "cidade_venda": city_pt(bf.get("sell_ord", bf.get(
+                "sell_inst", (0, "-")))[1]),
+            "_sort": max(m_inst or -9e9, m_ord or -9e9),
+        })
+    rows.sort(key=lambda r: -r.pop("_sort"))
+    info(f"{len(rows)} diários avaliados ({'com' if args.premium else 'sem'}"
+         " premium). Margem não desconta a fama para encher. A margem 'inst.'"
+         " (contra ordens de compra reais) é a executável; a coluna 'ordem'"
+         " usa o menor anúncio atual — desconfie de valores absurdos.")
+    emit(rows[:args.limit],
+         [("diario", "Diário"), ("tier", "T"), ("vazio", "Vazio (compra)"),
+          ("cidade_compra", "Onde comprar"), ("cheio_inst", "Cheio (inst.)"),
+          ("cheio_ordem", "Cheio (ordem)"), ("margem_inst", "Margem inst."),
+          ("margem_ordem", "Margem ordem"), ("cidade_venda", "Onde vender")],
+         fmt)
 
 
 def cmd_backtest(args, fmt):
@@ -1029,6 +1226,28 @@ def build_parser():
                    help="não coleta se a última rodada OK tiver menos de MIN "
                         "minutos (evita duplicar com o servidor aberto)")
     p.set_defaults(func=cmd_collect)
+
+    p = sub.add_parser("journals", parents=[common],
+                       help="margem de diários: vazio -> cheio, por família/tier")
+    p.add_argument("--family",
+                   help="WOOD|ORE|FIBER|HIDE|STONE|FISHING|MERCENARY|GENERAL")
+    p.add_argument("--tier-min", type=int)
+    p.add_argument("--tier-max", type=int)
+    p.add_argument("--premium", action=argparse.BooleanOptionalAction,
+                   default=True)
+    p.add_argument("--max-age", type=int, default=config.PRICES_TTL)
+    p.add_argument("--limit", type=int, default=25)
+    p.set_defaults(func=cmd_journals)
+
+    p = sub.add_parser("report", parents=[common],
+                       help="relatório do dia (opcional: publica no Discord)")
+    p.add_argument("--top", type=int, default=8,
+                   help="quantas oportunidades listar (padrão: 8)")
+    p.add_argument("--premium", action=argparse.BooleanOptionalAction,
+                   default=True)
+    p.add_argument("--discord", action="store_true",
+                   help="publica via webhook (config.DISCORD_WEBHOOK_URL)")
+    p.set_defaults(func=cmd_report)
 
     p = sub.add_parser("backtest", parents=[common],
                        help="valida o sinal: lucro prometido vs realizado")

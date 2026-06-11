@@ -125,6 +125,10 @@ CAPTURE_RATE = 0.20
 
 # Coleta automática da watchlist pelo servidor (0 = desligada)
 AUTO_COLLECT_INTERVAL_MIN = 30
+
+# Webhook do Discord para `analyze.py report --discord` (cole a URL do canal:
+# Configurações do canal > Integrações > Webhooks > Novo webhook > Copiar URL)
+DISCORD_WEBHOOK_URL = ""
 # Máx. de itens por rodada de coleta. 2.300 itens ≈ 92 requisições à API
 # (2 × itens/50), ~40 s por rodada — confortável dentro de 150/min e 300/5min.
 COLLECT_MAX_ITEMS = 2500

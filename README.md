@@ -94,6 +94,9 @@ python analyze.py watch add "Bolsa do Adepto,T5_BAG"             # vigiar itens
 python analyze.py collect                                        # coleta a watchlist
 python analyze.py collect --cat crafting --sub resources --tier-min 4
 python analyze.py survival                                       # persistência das ordens (flip fantasma)
+python analyze.py backtest                                       # lucro prometido vs realizado
+python analyze.py journals --tier-min 5                          # margem de diários vazio->cheio
+python analyze.py report --discord                               # relatório do dia no Discord
 python analyze.py prune                                          # compacta snapshots antigos
 python analyze.py sql "SELECT COUNT(*) FROM prices"
 python analyze.py --format json scan --cat weapons --tier-min 6   (json/csv/table)

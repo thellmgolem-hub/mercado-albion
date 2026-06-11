@@ -580,3 +580,26 @@ Pendencias seguintes (fases 4-6):
   Cobertura: 2.475 itens com preco / 1.664 com historico. cache.db ~164 MB
   (o historico de 90 dias x 8 cidades e o grosso; prune disponivel).
 - Coleta automatica a cada 30 min cobre a watchlist inteira.
+
+## 2026-06-11 - Profissionalizacao: git, backup, backtest, report, diarios (Claude)
+
+- Git inicializado (main; data/, backups/, .venv ignorados) com commits por fase.
+- scripts/backup_cache.py: backup consistente via API do SQLite + zip (retem
+  14); scripts/instalar_tarefas.cmd registra (opt-in do usuario, exigencia do
+  classificador de seguranca) as tarefas MercadoAlbion-Coleta (30 min, janela
+  oculta via run_hidden.vbs) e MercadoAlbion-Backup (diaria 04:00).
+- analyze.py collect --skip-if-recent N: nao duplica com o servidor aberto.
+- albion/backtest.py + CLI backtest + GET /api/backtest: backtest de sinal
+  (lucro prometido em R1 vs realizado em R2, por ROI/rota/idade; contraparte
+  sumida contada a parte). Numeros reais da 1a rodada: captura geral 10%,
+  entre-cidades 100%, Mercado Negro com dado velho negativo, idade 480+ ruim.
+- analyze.py report [--discord]: top oportunidades, movers ~24h da watchlist,
+  resumo do backtest e cobertura; publica via DISCORD_WEBHOOK_URL (config).
+- analyze.py journals: margem vazio->cheio por familia/tier com aviso sobre
+  anuncios absurdos (margem instantanea e a executavel).
+- Corrigido: chamadas diretas a funcoes FastAPI a partir da CLI agora passam
+  todos os defaults Query() explicitamente (recommend/lab/report).
+- 19 testes OK (novo teste sintetico do backtest com captura conhecida).
+
+Pendencias seguintes: refino/cozinha com receitas do dump, heatmap
+intercidades, indices de mercado, acesso LAN, portfolio tracker.

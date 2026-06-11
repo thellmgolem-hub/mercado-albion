@@ -19,6 +19,9 @@ python analyze.py lab <item> [--fetch]                # estatística: VWAP, z re
 python analyze.py watch add|rm|list [itens]           # watchlist de coleta
 python analyze.py collect [--cat ...]                 # coleta preços+histórico (watchlist/filtros)
 python analyze.py survival [--item X]                 # persistência de ordens (flip fantasma)
+python analyze.py backtest                            # valida sinal: prometido vs realizado
+python analyze.py journals [--family ORE]             # margem de diários vazio->cheio
+python analyze.py report [--discord]                  # relatório do dia (webhook opcional)
 python analyze.py status --detail                     # cobertura local do cache
 python analyze.py prune                               # agrega snapshots antigos
 python analyze.py sql "SELECT ..."                    # SQL somente-leitura no cache
