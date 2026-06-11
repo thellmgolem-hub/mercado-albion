@@ -1304,6 +1304,50 @@ async function loadIntel() {
   }
 }
 
+async function loadSignals() {
+  const st = $('sigStatus');
+  try {
+    const res = await api('/api/intel/signals', { limit: 12 });
+    const sigs = res.signals || [];
+    if (!sigs.length) {
+      st.textContent = res.demand_days < 3
+        ? `acumulando histórico de destruição (${res.demand_days} dia(s) — precisa de ~3+ para comparar recente × base)`
+        : 'nenhuma divergência relevante agora — mercado em dia com a destruição';
+      $('sigTable').innerHTML = '';
+      return;
+    }
+    const cols = [
+      {
+        key: 'item', label: 'Item', align: 'l', value: (r) => r.name_pt,
+        html: (r) => `<div class="cell-item">${iconImg(r.item_id)}
+          <div class="nm"><span class="te-badge">T${r.tier}.${r.ench}</span> ${esc(r.name_pt)}
+          <small>${esc(r.item_id)}</small></div></div>`,
+      },
+      {
+        key: 'dem', label: 'Destruição/dia', value: (r) => r.demanda_dia_recente,
+        html: (r) => `<b>${fmtDec(r.demanda_dia_recente, 0)}</b> <small class="muted">antes: ${fmtDec(r.demanda_dia_base, 0)}</small>`,
+      },
+      {
+        key: 'dratio', label: 'Δ demanda', align: 'c', value: (r) => r.demanda_ratio ?? 99,
+        html: (r) => r.demanda_ratio
+          ? `<span class="profit-pos">×${fmtDec(r.demanda_ratio, 2)}</span>`
+          : '<span class="muted" title="sem base de comparação">nova</span>',
+      },
+      {
+        key: 'pratio', label: 'Δ preço 7d', align: 'c', value: (r) => r.preco_ratio,
+        html: (r) => `${fmtDec((r.preco_ratio - 1) * 100, 1)}%`,
+      },
+      { key: 'preco', label: 'Preço', value: (r) => r.preco_recente, html: (r) => `<span class="silver">${fmt(r.preco_recente)}</span>` },
+      { key: 'vol', label: 'Vol. mercado/dia', value: (r) => r.volume_dia, html: (r) => fmt(r.volume_dia) },
+    ];
+    renderTable('sigTable', cols, sigs.map((r) => ({ ...r, _copy: r.name_pt })),
+      { sortKey: 'dratio' });
+    st.textContent = `${sigs.length} sinais (${res.demand_days} dias de destruição no banco) — verifique volume e frescor antes de agir`;
+  } catch (e) {
+    st.textContent = '';
+  }
+}
+
 async function refreshWatchCount() {
   try {
     const w = await api('/api/watchlist');
@@ -1475,6 +1519,8 @@ async function init() {
   loadSurvival();
   loadHeatmap();
   loadIntel();
+  loadSignals();
+  setInterval(loadSignals, 10 * 60 * 1000);
   runDiscover();
 }
 

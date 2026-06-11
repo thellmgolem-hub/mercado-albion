@@ -1142,11 +1142,14 @@ def cmd_intel(args, fmt):
     from albion import gameinfo
     if args.acao == "collect":
         aodp = make_aodp()
+        gameinfo.ensure_assumptions(aodp)
         results = []
         if args.source in ("events", "all"):
             results.append(gameinfo.ingest_events(aodp, max_pages=args.pages))
         if args.source in ("battles", "all"):
             results.append(gameinfo.ingest_battles(aodp))
+        n = gameinfo.aggregate_demand_daily(aodp)
+        info(f"item_demand_daily reagregado: {n} linhas (últimos 3 dias).")
         emit(results, [("source", "Fonte"), ("pages", "Páginas"),
                        ("seen", "Vistos"), ("inserted", "Novos"),
                        ("ok", "OK"), ("error", "Erro")], fmt)
@@ -1164,6 +1167,23 @@ def cmd_intel(args, fmt):
                 return
             rows = [{"tabela": k, "valor": str(v)} for k, v in st.items()]
             emit(rows, [("tabela", "Tabela"), ("valor", "Valor")], fmt)
+            return
+        if args.acao == "signals":
+            sigs = gameinfo.demand_price_divergence(
+                con, config.DEFAULT_SERVER, limit=args.limit)
+            db = ItemDB()
+            for s in sigs:
+                s["item"] = (db.get(s["item_id"]) or {}).get("pt", s["item_id"])
+            info("Divergência demanda × preço: destruição subindo com preço"
+                 " ainda atrasado (precisa de alguns dias de coleta de kills"
+                 " + histórico de preço dos itens).")
+            emit(sigs, [("item", "Item"),
+                        ("demanda_dia_recente", "Dem./dia (recente)"),
+                        ("demanda_dia_base", "Dem./dia (base)"),
+                        ("demanda_ratio", "Δ demanda"),
+                        ("preco_ratio", "Δ preço"),
+                        ("volume_dia", "Vol. mercado/dia"),
+                        ("nota", "Nota")], fmt)
             return
         # top: índice de destruição cruzado com nomes/preços locais
         top = gameinfo.destruction_top(
@@ -1545,7 +1565,7 @@ def build_parser():
 
     p = sub.add_parser("intel", parents=[common],
                        help="killboard: coleta pública e índice de destruição")
-    p.add_argument("acao", choices=("collect", "top", "status"))
+    p.add_argument("acao", choices=("collect", "top", "signals", "status"))
     p.add_argument("--source", choices=("events", "battles", "all"),
                    default="all", help="fonte da coleta (padrão: all)")
     p.add_argument("--pages", type=int, default=config.GAMEINFO_EVENT_PAGES,

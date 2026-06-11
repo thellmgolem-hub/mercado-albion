@@ -357,6 +357,55 @@ class IntelTests(unittest.TestCase):
         self.assertIsNone(inv["T4_LOOT"]["valor_estimado"])  # sem preço ref.
 
 
+class DivergenceTests(unittest.TestCase):
+    def test_demand_aggregation_and_price_divergence(self):
+        from datetime import datetime, timedelta, timezone
+        from albion import gameinfo
+
+        now = datetime.now(timezone.utc)
+
+        def day(offset):
+            return (now - timedelta(days=offset)).strftime("%Y-%m-%d")
+
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                # base (D-3..D-7): 10 un/dia; recente (D..D-2): 30 un/dia
+                for off in range(8):
+                    units = 30 if off <= 2 else 10
+                    eid = 100 + off
+                    aodp.db.execute(
+                        "INSERT INTO kill_events VALUES "
+                        "(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        ("americas", eid, f"{day(off)}T12:00:00.000Z", eid,
+                         "KILL", "OPEN_WORLD", None, 1000, 1, 1, "k", "v", 0))
+                    aodp.db.execute(
+                        "INSERT INTO kill_event_equipment VALUES "
+                        "(?,?,?,?,?,?,?)",
+                        ("americas", eid, "victim", "MainHand",
+                         "T4_TESTSWORD", units, 1))
+                    # preço flat 100, volume 50/dia (history diário q1)
+                    aodp.db.execute(
+                        "INSERT INTO history VALUES (?,?,?,?,?,?,?,?,?)",
+                        ("americas", "T4_TESTSWORD", "Martlock", 1, 24,
+                         f"{day(off)}T00:00:00", 50, 100.0, 0))
+                aodp.db.commit()
+                n = gameinfo.aggregate_demand_daily(aodp, days_back=10)
+                sigs = gameinfo.demand_price_divergence(
+                    aodp.db, "americas", recent_days=2, base_days=5,
+                    min_units_day=5)
+            finally:
+                aodp.db.close()
+
+        self.assertEqual(n, 8)  # 8 dias agregados
+        self.assertEqual(len(sigs), 1)
+        s = sigs[0]
+        self.assertEqual(s["item_id"], "T4_TESTSWORD")
+        self.assertAlmostEqual(s["demanda_ratio"], 3.0, places=1)
+        self.assertAlmostEqual(s["preco_ratio"], 1.0, places=2)
+        self.assertAlmostEqual(s["volume_dia"], 50.0, places=0)
+
+
 class SeasonalityAndScoreTests(unittest.TestCase):
     def test_weekend_volume_ratio_and_note(self):
         from datetime import datetime, timedelta

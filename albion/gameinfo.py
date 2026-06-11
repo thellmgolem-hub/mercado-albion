@@ -280,6 +280,144 @@ def destruction_top(con, server, days: float = 1, role: str = "victim",
              "preco_ref": r[3], "valor_estimado": r[4]} for r in rows]
 
 
+DEFAULT_ASSUMPTIONS = [
+    # (key, value, source, confidence, notes) — NUNCA tratar como verdade:
+    # são parâmetros configuráveis, a calibrar por backtest (ver plano)
+    ("trash_rate_base", 0.30, "regra comunitária não validada", "baixa",
+     "fração de equipamento destruída na morte; o resto vira loot"),
+    ("regear_capture_rate", 0.25, "estimativa inicial", "baixa",
+     "fração da destruição que vira compra no mercado em até 24h"),
+]
+
+
+def ensure_assumptions(aodp):
+    with aodp.db_lock:
+        aodp.db.executemany(
+            "INSERT OR IGNORE INTO economic_assumptions VALUES (?,?,?,?,?,?)",
+            [(k, v, s, c, time.time(), n) for k, v, s, c, n
+             in DEFAULT_ASSUMPTIONS])
+        aodp.db.commit()
+
+
+def get_assumption(con, key, default=None):
+    row = con.execute("SELECT value FROM economic_assumptions WHERE key=?",
+                      [key]).fetchone()
+    return row[0] if row else default
+
+
+def aggregate_demand_daily(aodp, days_back: int = 3) -> int:
+    """Materializa item_demand_daily reagregando os últimos N dias.
+
+    Idempotente: os dias recentes (janela ainda aberta) são recalculados a
+    cada chamada; dias antigos ficam congelados.
+    """
+    from datetime import datetime, timedelta, timezone
+    cutoff = (datetime.now(timezone.utc)
+              - timedelta(days=days_back)).strftime("%Y-%m-%d")
+    with aodp.db_lock:
+        aodp.db.execute(
+            "DELETE FROM item_demand_daily WHERE server=? AND day >= ?",
+            [aodp.server, cutoff])
+        cur = aodp.db.execute("""
+            INSERT INTO item_demand_daily
+            SELECT eq.server, substr(ke.ts, 1, 10) AS day, eq.item_id,
+              SUM(CASE WHEN eq.role='victim' AND eq.slot!='Inventory'
+                       THEN eq.count ELSE 0 END),
+              COUNT(DISTINCT CASE WHEN eq.role='victim'
+                                   AND eq.slot!='Inventory'
+                                  THEN eq.event_id END),
+              SUM(CASE WHEN eq.role='killer' THEN eq.count ELSE 0 END),
+              SUM(CASE WHEN eq.role='victim' AND eq.slot='Inventory'
+                       THEN eq.count ELSE 0 END)
+            FROM kill_event_equipment eq
+            JOIN kill_events ke
+              ON ke.server = eq.server AND ke.event_id = eq.event_id
+            WHERE eq.server=? AND substr(ke.ts, 1, 10) >= ?
+            GROUP BY day, eq.item_id
+        """, [aodp.server, cutoff])
+        n = cur.rowcount
+        aodp.db.commit()
+    return n
+
+
+def demand_price_divergence(con, server, recent_days: int = 2,
+                            base_days: int = 5, min_units_day: float = 10,
+                            demand_rise: float = 1.3,
+                            price_lag: float = 1.05, limit: int = 20):
+    """Sinal-chefe do plano: destruição subindo com preço ainda atrasado.
+
+    demanda = média de unidades perdidas/dia (vítimas, sem inventário) nos
+    últimos `recent_days` vs nos `base_days` anteriores; preço = VWAP diário
+    q1 nas cidades reais (history), último dia vs média da base.
+    """
+    rows = con.execute(f"""
+        WITH demanda AS (
+          SELECT item_id,
+                 CASE WHEN day >= date('now', :rec_delta)
+                      THEN 'recente' ELSE 'base' END AS fase,
+                 SUM(victim_units) * 1.0 / COUNT(DISTINCT day) AS unid_dia
+          FROM item_demand_daily
+          WHERE server = :srv AND day >= date('now', :janela_dias)
+          GROUP BY item_id, fase
+        ),
+        precos AS (
+          SELECT item_id, substr(ts, 1, 10) AS day,
+                 SUM(item_count * avg_price) * 1.0 / SUM(item_count) AS vwap,
+                 SUM(item_count) AS volume
+          FROM history
+          WHERE server = :srv AND time_scale = 24 AND quality = 1
+            AND item_count > 0 AND avg_price > 0
+            AND ts >= strftime('%Y-%m-%dT00:00:00', 'now', :janela)
+            AND city IN ('Bridgewatch','Caerleon','Fort Sterling',
+                         'Lymhurst','Martlock','Thetford')
+          GROUP BY item_id, day
+        ),
+        preco_agg AS (
+          SELECT item_id,
+                 AVG(CASE WHEN day >= date('now', :rec_delta)
+                          THEN vwap END) AS preco_recente,
+                 AVG(CASE WHEN day < date('now', :rec_delta)
+                          THEN vwap END) AS preco_base,
+                 SUM(volume) / COUNT(DISTINCT day) AS volume_dia
+          FROM precos GROUP BY item_id
+        )
+        SELECT r.item_id, r.unid_dia AS demanda_recente,
+               COALESCE(b.unid_dia, 0) AS demanda_base,
+               p.preco_recente, p.preco_base, p.volume_dia
+        FROM demanda r
+        LEFT JOIN demanda b ON b.item_id = r.item_id AND b.fase = 'base'
+        JOIN preco_agg p ON p.item_id = r.item_id
+        WHERE r.fase = 'recente' AND r.unid_dia >= :min_units
+          AND p.preco_recente IS NOT NULL AND p.preco_base IS NOT NULL
+    """, {"srv": server,
+          "janela": f"-{recent_days + base_days} days",
+          "janela_dias": f"-{recent_days + base_days} days",
+          "rec_delta": f"-{recent_days} days",
+          "min_units": min_units_day}).fetchall()
+    out = []
+    for item_id, dem_rec, dem_base, p_rec, p_base, vol in rows:
+        dem_ratio = (dem_rec / dem_base) if dem_base > 0 else None
+        price_ratio = p_rec / p_base if p_base else None
+        # demanda nova (sem base) também é sinal, com ressalva
+        rising = dem_ratio is None or dem_ratio >= demand_rise
+        lagging = price_ratio is not None and price_ratio <= price_lag
+        if rising and lagging:
+            out.append({
+                "item_id": item_id,
+                "demanda_dia_recente": round(dem_rec, 1),
+                "demanda_dia_base": round(dem_base, 1),
+                "demanda_ratio": round(dem_ratio, 2) if dem_ratio else None,
+                "preco_recente": round(p_rec, 1),
+                "preco_base": round(p_base, 1),
+                "preco_ratio": round(price_ratio, 3),
+                "volume_dia": round(vol, 1),
+                "nota": "demanda nova (sem base de comparação)"
+                if dem_ratio is None else None,
+            })
+    out.sort(key=lambda o: -(o["demanda_ratio"] or 99))
+    return out[:limit]
+
+
 def intel_status(con, server):
     out = {}
     for table in ("kill_events", "kill_event_actors", "kill_event_equipment",

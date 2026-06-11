@@ -168,6 +168,16 @@ class AODP:
               kills INTEGER, deaths INTEGER, kill_fame INTEGER,
               PRIMARY KEY (server, battle_id, entity_type, entity_id)
             );
+            CREATE TABLE IF NOT EXISTS item_demand_daily (
+              server TEXT, day TEXT, item_id TEXT,
+              victim_units INTEGER, victim_events INTEGER,
+              killer_units INTEGER, inventory_units INTEGER,
+              PRIMARY KEY (server, day, item_id)
+            );
+            CREATE TABLE IF NOT EXISTS economic_assumptions (
+              key TEXT PRIMARY KEY, value REAL, source TEXT,
+              confidence TEXT, updated_at REAL, notes TEXT
+            );
             CREATE TABLE IF NOT EXISTS price_snapshots_daily (
               server TEXT, item_id TEXT, city TEXT, quality INTEGER, day TEXT,
               sell_min INTEGER, sell_avg REAL, sell_max INTEGER,

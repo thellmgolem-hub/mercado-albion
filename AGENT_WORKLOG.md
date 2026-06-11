@@ -710,3 +710,29 @@ Proximos passos (fases 3+ do plano): agregacao diaria item_demand_daily com
 z-score de destruicao, sinal divergencia demanda-preco na tela inicial,
 clusters de morte (zvz/gank) com item_combat_tags, assumptions economicas
 configuraveis (trash rate) e regear forecasts com backtest de alertas.
+
+## 2026-06-11 - Fase 3: divergencia demanda x preco (Claude)
+
+- Tabelas novas: item_demand_daily (agregado diario de destruicao por item,
+  separando vitima/killer/inventario) e economic_assumptions (parametros
+  configuraveis: trash_rate_base=0.30 e regear_capture_rate=0.25 gravados como
+  'regra comunitaria nao validada', confianca baixa — NUNCA hardcoded como
+  verdade, conforme o plano Trash to Cash).
+- albion/gameinfo.py: aggregate_demand_daily() (reagrega ultimos 3 dias,
+  idempotente, dias antigos congelados) e demand_price_divergence() — o
+  sinal-chefe do plano: destruicao/dia recente vs base (5d) cruzada com VWAP
+  diario q1 das cidades reais; flags: demanda >= 1.3x e preco <= 1.05x;
+  demanda sem base marcada como 'demanda nova'.
+- CLI: intel signals; intel collect agora reagrega e garante assumptions.
+- Servidor: loop agrega apos cada ingestao; GET /api/intel/signals; painel
+  'Demanda subindo, preco atrasado' na aba Inicio com estado vazio honesto
+  (mostra quantos dias de historico ja existem). Assets v=20260611-5.
+- Teste sintetico de ponta a ponta: 8 dias de kills (10/dia -> 30/dia) +
+  preco flat => ratio 3.0 detectado, preco 1.0, volume 50/dia (21 testes OK).
+- Validacao real: 534 kills ja no banco (ingestao automatica de 10 min
+  funcionando sozinha), 2.486 linhas item-dia agregadas, primeiro sinal
+  emitido com ressalva de base curta.
+
+Proximos passos: clusters de morte (zvz/gank) com item_combat_tags, aplicar
+trash_rate/regear nos valores do painel, z-score de destruicao com mais dias,
+backtest de alertas de divergencia (mesma infra do backtest de flips).

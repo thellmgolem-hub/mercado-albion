@@ -785,6 +785,7 @@ def _auto_collect_loop():
             from albion import gameinfo
             gameinfo.ingest_events(aodp)
             gameinfo.ingest_battles(aodp)
+            gameinfo.aggregate_demand_daily(aodp)
         except Exception:
             pass  # registrado em public_data_runs quando possível
         try:
@@ -799,9 +800,35 @@ def _auto_collect_loop():
 
 @app.on_event("startup")
 def _start_auto_collect():
+    from albion import gameinfo
+    gameinfo.ensure_assumptions(aodp)
     if config.AUTO_COLLECT_INTERVAL_MIN > 0:
         threading.Thread(target=_auto_collect_loop, daemon=True,
                          name="auto-collect").start()
+
+
+@app.get("/api/intel/signals")
+def intel_signals(limit: int = Query(20, le=100),
+                  min_units: float = Query(10, ge=0)):
+    """Divergência demanda × preço: destruição subindo, preço atrasado."""
+    from albion import gameinfo
+    con = _cache_connection()
+    if con is None:
+        return {"signals": [], "demand_days": 0}
+    try:
+        sigs = gameinfo.demand_price_divergence(
+            con, aodp.server, min_units_day=min_units, limit=limit)
+        days = con.execute(
+            "SELECT COUNT(DISTINCT day) FROM item_demand_daily WHERE server=?",
+            [aodp.server]).fetchone()[0]
+    finally:
+        con.close()
+    for s in sigs:
+        meta = db.get(s["item_id"]) or {}
+        s["name_pt"] = meta.get("pt", s["item_id"])
+        s["tier"] = meta.get("tier", 0)
+        s["ench"] = meta.get("ench", 0)
+    return {"signals": sigs, "demand_days": days}
 
 
 @app.get("/api/intel/top")
