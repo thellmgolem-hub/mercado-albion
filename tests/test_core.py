@@ -251,6 +251,57 @@ class SurvivalTests(unittest.TestCase):
         self.assertEqual(res["sides"]["buy"]["pairs"], 0)
 
 
+class BacktestTests(unittest.TestCase):
+    def test_signal_backtest_expected_vs_realized(self):
+        from datetime import datetime, timezone
+        from albion import backtest as bt
+        base = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc).timestamp()
+        date1 = "2026-01-01T11:50:00"
+
+        def snap(item, city, fetched, sell, buy):
+            return ("americas", item, city, 1, sell, date1, 0,
+                    "0001-01-01T00:00:00", 0, "0001-01-01T00:00:00",
+                    buy, date1 if buy else "0001-01-01T00:00:00", fetched)
+
+        with TemporaryDirectory() as tmp:
+            client = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                # duas rodadas de coleta, 30 min de distância
+                client.db.executemany(
+                    "INSERT INTO collection_runs VALUES (?,?,?,?,?,?,?,?,?)",
+                    [("americas", base, base + 60, "test", 2, 8, 0, 1, None),
+                     ("americas", base + 1800, base + 1860, "test", 2, 8, 0, 1,
+                      None)])
+                rows = [
+                    # rota A: compra 1000 em Martlock, BM paga 2000 em R1;
+                    # em R2 a ordem do BM caiu para 1500 (captura parcial)
+                    snap("T5_BAG", "Martlock", base, 1000, 0),
+                    snap("T5_BAG", "Black Market", base, 0, 2000),
+                    snap("T5_BAG", "Martlock", base + 1800, 1000, 0),
+                    snap("T5_BAG", "Black Market", base + 1800, 0, 1500),
+                ]
+                client.db.executemany(
+                    "INSERT INTO price_snapshots VALUES "
+                    "(?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+                client.db.commit()
+                metas = {"T5_BAG": {"pt": "Bolsa", "en": "Bag",
+                                    "cat": "bags", "w": 1}}
+                res = bt.signal_backtest(client.db, "americas", metas,
+                                         premium=True, min_profit=0)
+            finally:
+                client.db.close()
+
+        ov = res["overall"]
+        self.assertEqual(res["run_pairs_used"], 1)
+        self.assertEqual(ov["n"], 1)
+        # esperado: 0.96*2000 - 1000 = 920 ; realizado: 0.96*1500 - 1000 = 440
+        self.assertAlmostEqual(ov["expected_profit_avg"], 920, places=1)
+        self.assertAlmostEqual(ov["realized_profit_avg"], 440, places=1)
+        self.assertAlmostEqual(ov["capture_pct"], 47.8, delta=0.1)
+        self.assertEqual(ov["hit_rate_pct"], 100.0)
+        self.assertEqual(res["by_route"]["Mercado Negro"]["n"], 1)
+
+
 class SeasonalityAndScoreTests(unittest.TestCase):
     def test_weekend_volume_ratio_and_note(self):
         from datetime import datetime, timedelta

@@ -726,6 +726,23 @@ def collect(days: int = Query(30, le=180), cities: str | None = None,
     return result
 
 
+@app.get("/api/backtest")
+def backtest(premium: bool = True, min_profit: float = Query(500, ge=0),
+             max_runs: int = Query(60, le=500)):
+    """Backtest de sinal sobre as rodadas de coleta acumuladas."""
+    from albion import backtest as backtest_mod
+    con = _cache_connection()
+    if con is None:
+        return {"runs_total": 0, "run_pairs_used": 0, "overall": {"n": 0}}
+    try:
+        metas = {i["id"]: i for i in db.items}
+        return backtest_mod.signal_backtest(
+            con, aodp.server, metas, premium=premium,
+            min_profit=min_profit, max_runs=max_runs)
+    finally:
+        con.close()
+
+
 @app.get("/api/survival")
 def order_survival(item: str | None = None, city: str | None = None,
                    quality: int | None = Query(None, ge=1, le=5)):

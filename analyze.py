@@ -806,6 +806,48 @@ def cmd_survival(args, fmt):
                 ("gap_mediano_min", "Gap mediano (min)")], fmt)
 
 
+def cmd_backtest(args, fmt):
+    """Backtest de sinal: o lucro prometido se realizou na coleta seguinte?"""
+    from albion import backtest as backtest_mod
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado — rode `collect` algumas vezes antes.")
+    db = ItemDB()
+    metas = {i["id"]: i for i in db.items}
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        res = backtest_mod.signal_backtest(
+            con, config.DEFAULT_SERVER, metas, premium=args.premium,
+            min_profit=args.min_profit, max_runs=args.max_runs)
+    finally:
+        con.close()
+    if fmt == "json":
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        return
+    ov = res["overall"]
+    info(f"{res['run_pairs_used']} pares de coleta usados (de {res['runs_total']}"
+         f" rodadas) · {res['no_counterparty']} oportunidades sem contraparte"
+         " na coleta seguinte (excluídas das médias).")
+    if not ov.get("n"):
+        info("Ainda sem pares suficientes — deixe a coleta acumular rodadas.")
+        return
+    rows = [{"grupo": "GERAL", "faixa": "-", **ov}]
+    for k, v in res["by_expected_roi"].items():
+        if v.get("n"):
+            rows.append({"grupo": "ROI esperado %", "faixa": k, **v})
+    for k, v in res["by_route"].items():
+        if v.get("n"):
+            rows.append({"grupo": "rota", "faixa": k, **v})
+    for k, v in res["by_sell_age_min"].items():
+        if v.get("n"):
+            rows.append({"grupo": "idade venda (min)", "faixa": k, **v})
+    emit(rows, [("grupo", "Grupo"), ("faixa", "Faixa"), ("n", "N"),
+                ("hit_rate_pct", "Acerto %"),
+                ("expected_profit_avg", "Esperado médio"),
+                ("realized_profit_avg", "Realizado médio"),
+                ("capture_pct", "Captura %")], fmt)
+
+
 def cmd_prune(args, fmt):
     aodp = make_aodp()
     res = aodp.snapshot_prune(days=args.days)
@@ -834,7 +876,7 @@ def build_parser():
     sub = ap.add_subparsers(
         dest="cmd", required=True,
         metavar="{search,prices,flips,scan,sell,history,recommend,lab,"
-                "watch,collect,survival,gold,status,prune,sql}")
+                "watch,collect,survival,backtest,gold,status,prune,sql}")
 
     p = sub.add_parser("search", parents=[common],
                        help="busca itens por nome PT/EN ou id")
@@ -987,6 +1029,16 @@ def build_parser():
                    help="não coleta se a última rodada OK tiver menos de MIN "
                         "minutos (evita duplicar com o servidor aberto)")
     p.set_defaults(func=cmd_collect)
+
+    p = sub.add_parser("backtest", parents=[common],
+                       help="valida o sinal: lucro prometido vs realizado")
+    p.add_argument("--premium", action=argparse.BooleanOptionalAction,
+                   default=True)
+    p.add_argument("--min-profit", type=float, default=500,
+                   help="só avalia oportunidades com lucro esperado acima disso")
+    p.add_argument("--max-runs", type=int, default=60,
+                   help="quantas rodadas de coleta recentes usar (padrão: 60)")
+    p.set_defaults(func=cmd_backtest)
 
     p = sub.add_parser("survival", parents=[common],
                        help="persistência das ordens (proxy de flip fantasma)")
