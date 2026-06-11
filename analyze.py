@@ -928,6 +928,98 @@ def cmd_report(args, fmt):
         info("Relatório publicado no Discord.")
 
 
+REFINED_BY_FAMILY = {"WOOD": "PLANKS", "ORE": "METALBAR", "FIBER": "CLOTH",
+                     "HIDE": "LEATHER", "ROCK": "STONEBLOCK",
+                     "STONE": "STONEBLOCK"}
+
+
+def cmd_refine(args, fmt):
+    """Margem de refino por cidade, com receitas exatas do jogo.
+
+    RRR = taxa de retorno de recursos (36,7% em cidade com bônus sem foco;
+    53,9% com foco; ~15,2% fora de bônus). O retorno reduz o custo efetivo
+    dos insumos: custo × (1 − RRR).
+    """
+    from albion.flips import age_minutes, sell_revenue
+    fam = args.familia.upper()
+    ref = REFINED_BY_FAMILY.get(fam)
+    if not ref:
+        die(f"Família desconhecida: {args.familia}. "
+            f"Use: {', '.join(sorted(set(REFINED_BY_FAMILY)))}")
+    e = args.ench
+    refined_id = (f"T{args.tier}_{ref}_LEVEL{e}@{e}" if e
+                  else f"T{args.tier}_{ref}")
+    recipes_path = DATA / "recipes_refining.json"
+    if not recipes_path.exists():
+        die("Receitas não geradas — rode `python scripts/build_recipes.py`.")
+    recipes = json.loads(recipes_path.read_text(encoding="utf-8"))
+    recipe = recipes.get(refined_id)
+    if not recipe:
+        die(f"Sem receita para {refined_id} (T2 não refina; encanto só T4+).")
+    db = ItemDB()
+    meta = db.get(refined_id) or {}
+    ids = [refined_id] + [i["id"] for i in recipe["inputs"]]
+    aodp = make_aodp()
+    price_rows = api_guard(lambda: aodp.get_prices(ids, config.ROYAL_CITIES
+                                                   + ["Brecilien"],
+                                                   max_age=args.max_age))
+    by_city = {}
+    for r in price_rows:
+        if r["quality"] == 1:
+            by_city.setdefault(r["city"], {})[r["item_id"]] = r
+    rrr = args.rrr / 100
+    rows = []
+    for city, prices in by_city.items():
+        out = prices.get(refined_id)
+        if not out:
+            continue
+        cost = 0
+        ok = True
+        for inp in recipe["inputs"]:
+            p = prices.get(inp["id"], {}).get("sell_price_min") or 0
+            if p <= 0:
+                ok = False
+                break
+            cost += inp["count"] * p
+        if not ok:
+            continue
+        eff_cost = cost * (1 - rrr) + args.fee
+        sell_ord = out.get("sell_price_min") or 0
+        sell_inst = out.get("buy_price_max") or 0
+        m_ord = (round(sell_revenue(sell_ord, "order", args.premium) - eff_cost)
+                 if sell_ord > 0 else None)
+        m_inst = (round(sell_revenue(sell_inst, "instant", args.premium)
+                        - eff_cost) if sell_inst > 0 else None)
+        rows.append({
+            "cidade": city_pt(city),
+            "custo_insumos": cost,
+            "custo_efetivo": round(eff_cost),
+            "refinado_ordem": sell_ord or None,
+            "refinado_inst": sell_inst or None,
+            "margem_ordem": m_ord,
+            "margem_inst": m_inst,
+            "margem_ordem_pct": (round(100 * m_ord / eff_cost, 1)
+                                 if m_ord is not None and eff_cost else None),
+            "idade_min": age_minutes(out.get("sell_price_min_date")),
+            "_sort": m_ord if m_ord is not None else (m_inst or -9e9),
+        })
+    rows.sort(key=lambda r: -(r.pop("_sort") or 0))
+    info(f"Refino de {meta.get('pt', refined_id)} ({refined_id}) — receita: "
+         + " + ".join(f"{i['count']}x {(db.get(i['id']) or {}).get('pt', i['id'])}"
+                      for i in recipe["inputs"])
+         + f" · RRR {args.rrr}% · taxa de estação {args.fee} prata"
+         f" · {'com' if args.premium else 'sem'} premium."
+         " Compra de insumos e venda na MESMA cidade.")
+    emit(rows, [("cidade", "Cidade"), ("custo_insumos", "Insumos"),
+                ("custo_efetivo", "Custo efetivo"),
+                ("refinado_ordem", "Venda (ordem)"),
+                ("refinado_inst", "Venda (inst.)"),
+                ("margem_ordem", "Margem ordem"),
+                ("margem_inst", "Margem inst."),
+                ("margem_ordem_pct", "Margem %"),
+                ("idade_min", "Idade (min)")], fmt)
+
+
 def cmd_journals(args, fmt):
     """Margem de diários: comprar vazio, vender cheio (o 'salário' da fama).
 
@@ -1043,6 +1135,119 @@ def cmd_backtest(args, fmt):
                 ("expected_profit_avg", "Esperado médio"),
                 ("realized_profit_avg", "Realizado médio"),
                 ("capture_pct", "Captura %")], fmt)
+
+
+def cmd_pos(args, fmt):
+    """Portfolio: registra operações reais e acompanha o PnL (imposto 4%)."""
+    from albion.flips import sell_revenue
+    db = ItemDB()
+    aodp = make_aodp()
+    if args.acao == "add":
+        it = resolve_item(db, args.item)
+        city = parse_cities(args.city)[0] if args.city else None
+        pid = aodp.pos_add(it["id"], args.qty, args.price, buy_city=city,
+                           quality=args.quality, note=args.note)
+        info(f"Posição #{pid}: {args.qty}x {it['pt']} @ {fmt_int(args.price)}.")
+        return
+    if args.acao == "sell":
+        if not args.pos_id or args.price is None:
+            die("Use: pos sell --id N --price P [--city C]")
+        city = parse_cities(args.city)[0] if args.city else None
+        if not aodp.pos_close(args.pos_id, args.price, sell_city=city):
+            die(f"Posição #{args.pos_id} não encontrada ou já fechada.")
+        info(f"Posição #{args.pos_id} fechada @ {fmt_int(args.price)}.")
+        return
+    if args.acao == "rm":
+        if not args.pos_id:
+            die("Use: pos rm --id N")
+        if not aodp.pos_delete(args.pos_id):
+            die(f"Posição #{args.pos_id} não encontrada.")
+        info(f"Posição #{args.pos_id} removida.")
+        return
+
+    # list
+    positions = aodp.pos_list(include_closed=args.all)
+    if not positions:
+        info("Nenhuma posição registrada. Use `pos add`.")
+        return
+    open_ids = sorted({p["item_id"] for p in positions if not p["closed_at"]})
+    cur_best = {}
+    if open_ids:
+        price_rows = api_guard(lambda: aodp.get_prices(open_ids, config.CITIES))
+        for r in price_rows:
+            bp = r["buy_price_max"] or 0
+            key = (r["item_id"], r["quality"])
+            if bp > 0 and bp > cur_best.get(key, (0,))[0]:
+                cur_best[key] = (bp, r["city"])
+    rows, pnl_aberto, pnl_fechado = [], 0.0, 0.0
+    for p in positions:
+        meta = db.get(p["item_id"]) or {}
+        if p["closed_at"]:
+            pnl = p["qty"] * (sell_revenue(p["sell_price"], "instant", True)
+                              - p["buy_price"])
+            pnl_fechado += pnl
+            estado, atual = "fechada", p["sell_price"]
+        else:
+            best = cur_best.get((p["item_id"], p["quality"]))
+            atual = best[0] if best else None
+            pnl = (p["qty"] * (sell_revenue(atual, "instant", True)
+                               - p["buy_price"]) if atual else None)
+            if pnl is not None:
+                pnl_aberto += pnl
+            estado = "aberta"
+        rows.append({
+            "id": p["id"], "estado": estado,
+            "item": meta.get("pt", p["item_id"]), "q": p["quality"],
+            "qtd": p["qty"], "compra": p["buy_price"],
+            "atual_venda": atual, "pnl": round(pnl) if pnl is not None else None,
+            "nota": p["note"] or "-",
+        })
+    info(f"PnL aberto (marcado a mercado, venda instantânea, premium): "
+         f"{fmt_int(pnl_aberto)} · PnL realizado: {fmt_int(pnl_fechado)}")
+    emit(rows, [("id", "#"), ("estado", "Estado"), ("item", "Item"),
+                ("q", "Q"), ("qtd", "Qtd"), ("compra", "Compra"),
+                ("atual_venda", "Venda atual"), ("pnl", "PnL líq."),
+                ("nota", "Nota")], fmt)
+
+
+def cmd_indexes(args, fmt):
+    """Índice de preço (base 100) ponderado por volume para uma cesta."""
+    db = ItemDB()
+    basket = [i["id"] for i in db.filter(cat=args.cat, sub=args.sub,
+                                         tier_min=args.tier_min,
+                                         tier_max=args.tier_max)]
+    if not basket:
+        die("Cesta vazia — confira --cat/--sub.")
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado.")
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        ph = ",".join("?" * len(basket))
+        rows = con.execute(f"""
+            SELECT substr(ts,1,10) AS dia,
+                   SUM(item_count * avg_price) * 1.0 / SUM(item_count) AS vwap,
+                   SUM(item_count) AS volume
+            FROM history
+            WHERE server=? AND time_scale=24 AND quality=1
+              AND item_count > 0 AND avg_price > 0
+              AND ts >= date('now', ?)
+              AND item_id IN ({ph})
+            GROUP BY dia ORDER BY dia
+        """, [config.DEFAULT_SERVER, f"-{args.days} days", *basket]).fetchall()
+    finally:
+        con.close()
+    if not rows:
+        die("Sem histórico para a cesta — rode `collect` antes.")
+    base = rows[0][1]
+    out = [{"dia": d, "indice": round(100 * v / base, 2),
+            "vwap": round(v, 1), "volume": vol}
+           for d, v, vol in rows]
+    info(f"Cesta: {len(basket)} itens ({args.cat or 'todas'}/"
+         f"{args.sub or 'todas'}) · base 100 = {out[0]['dia']}"
+         " · VWAP diário q1, ponderado por volume.")
+    emit(out, [("dia", "Dia"), ("indice", "Índice"), ("vwap", "VWAP"),
+               ("volume", "Volume")], fmt)
 
 
 def cmd_prune(args, fmt):
@@ -1227,6 +1432,20 @@ def build_parser():
                         "minutos (evita duplicar com o servidor aberto)")
     p.set_defaults(func=cmd_collect)
 
+    p = sub.add_parser("refine", parents=[common],
+                       help="margem de refino por cidade (receitas do jogo)")
+    p.add_argument("familia", help="wood|ore|fiber|hide|rock")
+    p.add_argument("--tier", type=int, required=True)
+    p.add_argument("--ench", type=int, default=0, choices=range(0, 5))
+    p.add_argument("--rrr", type=float, default=36.7,
+                   help="retorno de recursos %% (36,7 bônus; 53,9 foco; 15,2 sem)")
+    p.add_argument("--fee", type=float, default=0,
+                   help="taxa da estação por refino, em prata (padrão: 0)")
+    p.add_argument("--premium", action=argparse.BooleanOptionalAction,
+                   default=True)
+    p.add_argument("--max-age", type=int, default=config.PRICES_TTL)
+    p.set_defaults(func=cmd_refine)
+
     p = sub.add_parser("journals", parents=[common],
                        help="margem de diários: vazio -> cheio, por família/tier")
     p.add_argument("--family",
@@ -1265,6 +1484,29 @@ def build_parser():
     p.add_argument("--city", help="filtra uma cidade")
     p.add_argument("--quality", type=int, choices=range(1, 6))
     p.set_defaults(func=cmd_survival)
+
+    p = sub.add_parser("pos", parents=[common],
+                       help="portfolio: registra compras/vendas reais e PnL")
+    p.add_argument("acao", choices=("add", "sell", "list", "rm"))
+    p.add_argument("item", nargs="?", help="item (para add)")
+    p.add_argument("--id", dest="pos_id", type=int, help="id da posição")
+    p.add_argument("--qty", type=int, default=1)
+    p.add_argument("--price", type=float, help="preço unitário")
+    p.add_argument("--city", help="cidade")
+    p.add_argument("--quality", type=int, default=1, choices=range(1, 6))
+    p.add_argument("--note", help="anotação livre")
+    p.add_argument("--all", action="store_true",
+                   help="lista também as fechadas")
+    p.set_defaults(func=cmd_pos)
+
+    p = sub.add_parser("indexes", parents=[common],
+                       help="índice de preço (base 100) de uma cesta de itens")
+    p.add_argument("--cat", help="categoria da cesta (ex.: crafting)")
+    p.add_argument("--sub", help="subcategoria (ex.: resources)")
+    p.add_argument("--tier-min", type=int)
+    p.add_argument("--tier-max", type=int)
+    p.add_argument("--days", type=int, default=30)
+    p.set_defaults(func=cmd_indexes)
 
     p = sub.add_parser("prune", parents=[common],
                        help="agrega snapshots antigos e compacta o cache")

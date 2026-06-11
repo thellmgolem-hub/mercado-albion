@@ -1208,6 +1208,59 @@ async function loadSurvival() {
   }
 }
 
+function fmtCompact(n) {
+  if (n >= 1e6) return (n / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'M';
+  if (n >= 1e3) return Math.round(n / 1e3).toLocaleString('pt-BR') + 'k';
+  return fmt(n);
+}
+
+async function loadHeatmap() {
+  const st = $('heatStatus');
+  try {
+    const res = await api('/api/recommendations', {
+      premium: state.premium, limit: 200, min_daily_volume: 5,
+      min_active_days: 2, max_age_buy: 720, max_age_sell: 720,
+    });
+    const opps = res.opportunities || [];
+    if (!opps.length) {
+      st.textContent = 'sem rotas com os dados atuais — colete mais algumas vezes';
+      $('heatTable').innerHTML = '';
+      return;
+    }
+    const routes = {};
+    for (const o of opps) {
+      const r = routes[o.buy_city + '|' + o.sell_city] ||= {
+        buy: o.buy_city, sell: o.sell_city, total: 0, n: 0, top: null,
+      };
+      r.total += o.daily_realistic || 0;
+      r.n += 1;
+      if (!r.top || (o.daily_realistic || 0) > (r.top.daily_realistic || 0)) r.top = o;
+    }
+    const buys = [...new Set(Object.values(routes).map((r) => r.buy))].sort();
+    const sells = [...new Set(Object.values(routes).map((r) => r.sell))].sort();
+    const max = Math.max(...Object.values(routes).map((r) => r.total), 1);
+    let html = '<table><thead><tr><th class="l">compra ↓ / venda →</th>' +
+      sells.map((s) => `<th>${cityHtml(s)}</th>`).join('') + '</tr></thead><tbody>';
+    for (const b of buys) {
+      html += `<tr><td class="l">${cityHtml(b)}</td>`;
+      for (const s of sells) {
+        const r = routes[b + '|' + s];
+        if (!r) { html += '<td class="muted c">—</td>'; continue; }
+        const alpha = (0.12 + 0.55 * r.total / max).toFixed(2);
+        const meta = state.meta;
+        html += `<td class="c" style="background:rgba(212,168,67,${alpha})" ` +
+          `title="${esc(r.top.name_pt)}: ${fmt(r.top.daily_realistic)}/dia · ${r.n} oportunidades">` +
+          `<b>${fmtCompact(r.total)}</b><br><small class="muted">${r.n} itens</small></td>`;
+      }
+      html += '</tr>';
+    }
+    $('heatTable').innerHTML = html + '</tbody></table>';
+    st.textContent = `${opps.length} oportunidades agregadas em ${Object.keys(routes).length} rotas (passe o mouse para ver o item líder)`;
+  } catch (e) {
+    st.textContent = '';
+  }
+}
+
 async function refreshWatchCount() {
   try {
     const w = await api('/api/watchlist');
@@ -1227,6 +1280,7 @@ async function runCollect() {
     loadStatus();
     loadDashboardRecommendations();
     loadSurvival();
+    loadHeatmap();
   } catch (e) {
     toast('erro na coleta: ' + e.message);
   } finally {
@@ -1372,6 +1426,7 @@ async function init() {
   refreshWatchCount();
   loadDashboardRecommendations();
   loadSurvival();
+  loadHeatmap();
   runDiscover();
 }
 

@@ -31,6 +31,21 @@ HOST, PORT = "127.0.0.1", 8528
 app = FastAPI(title="Mercado Albion — Américas")
 db = ItemDB()
 aodp = AODP(server=config.DEFAULT_SERVER)
+
+
+if config.ACCESS_TOKEN:
+    @app.middleware("http")
+    async def _token_guard(request, call_next):
+        tok = config.ACCESS_TOKEN
+        ok = (request.cookies.get("albion_token") == tok
+              or request.query_params.get("token") == tok
+              or request.headers.get("x-token") == tok)
+        if not ok:
+            return Response("acesso negado — abra com ?token=SEU_TOKEN",
+                            status_code=401)
+        resp = await call_next(request)
+        resp.set_cookie("albion_token", tok, max_age=30 * 86400)
+        return resp
 SAFE_ROYAL_CITIES = [c for c in config.ROYAL_CITIES if c != "Caerleon"]
 
 
@@ -844,6 +859,8 @@ app.mount("/", StaticFiles(directory=ROOT / "web", html=True), name="web")
 
 if __name__ == "__main__":
     import uvicorn
+    serve_host = "0.0.0.0" if config.SERVE_LAN else HOST
     threading.Timer(1.5, lambda: webbrowser.open(f"http://{HOST}:{PORT}")).start()
-    print(f"Mercado Albion (Américas) — http://{HOST}:{PORT}")
-    uvicorn.run(app, host=HOST, port=PORT, log_level="warning")
+    print(f"Mercado Albion (Américas) — http://{HOST}:{PORT}"
+          + (" (acessível pela rede local)" if config.SERVE_LAN else ""))
+    uvicorn.run(app, host=serve_host, port=PORT, log_level="warning")

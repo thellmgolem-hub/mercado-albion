@@ -603,3 +603,26 @@ Pendencias seguintes (fases 4-6):
 
 Pendencias seguintes: refino/cozinha com receitas do dump, heatmap
 intercidades, indices de mercado, acesso LAN, portfolio tracker.
+
+## 2026-06-11 - Refino, heatmap, LAN, portfolio e indices (Claude)
+
+- scripts/build_recipes.py: extrai as 115 receitas de refino do dump bruto
+  (incl. encantadas: no dump sao entradas X_LEVELn sem o @n do mercado) ->
+  data/recipes_refining.json. Nada de constantes chutadas.
+- analyze.py refine <familia> --tier --ench [--rrr 36.7] [--fee]: margem de
+  refino por cidade (custo efetivo = insumos x (1-RRR)), validado com dados
+  reais (couro T6.2: so Caerleon positivo, +12,8%).
+- analyze.py pos add|sell|list|rm + tabela positions no cache: portfolio com
+  PnL aberto marcado a mercado (venda instantanea, premium) e PnL realizado.
+- analyze.py indexes: indice de preco base-100 ponderado por volume (VWAP
+  diario q1) para uma cesta cat/sub/tier — recursos brutos caíram ~5% na
+  semana com 22M itens/dia de volume.
+- Mapa de rotas na aba Inicio: matriz compra x venda com potencial realista
+  somado e item lider no tooltip (agregado client-side de /api/recommendations).
+- Acesso LAN opcional: SERVE_LAN + ACCESS_TOKEN (middleware token->cookie).
+- Assets v=20260611-3; 19 testes OK; console limpo; persistencia ja com
+  17 mil pares apos a coleta automatica rodar o dia.
+
+Pendencias: cozinha/alquimia com receitas do dump (mesma infra do refino),
+indices/portfolio na UI, alertas de preco no Discord, calibracao continua do
+CAPTURE_RATE pelo backtest.

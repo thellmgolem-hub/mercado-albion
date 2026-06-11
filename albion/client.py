@@ -108,6 +108,12 @@ class AODP:
               server TEXT, item_id TEXT, added_at REAL,
               PRIMARY KEY (server, item_id)
             );
+            CREATE TABLE IF NOT EXISTS positions (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              server TEXT, item_id TEXT, quality INTEGER, qty INTEGER,
+              buy_price REAL, buy_city TEXT, opened_at REAL,
+              sell_price REAL, sell_city TEXT, closed_at REAL, note TEXT
+            );
             CREATE TABLE IF NOT EXISTS collection_runs (
               server TEXT, started_at REAL, finished_at REAL, source TEXT,
               items INTEGER, price_rows INTEGER, history_series INTEGER,
@@ -420,6 +426,48 @@ class AODP:
                      result["history_series"], ok, error))
                 self.db.commit()
         return result
+
+    # ---------------------------------------------------------------- posições
+
+    def pos_add(self, item_id, qty, buy_price, buy_city=None, quality=1,
+                note=None) -> int:
+        with self.db_lock:
+            cur = self.db.execute(
+                "INSERT INTO positions (server,item_id,quality,qty,buy_price,"
+                "buy_city,opened_at,note) VALUES (?,?,?,?,?,?,?,?)",
+                (self.server, item_id, quality, qty, buy_price, buy_city,
+                 time.time(), note))
+            self.db.commit()
+            return cur.lastrowid
+
+    def pos_close(self, pos_id, sell_price, sell_city=None) -> bool:
+        with self.db_lock:
+            cur = self.db.execute(
+                "UPDATE positions SET sell_price=?, sell_city=?, closed_at=?"
+                " WHERE id=? AND server=? AND closed_at IS NULL",
+                (sell_price, sell_city, time.time(), pos_id, self.server))
+            self.db.commit()
+            return cur.rowcount > 0
+
+    def pos_delete(self, pos_id) -> bool:
+        with self.db_lock:
+            cur = self.db.execute(
+                "DELETE FROM positions WHERE id=? AND server=?",
+                (pos_id, self.server))
+            self.db.commit()
+            return cur.rowcount > 0
+
+    def pos_list(self, include_closed=False) -> list[dict]:
+        q = ("SELECT id, item_id, quality, qty, buy_price, buy_city,"
+             " opened_at, sell_price, sell_city, closed_at, note"
+             " FROM positions WHERE server=?")
+        if not include_closed:
+            q += " AND closed_at IS NULL"
+        with self.db_lock:
+            rows = self.db.execute(q + " ORDER BY id", [self.server]).fetchall()
+        cols = ["id", "item_id", "quality", "qty", "buy_price", "buy_city",
+                "opened_at", "sell_price", "sell_city", "closed_at", "note"]
+        return [dict(zip(cols, r)) for r in rows]
 
     # ---------------------------------------------------------------- retenção
 

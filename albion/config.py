@@ -129,6 +129,11 @@ AUTO_COLLECT_INTERVAL_MIN = 30
 # Webhook do Discord para `analyze.py report --discord` (cole a URL do canal:
 # Configurações do canal > Integrações > Webhooks > Novo webhook > Copiar URL)
 DISCORD_WEBHOOK_URL = ""
+
+# Acesso pela rede local (oficiais da guild abrem http://SEU_IP:8528).
+# Defina ACCESS_TOKEN para exigir ?token=... na primeira visita (vira cookie).
+SERVE_LAN = False
+ACCESS_TOKEN = ""
 # Máx. de itens por rodada de coleta. 2.300 itens ≈ 92 requisições à API
 # (2 × itens/50), ~40 s por rodada — confortável dentro de 150/min e 300/5min.
 COLLECT_MAX_ITEMS = 2500

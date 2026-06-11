@@ -97,6 +97,9 @@ python analyze.py survival                                       # persistência
 python analyze.py backtest                                       # lucro prometido vs realizado
 python analyze.py journals --tier-min 5                          # margem de diários vazio->cheio
 python analyze.py report --discord                               # relatório do dia no Discord
+python analyze.py refine hide --tier 6 --ench 2 --rrr 53.9       # margem de refino por cidade
+python analyze.py pos add T4_BAG --qty 10 --price 4000           # portfolio: PnL real da guild
+python analyze.py indexes --cat crafting --sub resources         # índice de preço (base 100)
 python analyze.py prune                                          # compacta snapshots antigos
 python analyze.py sql "SELECT COUNT(*) FROM prices"
 python analyze.py --format json scan --cat weapons --tier-min 6   (json/csv/table)
@@ -106,6 +109,12 @@ Todos os preços consultados ficam cacheados em `data/cache.db` (SQLite) — o
 comando `sql` permite qualquer consulta somente-leitura sobre esse histórico.
 Além da tabela rápida `prices`, novas consultas de preço também alimentam
 `price_snapshots`, uma tabela append-only para análises futuras e backtesting.
+
+## Acesso pela rede local (guild)
+
+Em `albion/config.py`, defina `SERVE_LAN = True` para o servidor atender a rede
+local (`http://SEU_IP:8528`) e, opcionalmente, `ACCESS_TOKEN = "umasenha"` para
+exigir `?token=umasenha` na primeira visita (vira cookie por 30 dias).
 
 ## Guia de análises econômicas
 
