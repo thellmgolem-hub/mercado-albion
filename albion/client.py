@@ -120,6 +120,54 @@ class AODP:
               ok INTEGER, error TEXT,
               PRIMARY KEY (server, started_at)
             );
+            CREATE TABLE IF NOT EXISTS public_data_runs (
+              server TEXT, source TEXT, started_at REAL, finished_at REAL,
+              pages INTEGER, rows_seen INTEGER, rows_inserted INTEGER,
+              newest_remote_id INTEGER, ok INTEGER, error TEXT,
+              PRIMARY KEY (server, source, started_at)
+            );
+            CREATE TABLE IF NOT EXISTS public_ingest_checkpoints (
+              server TEXT, source TEXT, cursor_value INTEGER,
+              last_success_at REAL,
+              PRIMARY KEY (server, source)
+            );
+            CREATE TABLE IF NOT EXISTS kill_events (
+              server TEXT, event_id INTEGER, ts TEXT, battle_id INTEGER,
+              type TEXT, kill_area TEXT, location TEXT,
+              total_victim_kill_fame INTEGER, n_participants INTEGER,
+              group_members INTEGER, killer_id TEXT, victim_id TEXT,
+              fetched_at REAL,
+              PRIMARY KEY (server, event_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_kill_events_ts
+              ON kill_events (server, ts);
+            CREATE TABLE IF NOT EXISTS kill_event_actors (
+              server TEXT, event_id INTEGER, role TEXT, player_id TEXT,
+              player_name TEXT, guild_id TEXT, guild_name TEXT,
+              alliance_id TEXT, alliance_name TEXT, avg_ip REAL,
+              kill_fame INTEGER, death_fame INTEGER, damage_done REAL,
+              healing_done REAL,
+              PRIMARY KEY (server, event_id, role, player_id)
+            );
+            CREATE TABLE IF NOT EXISTS kill_event_equipment (
+              server TEXT, event_id INTEGER, role TEXT, slot TEXT,
+              item_id TEXT, count INTEGER, quality INTEGER,
+              PRIMARY KEY (server, event_id, role, slot, item_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_kill_equip_item
+              ON kill_event_equipment (server, item_id);
+            CREATE TABLE IF NOT EXISTS battle_summaries (
+              server TEXT, battle_id INTEGER, start_time TEXT, end_time TEXT,
+              total_fame INTEGER, total_kills INTEGER, players INTEGER,
+              cluster_name TEXT, fetched_at REAL,
+              PRIMARY KEY (server, battle_id)
+            );
+            CREATE TABLE IF NOT EXISTS battle_entities (
+              server TEXT, battle_id INTEGER, entity_type TEXT,
+              entity_id TEXT, entity_name TEXT, alliance_name TEXT,
+              kills INTEGER, deaths INTEGER, kill_fame INTEGER,
+              PRIMARY KEY (server, battle_id, entity_type, entity_id)
+            );
             CREATE TABLE IF NOT EXISTS price_snapshots_daily (
               server TEXT, item_id TEXT, city TEXT, quality INTEGER, day TEXT,
               sell_min INTEGER, sell_avg REAL, sell_max INTEGER,

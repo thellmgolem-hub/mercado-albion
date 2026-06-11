@@ -100,6 +100,8 @@ python analyze.py report --discord                               # relatório do
 python analyze.py refine hide --tier 6 --ench 2 --rrr 53.9       # margem de refino por cidade
 python analyze.py pos add T4_BAG --qty 10 --price 4000           # portfolio: PnL real da guild
 python analyze.py indexes --cat crafting --sub resources         # índice de preço (base 100)
+python analyze.py intel collect                                  # ingere killboard público
+python analyze.py intel top --days 1 --inventory                 # demanda por destruição
 python analyze.py prune                                          # compacta snapshots antigos
 python analyze.py sql "SELECT COUNT(*) FROM prices"
 python analyze.py --format json scan --cat weapons --tier-min 6   (json/csv/table)

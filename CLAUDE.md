@@ -25,6 +25,7 @@ python analyze.py refine <familia> --tier N [--ench E] # margem de refino (recei
 python analyze.py journals [--family ORE]             # margem de diários vazio->cheio
 python analyze.py pos add|sell|list|rm                # portfolio (PnL real)
 python analyze.py indexes --cat X --sub Y             # índice de preço da cesta
+python analyze.py intel collect|top|status            # killboard: destruição/demanda
 python analyze.py status --detail                     # cobertura local do cache
 python analyze.py prune                               # agrega snapshots antigos
 python analyze.py sql "SELECT ..."                    # SQL somente-leitura no cache
@@ -42,6 +43,10 @@ automaticamente a cada AUTO_COLLECT_INTERVAL_MIN (30 min), registrando em
 collection_runs. Detalhes e pendências: AUDITORIA.md.
 Categorias: weapons, armors, head, shoes, offhands, capes, bags, mounts,
 consumables, gathering, crafting (recursos ficam em crafting/resources), artefacts.
+
+Killboard (gameinfo): schema real em docs/SCHEMA_GAMEINFO.md — Location vem
+nulo, offset máx 1000, ~50 eventos/min em pico; o servidor ingere a cada 10 min
+(AUTO_INTEL_INTERVAL_MIN). Plano completo: docs/PLANO_DADOS_PUBLICOS_ECONOMIA_AVANCADA.md.
 
 ## Fatos que não mudam (verificados jun/2026)
 

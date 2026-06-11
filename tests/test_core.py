@@ -302,6 +302,61 @@ class BacktestTests(unittest.TestCase):
         self.assertEqual(res["by_route"]["Mercado Negro"]["n"], 1)
 
 
+class IntelTests(unittest.TestCase):
+    def test_ingest_dedup_and_destruction_top(self):
+        from datetime import datetime, timezone
+        from albion import gameinfo
+
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S") + ".000Z"
+        event = {
+            "EventId": 10, "TimeStamp": ts, "BattleId": 10, "Type": "KILL",
+            "KillArea": "OPEN_WORLD", "Location": None,
+            "TotalVictimKillFame": 5000, "numberOfParticipants": 1,
+            "groupMemberCount": 1,
+            "Killer": {"Id": "k1", "Name": "Killer", "AverageItemPower": 1200,
+                       "Equipment": {"MainHand": {"Type": "T4_TESTBOW",
+                                                  "Count": 1, "Quality": 1}},
+                       "Inventory": []},
+            "Victim": {"Id": "v1", "Name": "Victim", "AverageItemPower": 1100,
+                       "Equipment": {"MainHand": {"Type": "T4_TESTSWORD",
+                                                  "Count": 1, "Quality": 2}},
+                       "Inventory": [{"Type": "T4_LOOT", "Count": 5,
+                                      "Quality": 1}]},
+            "Participants": [],
+        }
+
+        class FakeClient:
+            def events_page(self, offset):
+                return [event] if offset == 0 else []
+
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                aodp.db.execute(
+                    "INSERT INTO prices VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    ("americas", "T4_TESTSWORD", "Martlock", 1, 100, ts,
+                     0, "", 0, "", 0, "", 0))
+                aodp.db.commit()
+                r1 = gameinfo.ingest_events(aodp, FakeClient(), max_pages=2)
+                r2 = gameinfo.ingest_events(aodp, FakeClient(), max_pages=2)
+                top = gameinfo.destruction_top(aodp.db, "americas", days=1,
+                                               role="victim")
+                top_inv = gameinfo.destruction_top(
+                    aodp.db, "americas", days=1, role="victim",
+                    include_inventory=True)
+            finally:
+                aodp.db.close()
+
+        self.assertEqual(r1["inserted"], 1)
+        self.assertEqual(r2["inserted"], 0)  # idempotente via checkpoint
+        self.assertEqual(len(top), 1)
+        self.assertEqual(top[0]["item_id"], "T4_TESTSWORD")
+        self.assertEqual(top[0]["valor_estimado"], 100)
+        inv = {t["item_id"]: t for t in top_inv}
+        self.assertEqual(inv["T4_LOOT"]["unidades"], 5)
+        self.assertIsNone(inv["T4_LOOT"]["valor_estimado"])  # sem preço ref.
+
+
 class SeasonalityAndScoreTests(unittest.TestCase):
     def test_weekend_volume_ratio_and_note(self):
         from datetime import datetime, timedelta

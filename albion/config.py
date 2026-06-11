@@ -130,6 +130,18 @@ AUTO_COLLECT_INTERVAL_MIN = 30
 # Configurações do canal > Integrações > Webhooks > Novo webhook > Copiar URL)
 DISCORD_WEBHOOK_URL = ""
 
+# API pública de kills/batalhas (killboard) — ver docs/SCHEMA_GAMEINFO.md
+GAMEINFO_BASES = {
+    "americas": "https://gameinfo.albiononline.com/api/gameinfo",
+    "europa": "https://gameinfo-ams.albiononline.com/api/gameinfo",
+    "asia": "https://gameinfo-sgp.albiononline.com/api/gameinfo",
+}
+GAMEINFO_EVENT_PAGES = 6     # páginas de 51 eventos por varredura incremental
+GAMEINFO_BATTLE_PAGES = 2
+# O killboard das Américas gera ~50 eventos/min em pico: cadência própria,
+# mais rápida que a coleta de mercado
+AUTO_INTEL_INTERVAL_MIN = 10
+
 # Acesso pela rede local (oficiais da guild abrem http://SEU_IP:8528).
 # Defina ACCESS_TOKEN para exigir ?token=... na primeira visita (vira cookie).
 SERVE_LAN = False

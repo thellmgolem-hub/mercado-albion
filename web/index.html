@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260611-3">
+<link rel="stylesheet" href="style.css?v=20260611-4">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -62,6 +62,25 @@
   </div>
   <div class="status" id="heatStatus"></div>
   <div class="table-wrap" id="heatTable"></div>
+
+  <div class="section-head" style="margin-top:22px">
+    <div>
+      <h1>Demanda por destruição</h1>
+      <div class="sub">Itens mais perdidos em kills (killboard público) — demanda real antes do preço reagir</div>
+    </div>
+    <div class="field-row">
+      <select id="intelDays">
+        <option value="0.25">6 horas</option>
+        <option value="1" selected>24 horas</option>
+        <option value="7">7 dias</option>
+      </select>
+      <label class="field-row muted" style="gap:4px">
+        <input type="checkbox" id="intelInventory"> inventário
+      </label>
+    </div>
+  </div>
+  <div class="status" id="intelStatus"></div>
+  <div class="table-wrap" id="intelTable"></div>
 </section>
 
 <!-- ============================ PREÇOS ============================ -->
@@ -423,6 +442,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260611-3"></script>
+<script src="app.js?v=20260611-4"></script>
 </body>
 </html>

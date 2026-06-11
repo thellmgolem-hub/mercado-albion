@@ -1261,6 +1261,49 @@ async function loadHeatmap() {
   }
 }
 
+async function loadIntel() {
+  const st = $('intelStatus');
+  try {
+    const res = await api('/api/intel/top', {
+      days: $('intelDays').value,
+      inventory: $('intelInventory').checked,
+      limit: 15,
+    });
+    const items = res.items || [];
+    if (!items.length) {
+      st.textContent = 'sem eventos de kill coletados ainda — o servidor coleta o killboard a cada 10 min';
+      $('intelTable').innerHTML = '';
+      return;
+    }
+    const cols = [
+      {
+        key: 'item', label: 'Item', align: 'l', value: (r) => r.name_pt,
+        html: (r) => `<div class="cell-item">${iconImg(r.item_id)}
+          <div class="nm"><span class="te-badge">T${r.tier}.${r.ench}</span> ${esc(r.name_pt)}
+          <small>${esc(r.item_id)}</small></div></div>`,
+      },
+      { key: 'un', label: 'Unidades perdidas', value: (r) => r.unidades, html: (r) => `<b>${fmt(r.unidades)}</b>` },
+      { key: 'ev', label: 'Mortes', value: (r) => r.eventos, html: (r) => fmt(r.eventos) },
+      {
+        key: 'preco', label: 'Preço ref.', value: (r) => r.preco_ref,
+        html: (r) => r.preco_ref ? `<span class="silver">${fmt(r.preco_ref)}</span>` : '<span class="muted">sem preço</span>',
+      },
+      {
+        key: 'valor', label: 'Valor destruído (est.)', value: (r) => r.valor_estimado,
+        html: (r) => r.valor_estimado
+          ? `<span class="silver profit-neg">${fmt(r.valor_estimado)}</span>` : '—',
+      },
+    ];
+    renderTable('intelTable', cols, items.map((r) => ({ ...r, _copy: r.name_pt })),
+      { sortKey: 'un' });
+    const j = res.status?.janela_eventos || {};
+    const n = res.status?.kill_events ?? 0;
+    st.textContent = `${fmt(n)} kills no banco · janela: ${(j.de || '?').slice(0, 16).replace('T', ' ')} → ${(j.ate || '?').slice(0, 16).replace('T', ' ')} UTC · killboard é amostra pública, valor sem ajuste de trash`;
+  } catch (e) {
+    st.textContent = '';
+  }
+}
+
 async function refreshWatchCount() {
   try {
     const w = await api('/api/watchlist');
@@ -1423,10 +1466,15 @@ async function init() {
 
   renderFlipsItems();
   updateHiddenControls();
+  $('intelDays').addEventListener('change', loadIntel);
+  $('intelInventory').addEventListener('change', loadIntel);
+  setInterval(loadIntel, 5 * 60 * 1000);
+
   refreshWatchCount();
   loadDashboardRecommendations();
   loadSurvival();
   loadHeatmap();
+  loadIntel();
   runDiscover();
 }
 

@@ -1137,6 +1137,63 @@ def cmd_backtest(args, fmt):
                 ("capture_pct", "Captura %")], fmt)
 
 
+def cmd_intel(args, fmt):
+    """Inteligência de killboard: coleta pública e índice de destruição."""
+    from albion import gameinfo
+    if args.acao == "collect":
+        aodp = make_aodp()
+        results = []
+        if args.source in ("events", "all"):
+            results.append(gameinfo.ingest_events(aodp, max_pages=args.pages))
+        if args.source in ("battles", "all"):
+            results.append(gameinfo.ingest_battles(aodp))
+        emit(results, [("source", "Fonte"), ("pages", "Páginas"),
+                       ("seen", "Vistos"), ("inserted", "Novos"),
+                       ("ok", "OK"), ("error", "Erro")], fmt)
+        return
+
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado — rode `intel collect` antes.")
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        if args.acao == "status":
+            st = gameinfo.intel_status(con, config.DEFAULT_SERVER)
+            if fmt == "json":
+                print(json.dumps(st, ensure_ascii=False, indent=2))
+                return
+            rows = [{"tabela": k, "valor": str(v)} for k, v in st.items()]
+            emit(rows, [("tabela", "Tabela"), ("valor", "Valor")], fmt)
+            return
+        # top: índice de destruição cruzado com nomes/preços locais
+        top = gameinfo.destruction_top(
+            con, config.DEFAULT_SERVER, days=args.days, role=args.role,
+            include_inventory=args.inventory, limit=args.limit)
+    finally:
+        con.close()
+    db = ItemDB()
+    rows = []
+    for t in top:
+        meta = db.get(t["item_id"]) or {}
+        rows.append({
+            "item": meta.get("pt", t["item_id"]),
+            "tier_ench": te(meta) if meta else "-",
+            "unidades": t["unidades"],
+            "eventos": t["eventos"],
+            "preco_ref": t["preco_ref"],
+            "valor_estimado": t["valor_estimado"],
+        })
+    papel = {"victim": "perdidos pelas vítimas",
+             "killer": "usados pelos killers"}.get(args.role, args.role)
+    info(f"Itens mais {papel} nas últimas {args.days:g} dia(s)"
+         f"{' (incluindo inventário)' if args.inventory else ''}. Valor = "
+         "unidades × menor venda q1 nas cidades reais (sem ajuste de trash).")
+    emit(rows, [("item", "Item"), ("tier_ench", "T.E"),
+                ("unidades", "Unidades"), ("eventos", "Eventos"),
+                ("preco_ref", "Preço ref."),
+                ("valor_estimado", "Valor estimado")], fmt)
+
+
 def cmd_pos(args, fmt):
     """Portfolio: registra operações reais e acompanha o PnL (imposto 4%)."""
     from albion.flips import sell_revenue
@@ -1277,8 +1334,9 @@ def build_parser():
 
     sub = ap.add_subparsers(
         dest="cmd", required=True,
-        metavar="{search,prices,flips,scan,sell,history,recommend,lab,"
-                "watch,collect,survival,backtest,gold,status,prune,sql}")
+        metavar="{search,prices,flips,scan,sell,history,recommend,lab,watch,"
+                "collect,intel,survival,backtest,journals,refine,report,pos,"
+                "indexes,gold,status,prune,sql}")
 
     p = sub.add_parser("search", parents=[common],
                        help="busca itens por nome PT/EN ou id")
@@ -1484,6 +1542,21 @@ def build_parser():
     p.add_argument("--city", help="filtra uma cidade")
     p.add_argument("--quality", type=int, choices=range(1, 6))
     p.set_defaults(func=cmd_survival)
+
+    p = sub.add_parser("intel", parents=[common],
+                       help="killboard: coleta pública e índice de destruição")
+    p.add_argument("acao", choices=("collect", "top", "status"))
+    p.add_argument("--source", choices=("events", "battles", "all"),
+                   default="all", help="fonte da coleta (padrão: all)")
+    p.add_argument("--pages", type=int, default=config.GAMEINFO_EVENT_PAGES,
+                   help="páginas de 51 eventos por varredura")
+    p.add_argument("--days", type=float, default=1,
+                   help="janela do ranking em dias (padrão: 1)")
+    p.add_argument("--role", choices=("victim", "killer"), default="victim")
+    p.add_argument("--inventory", action="store_true",
+                   help="inclui o inventário das vítimas (transporte)")
+    p.add_argument("--limit", type=int, default=25)
+    p.set_defaults(func=cmd_intel)
 
     p = sub.add_parser("pos", parents=[common],
                        help="portfolio: registra compras/vendas reais e PnL")

@@ -775,14 +775,26 @@ def order_survival(item: str | None = None, city: str | None = None,
 
 # ------------------------------------------------------- coleta automática
 def _auto_collect_loop():
-    interval = config.AUTO_COLLECT_INTERVAL_MIN * 60
+    """Cadência dupla: killboard (intel) mais frequente que o mercado."""
+    tick = 60 * max(1, min(config.AUTO_INTEL_INTERVAL_MIN,
+                           config.AUTO_COLLECT_INTERVAL_MIN))
+    last_market = 0.0
     while True:
-        time.sleep(interval)
+        time.sleep(tick)
         try:
-            if aodp.watch_list():
-                aodp.collect(source="auto")
+            from albion import gameinfo
+            gameinfo.ingest_events(aodp)
+            gameinfo.ingest_battles(aodp)
         except Exception:
-            pass  # erro já registrado em collection_runs pelo collect()
+            pass  # registrado em public_data_runs quando possível
+        try:
+            if (time.time() - last_market
+                    >= config.AUTO_COLLECT_INTERVAL_MIN * 60
+                    and aodp.watch_list()):
+                aodp.collect(source="auto")
+                last_market = time.time()
+        except Exception:
+            pass  # registrado em collection_runs pelo collect()
 
 
 @app.on_event("startup")
@@ -790,6 +802,31 @@ def _start_auto_collect():
     if config.AUTO_COLLECT_INTERVAL_MIN > 0:
         threading.Thread(target=_auto_collect_loop, daemon=True,
                          name="auto-collect").start()
+
+
+@app.get("/api/intel/top")
+def intel_top(days: float = Query(1, gt=0, le=30), role: str = "victim",
+              inventory: bool = False, limit: int = Query(20, le=100)):
+    """Índice de destruição: itens mais perdidos/usados em kills recentes."""
+    from albion import gameinfo
+    if role not in ("victim", "killer"):
+        raise HTTPException(400, "role deve ser victim ou killer")
+    con = _cache_connection()
+    if con is None:
+        return {"items": [], "status": {}}
+    try:
+        top = gameinfo.destruction_top(
+            con, aodp.server, days=days, role=role,
+            include_inventory=inventory, limit=limit)
+        status = gameinfo.intel_status(con, aodp.server)
+    finally:
+        con.close()
+    for t in top:
+        meta = db.get(t["item_id"]) or {}
+        t["name_pt"] = meta.get("pt", t["item_id"])
+        t["tier"] = meta.get("tier", 0)
+        t["ench"] = meta.get("ench", 0)
+    return {"items": top, "status": status}
 
 
 # ---------------------------------------------------------------- ícones

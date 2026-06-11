@@ -626,3 +626,87 @@ intercidades, indices de mercado, acesso LAN, portfolio tracker.
 Pendencias: cozinha/alquimia com receitas do dump (mesma infra do refino),
 indices/portfolio na UI, alertas de preco no Discord, calibracao continua do
 CAPTURE_RATE pelo backtest.
+
+## 2026-06-11 - Plano de dados publicos, killboard e mapa
+
+- Criado `docs/PLANO_DADOS_PUBLICOS_ECONOMIA_AVANCADA.md`.
+- Documento registra os objetivos discutidos com o usuario: evoluir a
+  plataforma para inteligencia economica avancada, cruzando mercado, kills,
+  batalhas, metadados estaticos, mapa, risco, guerra, builds e cadeias
+  produtivas.
+- Fontes pesquisadas e classificadas: AODP, `gameinfo.albiononline.com`,
+  `ao-bin-dumps`, Portaler, Albion Mapper, ao-avalonian-roads, Avalon Atlas e
+  AO-Noki Avalon Roads.
+- O documento diferencia dados publicos fortes, zona cinzenta (OCR e leitura
+  passiva fora do AODP) e praticas que nao devem ser implementadas
+  (scanner/radar, memoria do cliente, automacao e scraping privado).
+- Nenhum codigo da aplicacao foi alterado nesta etapa.
+
+## 2026-06-11 - Complemento do plano: biomas, contas e teoria economica
+
+- Ampliado `docs/PLANO_DADOS_PUBLICOS_ECONOMIA_AVANCADA.md` com auditoria de
+  completude das fontes possiveis.
+- Adicionada distincao entre oferta estrutural de bioma/tier, oferta observada
+  via mercado e estado dinamico real do mapa. Foi registrado que quantidade
+  exata de recursos encantados vivos "agora" nao deve ser prometida como dado
+  publico limpo.
+- Adicionados metodos economicos aplicaveis: microestrutura, arbitragem
+  espacial, economia da producao, demanda derivada por destruicao, estudos de
+  evento, series temporais, estoque e risco.
+- Adicionado desenho de contas/perfis: identidade pseudonima, papeis
+  administrativos, perfis economicos, interfaces por funcao, controle de
+  dispositivo, auditoria e privacidade.
+- Codigo da aplicacao continua intocado; mudanca apenas documental.
+
+## 2026-06-11 - Complemento do plano: Trash to Cash e ordens de servico
+
+- Ampliado `docs/PLANO_DADOS_PUBLICOS_ECONOMIA_AVANCADA.md` para cobrir as
+  lacunas apontadas no trecho do usuario.
+- Adicionado modelo "Trash to Cash": morte como evento economico de destruicao,
+  loot, dano, reposicao e previsao de demanda. O documento orienta nao
+  hardcodar o trash rate sem validacao e usar assumptions configuraveis.
+- Adicionadas tabelas propostas: `asset_destruction_events`,
+  `regear_demand_forecasts`, `demand_vacuum_alerts`, `death_clusters`,
+  `death_cluster_items`, `death_cluster_entities`, `item_combat_tags`,
+  `service_orders`, `service_order_feedback`, checkpoints/fila/jobs de
+  ingestao publica.
+- Detalhados detector de clusters de morte/ZvZ, classificador por arsenal,
+  janelas de regear, backtesting de alertas, motor de ordens de servico,
+  arquitetura para alto volume de JSON e politica comunitaria/RMT.
+- Nenhum codigo da aplicacao foi alterado nesta etapa.
+
+## 2026-06-11 - Killboard: ingestao publica e indice de destruicao (Claude)
+
+Fases 0-2 do PLANO_DADOS_PUBLICOS_ECONOMIA_AVANCADA executadas.
+
+- Fase 0: schema real do gameinfo validado ao vivo e documentado em
+  docs/SCHEMA_GAMEINFO.md. Descobertas: Location 100% nulo na amostra (risco
+  por zona deve usar KillArea/clusterName), limit<=51, offset<=1000 (~1.050
+  eventos por varredura), inventario completo da vitima presente, killboard
+  das Americas gera ~50 eventos/min em pico.
+- albion/gameinfo.py: cliente com backoff, ingestao incremental idempotente
+  por checkpoint de EventId/battle id (para quando a pagina so tem ids
+  conhecidos), normalizacao em kill_events / kill_event_actors /
+  kill_event_equipment (killer+vitima; inventario so da vitima; participantes
+  sem equipamento para conter volume) / battle_summaries / battle_entities,
+  auditoria em public_data_runs + public_ingest_checkpoints.
+- destruction_top(): itens mais perdidos/usados por janela, com valor =
+  unidades x menor venda q1 nas cidades reais (SEM ajuste de trash,
+  documentado). Cuidado de corretude: cutoff com strftime %Y-%m-%dT%H:%M:%S
+  porque o ts da API usa 'T' e datetime('now') usa espaco.
+- CLI: analyze.py intel collect|top|status (--days fracionario, --role,
+  --inventory). Endpoint GET /api/intel/top.
+- Servidor: loop de cadencia dupla — killboard a cada 10 min
+  (AUTO_INTEL_INTERVAL_MIN), mercado a cada 30 (AUTO_COLLECT_INTERVAL_MIN).
+- UI: painel 'Demanda por destruicao' na aba Inicio (janela 6h/24h/7d,
+  toggle inventario, caveat de amostra publica). Assets v=20260611-4.
+- Teste sintetico de ingestao: normalizacao, dedup idempotente via checkpoint
+  e ranking com preco conhecido (20 testes OK).
+- Primeira coleta real: 228 kills / 6.257 linhas de equipamento / 102
+  batalhas em ~4 min de janela; top: pocoes de crescimento, comida de guerra,
+  bolsas — demanda derivada visivel imediatamente.
+
+Proximos passos (fases 3+ do plano): agregacao diaria item_demand_daily com
+z-score de destruicao, sinal divergencia demanda-preco na tela inicial,
+clusters de morte (zvz/gank) com item_combat_tags, assumptions economicas
+configuraveis (trash rate) e regear forecasts com backtest de alertas.
