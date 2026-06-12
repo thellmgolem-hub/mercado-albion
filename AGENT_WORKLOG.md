@@ -849,3 +849,23 @@ integrado pelo Codex; todos os relevantes corrigidos nesta rodada:
 
 ATENCAO operacional: o servidor da tarefa MercadoAlbion-Servidor continua
 com o codigo antigo ate ser reiniciado (reiniciar a tarefa ou o run.bat).
+
+## 2026-06-12 - Verificacao completa "sem erros" (Claude)
+
+Varredura integral a pedido do usuario; 2 bugs reais encontrados e corrigidos:
+
+- /api/backtest retornava 500 no servidor: a conexao do app usa
+  row_factory=Row e sorted() nao ordena objetos Row (a CLI usava tuplas e
+  funcionava). Fix em backtest._runs (tuple()) + teste de regressao com Row.
+- /api/collect SEMPRE falhava com 422 nos defaults: max_items default 2500
+  vs limite le=600 esquecido quando o teto subiu — o botao 'Coletar
+  watchlist' estava quebrado. Fix: le=COLLECT_MAX_ITEMS + teste de regressao
+  via OpenAPI que valida default<=maximum em TODOS os parametros de TODOS os
+  endpoints (pega a classe inteira de bug).
+
+Resultado da varredura: py_compile 13 modulos OK; node --check OK; 25 testes
+OK; 24/24 comandos da CLI OK; 21/21 endpoints GET 200 + POST refresh/collect
+OK; coleta fresca de 2.157 itens (86.280 precos, 10.298 series); os 7 paineis
+do Inicio populados com dados reais; console do navegador sem erros; git
+limpo. Tarefa MercadoAlbion-Servidor reiniciada com o codigo novo (porta
+8528 escutando, /api/backtest 200 em producao).

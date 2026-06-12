@@ -34,7 +34,8 @@ def _runs(con, server, max_runs):
         "SELECT started_at, finished_at FROM collection_runs"
         " WHERE server=? AND ok=1 AND items > 0"
         " ORDER BY started_at DESC LIMIT ?", [server, max_runs]).fetchall()
-    return sorted(rows)
+    # tuple(): a conexão do servidor usa row_factory=Row, que não ordena
+    return sorted(tuple(r) for r in rows)
 
 
 def _snapshot_prices(con, server, started, finished):

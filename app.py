@@ -784,7 +784,8 @@ def watchlist_remove(item_id: str):
 
 @app.post("/api/collect")
 def collect(days: int = Query(30, le=180), cities: str | None = None,
-            max_items: int = Query(config.COLLECT_MAX_ITEMS, le=600)):
+            max_items: int = Query(config.COLLECT_MAX_ITEMS,
+                                   le=config.COLLECT_MAX_ITEMS)):
     """Coleta preços + histórico de toda a watchlist (alimenta o Item Lab)."""
     city_list = _csv(cities) or config.CITIES
     result = _api_guard(lambda: aodp.collect(

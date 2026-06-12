@@ -89,6 +89,18 @@ class ItemAndApiTests(unittest.TestCase):
 
         meta = client.get("/api/meta")
         status = client.get("/api/status")
+        # regressão: nenhum default de query param pode violar o próprio
+        # limite (ex.: /api/collect com default 2500 e le=600 quebrava o
+        # botão Coletar) — validado pelo schema OpenAPI inteiro
+        spec = client.get("/openapi.json").json()
+        for path, methods in spec["paths"].items():
+            for method in methods.values():
+                for param in method.get("parameters", []):
+                    sch = param.get("schema", {})
+                    if "default" in sch and "maximum" in sch:
+                        self.assertLessEqual(
+                            sch["default"], sch["maximum"],
+                            f"default > maximum em {path}:{param['name']}")
         recs = client.get("/api/recommendations", params={"limit": 5})
         lab = client.get("/api/item-analysis", params={
             "item": "T4_FIBER",
@@ -286,6 +298,9 @@ class BacktestTests(unittest.TestCase):
                 client.db.commit()
                 metas = {"T5_BAG": {"pt": "Bolsa", "en": "Bag",
                                     "cat": "bags", "w": 1}}
+                # regressão: o endpoint usa row_factory=Row (não ordenável)
+                import sqlite3 as _sq
+                client.db.row_factory = _sq.Row
                 res = bt.signal_backtest(client.db, "americas", metas,
                                          premium=True, min_profit=0)
             finally:
