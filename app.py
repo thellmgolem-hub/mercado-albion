@@ -200,6 +200,57 @@ def _cache_connection():
     return con
 
 
+def _generate_service_orders():
+    """Gera missoes simples a partir dos sinais ja materializados no cache."""
+    from albion import gameinfo
+    from albion import orders as orders_mod
+
+    recs = recommendations(
+        qualities="1", premium=True, buy_mode="instant", sell_mode="order",
+        min_profit=0, min_roi=None, max_age_buy=720, max_age_sell=720,
+        min_daily_volume=20, min_active_days=2, history_days=7,
+        capture_rate=config.CAPTURE_RATE, same_city=False,
+        exclude_outliers=True, limit=12)
+    rec_opps = recs.get("opportunities", [])
+
+    with aodp.db_lock:
+        sigs = gameinfo.demand_price_divergence(
+            aodp.db, aodp.server, min_units_day=10, limit=8)
+        cls_recent = gameinfo.classification_summary(
+            aodp.db, aodp.server, days=2 / 24)
+        cls_day = gameinfo.classification_summary(
+            aodp.db, aodp.server, days=1)
+        generated = []
+        generated.extend(orders_mod.trader_orders(rec_opps, limit=4))
+        generated.extend(orders_mod.crafter_orders(sigs, limit=4))
+        generated.extend(orders_mod.gatherer_sell_orders(
+            aodp.db, aodp.server, limit=4))
+        generated.extend(orders_mod.refiner_orders(
+            aodp.db, aodp.server, limit=4))
+        generated.extend(orders_mod.risk_warnings(cls_recent, cls_day))
+
+    count = orders_mod.persist(aodp, generated)
+    return count
+
+
+def _service_orders_payload():
+    from albion import orders as orders_mod
+
+    with aodp.db_lock:
+        rows = orders_mod.list_open(aodp.db, aodp.server)
+    for r in rows:
+        meta = db.get(r.get("item_id")) if r.get("item_id") else None
+        if meta:
+            r["name_pt"] = meta.get("pt", r["item_id"])
+            r["tier"] = meta.get("tier", 0)
+            r["ench"] = meta.get("ench", 0)
+        else:
+            r["name_pt"] = r.get("item_id") or ""
+            r["tier"] = 0
+            r["ench"] = 0
+    return {"orders": rows, "count": len(rows)}
+
+
 def _placeholders(vals):
     return ",".join("?" for _ in vals)
 
@@ -803,6 +854,9 @@ def _auto_collect_loop():
                     and aodp.watch_list()):
                 aodp.collect(source="auto")
                 last_market = time.time()
+                # ordens acompanham a cadência do mercado (insumo principal);
+                # regenerar a cada tick só inflaria service_orders
+                _generate_service_orders()
         except Exception:
             pass  # registrado em collection_runs pelo collect()
 
@@ -896,6 +950,20 @@ def intel_top(days: float = Query(1, gt=0, le=30), role: str = "victim",
         t["tier"] = meta.get("tier", 0)
         t["ench"] = meta.get("ench", 0)
     return {"items": top, "status": status}
+
+
+@app.get("/api/service-orders")
+def service_orders():
+    """Ordens de serviço abertas (somente leitura — gerar é no POST refresh)."""
+    return _service_orders_payload()
+
+
+@app.post("/api/service-orders/refresh")
+def service_orders_refresh():
+    generated = _generate_service_orders()
+    payload = _service_orders_payload()
+    payload["generated"] = generated
+    return payload
 
 
 # ---------------------------------------------------------------- ícones

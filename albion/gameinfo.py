@@ -290,6 +290,10 @@ DEFAULT_ASSUMPTIONS = [
      "fração de equipamento destruída na morte; o resto vira loot"),
     ("regear_capture_rate", 0.25, "estimativa inicial", "baixa",
      "fração da destruição que vira compra no mercado em até 24h"),
+    ("refining_rrr", 36.7, "valor público de cidade com bônus, sem foco",
+     "média", "retorno de recursos no refino NA cidade com bônus da família"),
+    ("refining_rrr_base", 15.2, "valor público fora de bônus", "média",
+     "retorno de recursos no refino fora da cidade com bônus"),
 ]
 
 

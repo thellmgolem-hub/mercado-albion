@@ -118,6 +118,19 @@ SNAPSHOT_RETENTION_DAYS = 180
 # lucro/unidade (prata), potencial/dia (prata), liquidez (itens/dia)
 SCORE_ANCHORS = {"profit": 50_000, "daily": 1_000_000, "liquidity": 200}
 
+# Cidade com bônus de refino por família (conhecimento público estável).
+# O RRR de bônus (refining_rrr) só vale nelas; nas demais, refining_rrr_base.
+REFINING_BONUS_CITY = {
+    "WOOD": "Fort Sterling",
+    "FIBER": "Lymhurst",
+    "ROCK": "Bridgewatch",
+    "HIDE": "Martlock",
+    "ORE": "Thetford",
+}
+
+# Teto de capital sugerido por ordem de serviço (missões da camada leiga)
+ORDER_MAX_CAPITAL = 2_000_000
+
 # Fração realista do volume diário que um jogador captura ao spread atual
 # (competição + slippage). Aplicada no "Pot./dia realista"; calibrável por
 # backtest no futuro.

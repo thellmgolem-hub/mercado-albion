@@ -189,6 +189,21 @@ class AODP:
               preco_recente REAL, preco_ratio REAL, volume_dia REAL,
               PRIMARY KEY (server, generated_at, item_id)
             );
+            CREATE TABLE IF NOT EXISTS service_orders (
+              order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+              server TEXT, created_at REAL, expires_at REAL,
+              profile_target TEXT, action_type TEXT,
+              item_id TEXT, city_from TEXT, city_to TEXT,
+              quantity_base INTEGER, capital_required REAL,
+              expected_profit REAL, expected_roi REAL,
+              risk_level TEXT, confidence TEXT,
+              explanation_short TEXT, source_signal TEXT, status TEXT
+            );
+            CREATE TABLE IF NOT EXISTS service_order_feedback (
+              order_id INTEGER, feedback_at REAL, accepted INTEGER,
+              realized_profit REAL, notes TEXT,
+              PRIMARY KEY (order_id, feedback_at)
+            );
             CREATE TABLE IF NOT EXISTS economic_assumptions (
               key TEXT PRIMARY KEY, value REAL, source TEXT,
               confidence TEXT, updated_at REAL, notes TEXT

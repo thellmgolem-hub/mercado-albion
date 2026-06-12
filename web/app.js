@@ -1379,6 +1379,60 @@ async function loadRisk() {
   }
 }
 
+async function loadServiceOrders(regenerate = false) {
+  const st = $('ordersStatus');
+  try {
+    const res = regenerate
+      ? await apiSend('/api/service-orders/refresh', 'POST')
+      : await api('/api/service-orders');
+    let rows = res.orders || [];
+    if (!rows.length) {
+      st.textContent = 'sem ordens abertas agora — clique em Atualizar para gerar a partir dos sinais cacheados';
+      $('ordersTable').innerHTML = '';
+      return;
+    }
+    // segurança primeiro: avisos de risco no topo, depois maior lucro
+    rows = [...rows].sort((a, b) =>
+      (b.action_type === 'evitar_risco') - (a.action_type === 'evitar_risco')
+      || (b.expected_profit || 0) - (a.expected_profit || 0));
+    const cols = [
+      {
+        key: 'perfil', label: 'Perfil', align: 'l', value: (r) => r.profile_target,
+        html: (r) => `<b>${esc(r.profile_target)}</b><br><small class="muted">${esc(r.action_type)}</small>`,
+      },
+      {
+        key: 'item', label: 'Item', align: 'l', value: (r) => r.name_pt,
+        html: (r) => r.item_id ? `<div class="cell-item">${iconImg(r.item_id)}
+          <div class="nm"><span class="te-badge">T${r.tier}.${r.ench}</span> ${esc(r.name_pt)}
+          <small>${esc(r.item_id)}</small></div></div>` : '<span class="muted">geral</span>',
+      },
+      {
+        key: 'rota', label: 'Cidade/rota', align: 'l',
+        value: (r) => `${r.city_from || ''} ${r.city_to || ''}`,
+        html: (r) => r.city_from || r.city_to
+          ? `${r.city_from ? cityHtml(r.city_from) : '<span class="muted">—</span>'} → ${r.city_to ? cityHtml(r.city_to) : '<span class="muted">—</span>'}`
+          : '<span class="muted">—</span>',
+      },
+      { key: 'qtd', label: 'Qtd.', value: (r) => r.quantity_base || 0, html: (r) => r.quantity_base ? fmt(r.quantity_base) : '—' },
+      {
+        key: 'lucro', label: 'Lucro est.', value: (r) => r.expected_profit || 0,
+        html: (r) => r.expected_profit ? `<span class="silver profit-pos">${fmt(r.expected_profit)}</span>` : '—',
+      },
+      {
+        key: 'risco', label: 'Risco/conf.', align: 'c', value: (r) => r.risk_level,
+        html: (r) => `<span class="${r.risk_level === 'alto' ? 'profit-neg' : ''}">${esc(r.risk_level || '—')}</span><br><small class="muted">${esc(r.confidence || '—')}</small>`,
+      },
+      { key: 'motivo', label: 'Motivo', align: 'l', value: (r) => r.explanation_short, html: (r) => esc(r.explanation_short || '') },
+    ];
+    renderTable('ordersTable', cols, rows.map((r) => ({ ...r, _copy: r.explanation_short || r.name_pt || '' })),
+      {});
+    st.textContent = `${rows.length} ordens abertas, geradas de dados cacheados e sinais públicos`;
+    if (res.generated !== undefined) st.textContent += ` · ${res.generated} recalculadas`;
+  } catch (e) {
+    st.textContent = 'erro ao carregar ordens de serviço: ' + e.message;
+  }
+}
+
 async function loadSignalValidation() {
   try {
     const res = await api('/api/intel/validate');
@@ -1535,6 +1589,7 @@ async function init() {
   });
   $('dashRecsRefresh').addEventListener('click', loadDashboardRecommendations);
   $('dashCollect').addEventListener('click', runCollect);
+  $('ordersRefresh').addEventListener('click', () => loadServiceOrders(true));
   $('histWatch').addEventListener('click', watchCurrentLabItem);
   $('discoverRun').addEventListener('click', runDiscover);
   $('precosRefresh').addEventListener('click', () => loadPrecos(true));
@@ -1563,8 +1618,10 @@ async function init() {
   loadIntel();
   loadSignals().then(loadSignalValidation);
   loadRisk();
+  loadServiceOrders();
   setInterval(() => { loadSignals().then(loadSignalValidation); loadRisk(); },
     10 * 60 * 1000);
+  setInterval(loadServiceOrders, 10 * 60 * 1000);
   runDiscover();
 }
 

@@ -642,6 +642,36 @@ CAPTURE_RATE pelo backtest.
   (scanner/radar, memoria do cliente, automacao e scraping privado).
 - Nenhum codigo da aplicacao foi alterado nesta etapa.
 
+## 2026-06-11 - Ordens de servico integradas e preparacao para coleta aberta (Codex)
+
+- Continuado o trabalho deixado pelo Claude em `albion/orders.py`, sem reverter
+  alteracoes existentes.
+- Integrado o motor de ordens de servico no backend:
+  `GET /api/service-orders` e `POST /api/service-orders/refresh`.
+- O gerador traduz sinais cacheados em missoes simples para trader, coletor,
+  crafter, refinador e aviso de risco, usando recomendacoes, killboard,
+  divergencia demanda-preco, refino e classificacao recente de mortes.
+- Adicionado painel "Ordens de servico" na aba Inicio do frontend, com botao
+  Atualizar, item, rota/cidade, quantidade, lucro estimado, risco/confianca e
+  explicacao curta.
+- Validacoes executadas: `py_compile` em `app.py`, `analyze.py`,
+  `albion/gameinfo.py`, `albion/orders.py`, `albion/client.py`; 22 testes OK;
+  chamada local a `/api/service-orders?regenerate=true` retornou 200 e 16
+  ordens abertas.
+- Proximo passo operacional desta sessao: deixar o servidor local rodando para
+  manter a coleta automatica de killboard e mercado.
+
+## 2026-06-11 - Correção operacional: ordens sem Caerleon (Codex)
+
+- Corrigido `albion/orders.py` para que ordens simples de coletor/refinador
+  nao recomendem Caerleon. A camada leiga agora respeita a diretriz operacional
+  de nao usar rotas que exigem passar por zonas vermelhas.
+- Adicionado teste sintetico em `tests/test_core.py` garantindo que uma ordem
+  de coletor nao escolhe Caerleon mesmo quando Caerleon teria o melhor preco.
+- Validacoes: `py_compile` OK; 23 testes OK.
+- Tarefa `MercadoAlbion-Servidor` reiniciada e ordens recalculadas:
+  `/api/service-orders/refresh` retornou 16 ordens e 0 ordens com Caerleon.
+
 ## 2026-06-11 - Complemento do plano: biomas, contas e teoria economica
 
 - Ampliado `docs/PLANO_DADOS_PUBLICOS_ECONOMIA_AVANCADA.md` com auditoria de
@@ -784,3 +814,38 @@ Proximos: curadoria manual de item_combat_tags por arma (gank/zvz por
 arsenal), alertas de rota para coletores ('evite X por 2h'), calibracao do
 trash_rate/regear quando validate acumular N, ordens de servico (service
 orders) por perfil.
+
+## 2026-06-12 - Correcoes da auditoria das ordens de servico (Claude)
+
+Auditoria read-only identificou 2 achados altos + 6 medios no motor de ordens
+integrado pelo Codex; todos os relevantes corrigidos nesta rodada:
+
+- A1 (alto): gatherer_sell_orders agora usa buy_price_max (venda instantanea,
+  ordem de compra real) em vez do menor anuncio — o anuncio absurdo de 999.999
+  nao dispara mais missao inexecutavel para a camada leiga. Lucro reportado e
+  liquido (pos-imposto). Teste atualizado cobre exatamente esse cenario.
+- A2 (alto): refiner_orders aplica RRR de bonus (36,7%, assumption
+  refining_rrr) SO na cidade com bonus da familia
+  (config.REFINING_BONUS_CITY: FS/madeira, Lymhurst/fibra, BW/pedra,
+  Martlock/couro, Thetford/minerio) e RRR base (15,2%) nas demais; a
+  explicacao marca 'com bonus'/'SEM bonus'. Validado ao vivo: Lymhurst com
+  bonus 12% vs SEM bonus 5%.
+- B6: trader_orders com teto de capital (config.ORDER_MAX_CAPITAL=2M,
+  configuravel) — qty limitada ao caixa; custo unitario acima do teto nao
+  vira missao.
+- B2: persist() transacional com rollback (UPDATE+DELETE+INSERT atomicos).
+- B1: retencao — expiradas com 7+ dias sao apagadas no proprio persist().
+- B4: GET /api/service-orders virou somente leitura; gerar so no POST
+  /refresh (frontend ja usava POST no botao).
+- B5: geracao automatica movida do tick de 10 min para a cadencia do mercado
+  (30 min) — TTL de 4h volta a fazer sentido e a tabela nao infla.
+- B3: divisao inteira no vol_dia corrigida (* 1.0).
+- UX: aviso de risco emitido tambem para 'transportador'; painel ordena
+  avisos de risco no topo, depois maior lucro; mensagem de vazio aponta o
+  botao Atualizar. Assets v=20260612-1. .gitattributes para acabar com o
+  ruido de CRLF nos diffs.
+- Testes: 25 OK (3 novos: anuncio absurdo nao dispara coletor; teto de
+  capital; RRR de bonus so na cidade certa).
+
+ATENCAO operacional: o servidor da tarefa MercadoAlbion-Servidor continua
+com o codigo antigo ate ser reiniciado (reiniciar a tarefa ou o run.bat).

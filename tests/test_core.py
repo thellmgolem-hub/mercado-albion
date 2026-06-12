@@ -441,6 +441,93 @@ class SignalValidationTests(unittest.TestCase):
         self.assertAlmostEqual(res["retorno_medio_pct"], 10.0, places=1)
 
 
+class ServiceOrderTests(unittest.TestCase):
+    def test_gatherer_orders_use_instant_sell_and_exclude_caerleon(self):
+        from datetime import datetime, timedelta, timezone
+        from albion import orders
+
+        now = datetime.now(timezone.utc)
+        ts_now = now.strftime("%Y-%m-%dT%H:%M:%S")
+
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                aodp.db.execute(
+                    "INSERT INTO static_items VALUES (?,?,?,?,?,?,?)",
+                    ("T4_TESTRESOURCE", "Recurso", "crafting", "resources",
+                     4, 0, 1.0))
+                # anúncio absurdo (sell=999999) NÃO pode disparar a missão;
+                # o gatilho é a ordem de compra real (buy_price_max)
+                for city, buy_max in (("Caerleon", 1000), ("Martlock", 200),
+                                      ("Lymhurst", 105)):
+                    aodp.db.execute(
+                        "INSERT INTO prices VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        ("americas", "T4_TESTRESOURCE", city, 1,
+                         999999, ts_now, 0, "", 0, "", buy_max, ts_now,
+                         now.timestamp()))
+                    for d in range(7):
+                        ts = (now - timedelta(days=d)).strftime(
+                            "%Y-%m-%dT00:00:00")
+                        aodp.db.execute(
+                            "INSERT INTO history VALUES (?,?,?,?,?,?,?,?,?)",
+                            ("americas", "T4_TESTRESOURCE", city, 1, 24,
+                             ts, 100, 100.0, now.timestamp()))
+                aodp.db.commit()
+                rows = orders.gatherer_sell_orders(
+                    aodp.db, "americas", min_premium_pct=10, min_volume=20)
+            finally:
+                aodp.db.close()
+
+        self.assertTrue(rows)
+        # Caerleon excluída mesmo pagando mais; Lymhurst (5% > média) fora
+        self.assertTrue(all(r["city_to"] != "Caerleon" for r in rows))
+        self.assertEqual(rows[0]["city_to"], "Martlock")
+        self.assertEqual(len(rows), 1)
+        self.assertIn("instantânea", rows[0]["explanation_short"])
+
+    def test_trader_orders_respect_capital_cap(self):
+        from albion import orders
+        rec = {"opportunity_label": "executar", "item_id": "T5_BAG",
+               "buy_city": "Martlock", "sell_city": "Lymhurst",
+               "buy_price": 10_000, "cost": 10_000, "profit": 2_000,
+               "roi_pct": 20.0, "buy_age_min": 10, "liquidity_day": 5_000,
+               "capture_rate": 0.2, "confidence_label": "alta"}
+        out = orders.trader_orders([rec], max_capital=100_000)
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0]["quantity_base"], 10)  # 100k / 10k
+        self.assertEqual(out[0]["capital_required"], 100_000)
+        # custo unitário acima do teto -> missão não é emitida
+        rec2 = {**rec, "cost": 200_000, "buy_price": 200_000}
+        self.assertEqual(orders.trader_orders([rec2], max_capital=100_000),
+                         [])
+
+    def test_refiner_orders_use_bonus_rrr_only_in_bonus_city(self):
+        from albion import orders
+        # preços idênticos em Thetford (bônus de minério) e Martlock:
+        # com 36,7% a margem passa do corte; com 15,2% fica negativa
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                for city in ("Thetford", "Martlock"):
+                    for item, price in (("T4_ORE", 100),
+                                        ("T3_METALBAR", 100),
+                                        ("T4_METALBAR", 250)):
+                        aodp.db.execute(
+                            "INSERT INTO prices VALUES "
+                            "(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                            ("americas", item, city, 1, price,
+                             "2026-06-11T12:00:00", 0, "", 0, "", 0, "", 0))
+                aodp.db.commit()
+                out = orders.refiner_orders(
+                    aodp.db, "americas", tiers=(4,), min_margin_pct=5)
+            finally:
+                aodp.db.close()
+        metal = [o for o in out if o["item_id"] == "T4_METALBAR"]
+        self.assertEqual(len(metal), 1)
+        self.assertEqual(metal[0]["city_to"], "Thetford")
+        self.assertIn("com bônus", metal[0]["explanation_short"])
+
+
 class SeasonalityAndScoreTests(unittest.TestCase):
     def test_weekend_volume_ratio_and_note(self):
         from datetime import datetime, timedelta
