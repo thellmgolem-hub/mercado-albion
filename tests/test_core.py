@@ -84,6 +84,30 @@ class ItemAndApiTests(unittest.TestCase):
 
         self.assertTrue(any(r["id"] == "T5_BAG" for r in results))
 
+    def test_grouped_search_collapses_enchants_under_limit(self):
+        db = ItemDB()
+
+        # sem agrupar, os 5 encantos de T4_BAG ocupam 5 linhas
+        flat = db.search("bolsa do adepto", limit=10)
+        self.assertGreater(sum(1 for r in flat
+                               if r["id"].split("@")[0] == "T4_BAG"), 1)
+
+        # agrupando, vira 1 linha-base com a lista de encantos
+        grouped = db.search("bolsa do adepto", limit=10, group=True)
+        bags = [r for r in grouped if r["id"].split("@")[0] == "T4_BAG"]
+        self.assertEqual(len(bags), 1)
+        self.assertEqual(bags[0]["enchants"], [0, 1, 2, 3, 4])
+        self.assertEqual(bags[0]["base_id"], "T4_BAG")
+
+    def test_grouped_search_limit_counts_base_items(self):
+        db = ItemDB()
+        # "arco": dezenas de itens-base, mas os encantos entupiam o limite.
+        # agrupado, o limite passa a contar itens-base distintos.
+        grouped = db.search("arco", limit=40, group=True)
+        bases = {r["base_id"] for r in grouped}
+        self.assertEqual(len(grouped), len(bases))      # nenhuma duplicata
+        self.assertGreaterEqual(len(bases), 30)         # alcança muito mais
+
     def test_meta_and_status_endpoints_are_available(self):
         client = TestClient(app.app)
 

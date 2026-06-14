@@ -151,9 +151,10 @@ def status():
 @app.get("/api/search")
 def search(q: str = "", cat: str | None = None, sub: str | None = None,
            tier_min: int | None = None, tier_max: int | None = None,
-           ench: int | None = None, limit: int = Query(30, le=200)):
+           ench: int | None = None, limit: int = Query(30, le=200),
+           group: bool = False):
     return db.search(q, cat=cat, sub=sub, tier_min=tier_min,
-                     tier_max=tier_max, ench=ench, limit=limit)
+                     tier_max=tier_max, ench=ench, limit=limit, group=group)
 
 
 @app.get("/api/prices")

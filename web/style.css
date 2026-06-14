@@ -265,6 +265,12 @@ button.btn.secondary:hover { border-color: var(--gold); }
 .picker .opt .nm { flex: 1; }
 .picker .opt .nm small { display: block; color: var(--muted); font-size: 0.75rem; }
 .picker .opt .te { color: var(--gold); font-size: 0.85rem; white-space: nowrap; }
+.picker .opt .te-ench { display: flex; gap: 3px; align-items: center; }
+.picker .opt .ench-chip {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+  padding: 1px 5px; cursor: pointer; color: var(--gold);
+}
+.picker .opt .ench-chip:hover { background: var(--gold); color: #1d1812; }
 
 /* tabelas */
 .table-wrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }

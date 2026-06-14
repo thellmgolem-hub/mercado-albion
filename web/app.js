@@ -179,7 +179,14 @@ function makeItemPicker(containerId, onSelect, placeholder = 'buscar item… ex.
       tier_max: tier,
       ench: enchSel.value,
       limit: options.limit || 80,
+      group: true,  // 1 linha por item-base; encantos viram chips
     };
+  }
+
+  // monta a variante concreta (base + @N) a partir de um item agrupado
+  function variant(it, e) {
+    const base = it.base_id || it.id.split('@')[0];
+    return { ...it, id: e > 0 ? `${base}@${e}` : base, ench: e };
   }
 
   function hasActiveSearch(p) {
@@ -200,12 +207,18 @@ function makeItemPicker(containerId, onSelect, placeholder = 'buscar item… ex.
       if (batchBtn) batchBtn.disabled = true;
       return;
     }
-    drop.innerHTML = results.map((it, i) => `
-      <div class="opt ${i === sel ? 'sel' : ''}" data-i="${i}">
+    drop.innerHTML = results.map((it, i) => {
+      const list = (it.enchants && it.enchants.length) ? it.enchants : [it.ench];
+      const te = list.length > 1
+        ? `<div class="te te-ench">T${it.tier} ${list.map((e) =>
+            `<span class="ench-chip" data-i="${i}" data-e="${e}">.${e}</span>`).join('')}</div>`
+        : `<div class="te">T${it.tier}.${list[0] ?? 0}</div>`;
+      return `<div class="opt ${i === sel ? 'sel' : ''}" data-i="${i}">
         ${iconImg(it.id)}
         <div class="nm">${esc(it.pt)}<small>${itemMetaHtml(it)}</small></div>
-        <div class="te">T${it.tier}.${it.ench}</div>
-      </div>`).join('');
+        ${te}
+      </div>`;
+    }).join('');
     drop.classList.toggle('open', results.length > 0);
     if (batchBtn) batchBtn.disabled = results.length === 0;
     drop.querySelectorAll('.opt').forEach((o) => {
@@ -214,14 +227,22 @@ function makeItemPicker(containerId, onSelect, placeholder = 'buscar item… ex.
         pick(+o.dataset.i);
       });
     });
+    drop.querySelectorAll('.ench-chip').forEach((c) => {
+      c.addEventListener('mousedown', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        pick(+c.dataset.i, +c.dataset.e);
+      });
+    });
   }
 
-  function pick(i) {
+  function pick(i, e) {
     const it = results[i];
     if (!it) return;
+    const chosen = (e === undefined || e === null) ? it : variant(it, e);
     input.value = it.pt;
     close();
-    onSelect(it);
+    onSelect(chosen);
   }
 
   async function runSearch() {

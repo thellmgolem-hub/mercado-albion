@@ -32,8 +32,14 @@ class ItemDB:
         return self.by_id.get(item_id) or self.by_id.get(item_id.upper())
 
     def search(self, q: str, cat=None, sub=None, tier_min=None, tier_max=None,
-               ench=None, limit=30):
-        """Busca por nome (PT/EN) ou id. Tokens especiais: 't4', '@1', '4.1'."""
+               ench=None, limit=30, group=False):
+        """Busca por nome (PT/EN) ou id. Tokens especiais: 't4', '@1', '4.1'.
+
+        group=True colapsa as variantes de encanto (@0..@4) numa linha por
+        item-base, anexando `enchants` com os níveis disponíveis. O limite
+        passa a contar itens-base — sem isso os encantos entopem a lista e
+        escondem a maioria dos itens em buscas amplas.
+        """
         tokens = norm(q).split()
         text_tokens = []
         f_tier, f_ench = None, None
@@ -74,7 +80,29 @@ class ItemDB:
             results.append((score, it))
 
         results.sort(key=lambda r: (r[0], r[1]["tier"], r[1]["ench"], r[1]["id"]))
-        return [self._public(it) for _, it in results[:limit]]
+
+        if not group:
+            return [self._public(it) for _, it in results[:limit]]
+
+        # colapsa por item-base (id sem o sufixo @N); o limite conta bases
+        bases = {}
+        order = []
+        for _, it in results:
+            base = it["id"].split("@")[0]
+            rep = bases.get(base)
+            if rep is None:
+                if len(bases) >= limit:
+                    continue
+                rep = self._public(it)  # primeiro = melhor pontuado (ench baixo)
+                rep["base_id"] = base
+                rep["enchants"] = []
+                bases[base] = rep
+                order.append(base)
+            if it["ench"] not in rep["enchants"]:
+                rep["enchants"].append(it["ench"])
+        for base in order:
+            bases[base]["enchants"].sort()
+        return [bases[b] for b in order]
 
     @staticmethod
     def _score(it, tokens):
