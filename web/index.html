@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260612-3">
+<link rel="stylesheet" href="style.css?v=20260612-4">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -21,11 +21,9 @@
 
 <nav class="tabs" id="tabs">
   <button data-tab="dashboard" class="active">Início</button>
-  <button data-tab="precos">Preços</button>
+  <button data-tab="item">Item</button>
   <button data-tab="flips">Flips</button>
   <button data-tab="scanner">Scanner</button>
-  <button data-tab="vender">Onde Vender</button>
-  <button data-tab="historico">Item Lab</button>
 </nav>
 
 <main>
@@ -177,28 +175,112 @@
   <div class="table-wrap" id="ordersTable"></div>
 </section>
 
-<!-- ============================ PREÇOS ============================ -->
-<section class="tab" id="tab-precos">
+<!-- ============================ ITEM ============================ -->
+<section class="tab" id="tab-item">
   <div class="controls">
-    <div class="field item-search-field">
+    <div class="field item-search-field" style="flex:1">
       <label>Item (nome em português, inglês ou id — atalhos: "t6", "4.1", "@2")</label>
-      <div class="picker" id="precosPicker"></div>
+      <div class="picker" id="itemPicker"></div>
     </div>
-    <div class="field">
-      <label>Qualidades</label>
-      <div class="chips" id="precosQuals"></div>
-    </div>
-    <button class="btn secondary" id="precosRefresh" title="Ignora o cache local e busca agora na API">Atualizar agora</button>
   </div>
-  <div id="precosCard"></div>
-  <div class="status" id="precosStatus"></div>
-  <div class="table-wrap" id="precosTable"></div>
-  <p class="hint">Favoritos: <span id="favList" class="chips"></span></p>
-  <p class="hint"><b>Venda mín.</b> = anúncio de venda mais barato (preço de compra instantânea) ·
-     <b>Compra máx.</b> = ordem de compra mais alta (preço de venda instantânea) ·
-     A idade indica quando alguém viu aquele mercado pela última vez — dados da
-     comunidade (Albion Online Data Project) só atualizam quando um jogador com o
-     cliente de coleta abre o mercado.</p>
+  <div id="itemCard"></div>
+  <nav class="subtabs" id="itemSubtabs">
+    <button data-sub="precos" class="active">Preços por cidade</button>
+    <button data-sub="vender">Onde vender</button>
+    <button data-sub="lab">Item Lab</button>
+  </nav>
+
+  <!-- sub: Preços por cidade -->
+  <div class="subtab active" id="sub-precos">
+    <div class="controls">
+      <div class="field">
+        <label>Qualidades</label>
+        <div class="chips" id="precosQuals"></div>
+      </div>
+      <button class="btn secondary" id="precosRefresh" title="Ignora o cache local e busca agora na API">Atualizar agora</button>
+    </div>
+    <div class="status" id="precosStatus"></div>
+    <div class="table-wrap" id="precosTable"></div>
+    <p class="hint">Favoritos: <span id="favList" class="chips"></span></p>
+    <p class="hint"><b>Venda mín.</b> = anúncio de venda mais barato (preço de compra instantânea) ·
+       <b>Compra máx.</b> = ordem de compra mais alta (preço de venda instantânea) ·
+       A idade indica quando alguém viu aquele mercado pela última vez — dados da
+       comunidade (Albion Online Data Project) só atualizam quando um jogador com o
+       cliente de coleta abre o mercado.</p>
+  </div>
+
+  <!-- sub: Onde vender -->
+  <div class="subtab" id="sub-vender">
+    <div class="controls">
+      <div class="field">
+        <label>Qualidades</label>
+        <div class="chips" id="venderQuals"></div>
+      </div>
+      <button class="btn secondary" id="venderRefresh">Atualizar agora</button>
+    </div>
+    <div class="status" id="venderStatus"></div>
+    <div class="table-wrap" id="venderTable"></div>
+    <p class="hint">Ranqueado pelo <b>líquido</b> (já descontados imposto de venda
+       e, no caso de ordem, a taxa de anúncio de 2,5%). Venda <b>instantânea</b> = você
+       preenche a ordem de compra mais alta agora. <b>Ordem</b> = você anuncia pelo menor
+       preço de venda atual e espera vender.</p>
+  </div>
+
+  <!-- sub: Item Lab -->
+  <div class="subtab" id="sub-lab">
+    <div class="section-head">
+      <div>
+        <h1>Item Lab</h1>
+        <div class="sub">Preço médio, volume, tendência, z-score, momentum e qualidade do dado</div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="field">
+        <label>Cidades</label>
+        <div class="cities-box chips" id="histCities"></div>
+      </div>
+      <div class="field">
+        <label>Qualidade</label>
+        <select id="histQuality"></select>
+      </div>
+      <div class="field">
+        <label>Período</label>
+        <select id="histDays">
+          <option value="1">24 horas</option>
+          <option value="7">7 dias</option>
+          <option value="30" selected>30 dias</option>
+          <option value="90">90 dias</option>
+          <option value="180">180 dias</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Escala</label>
+        <select id="histScale">
+          <option value="24" selected>diária</option>
+          <option value="6">6 horas</option>
+          <option value="1">por hora</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Dados novos</label>
+        <div class="field-row">
+          <input type="checkbox" id="histFetchNew">
+          <span class="muted" title="Busca na API em vez de usar só o cache local (consome rate limit)">buscar da API</span>
+        </div>
+      </div>
+      <button class="btn" id="histRun">Carregar</button>
+      <button class="btn secondary" id="histWatch" title="Adiciona o item à watchlist de coleta">+ watchlist</button>
+    </div>
+    <div class="status" id="histStatus"></div>
+    <div class="lab-panel" id="histLabPanel">
+      <div class="lab-summary" id="histLabSummary"></div>
+      <div class="lab-grid" id="histLabCards"></div>
+    </div>
+    <div class="charts">
+      <div class="chart-box"><canvas id="histPriceChart"></canvas></div>
+      <div class="chart-box small"><canvas id="histVolChart"></canvas></div>
+    </div>
+  </div>
 </section>
 
 <!-- ============================ FLIPS ============================ -->
@@ -355,88 +437,6 @@
      "flips fantasmas" (a ordem já foi consumida). Use o ✕ para ocultar uma linha já executada.</p>
 </section>
 
-<!-- ============================ ONDE VENDER ============================ -->
-<section class="tab" id="tab-vender">
-  <div class="controls">
-    <div class="field item-search-field">
-      <label>O que você tem para vender?</label>
-      <div class="picker" id="venderPicker"></div>
-    </div>
-    <div class="field">
-      <label>Qualidades</label>
-      <div class="chips" id="venderQuals"></div>
-    </div>
-    <button class="btn secondary" id="venderRefresh">Atualizar agora</button>
-  </div>
-  <div id="venderCard"></div>
-  <div class="status" id="venderStatus"></div>
-  <div class="table-wrap" id="venderTable"></div>
-  <p class="hint">Ranqueado pelo <b>líquido</b> (já descontados imposto de venda
-     e, no caso de ordem, a taxa de anúncio de 2,5%). Venda <b>instantânea</b> = você
-     preenche a ordem de compra mais alta agora. <b>Ordem</b> = você anuncia pelo menor
-     preço de venda atual e espera vender.</p>
-</section>
-
-<!-- ============================ ITEM LAB ============================ -->
-<section class="tab" id="tab-historico">
-  <div class="section-head">
-    <div>
-      <h1>Item Lab</h1>
-      <div class="sub">Preço médio, volume, tendência, z-score, momentum e qualidade do dado</div>
-    </div>
-  </div>
-  <div class="controls">
-    <div class="field item-search-field">
-      <label>Item</label>
-      <div class="picker" id="histPicker"></div>
-    </div>
-    <div class="field">
-      <label>Cidades</label>
-      <div class="cities-box chips" id="histCities"></div>
-    </div>
-    <div class="field">
-      <label>Qualidade</label>
-      <select id="histQuality"></select>
-    </div>
-    <div class="field">
-      <label>Período</label>
-      <select id="histDays">
-        <option value="1">24 horas</option>
-        <option value="7">7 dias</option>
-        <option value="30" selected>30 dias</option>
-        <option value="90">90 dias</option>
-        <option value="180">180 dias</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Escala</label>
-      <select id="histScale">
-        <option value="24" selected>diária</option>
-        <option value="6">6 horas</option>
-        <option value="1">por hora</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Dados novos</label>
-      <div class="field-row">
-        <input type="checkbox" id="histFetchNew">
-        <span class="muted" title="Busca na API em vez de usar só o cache local (consome rate limit)">buscar da API</span>
-      </div>
-    </div>
-    <button class="btn" id="histRun">Carregar</button>
-    <button class="btn secondary" id="histWatch" title="Adiciona o item à watchlist de coleta">+ watchlist</button>
-  </div>
-  <div class="status" id="histStatus"></div>
-  <div class="lab-panel" id="histLabPanel">
-    <div class="lab-summary" id="histLabSummary"></div>
-    <div class="lab-grid" id="histLabCards"></div>
-  </div>
-  <div class="charts">
-    <div class="chart-box"><canvas id="histPriceChart"></canvas></div>
-    <div class="chart-box small"><canvas id="histVolChart"></canvas></div>
-  </div>
-</section>
-
 </main>
 
 <div id="toast"></div>
@@ -471,6 +471,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260612-3"></script>
+<script src="app.js?v=20260612-4"></script>
 </body>
 </html>

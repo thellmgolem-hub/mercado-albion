@@ -604,6 +604,23 @@ tbody tr:hover { background: rgba(212, 168, 67, 0.06); }
 .rec-filters > summary:hover { color: var(--gold); }
 .rec-filters[open] > summary { color: var(--gold); margin-bottom: 6px; }
 
+/* sub-abas do inspetor de item */
+.subtabs {
+  display: flex; gap: 2px; border-bottom: 1px solid var(--border);
+  margin: 4px 0 14px;
+}
+.subtabs button {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 0.95rem; padding: 8px 14px; border-bottom: 3px solid transparent;
+  font-family: inherit;
+}
+.subtabs button:hover { color: var(--text); }
+.subtabs button.active {
+  color: var(--gold-bright); border-bottom-color: var(--gold); font-weight: 600;
+}
+.subtab { display: none; }
+.subtab.active { display: block; }
+
 @media (max-width: 800px) {
   .picker { min-width: 220px; }
   .item-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -869,3 +869,30 @@ OK; coleta fresca de 2.157 itens (86.280 precos, 10.298 series); os 7 paineis
 do Inicio populados com dados reais; console do navegador sem erros; git
 limpo. Tarefa MercadoAlbion-Servidor reiniciada com o codigo novo (porta
 8528 escutando, /api/backtest 200 em producao).
+
+## 2026-06-12 - Consolidação de abas: busca agrupada + inspetor de item (Claude)
+
+Análise pedida pelo usuário: redundância entre abas + busca não alcançava
+todos os itens. Confirmado e corrigido.
+
+Bug da busca (grave): cada item virava 5 entradas (@0-@4) e o limite de 80 as
+contava, escondendo a maioria — 'arco' só alcançava 19 de 49 itens-base.
+- ItemDB.search(group=True) colapsa por item-base e aplica o limite a bases;
+  /api/search?group=. Picker mostra 1 linha/item com chips .0-.4 que escolhem
+  o encanto exato. (commit e28b044)
+
+Consolidação A (commit eba997d): 'Descobrir flips' duplicava /api/recommendations
+com 'Recomendações' do Início. Virou um <details> de filtros no próprio painel
+do Início; aba Flips ficou só com a calculadora manual.
+
+Consolidação B (este commit): Preços + Onde Vender + Item Lab eram 3 abas com o
+mesmo gesto 'escolha 1 item'. Unidas numa aba 'Item' com 1 picker compartilhado
+e 3 sub-abas (Preços por cidade / Onde vender / Item Lab); escolher o item uma
+vez popula as três, carregando sob demanda (state.itemLoadedFor). Pickers
+precos/vender/hist removidos; selectItem/showItemSub/loadItemSub novos;
+selectPrecosItem (favoritos) e openHistoryForOpportunity repontados.
+Resultado: 6 abas -> 4 (Início · Item · Flips · Scanner).
+
+Verificado ao vivo: busca 'arco' alcança 49 bases; chip .2 seleciona
+T4_2H_BOW@2; inspetor carrega as 3 facetas do mesmo item; console limpo;
+28 testes OK; assets v=20260612-4.

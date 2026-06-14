@@ -5,6 +5,8 @@ const state = {
   meta: null,
   premium: localStorage.getItem('premium') !== '0',
   favorites: JSON.parse(localStorage.getItem('favorites') || '[]'),
+  item: null,
+  itemLoadedFor: {},
   precosItem: null,
   flipsItems: [],
   venderItem: null,
@@ -789,12 +791,51 @@ async function loadPrecos(fresh = false) {
   }
 }
 
+// ============================================================ aba ITEM (unificada)
+// Um único picker alimenta as sub-abas Preços / Onde Vender / Item Lab.
+function activeItemSub() {
+  const b = document.querySelector('#itemSubtabs button.active');
+  return b ? b.dataset.sub : 'precos';
+}
+
+function loadItemSub(sub, force = false) {
+  if (!state.item) return;
+  if (!force && state.itemLoadedFor[sub] === state.item.id) return;
+  state.itemLoadedFor[sub] = state.item.id;
+  if (sub === 'precos') loadPrecos();
+  else if (sub === 'vender') loadVender();
+  else if (sub === 'lab') runHist();
+}
+
+function showItemSub(sub) {
+  document.querySelectorAll('#itemSubtabs button').forEach((b) =>
+    b.classList.toggle('active', b.dataset.sub === sub));
+  document.querySelectorAll('#tab-item .subtab').forEach((s) =>
+    s.classList.toggle('active', s.id === 'sub-' + sub));
+  loadItemSub(sub);
+}
+
+function selectItem(it) {
+  state.item = it;
+  // as funções de carga ainda leem destes campos — mantém todas em sincronia
+  state.precosItem = it;
+  state.venderItem = it;
+  state.histItem = it;
+  state.itemLoadedFor = {};
+  $('itemCard').innerHTML = itemCardHtml(it, true);
+  wireItemCard('itemCard', it);
+  loadItemSub(activeItemSub(), true);
+}
+
+// favoritos e atalhos abrem a aba Item já na sub-aba certa
 function selectPrecosItem(it) {
   api('/api/search', { q: it.id, limit: 1 }).then((r) => {
-    state.precosItem = r[0] || it;
-    $('precosCard').innerHTML = itemCardHtml(state.precosItem, true);
-    wireItemCard('precosCard', state.precosItem);
-    loadPrecos();
+    activateTab('item');
+    document.querySelectorAll('#itemSubtabs button').forEach((b) =>
+      b.classList.toggle('active', b.dataset.sub === 'precos'));
+    document.querySelectorAll('#tab-item .subtab').forEach((s) =>
+      s.classList.toggle('active', s.id === 'sub-precos'));
+    selectItem(r[0] || it);
   });
 }
 
@@ -1161,7 +1202,7 @@ function activateTab(tabId) {
 }
 
 function openHistoryForOpportunity(o) {
-  state.histItem = {
+  const it = {
     id: o.item_id,
     pt: o.name_pt || o.item_id,
     en: o.name_en || o.item_id,
@@ -1175,8 +1216,12 @@ function openHistoryForOpportunity(o) {
   $('histQuality').value = String(o.quality || 1);
   $('histDays').value = '7';
   $('histScale').value = '24';
-  activateTab('historico');
-  runHist();
+  activateTab('item');
+  document.querySelectorAll('#itemSubtabs button').forEach((b) =>
+    b.classList.toggle('active', b.dataset.sub === 'lab'));
+  document.querySelectorAll('#tab-item .subtab').forEach((s) =>
+    s.classList.toggle('active', s.id === 'sub-lab'));
+  selectItem(it);
   toast('gráfico histórico carregado');
 }
 
@@ -1575,7 +1620,9 @@ async function init() {
     .map((q) => `<option value="${q.value}">${esc(q.label)}</option>`).join('');
 
   // pickers
-  makeItemPicker('precosPicker', (it) => selectPrecosItem(it));
+  makeItemPicker('itemPicker', (it) => selectItem(it));
+  document.querySelectorAll('#itemSubtabs button').forEach((b) =>
+    b.addEventListener('click', () => showItemSub(b.dataset.sub)));
   makeItemPicker('flipsPicker', (it) => {
     if (!state.flipsItems.some((x) => x.id === it.id)) state.flipsItems.push(it);
     renderFlipsItems();
@@ -1593,13 +1640,6 @@ async function init() {
       toast(added ? `${added} itens adicionados` : 'itens já estavam na lista');
     },
   });
-  makeItemPicker('venderPicker', (it) => {
-    state.venderItem = it;
-    $('venderCard').innerHTML = itemCardHtml(it, false);
-    wireItemCard('venderCard', it);
-    loadVender();
-  });
-  makeItemPicker('histPicker', (it) => { state.histItem = it; runHist(); });
 
   // botões
   $('glossaryOpen').addEventListener('click', () => setGlossary(true));
