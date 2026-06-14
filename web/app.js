@@ -13,7 +13,6 @@ const state = {
   scanItemsScanned: 0,
   scanRows: [],
   dashRecs: [],
-  discoverRows: [],
   hidden: new Set(JSON.parse(localStorage.getItem('hiddenFlips') || '[]')),
 };
 
@@ -723,15 +722,16 @@ function discoveryParams() {
 }
 
 async function runDiscover() {
-  const st = $('discoverStatus');
+  // descoberta filtrada renderiza no MESMO painel de Recomendações do Início
+  const st = $('dashRecsStatus');
   st.className = 'status';
   st.textContent = 'pesquisando oportunidades no cache…';
   $('discoverRun').disabled = true;
   try {
     const res = await api('/api/recommendations', discoveryParams());
-    state.discoverRows = res.opportunities || [];
-    renderRecommendationTable('discoverTable', 'discoverStatus', state.discoverRows, res,
-      'nenhuma oportunidade encontrada');
+    state.dashRecs = res.opportunities || [];
+    renderRecommendationTable('dashRecsTable', 'dashRecsStatus', state.dashRecs, res,
+      'nenhuma oportunidade com os filtros atuais');
   } catch (e) {
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
@@ -1643,7 +1643,6 @@ async function init() {
   setInterval(() => { loadSignals().then(loadSignalValidation); loadRisk(); },
     10 * 60 * 1000);
   setInterval(loadServiceOrders, 10 * 60 * 1000);
-  runDiscover();
 }
 
 init().catch((e) => {

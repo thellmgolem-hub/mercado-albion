@@ -596,6 +596,13 @@ tbody tr:hover { background: rgba(212, 168, 67, 0.06); }
 .cities-box { display: flex; flex-wrap: wrap; gap: 4px; max-width: 340px; }
 .discovery-controls .field { min-width: 130px; }
 .discovery-table { margin-bottom: 14px; }
+.rec-filters { margin: 6px 0 10px; }
+.rec-filters > summary {
+  cursor: pointer; color: var(--muted); font-size: 0.85rem;
+  padding: 4px 0; user-select: none;
+}
+.rec-filters > summary:hover { color: var(--gold); }
+.rec-filters[open] > summary { color: var(--gold); margin-bottom: 6px; }
 
 @media (max-width: 800px) {
   .picker { min-width: 220px; }
