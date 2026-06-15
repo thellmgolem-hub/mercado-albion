@@ -110,9 +110,14 @@ GOLD_TTL = 300
 # reaproveitam o cache da janela maior — 1 requisição cobre várias consultas.
 HISTORY_FETCH_WINDOWS = {24: [90, 180, 365], 6: [30, 90], 1: [7, 30]}
 
-# Retenção de snapshots brutos (comando `analyze.py prune` agrega em
-# price_snapshots_daily antes de apagar)
-SNAPSHOT_RETENTION_DAYS = 180
+# Retenção de snapshots BRUTOS (30 min). O histórico de longo prazo fica em
+# price_snapshots_daily (agregado, permanente); os snapshots crus só servem à
+# análise de curto prazo (survival/backtest de flip fantasma). Com ~1M
+# linhas/dia para a watchlist cheia, 7 dias bastam e limitam a tabela a um
+# tamanho em que as análises rodam em segundos.
+SNAPSHOT_RETENTION_DAYS = 7
+# Intervalo da poda automática de snapshots no servidor (0 = desligada)
+AUTO_PRUNE_INTERVAL_H = 24
 
 # Âncoras ABSOLUTAS do opportunity_score (escala log; valor da âncora = 100):
 # lucro/unidade (prata), potencial/dia (prata), liquidez (itens/dia)

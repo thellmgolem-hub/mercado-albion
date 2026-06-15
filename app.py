@@ -151,7 +151,7 @@ def status():
 @app.get("/api/search")
 def search(q: str = "", cat: str | None = None, sub: str | None = None,
            tier_min: int | None = None, tier_max: int | None = None,
-           ench: int | None = None, limit: int = Query(30, le=200),
+           ench: int | None = None, limit: int = Query(30, le=300),
            group: bool = False):
     return db.search(q, cat=cat, sub=sub, tier_min=tier_min,
                      tier_max=tier_max, ench=ench, limit=limit, group=group)
@@ -576,15 +576,20 @@ def scan(cat: str | None = None, sub: str | None = None,
          same_city: bool = False, max_age_buy: int | None = None,
          max_age_sell: int | None = None,
          buy_cities: str | None = None, sell_cities: str | None = None,
-         max_items: int = Query(300, le=800), limit: int = Query(100, le=500),
+         max_items: int = Query(300, le=1500), limit: int = Query(100, le=500),
          with_volume: bool = True, max_age: int = Query(config.PRICES_TTL, ge=0)):
     """Escaneia uma categoria inteira em busca de oportunidades de flip."""
     if buy_mode not in ("instant", "order") or sell_mode not in ("instant", "order"):
         raise HTTPException(400, "buy_mode/sell_mode deve ser 'instant' ou 'order'")
-    items = db.filter(cat=cat, sub=sub, tier_min=tier_min, tier_max=tier_max,
-                      ench_list=_csv_int(ench), limit=max_items)
-    if not items:
-        return {"items_scanned": 0, "opportunities": []}
+    all_items = db.filter(cat=cat, sub=sub, tier_min=tier_min, tier_max=tier_max,
+                          ench_list=_csv_int(ench))
+    items_total = len(all_items)
+    if not all_items:
+        return {"items_scanned": 0, "items_total": 0, "opportunities": []}
+    # ordena por tier desc (itens de maior valor primeiro) em vez da ordem de
+    # arquivo — sem isto o cap cobre só as primeiras famílias do JSON
+    all_items.sort(key=lambda i: (-i["tier"], i["id"]))
+    items = all_items[:max_items]
     item_ids = [i["id"] for i in items]
     city_list, buy_set, sell_set = _city_scope(cities, buy_cities, sell_cities)
     rows = _api_guard(lambda: aodp.get_prices(item_ids, city_list, max_age=max_age))
@@ -624,7 +629,8 @@ def scan(cat: str | None = None, sub: str | None = None,
                                   if vb is not None and vs is not None else None)
             _liquidity_adjusted_confidence(o)
 
-    return {"items_scanned": len(item_ids), "opportunities": opps}
+    return {"items_scanned": len(item_ids), "items_total": items_total,
+            "opportunities": opps}
 
 
 @app.get("/api/sell")
@@ -796,8 +802,12 @@ def collect(days: int = Query(30, le=180), cities: str | None = None,
 
 @app.get("/api/backtest")
 def backtest(premium: bool = True, min_profit: float = Query(500, ge=0),
-             max_runs: int = Query(60, le=500)):
-    """Backtest de sinal sobre as rodadas de coleta acumuladas."""
+             max_runs: int = Query(24, le=500)):
+    """Backtest de sinal sobre as rodadas de coleta acumuladas.
+
+    Custo ~0,8 s por par de rodadas (reconstrói o mercado por rodada). O
+    default 24 responde em ~18 s; aumente max_runs para análises mais fundas.
+    """
     from albion import backtest as backtest_mod
     con = _cache_connection()
     if con is None:
@@ -833,6 +843,7 @@ def _auto_collect_loop():
                            config.AUTO_COLLECT_INTERVAL_MIN))
     last_market = 0.0
     last_signal_log = 0.0
+    last_prune = time.time()  # não poda logo no boot; espera o intervalo
     while True:
         time.sleep(tick)
         try:
@@ -861,6 +872,16 @@ def _auto_collect_loop():
                 _generate_service_orders()
         except Exception:
             pass  # registrado em collection_runs pelo collect()
+        try:
+            # poda diária: agrega snapshots brutos antigos e limita a tabela
+            # (sem VACUUM para não segurar o lock; o espaço é reclamado pelo
+            # `analyze.py prune` manual). Causa-raiz da lentidão se não rodar.
+            if (config.AUTO_PRUNE_INTERVAL_H > 0 and
+                    time.time() - last_prune >= config.AUTO_PRUNE_INTERVAL_H * 3600):
+                aodp.snapshot_prune(vacuum=False)
+                last_prune = time.time()
+        except Exception:
+            pass
 
 
 @app.on_event("startup")

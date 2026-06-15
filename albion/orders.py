@@ -112,13 +112,16 @@ def gatherer_sell_orders(con, server, min_premium_pct=10, min_volume=20,
             continue
         pct = 100 * (price / vwap - 1)
         net = sell_revenue(price, "instant", True)
+        # prêmio líquido vs líquido (mesma base tributária): quanto a mais,
+        # por unidade, sobre vender pela média 7d — não é "lucro" absoluto
+        premio = round(net - sell_revenue(vwap, "instant", True))
         out.append(_order(
             "coletor", "vender",
             f"Venda instantânea em {city}: ordem de compra paga {pct:.0f}% "
             f"acima da média 7d ({price:,.0f} vs {vwap:,.0f}), volume "
             f"{vol:.0f}/dia, dado {age} min",
             item_id=item_id, city_to=city, qty=int(vol // 4) or 1,
-            profit=round(net - vwap), roi=round(pct, 1),
+            profit=premio, roi=round(pct, 1),
             risk="baixo", confidence="média", source="compra_max_vs_vwap7"))
         if len(out) >= limit:
             break

@@ -99,6 +99,21 @@ class ItemAndApiTests(unittest.TestCase):
         self.assertEqual(bags[0]["enchants"], [0, 1, 2, 3, 4])
         self.assertEqual(bags[0]["base_id"], "T4_BAG")
 
+    def test_partial_fallback_when_strict_and_fails(self):
+        db = ItemDB()
+        # AND estrito não acha (palavra divergente), mas o item existe:
+        # 'manto de thetford' -> a Capa de Thetford deveria aparecer
+        strict = db.search("manto de thetford xyz", group=True, limit=10)
+        self.assertTrue(strict, "fallback parcial deveria retornar algo")
+        # busca exata não pode ser degradada pelo fallback
+        exact = db.search("bolsa do adepto", group=True, limit=5)
+        self.assertEqual(exact[0]["id"], "T4_BAG")
+        # token único continua estrito (sem fallback): 'bolsa' acha as bolsas
+        one = db.search("bolsa", group=True, limit=200)
+        self.assertTrue(all("bolsa" in r["pt"].lower()
+                            or "bolsa" in r["en"].lower()
+                            or "bag" in r["id"].lower() for r in one))
+
     def test_grouped_search_limit_counts_base_items(self):
         db = ItemDB()
         # "arco": dezenas de itens-base, mas os encantos entupiam o limite.
@@ -152,12 +167,24 @@ class ItemAndApiTests(unittest.TestCase):
                     r[0] for r in client.db.execute(
                         "SELECT name FROM sqlite_master WHERE type='table'")
                 }
+                indexes = {
+                    r[0] for r in client.db.execute(
+                        "SELECT name FROM sqlite_master WHERE type='index'")
+                }
+                # consulta por janela de tempo deve usar seek por índice, não
+                # varredura completa (regressão de BACKTEST-1/SURVIVAL-1)
+                plan = " ".join(str(r) for r in client.db.execute(
+                    "EXPLAIN QUERY PLAN SELECT * FROM price_snapshots"
+                    " WHERE server=? AND fetched_at BETWEEN ? AND ?",
+                    ("americas", 0, 9e9)).fetchall())
             finally:
                 client.db.close()
 
         self.assertIn("price_snapshots", tables)
         self.assertIn("watchlist", tables)
         self.assertIn("price_snapshots_daily", tables)
+        self.assertIn("idx_price_snapshots_time", indexes)
+        self.assertIn("idx_price_snapshots_time", plan)
 
 
 def _series(prices, volumes=None, hours=False):
@@ -273,7 +300,9 @@ class SurvivalTests(unittest.TestCase):
                     "INSERT INTO price_snapshots VALUES "
                     "(?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
                 client.db.commit()
-                res = survival.persistence(client.db, "americas")
+                # days=None: testa a lógica de bucketing com timestamps fixos
+                # (fora de qualquer janela recente)
+                res = survival.persistence(client.db, "americas", days=None)
             finally:
                 client.db.close()
 
@@ -412,7 +441,9 @@ class DivergenceTests(unittest.TestCase):
             try:
                 # base (D-3..D-7): 10 un/dia; recente (D..D-2): 30 un/dia
                 for off in range(8):
-                    units = 30 if off <= 2 else 10
+                    # recent_days=2 => 'recente' = off 0,1 (hoje + ontem);
+                    # base = off 2..7. Recente 30/dia, base 10/dia => ratio 3.0
+                    units = 30 if off <= 1 else 10
                     eid = 100 + off
                     aodp.db.execute(
                         "INSERT INTO kill_events VALUES "

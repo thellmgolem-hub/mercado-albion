@@ -385,7 +385,7 @@ def demand_price_divergence(con, server, recent_days: int = 2,
                           THEN vwap END) AS preco_recente,
                  AVG(CASE WHEN day < date('now', :rec_delta)
                           THEN vwap END) AS preco_base,
-                 SUM(volume) / COUNT(DISTINCT day) AS volume_dia
+                 SUM(volume) * 1.0 / COUNT(DISTINCT day) AS volume_dia
           FROM precos GROUP BY item_id
         )
         SELECT r.item_id, r.unid_dia AS demanda_recente,
@@ -399,7 +399,9 @@ def demand_price_divergence(con, server, recent_days: int = 2,
     """, {"srv": server,
           "janela": f"-{recent_days + base_days} days",
           "janela_dias": f"-{recent_days + base_days} days",
-          "rec_delta": f"-{recent_days} days",
+          # -(recent_days-1): 'recente' = hoje + (recent_days-1) dias anteriores
+          # = exatamente recent_days dias-calendário (SQL-3)
+          "rec_delta": f"-{max(recent_days - 1, 0)} days",
           "min_units": min_units_day}).fetchall()
     out = []
     for item_id, dem_rec, dem_base, p_rec, p_base, vol in rows:

@@ -41,14 +41,21 @@ def _bucket_label(lo, hi):
     return f"{lo}-{hi} min" if hi is not None else f"{lo}+ min"
 
 
-def persistence(con, server, item_id=None, city=None, quality=None):
+def persistence(con, server, item_id=None, city=None, quality=None, days=3):
     """Calcula a persistência por faixa de idade, para os dois lados.
 
     con: conexão sqlite (somente leitura) com a tabela price_snapshots.
+    days: janela de tempo (padrão 7) — sem isto a consulta varria a tabela
+    inteira (milhões de linhas, ~20 s e ~2 GB de RAM); a persistência só
+    precisa dos pares recentes. Usa o índice (server, fetched_at).
     Retorna {"sides": {sell: {...}, buy: {...}}, "snapshot_pairs": N}.
     """
+    import time as _time
     where = ["server=?"]
     params = [server]
+    if days:
+        where.append("fetched_at >= ?")
+        params.append(_time.time() - days * 86400)
     if item_id:
         where.append("item_id=?")
         params.append(item_id)

@@ -90,6 +90,10 @@ class AODP:
             );
             CREATE INDEX IF NOT EXISTS idx_price_snapshots_lookup
               ON price_snapshots (server, item_id, city, quality, fetched_at);
+            -- seek por intervalo de tempo (backtest/survival): sem este índice
+            -- as consultas por janela varrem a tabela inteira (ver AUDITORIA2)
+            CREATE INDEX IF NOT EXISTS idx_price_snapshots_time
+              ON price_snapshots (server, fetched_at);
             CREATE TABLE IF NOT EXISTS fetch_log (
               server TEXT, kind TEXT, key TEXT, fetched_at REAL,
               PRIMARY KEY (server, kind, key)
@@ -574,12 +578,22 @@ class AODP:
 
     # ---------------------------------------------------------------- retenção
 
-    def snapshot_prune(self,
-                       days: int = config.SNAPSHOT_RETENTION_DAYS) -> dict:
-        """Agrega snapshots brutos antigos em price_snapshots_daily e apaga."""
-        cutoff = time.time() - days * 86400
+    def snapshot_prune(self, days: int = config.SNAPSHOT_RETENTION_DAYS,
+                       vacuum: bool = True) -> dict:
+        """Agrega snapshots brutos de dias COMPLETOS antigos em
+        price_snapshots_daily e apaga.
+
+        Corta na meia-noite UTC (limite de dia), não no instante atual: assim
+        um dia de fronteira nunca é agregado pela metade e re-agregado/
+        subcontado numa execução posterior (SQL-4). O corte por epoch usa o
+        índice (server, fetched_at). vacuum=False pula o VACUUM (que segura o
+        lock) — usado pela poda automática do servidor.
+        """
+        cutoff = ((datetime.now(timezone.utc) - timedelta(days=days))
+                  .replace(hour=0, minute=0, second=0, microsecond=0)
+                  .timestamp())
         with self.db_lock:
-            self.db.execute("""
+            cur_agg = self.db.execute("""
                 INSERT OR REPLACE INTO price_snapshots_daily
                 SELECT server, item_id, city, quality,
                        date(fetched_at, 'unixepoch') AS day,
@@ -594,10 +608,11 @@ class AODP:
                 WHERE fetched_at < ?
                 GROUP BY server, item_id, city, quality, day
             """, [cutoff])
-            aggregated = self.db.total_changes
+            aggregated = cur_agg.rowcount
             cur = self.db.execute(
                 "DELETE FROM price_snapshots WHERE fetched_at < ?", [cutoff])
             deleted = cur.rowcount
             self.db.commit()
-            self.db.execute("VACUUM")
+            if vacuum:
+                self.db.execute("VACUUM")
         return {"aggregated_days": aggregated, "deleted_rows": deleted}

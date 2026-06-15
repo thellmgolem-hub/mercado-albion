@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260612-4">
+<link rel="stylesheet" href="style.css?v=20260615-2">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -112,10 +112,11 @@
   <div class="section-head" style="margin-top:22px">
     <div>
       <h1>Persistência das ordens</h1>
-      <div class="sub">Quanto tempo a ordem do topo sobrevive — medido nas suas coletas repetidas (proxy de flip fantasma)</div>
+      <div class="sub">Quanto tempo a ordem do topo sobrevive — medido nas suas coletas repetidas (proxy de flip fantasma). Análise pesada: carregue sob demanda.</div>
     </div>
+    <button class="btn secondary" id="survLoad">Carregar persistência</button>
   </div>
-  <div class="status" id="survStatus"></div>
+  <div class="status" id="survStatus">clique em "Carregar persistência" — varre os snapshots dos últimos dias (alguns segundos)</div>
   <div class="table-wrap" id="survTable"></div>
 
   <div class="section-head" style="margin-top:22px">
@@ -471,6 +472,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260612-4"></script>
+<script src="app.js?v=20260615-2"></script>
 </body>
 </html>

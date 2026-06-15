@@ -58,26 +58,47 @@ class ItemDB:
                 continue
             text_tokens.append(t)
 
-        results = []
-        for it in self.items:
+        def passes(it):
             if cat and it["cat"] != cat:
-                continue
+                return False
             if sub and it["sub"] != sub:
-                continue
+                return False
             if f_tier is not None and it["tier"] != f_tier:
-                continue
+                return False
             if tier_min is not None and it["tier"] < tier_min:
-                continue
+                return False
             if tier_max is not None and it["tier"] > tier_max:
-                continue
+                return False
             if f_ench is not None and it["ench"] != f_ench:
-                continue
+                return False
             if ench is not None and it["ench"] != ench:
-                continue
+                return False
+            return True
+
+        candidates = [it for it in self.items if passes(it)]
+
+        # passo 1: AND estrito (todos os tokens de texto casam)
+        results = []
+        for it in candidates:
             score = self._score(it, text_tokens)
-            if score is None:
-                continue
-            results.append((score, it))
+            if score is not None:
+                results.append((score, it))
+
+        # passo 2: fallback parcial — se o AND não achou nada e há 2+ tokens,
+        # aceita itens que casam a MAIORIA dos tokens (resolve "manto de
+        # thetford", palavra a mais, sinônimo). Penaliza os tokens que faltam.
+        if not results and len(text_tokens) >= 2:
+            need = (len(text_tokens) + 1) // 2
+            for it in candidates:
+                matched, sc = 0, 0
+                for t in text_tokens:
+                    cand = self._token_score(it, t)
+                    if cand is not None:
+                        matched += 1
+                        sc += cand
+                if matched >= need:
+                    missed = len(text_tokens) - matched
+                    results.append((100 + missed * 50 + sc, it))
 
         results.sort(key=lambda r: (r[0], r[1]["tier"], r[1]["ench"], r[1]["id"]))
 
@@ -105,8 +126,34 @@ class ItemDB:
         return [bases[b] for b in order]
 
     @staticmethod
-    def _score(it, tokens):
-        """None = não bate; menor = melhor."""
+    def _token_score(it, t):
+        """Pontua um token contra um item. None = não casa; menor = melhor.
+
+        1 = começo do nome, 2 = começo de palavra, 4 = substring qualquer.
+        Tolera plurais comuns ("placas"->"placa", "pocoes"->"pocao").
+        """
+        variants = [t]
+        if len(t) > 3 and t.endswith("s"):
+            variants.append(t[:-1])
+            if t.endswith("oes"):
+                variants.append(t[:-3] + "ao")
+            elif t.endswith("es"):
+                variants.append(t[:-2])
+        best = None
+        for v in variants:
+            if v in it["_npt"] or v in it["_nen"] or v in it["_nid"]:
+                if it["_npt"].startswith(v) or it["_nen"].startswith(v):
+                    cand = 1
+                elif f" {v}" in f" {it['_npt']}" or f" {v}" in f" {it['_nen']}":
+                    cand = 2
+                else:
+                    cand = 4
+                best = cand if best is None else min(best, cand)
+        return best
+
+    @classmethod
+    def _score(cls, it, tokens):
+        """AND estrito: None se algum token não casa; menor = melhor."""
         if not tokens:
             return 50
         joined = " ".join(tokens)
@@ -114,28 +161,10 @@ class ItemDB:
             return 0
         score = 0
         for t in tokens:
-            # tolera plurais comuns: "placas"->"placa", "pocoes"->"pocao",
-            # "flores"->"flor" (texto já normalizado, sem acentos)
-            variants = [t]
-            if len(t) > 3 and t.endswith("s"):
-                variants.append(t[:-1])
-                if t.endswith("oes"):
-                    variants.append(t[:-3] + "ao")
-                elif t.endswith("es"):
-                    variants.append(t[:-2])
-            best = None
-            for v in variants:
-                if v in it["_npt"] or v in it["_nen"] or v in it["_nid"]:
-                    if it["_npt"].startswith(v) or it["_nen"].startswith(v):
-                        cand = 1
-                    elif f" {v}" in f" {it['_npt']}" or f" {v}" in f" {it['_nen']}":
-                        cand = 2
-                    else:
-                        cand = 4
-                    best = cand if best is None else min(best, cand)
-            if best is None:
+            cand = cls._token_score(it, t)
+            if cand is None:
                 return None
-            score += best
+            score += cand
         return score
 
     def filter(self, cat=None, sub=None, tier_min=None, tier_max=None,

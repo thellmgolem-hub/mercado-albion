@@ -361,6 +361,7 @@ tbody tr:hover { background: rgba(212, 168, 67, 0.06); }
 
 .status { color: var(--muted); font-size: 0.9rem; padding: 8px 2px; min-height: 1.4em; }
 .status.err { color: var(--red); }
+.status.warn { color: var(--yellow); }
 
 .fav-star { cursor: pointer; font-size: 1.2rem; color: var(--muted); }
 .fav-star.on { color: var(--gold-bright); }

@@ -13,6 +13,7 @@ const state = {
   histItem: null,
   scanOpps: [],
   scanItemsScanned: 0,
+  scanItemsTotal: 0,
   scanRows: [],
   dashRecs: [],
   hidden: new Set(JSON.parse(localStorage.getItem('hiddenFlips') || '[]')),
@@ -148,7 +149,7 @@ function makeItemPicker(containerId, onSelect, placeholder = 'buscar item… ex.
   const enchSel = box.querySelector('[data-filter="ench"]');
   const clearBtn = box.querySelector('.filter-clear');
   const batchBtn = box.querySelector('.batch-add');
-  let results = [], sel = -1, timer = null, req = 0;
+  let results = [], sel = -1, timer = null, req = 0, truncated = false;
 
   catSel.innerHTML = '<option value="">Todas categorias</option>' +
     Object.entries(state.meta.categories).map(([id, c]) =>
@@ -179,7 +180,7 @@ function makeItemPicker(containerId, onSelect, placeholder = 'buscar item… ex.
       tier_min: tier,
       tier_max: tier,
       ench: enchSel.value,
-      limit: options.limit || 80,
+      limit: options.limit || 150,
       group: true,  // 1 linha por item-base; encantos viram chips
     };
   }
@@ -220,9 +221,13 @@ function makeItemPicker(containerId, onSelect, placeholder = 'buscar item… ex.
         ${te}
       </div>`;
     }).join('');
+    if (truncated) {
+      drop.innerHTML += `<div class="opt empty">há mais itens — refine a busca (adicione palavras, tier ou categoria)</div>`;
+    }
     drop.classList.toggle('open', results.length > 0);
     if (batchBtn) batchBtn.disabled = results.length === 0;
     drop.querySelectorAll('.opt').forEach((o) => {
+      if (o.classList.contains('empty')) return;  // pula a linha de aviso
       o.addEventListener('mousedown', (ev) => {
         ev.preventDefault();
         pick(+o.dataset.i);
@@ -260,6 +265,7 @@ function makeItemPicker(containerId, onSelect, placeholder = 'buscar item… ex.
       const found = await api('/api/search', p);
       if (thisReq !== req) return;
       results = found;
+      truncated = found.length >= p.limit;  // bateu no teto: há mais
       sel = -1;
       render(results.length ? '' : 'nenhum item encontrado');
     } catch (e) {
@@ -599,6 +605,12 @@ $('premiumToggle').addEventListener('change', (e) => {
   state.premium = e.target.checked;
   localStorage.setItem('premium', state.premium ? '1' : '0');
   premiumLabel();
+  // o imposto entra no líquido: invalida o cache das sub-abas do Item para
+  // não mostrar valor com o imposto antigo, e recarrega a sub-aba ativa
+  state.itemLoadedFor = {};
+  if (state.item && document.getElementById('tab-item').classList.contains('active')) {
+    loadItemSub(activeItemSub(), true);
+  }
   toast(`imposto de venda: ${state.premium ? '4%' : '8%'} — recalcule as abas abertas`);
 });
 
@@ -822,6 +834,13 @@ function selectItem(it) {
   state.venderItem = it;
   state.histItem = it;
   state.itemLoadedFor = {};
+  // limpa as sub-abas para não exibir dados do item anterior enquanto a
+  // sub-aba não-ativa não foi recarregada (evita misturar itens)
+  ['precosTable', 'venderTable', 'histLabSummary', 'histLabCards'].forEach((id) => {
+    const el = $(id); if (el) el.innerHTML = '';
+  });
+  if (priceChart) { priceChart.destroy(); priceChart = null; }
+  if (volChart) { volChart.destroy(); volChart = null; }
   $('itemCard').innerHTML = itemCardHtml(it, true);
   wireItemCard('itemCard', it);
   loadItemSub(activeItemSub(), true);
@@ -898,8 +917,18 @@ function fillScanSubs() {
 
 function updateScanStatus() {
   const hiddenCount = state.scanOpps.length - state.scanRows.length;
-  $('scanStatus').textContent = `${state.scanItemsScanned} itens escaneados · ${state.scanRows.length} oportunidades` +
+  const total = state.scanItemsTotal || 0;
+  const scanned = state.scanItemsScanned || 0;
+  const st = $('scanStatus');
+  let txt = `${scanned} itens escaneados · ${state.scanRows.length} oportunidades` +
     (hiddenCount ? ` · ${hiddenCount} ocultas` : '');
+  if (total > scanned) {
+    txt += ` · ⚠ a categoria tem ${total} itens — só os ${scanned} de maior tier foram escaneados; aumente "Máx. itens" ou refine por subcategoria/tier para cobrir o resto`;
+    st.className = 'status warn';
+  } else {
+    st.className = 'status';
+  }
+  st.textContent = txt;
   $('scanExport').disabled = state.scanRows.length === 0;
   updateHiddenControls();
 }
@@ -942,6 +971,7 @@ async function runScan() {
     });
     state.scanOpps = res.opportunities;
     state.scanItemsScanned = res.items_scanned;
+    state.scanItemsTotal = res.items_total || res.items_scanned;
     renderScanResults();
   } catch (e) {
     st.className = 'status err';
@@ -1240,6 +1270,9 @@ async function loadGold() {
 
 async function loadSurvival() {
   const st = $('survStatus');
+  st.className = 'status';
+  st.textContent = 'analisando snapshots…';
+  $('survLoad').disabled = true;
   try {
     const res = await api('/api/survival');
     const sidePt = { sell: 'venda (anúncio)', buy: 'compra (ordem)' };
@@ -1270,7 +1303,10 @@ async function loadSurvival() {
     renderTable('survTable', cols, rows, { sortKey: 'age', sortDir: 1 });
     st.textContent = `${res.snapshot_pairs} pares de coleta analisados — ordens velhas que "persistem" pouco são os flips fantasmas`;
   } catch (e) {
-    st.textContent = '';
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  } finally {
+    $('survLoad').disabled = false;
   }
 }
 
@@ -1528,7 +1564,6 @@ async function runCollect() {
     toast(`coletados ${res.items} itens · ${res.price_rows} preços · ${res.history_series} séries`);
     loadStatus();
     loadDashboardRecommendations();
-    loadSurvival();
     loadHeatmap();
   } catch (e) {
     toast('erro na coleta: ' + e.message);
@@ -1651,6 +1686,7 @@ async function init() {
   $('dashRecsRefresh').addEventListener('click', loadDashboardRecommendations);
   $('dashCollect').addEventListener('click', runCollect);
   $('ordersRefresh').addEventListener('click', () => loadServiceOrders(true));
+  $('survLoad').addEventListener('click', loadSurvival);
   $('histWatch').addEventListener('click', watchCurrentLabItem);
   $('discoverRun').addEventListener('click', runDiscover);
   $('precosRefresh').addEventListener('click', () => loadPrecos(true));
@@ -1674,7 +1710,6 @@ async function init() {
 
   refreshWatchCount();
   loadDashboardRecommendations();
-  loadSurvival();
   loadHeatmap();
   loadIntel();
   loadSignals().then(loadSignalValidation);
