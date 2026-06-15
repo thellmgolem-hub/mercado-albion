@@ -816,6 +816,8 @@ function loadItemSub(sub, force = false) {
   state.itemLoadedFor[sub] = state.item.id;
   if (sub === 'precos') loadPrecos();
   else if (sub === 'vender') loadVender();
+  else if (sub === 'craft') loadCraft();
+  else if (sub === 'origem') loadOrigin();
   else if (sub === 'lab') runHist();
 }
 
@@ -836,7 +838,8 @@ function selectItem(it) {
   state.itemLoadedFor = {};
   // limpa as sub-abas para não exibir dados do item anterior enquanto a
   // sub-aba não-ativa não foi recarregada (evita misturar itens)
-  ['precosTable', 'venderTable', 'histLabSummary', 'histLabCards'].forEach((id) => {
+  ['precosTable', 'venderTable', 'craftTable', 'origemTable',
+   'histLabSummary', 'histLabCards'].forEach((id) => {
     const el = $(id); if (el) el.innerHTML = '';
   });
   if (priceChart) { priceChart.destroy(); priceChart = null; }
@@ -844,6 +847,88 @@ function selectItem(it) {
   $('itemCard').innerHTML = itemCardHtml(it, true);
   wireItemCard('itemCard', it);
   loadItemSub(activeItemSub(), true);
+}
+
+// sub-aba Craft / Refino
+async function loadCraft() {
+  const it = state.item;
+  if (!it) return;
+  const st = $('craftStatus');
+  st.className = 'status';
+  st.textContent = 'calculando margem de craft…';
+  try {
+    const res = await api('/api/craft', {
+      item: it.id, premium: state.premium,
+      sell_mode: $('craftSellMode').value, focus: $('craftFocus').checked,
+    });
+    const m = res.margins || [];
+    if (!m.length) {
+      st.textContent = res.category
+        ? 'sem preços de insumo/produto no cache para calcular — colete e tente de novo'
+        : 'este item não tem receita de craft/refino no dump';
+      $('craftTable').innerHTML = '';
+      return;
+    }
+    const ins = (res.inputs || []).map((i) => `${i.count}× ${esc(i.name_pt)}`).join(' + ');
+    st.innerHTML = `Receita: ${ins} · foco ${fmt(res.focus)} · categoria <b>${esc(res.category || '—')}</b>` +
+      (res.bonus_city ? ` · cidade-bônus <b>${esc(res.bonus_city)}</b>` : '');
+    const cols = [
+      {
+        key: 'city', label: 'Cidade', align: 'l', value: (r) => r.city,
+        html: (r) => cityHtml(r.city) + (r.is_bonus_city ? ' <span class="te-badge">★</span>' : ''),
+      },
+      { key: 'mat', label: 'Insumos', value: (r) => r.materials, html: (r) => `<span class="silver">${fmt(r.materials)}</span>` },
+      { key: 'rrr', label: 'RRR %', align: 'c', value: (r) => r.rrr_pct, html: (r) => `${fmtDec(r.rrr_pct, 1)}%` },
+      { key: 'eff', label: 'Custo efetivo', value: (r) => r.eff_cost, html: (r) => `<span class="silver">${fmt(r.eff_cost)}</span>` },
+      { key: 'sell', label: 'Venda', value: (r) => r.sell, html: (r) => `<span class="silver">${fmt(r.sell)}</span>` },
+      {
+        key: 'margin', label: 'Margem', value: (r) => r.margin,
+        html: (r) => `<span class="silver ${r.margin >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(r.margin)}</span>`,
+      },
+      { key: 'pct', label: 'Margem %', align: 'c', value: (r) => r.margin_pct, html: (r) => r.margin_pct == null ? '—' : `${fmtDec(r.margin_pct, 1)}%` },
+      { key: 'pf', label: 'Prata/foco', value: (r) => r.silver_per_focus, html: (r) => r.silver_per_focus == null ? '—' : `<span class="silver">${fmtDec(r.silver_per_focus, 1)}</span>` },
+    ];
+    renderTable('craftTable', cols, m.map((r) => ({ ...r, _copy: it.pt })), { sortKey: 'margin' });
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  }
+}
+
+// sub-aba De onde vem (drop sources)
+function cleanMob(id) {
+  let s = id || '';
+  const i = s.indexOf('MOB_');
+  if (i >= 0) s = s.slice(i + 4);
+  return s.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+async function loadOrigin() {
+  const it = state.item;
+  if (!it) return;
+  const st = $('origemStatus');
+  st.className = 'status';
+  st.textContent = 'consultando fontes…';
+  try {
+    const res = await api('/api/origin', { item: it.id });
+    const srcs = res.sources || [];
+    if (!srcs.length) {
+      st.textContent = `${it.pt} não tem fonte de drop conhecida — é craftado/refinado, não dropado por mob.`;
+      $('origemTable').innerHTML = '';
+      return;
+    }
+    const cols = [
+      { key: 'mob', label: 'Mob / conteúdo', align: 'l', value: (r) => r.fame, html: (r) => esc(cleanMob(r.mob)) },
+      { key: 'tier', label: 'Tier', align: 'c', value: (r) => r.tier, html: (r) => `T${r.tier}` },
+      { key: 'cat', label: 'Tipo', align: 'l', value: (r) => r.cat || '', html: (r) => esc(r.cat || '—') },
+      { key: 'fame', label: 'Fama', value: (r) => r.fame, html: (r) => fmt(r.fame) },
+    ];
+    renderTable('origemTable', cols, srcs, { sortKey: 'fame' });
+    st.textContent = `${srcs.length} fontes de drop (ordenadas por fama do mob)`;
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  }
 }
 
 // favoritos e atalhos abrem a aba Item já na sub-aba certa
@@ -1688,6 +1773,8 @@ async function init() {
   $('ordersRefresh').addEventListener('click', () => loadServiceOrders(true));
   $('survLoad').addEventListener('click', loadSurvival);
   $('histWatch').addEventListener('click', watchCurrentLabItem);
+  $('craftSellMode').addEventListener('change', () => loadItemSub('craft', true));
+  $('craftFocus').addEventListener('change', () => loadItemSub('craft', true));
   $('discoverRun').addEventListener('click', runDiscover);
   $('precosRefresh').addEventListener('click', () => loadPrecos(true));
   $('flipsRun').addEventListener('click', runFlips);

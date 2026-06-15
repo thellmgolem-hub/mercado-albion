@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260615-2">
+<link rel="stylesheet" href="style.css?v=20260615-3">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -188,6 +188,8 @@
   <nav class="subtabs" id="itemSubtabs">
     <button data-sub="precos" class="active">Preços por cidade</button>
     <button data-sub="vender">Onde vender</button>
+    <button data-sub="craft">Craft / Refino</button>
+    <button data-sub="origem">De onde vem</button>
     <button data-sub="lab">Item Lab</button>
   </nav>
 
@@ -281,6 +283,35 @@
       <div class="chart-box"><canvas id="histPriceChart"></canvas></div>
       <div class="chart-box small"><canvas id="histVolChart"></canvas></div>
     </div>
+  </div>
+
+  <!-- sub: Craft / Refino -->
+  <div class="subtab" id="sub-craft">
+    <div class="controls">
+      <div class="field">
+        <label>Vender como</label>
+        <select id="craftSellMode">
+          <option value="order">ordem de venda</option>
+          <option value="instant">venda instantânea</option>
+        </select>
+      </div>
+      <label class="field-row muted" style="gap:4px; align-self:end; padding-bottom:8px">
+        <input type="checkbox" id="craftFocus"> usar foco (RRR maior)
+      </label>
+    </div>
+    <div class="status" id="craftStatus"></div>
+    <div class="table-wrap" id="craftTable"></div>
+    <p class="hint">Custo já com o <b>retorno de recursos (RRR)</b> real do jogo
+       (derivado do dump); <b>★</b> = cidade com bônus da categoria. Compra os
+       insumos e vende o produto na mesma cidade. "Prata/foco" só aparece com foco.</p>
+  </div>
+
+  <!-- sub: De onde vem -->
+  <div class="subtab" id="sub-origem">
+    <div class="status" id="origemStatus"></div>
+    <div class="table-wrap" id="origemTable"></div>
+    <p class="hint">Top fontes de <b>drop</b> por fama do mob — a entrada do item
+       no mercado via PvE (lado da oferta). Itens craftados/refinados não dropam.</p>
   </div>
 </section>
 
@@ -472,6 +503,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260615-2"></script>
+<script src="app.js?v=20260615-3"></script>
 </body>
 </html>

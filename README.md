@@ -19,13 +19,24 @@ O navegador abre sozinho em `http://127.0.0.1:8528`.
 
 ## As abas
 
+São quatro abas no topo. A aba **Item** reúne, num inspetor único com um só
+campo de busca, cinco sub-abas para o item selecionado.
+
 | Aba | O que faz |
 |---|---|
-| **Início** | Recomendações automáticas (só cache local) com score 0–100 de régua **absoluta** e selos executar/monitorar/cautela; botão **Coletar watchlist** busca preços + histórico frescos dos itens vigiados. |
-| **Preços** | Preço de venda mín. e ordem de compra máx. de um item em todas as cidades, por qualidade, com idade dos dados em cores (verde < 30 min, amarelo < 2 h, vermelho mais velho). |
+| **Início** | Recomendações automáticas (só cache local) com score 0–100 de régua **absoluta** e selos executar/monitorar/cautela; botão **Coletar watchlist** busca preços + histórico frescos dos itens vigiados. Abaixo: persistência das ordens, mapa de rotas, demanda por destruição (killboard), divergência demanda×preço, guerra & risco e ordens de serviço. |
+| **Item** | Inspetor de um item com sub-abas (ver tabela abaixo). |
 | **Flips** | "Descobrir flips" por características do mercado + cálculo para itens específicos, com os 4 modos de compra/venda e lucro líquido já descontadas as taxas. |
 | **Scanner** | Varre uma categoria inteira (até 800 itens) atrás de oportunidades, com presets de um clique: **Reais → Mercado Negro**, **Entre cidades reais** e **Market making** (ordem → ordem na mesma cidade). Mostra volume diário, potencial de lucro/dia e lucro por kg. Exporta CSV. |
-| **Onde Vender** | Você já tem o item? Mostra a melhor cidade e método (venda instantânea × ordem) pelo valor **líquido**. |
+
+### Sub-abas do inspetor de Item
+
+| Sub-aba | O que faz |
+|---|---|
+| **Preços por cidade** | Preço de venda mín. e ordem de compra máx. em todas as cidades, por qualidade, com idade dos dados em cores (verde < 30 min, amarelo < 2 h, vermelho mais velho). |
+| **Onde vender** | Você já tem o item? Mostra a melhor cidade e método (venda instantânea × ordem) pelo valor **líquido**. |
+| **Craft / Refino** | Margem de fabricar/refinar o item por cidade, usando o **retorno de recursos (RRR) real do jogo** derivado do dump — marca a cidade-bônus da categoria (★), opção **usar foco** (RRR maior + prata por foco) e escolha do modo de venda. |
+| **De onde vem** | Fontes de drop do item (mobs/baús) ordenadas por fama, do grafo mob→loot do dump — para saber onde farmar a oferta. |
 | **Item Lab** | Estatística por item/cidade: VWAP, mediana, z-score **sobre resíduos da tendência**, z robusto (MAD), momentum, volatilidade, qualidade do dado e previsão baseline com intervalo (~68%). Use "buscar da API" para coletar dados novos e **+ watchlist** para vigiar o item. |
 
 ### Como ler o score e a confiança
