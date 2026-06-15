@@ -1071,6 +1071,41 @@ def cmd_craft(args, fmt):
                 ("margem_pct", "Margem %"), ("prata_foco", "Prata/foco")], fmt)
 
 
+def _clean_mob(mob_id):
+    """T5_MOB_DEMON_YELLOW_VETERAN_BOSS -> 'Demon Yellow Veteran Boss'."""
+    s = mob_id or ""
+    for pre in ("MOB_", ):
+        i = s.find(pre)
+        if i >= 0:
+            s = s[i + len(pre):]
+    return s.replace("_", " ").title()
+
+
+def cmd_origin(args, fmt):
+    """De onde o item nasce: mobs/conteúdo que o dropam (lado da oferta)."""
+    db = ItemDB()
+    it = resolve_item(db, " ".join(args.item))
+    path = DATA / "supply_data.json"
+    if not path.exists():
+        die("Rode `python scripts/build_supply_data.py` primeiro.")
+    supply = json.loads(path.read_text(encoding="utf-8"))
+    srcs = supply.get(it["id"]) or supply.get(it["id"].split("@")[0]) or []
+    if not srcs:
+        info(f"{it['pt']} ({it['id']}) não tem fonte de drop conhecida — "
+             "provavelmente é craftado/refinado, não dropado por mob.")
+        return
+    info(f"De onde nasce {it['pt']} ({it['id']}) — top {len(srcs)} fontes de "
+         "drop por fama do mob (entrada via PvE no mercado):")
+    rows = [{
+        "mob": _clean_mob(s["mob"]),
+        "tier": s["tier"],
+        "tipo": s.get("cat") or "-",
+        "fama": s["fame"],
+    } for s in srcs]
+    emit(rows, [("mob", "Mob/conteúdo"), ("tier", "Tier"),
+                ("tipo", "Tipo"), ("fama", "Fama")], fmt)
+
+
 def cmd_journals(args, fmt):
     """Margem de diários: comprar vazio, vender cheio (o 'salário' da fama).
 
@@ -1635,6 +1670,11 @@ def build_parser():
                    default=True)
     p.add_argument("--max-age", type=int, default=config.PRICES_TTL)
     p.set_defaults(func=cmd_craft)
+
+    p = sub.add_parser("origin", parents=[common],
+                       help="de onde o item nasce: mobs que o dropam")
+    p.add_argument("item", nargs="+", help="id ou nome PT do item")
+    p.set_defaults(func=cmd_origin)
 
     p = sub.add_parser("journals", parents=[common],
                        help="margem de diários: vazio -> cheio, por família/tier")

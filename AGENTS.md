@@ -22,6 +22,8 @@ python analyze.py survival [--item X]                 # persistência de ordens 
 python analyze.py backtest                            # valida sinal: prometido vs realizado
 python analyze.py report [--discord]                  # relatório do dia (webhook opcional)
 python analyze.py refine <familia> --tier N [--ench E] # margem de refino (receitas do dump)
+python analyze.py craft <item> [--focus]              # margem de craft (RRR real do dump)
+python analyze.py origin <item>                       # de onde o item nasce (mobs que dropam)
 python analyze.py journals [--family ORE]             # margem de diários vazio->cheio
 python analyze.py pos add|sell|list|rm                # portfolio (PnL real)
 python analyze.py indexes --cat X --sub Y             # índice de preço da cesta
@@ -63,6 +65,10 @@ nulo, offset máx 1000, ~50 eventos/min em pico; o servidor ingere a cada 10 min
 ## Rodar / desenvolver
 
 - Servidor: `python app.py` (porta 8528, abre o navegador) ou preview `mercado-albion`.
-- Itens novos após patch: `python scripts/build_items_db.py --refresh`.
+- Itens novos após patch: `python scripts/build_items_db.py --refresh`,
+  depois `build_recipes.py`, `build_craft_recipes.py`, `build_craft_data.py`,
+  `build_supply_data.py` (refino/craft/oferta).
+- RRR de refino/craft é DERIVADO de data/craft_data.json (craftingmodifiers do
+  dump), não mais hardcoded; oferta (mobs->itens) em data/supply_data.json.
 - O frontend é vanilla JS servido de `web/` — sem build step.
 - Console Windows usa cp1252: nunca dê print de bytes da API sem tratar encoding.

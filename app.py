@@ -673,6 +673,25 @@ def craft_margin(item: str, premium: bool = True, sell_mode: str = "order",
     }
 
 
+_supply_cache = {}
+
+
+@app.get("/api/origin")
+def origin(item: str):
+    """De onde o item nasce: mobs/conteúdo que o dropam (lado da oferta)."""
+    item_id = _resolve_items([item])[0]
+    if "data" not in _supply_cache:
+        p = ROOT / "data" / "supply_data.json"
+        import json as _j
+        _supply_cache["data"] = (_j.loads(p.read_text(encoding="utf-8"))
+                                 if p.exists() else {})
+    supply = _supply_cache["data"]
+    srcs = supply.get(item_id) or supply.get(item_id.split("@")[0]) or []
+    meta = db.get(item_id) or {}
+    return {"item": {"id": item_id, "name_pt": meta.get("pt", item_id)},
+            "sources": srcs}
+
+
 @app.get("/api/sell")
 def sell(items: str, qualities: str | None = None, premium: bool = True,
          cities: str | None = None,

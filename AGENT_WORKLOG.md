@@ -915,3 +915,30 @@ confirmados, 5 refutados. Relatório completo em AUDITORIA2.md. Corrigidos:
 - 28 testes (3 regressões novas). Verificado ao vivo, console limpo.
 Pendências documentadas: pré-agregar survival, unificar vol/dia (GATHER-1),
 backtest assíncrono, fuzzy de typo.
+
+## 2026-06-15 - Dados de craft/refino reais e lado da oferta (Claude)
+
+PARTE 1 (craft/refino com dados do jogo):
+- scripts/build_craft_data.py: de craftingmodifiers.json + world.json deriva o
+  RRR real pela fórmula 1-1/(1+bônus) — base 15,3% / cidade-bônus 36,7% / com
+  foco 43,5%/53,9% (batem com a comunidade) — e o mapa cidade-bônus por
+  categoria de craft. data/craft_data.json.
+- config deriva REFINING_BONUS_CITY e REFINING_RRR do craft_data (resolve a
+  pendência da auditoria: RRR deixou de ser hardcoded).
+- scripts/build_craft_recipes.py: 9.107 receitas de itens craftáveis
+  (insumos+foco+categoria) -> data/recipes_craft.json.
+- albion/craft.py + CLI `craft` + GET /api/craft: margem de craft por cidade,
+  custo com RRR real, marca a cidade-bônus, prata/foco.
+
+PARTE 2 (lado da oferta — de onde os itens nascem):
+- scripts/build_supply_data.py: resolve o grafo mob (mobs.json) -> lista de
+  loot (loot.json, com OR/AND/refs aninhados) -> item; inverte para item ->
+  fontes (mob, tier, fama, categoria). data/supply_data.json (2.095 itens).
+- CLI `origin` + GET /api/origin: top fontes de drop por fama. Refinados
+  corretamente sem fonte (são craftados, não dropados).
+- 30 testes OK (2 novos de craft). Dumps novos baixados: craftingmodifiers,
+  gamedata, buildings, world, harvestables, resources, loot, mobs,
+  rareresourcedistribution.
+
+Pendência documentada: distribuição de recursos por bioma/zona exige join com
+dados de mundo/spawn (resourcedistpresets) — não entregue para não meia-fazer.
