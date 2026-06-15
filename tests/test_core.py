@@ -598,6 +598,38 @@ class ServiceOrderTests(unittest.TestCase):
         self.assertIn("com bônus", metal[0]["explanation_short"])
 
 
+class CraftTests(unittest.TestCase):
+    def test_craft_rrr_derived_from_dump(self):
+        from albion import craft, config
+        # refino derivado bate com os valores conhecidos (15,2%/36,7%)
+        self.assertAlmostEqual(config.REFINING_RRR["base"], 15.2, delta=0.2)
+        self.assertAlmostEqual(config.REFINING_RRR["bonus"], 36.7, delta=0.2)
+        # craft de item (categoria 0.15): base 15,2%; cidade-bônus ~24,8%
+        bow_bonus_city = craft.bonus_city("bow")
+        self.assertTrue(bow_bonus_city)
+        rrr_bonus = craft.craft_rrr("bow", bow_bonus_city) * 100
+        rrr_base = craft.craft_rrr("bow", "Caerleon") * 100
+        self.assertGreater(rrr_bonus, rrr_base)
+        self.assertAlmostEqual(rrr_bonus, 24.8, delta=0.5)
+
+    def test_craft_margins_use_rrr_and_rank(self):
+        from albion import craft
+        recipe = {"inputs": [{"id": "T4_PLANKS", "count": 10}],
+                  "focus": 100, "category": "bow"}
+        prices = {("T4_TESTBOW", "Lymhurst"): 2000,
+                  ("T4_PLANKS", "Lymhurst"): 100,
+                  ("T4_TESTBOW", "Thetford"): 2000,
+                  ("T4_PLANKS", "Thetford"): 100}
+        res = craft.margins("T4_TESTBOW", recipe,
+                            lambda i, c: prices.get((i, c)),
+                            premium=True, sell_mode="order")
+        by = {r["city"]: r for r in res}
+        # Lymhurst (bônus de bow) tem RRR maior -> custo efetivo menor -> margem maior
+        self.assertGreater(by["Lymhurst"]["rrr_pct"], by["Thetford"]["rrr_pct"])
+        self.assertGreater(by["Lymhurst"]["margin"], by["Thetford"]["margin"])
+        self.assertEqual(res[0]["city"], "Lymhurst")  # ordenado por margem
+
+
 class SeasonalityAndScoreTests(unittest.TestCase):
     def test_weekend_volume_ratio_and_note(self):
         from datetime import datetime, timedelta

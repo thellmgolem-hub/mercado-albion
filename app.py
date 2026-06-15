@@ -633,6 +633,46 @@ def scan(cat: str | None = None, sub: str | None = None,
             "opportunities": opps}
 
 
+@app.get("/api/craft")
+def craft_margin(item: str, premium: bool = True, sell_mode: str = "order",
+                 focus: bool = False, fee: float = 0,
+                 max_age: int = Query(config.PRICES_TTL, ge=0)):
+    """Margem de craft de um item, com receita e RRR reais do jogo."""
+    from albion import craft as craft_mod
+    item_id = _resolve_items([item])[0]
+    recipe = craft_mod.recipe_for(item_id)
+    if recipe is None:
+        raise HTTPException(404, "Item sem receita de craft no dump")
+    ids = [item_id] + [i["id"] for i in recipe["inputs"]]
+    rows = _api_guard(lambda: aodp.get_prices(ids, config.ROYAL_CITIES,
+                                              max_age=max_age))
+    price = {}
+    for r in rows:
+        if r["quality"] != 1:
+            continue
+        sp = r["sell_price_min"] or 0
+        if sp > 0:
+            key = (r["item_id"], r["city"])
+            if key not in price or sp < price[key]:
+                price[key] = sp
+    res = craft_mod.margins(item_id, recipe,
+                            lambda i, c: price.get((i, c)),
+                            premium=premium, sell_mode=sell_mode,
+                            focus=focus, fee=fee)
+    meta = db.get(item_id) or {}
+    return {
+        "item": {"id": item_id, "name_pt": meta.get("pt", item_id),
+                 "tier": meta.get("tier", 0), "ench": meta.get("ench", 0)},
+        "category": recipe.get("category"),
+        "bonus_city": craft_mod.bonus_city(recipe.get("category")),
+        "focus": recipe.get("focus"),
+        "inputs": [{"id": i["id"], "count": i["count"],
+                    "name_pt": (db.get(i["id"]) or {}).get("pt", i["id"])}
+                   for i in recipe["inputs"]],
+        "margins": res,
+    }
+
+
 @app.get("/api/sell")
 def sell(items: str, qualities: str | None = None, premium: bool = True,
          cities: str | None = None,

@@ -1020,6 +1020,57 @@ def cmd_refine(args, fmt):
                 ("idade_min", "Idade (min)")], fmt)
 
 
+def cmd_craft(args, fmt):
+    """Margem de craft com receitas e RRR reais do jogo (craft_data)."""
+    from albion import craft
+    db = ItemDB()
+    it = resolve_item(db, " ".join(args.item))
+    recipe = craft.recipe_for(it["id"])
+    if not recipe:
+        die(f"Sem receita de craft para {it['id']} (item não-craftável ou "
+            "receita ausente no dump).")
+    ids = [it["id"]] + [i["id"] for i in recipe["inputs"]]
+    aodp = make_aodp()
+    rows_raw = api_guard(lambda: aodp.get_prices(ids, config.ROYAL_CITIES,
+                                                 max_age=args.max_age))
+    # menor venda q1 por (item, cidade)
+    price = {}
+    for r in rows_raw:
+        if r["quality"] != 1:
+            continue
+        sp = r["sell_price_min"] or 0
+        if sp > 0:
+            key = (r["item_id"], r["city"])
+            if key not in price or sp < price[key]:
+                price[key] = sp
+
+    def price_of(item_id, city):
+        return price.get((item_id, city))
+
+    res = craft.margins(it["id"], recipe, price_of, premium=args.premium,
+                        sell_mode=args.sell_mode, focus=args.focus, fee=args.fee)
+    inputs_txt = " + ".join(
+        f"{i['count']}x {(db.get(i['id']) or {}).get('pt', i['id'])}"
+        for i in recipe["inputs"])
+    bonus = craft.bonus_city(recipe.get("category"))
+    info(f"Craft de {it['pt']} ({it['id']}) — receita: {inputs_txt} · foco "
+         f"{recipe.get('focus')} · categoria {recipe.get('category')} "
+         f"(cidade-bônus: {bonus or '—'}) · {'com' if args.premium else 'sem'} "
+         f"premium · {'com' if args.focus else 'sem'} foco. Compra insumos e "
+         "vende na MESMA cidade; custo já com retorno de recursos (RRR).")
+    rows = [{
+        "cidade": city_pt(r["city"]) + ("  ★" if r["is_bonus_city"] else ""),
+        "insumos": r["materials"], "rrr_pct": r["rrr_pct"],
+        "custo_efetivo": r["eff_cost"], "venda": r["sell"],
+        "margem": r["margin"], "margem_pct": r["margin_pct"],
+        "prata_foco": r["silver_per_focus"],
+    } for r in res]
+    emit(rows, [("cidade", "Cidade"), ("insumos", "Insumos"),
+                ("rrr_pct", "RRR %"), ("custo_efetivo", "Custo efetivo"),
+                ("venda", "Venda"), ("margem", "Margem"),
+                ("margem_pct", "Margem %"), ("prata_foco", "Prata/foco")], fmt)
+
+
 def cmd_journals(args, fmt):
     """Margem de diários: comprar vazio, vender cheio (o 'salário' da fama).
 
@@ -1402,7 +1453,7 @@ def build_parser():
 
     sub = ap.add_subparsers(
         dest="cmd", required=True,
-        metavar="{search,prices,flips,scan,sell,history,recommend,lab,watch,"
+        metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,watch,"
                 "collect,intel,survival,backtest,journals,refine,report,pos,"
                 "indexes,gold,status,prune,sql}")
 
@@ -1571,6 +1622,19 @@ def build_parser():
                    default=True)
     p.add_argument("--max-age", type=int, default=config.PRICES_TTL)
     p.set_defaults(func=cmd_refine)
+
+    p = sub.add_parser("craft", parents=[common],
+                       help="margem de craft de um item (receitas+RRR reais)")
+    p.add_argument("item", nargs="+", help="id ou nome PT do item craftável")
+    p.add_argument("--sell-mode", choices=("instant", "order"), default="order")
+    p.add_argument("--focus", action="store_true",
+                   help="usa RRR com foco (retorno maior)")
+    p.add_argument("--fee", type=float, default=0,
+                   help="taxa da estação por craft, em prata")
+    p.add_argument("--premium", action=argparse.BooleanOptionalAction,
+                   default=True)
+    p.add_argument("--max-age", type=int, default=config.PRICES_TTL)
+    p.set_defaults(func=cmd_craft)
 
     p = sub.add_parser("journals", parents=[common],
                        help="margem de diários: vazio -> cheio, por família/tier")

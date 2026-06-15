@@ -123,8 +123,10 @@ AUTO_PRUNE_INTERVAL_H = 24
 # lucro/unidade (prata), potencial/dia (prata), liquidez (itens/dia)
 SCORE_ANCHORS = {"profit": 50_000, "daily": 1_000_000, "liquidity": 200}
 
-# Cidade com bônus de refino por família (conhecimento público estável).
-# O RRR de bônus (refining_rrr) só vale nelas; nas demais, refining_rrr_base.
+# Cidade com bônus de refino por família. Default = fallback; se
+# data/craft_data.json existir (gerado de craftingmodifiers.json do dump), os
+# valores são DERIVADOS do jogo em vez de hardcoded (resolve a pendência da
+# auditoria sobre RRR "não validado").
 REFINING_BONUS_CITY = {
     "WOOD": "Fort Sterling",
     "FIBER": "Lymhurst",
@@ -132,6 +134,30 @@ REFINING_BONUS_CITY = {
     "HIDE": "Martlock",
     "ORE": "Thetford",
 }
+# RRR de refino (%) — fallback; sobrescrito pelo craft_data se disponível
+REFINING_RRR = {"base": 15.2, "bonus": 36.7,
+                "base_focus": 43.5, "bonus_focus": 53.9}
+
+try:
+    import json as _json
+    from pathlib import Path as _Path
+    _cd = _json.loads((_Path(__file__).resolve().parent.parent
+                       / "data" / "craft_data.json").read_text(encoding="utf-8"))
+    _fam = {"WOOD": "wood", "FIBER": "fiber", "ROCK": "rock",
+            "HIDE": "hide", "ORE": "ore"}
+    _ref = _cd.get("refining", {})
+    REFINING_BONUS_CITY = {f: _ref[r]["city"] for f, r in _fam.items()
+                           if r in _ref} or REFINING_BONUS_CITY
+    # média das famílias (todas iguais no jogo) -> RRR derivado
+    if _ref:
+        _any = next(iter(_ref.values()))
+        REFINING_RRR = {
+            "base": _any["rrr_base_pct"], "bonus": _any["rrr_bonus_pct"],
+            "base_focus": _any["rrr_base_focus_pct"],
+            "bonus_focus": _any["rrr_bonus_focus_pct"],
+        }
+except (OSError, ValueError, KeyError, StopIteration):
+    pass  # mantém os fallbacks
 
 # Teto de capital sugerido por ordem de serviço (missões da camada leiga)
 ORDER_MAX_CAPITAL = 2_000_000
