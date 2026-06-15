@@ -896,3 +896,22 @@ Resultado: 6 abas -> 4 (Início · Item · Flips · Scanner).
 Verificado ao vivo: busca 'arco' alcança 49 bases; chip .2 seleciona
 T4_2H_BOW@2; inspetor carrega as 3 facetas do mesmo item; console limpo;
 28 testes OK; assets v=20260612-4.
+
+## 2026-06-15 - Auditoria multiagêntica + correções (Claude)
+
+Workflow de 26 agentes (5 revisores + céticos): 21 achados brutos -> 16
+confirmados, 5 refutados. Relatório completo em AUDITORIA2.md. Corrigidos:
+- ALTA: índice idx_price_snapshots_time (server,fetched_at) — backtest
+  110s->0.8s/par; auto-prune diário no loop (vacuum=False) + retenção 7d;
+  survival com janela (days) + painel sob demanda (botão), não auto-carrega.
+- MÉDIA busca: picker 80->150 + aviso 'há mais'; scanner retorna items_total,
+  avisa truncamento e ordena por tier (não ordem de arquivo); busca AND com
+  fallback parcial (maioria dos tokens). snapshot_prune corta na meia-noite
+  UTC (corrige SQL-4) e usa rowcount.
+- BAIXA: premium invalida itemLoadedFor; selectItem limpa sub-abas+charts;
+  SQL-2 (*1.0); SQL-3 (janela recente exata); GATHER-2 (prêmio líq vs líq).
+- Refutados (não-bugs): REFINE-1 (premissa errada de RRR), ICON-1 (regex já
+  barra), ITEM-3 (campos sempre presentes), PRUNE-1/SQL-1 (conexão limpa).
+- 28 testes (3 regressões novas). Verificado ao vivo, console limpo.
+Pendências documentadas: pré-agregar survival, unificar vol/dia (GATHER-1),
+backtest assíncrono, fuzzy de typo.
