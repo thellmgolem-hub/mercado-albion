@@ -595,6 +595,12 @@ document.querySelectorAll('#tabs button').forEach((b) => {
       state.avancadoLoaded = true;
       loadAvancado();
     }
+    // o gráfico do ouro precisa do canvas VISÍVEL para dimensionar — carrega
+    // ao abrir a aba (não no init, quando a aba está oculta)
+    if (b.dataset.tab === 'moedas' && !state.moedasLoaded) {
+      state.moedasLoaded = true;
+      loadGoldChart();
+    }
   });
 });
 
@@ -2088,7 +2094,6 @@ async function init() {
   setInterval(loadIntel, 5 * 60 * 1000);
 
   refreshWatchCount();
-  loadGoldChart();
   loadDashboardRecommendations();
   loadHeatmap();
   loadIntel();
