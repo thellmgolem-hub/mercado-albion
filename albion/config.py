@@ -180,7 +180,12 @@ GAMEINFO_BASES = {
     "europa": "https://gameinfo-ams.albiononline.com/api/gameinfo",
     "asia": "https://gameinfo-sgp.albiononline.com/api/gameinfo",
 }
-GAMEINFO_EVENT_PAGES = 6     # páginas de 51 eventos por varredura incremental
+# páginas de 51 eventos por varredura incremental. 18×51=918 (< MAX_OFFSET 1000)
+# cobre ~90 ev/min num intervalo de 10 min; em 6 páginas (306) um pico saturava
+# e os eventos além do topo eram perdidos em silêncio (o checkpoint avançava
+# sobre eles). A varredura para cedo ao alcançar o checkpoint, então fora de
+# pico isso não custa requisições extras.
+GAMEINFO_EVENT_PAGES = 18
 GAMEINFO_BATTLE_PAGES = 2
 # O killboard das Américas gera ~50 eventos/min em pico: cadência própria,
 # mais rápida que a coleta de mercado

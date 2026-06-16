@@ -114,6 +114,7 @@ def ingest_events(aodp, client: GameinfoClient | None = None,
     seen = inserted = pages = 0
     newest = known_max
     ok, error = 1, None
+    caught_up = (known_max == 0)   # 1ª carga não tem gap por definição
     try:
         for page in range(max_pages):
             offset = page * PAGE_SIZE
@@ -165,15 +166,23 @@ def ingest_events(aodp, client: GameinfoClient | None = None,
                     aodp.db.commit()
             # página inteira já conhecida -> alcançamos o checkpoint
             if page_min_id is not None and page_min_id <= known_max:
+                caught_up = True
                 break
             time.sleep(1)  # cortesia: ~1 req/s
     except Exception as e:
         ok, error = 0, repr(e)[:500]
+    # B5: se a varredura terminou sem alcançar o checkpoint e ainda havia
+    # eventos novos, houve burst maior que a janela -> gap (eventos perdidos).
+    # Registra para sabermos quando o killboard ficou subamostrado.
+    saturated = ok and not caught_up and newest > known_max
+    if saturated and error is None:
+        error = f"SATURADO: burst > {max_pages} pgs; gap possível (eventos perdidos)"
     if newest > known_max:
         _save_checkpoint(aodp, "events", newest)
     _log_run(aodp, "events", started, pages, seen, inserted, newest, ok, error)
     return {"source": "events", "pages": pages, "seen": seen,
-            "inserted": inserted, "ok": ok, "error": error}
+            "inserted": inserted, "ok": ok, "error": error,
+            "saturated": bool(saturated)}
 
 
 def ingest_battles(aodp, client: GameinfoClient | None = None,
