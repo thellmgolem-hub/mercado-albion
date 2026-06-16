@@ -1806,6 +1806,130 @@ def cmd_fc(args, fmt):
              ("predictability", "Score"), ("label", "Rótulo")], fmt)
 
 
+def _market_volume(con, server, days=7):
+    """Volume diário médio de mercado por item (history q1, escala 24h)."""
+    return {iid: n for iid, n in con.execute(
+        """SELECT item_id, SUM(item_count)*1.0/COUNT(DISTINCT substr(ts,1,10))
+           FROM history WHERE server=? AND time_scale=24 AND quality=1
+             AND item_count>0 AND ts>=date('now', ?) GROUP BY item_id""",
+        [server, f"-{int(days)} days"]).fetchall()}
+
+
+def cmd_demand(args, fmt):
+    """Inteligência de demanda (killboard): consumíveis, qualidade, meta."""
+    from albion import demand as dm
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado.")
+    db = ItemDB()
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid)
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        if args.acao == "burn":
+            q1, _ = _clean_price_lookups(con, config.DEFAULT_SERVER)
+            price_item = {}
+            for (item, _c), p in q1.items():
+                if item not in price_item or p < price_item[item]:
+                    price_item[item] = p
+            vol = _market_volume(con, config.DEFAULT_SERVER, days=args.days)
+            res = dm.consumable_burn(
+                con, config.DEFAULT_SERVER, days=args.days,
+                price_of=price_item.get, vol_of=vol.get, limit=args.limit)
+            for r in res:
+                r["item"] = name(r["item_id"])
+                r["cob"] = "SUBABASTECIDO" if r["undersupplied"] else ""
+            info(f"Queima de consumíveis ({args.days}d): unidades destruídas/dia "
+                 "no killboard vs oferta de mercado. cobertura<1 = subabastecido.")
+            emit(res, [("item", "Item"), ("per_day", "Queima/dia"),
+                       ("market_vol_day", "Oferta/dia"), ("coverage", "Cobertura"),
+                       ("silver_per_day", "Prata/dia"), ("cob", "")], fmt)
+        elif args.acao == "quality":
+            _, allq = _clean_price_lookups(con, config.DEFAULT_SERVER)
+            pq = {}
+            for (item, _c, q), p in allq.items():
+                key = (item, q)
+                if key not in pq or p < pq[key]:
+                    pq[key] = p
+            res = dm.destroyed_quality(
+                con, config.DEFAULT_SERVER, days=args.days,
+                price_q=lambda i, q: pq.get((i, q)), limit=args.limit)
+            for r in res:
+                r["item"] = name(r["item_id"])
+            info(f"Qualidade do gear destruído ({args.days}d) × prêmio de qualidade. "
+                 "E[prêmio] alto = vale craftar/estocar qualidade alta, não q1.")
+            emit(res, [("item", "Item"), ("destroyed", "Destruídos"),
+                       ("share_q4plus_pct", "Q4+ %"), ("dominant_q", "Q dom."),
+                       ("ev_quality_premium", "E[prêmio]")], fmt)
+        else:  # meta
+            res = dm.meta_shift(con, config.DEFAULT_SERVER, days=args.days,
+                                recent=args.recent, limit=args.limit)
+            info(f"Mudança de meta (recente {args.recent}d vs {args.days}d): builds "
+                 "arma+armadura ganhando participação nas mortes (Δshare).")
+            emit(res, [("build", "Build (arma+armadura)"), ("recent_n", "N recente"),
+                       ("share_recent_pct", "Share rec.%"),
+                       ("share_base_pct", "Share base%"), ("delta_pct", "Δ %")], fmt)
+    finally:
+        con.close()
+
+
+def cmd_guild(args, fmt):
+    """Guild & estratégico: ROI de coleta, cesta de regear, make-or-buy."""
+    from albion import guild as gd
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado.")
+    db = ItemDB()
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid)
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        if args.acao == "watch":
+            q1, _ = _clean_price_lookups(con, config.DEFAULT_SERVER)
+            price_item = {}
+            for (item, _c), p in q1.items():
+                if item not in price_item or p < price_item[item]:
+                    price_item[item] = p
+            res = gd.watchlist_roi(con, config.DEFAULT_SERVER,
+                                   price_of=price_item.get, days=args.days,
+                                   limit=args.limit)
+            for r in res["add"]:
+                r["item"] = name(r["item_id"])
+            info(f"Prioridade de coleta ({args.days}d): itens MUITO destruídos que "
+                 f"NÃO estão na watchlist ({res['watched_count']} já vigiados). "
+                 "Adicione com `watch add`.")
+            emit(res["add"], [("item", "Item (ADD à watchlist)"),
+                 ("destroyed", "Destruídos"), ("active_days", "Dias ativos"),
+                 ("price", "Preço"), ("score", "Score")], fmt)
+        elif args.acao == "kit":
+            res = gd.soldier_kit_index(con, config.DEFAULT_SERVER, days=args.days,
+                                       hist_days=args.hist_days)
+            if fmt == "json":
+                print(json.dumps(res, ensure_ascii=False, indent=2)); return
+            if not res["series"]:
+                die("Sem história suficiente p/ a cesta — colete os itens de regear.")
+            info("Índice Soldier's Kit (base 100): custo de re-equipar a guild, "
+                 "cesta ponderada pelo uso real no killboard. Top da cesta: "
+                 + ", ".join(name(i) for i, _ in res["basket"][:5]))
+            emit(res["series"], [("day", "Dia"), ("cost", "Custo cesta"),
+                                 ("index", "Índice")], fmt)
+        else:  # makeorbuy
+            q1, _ = _clean_price_lookups(con, config.DEFAULT_SERVER)
+            res = gd.make_or_buy(con, config.DEFAULT_SERVER,
+                                 price_of=lambda i, c: q1.get((i, c)),
+                                 days=args.days, premium=not args.no_premium,
+                                 focus=args.focus, limit=args.limit)
+            for r in res:
+                r["item"] = name(r["item_id"])
+                r["city_pt"] = city_pt(r["internal_city"])
+            info(f"Make-or-buy ({args.days}d): itens que a guild consome — custo de "
+                 "fazer (interno) vs comprar (mercado). save>0 = fazer compensa.")
+            emit(res, [("item", "Item"), ("demand_units", "Demanda"),
+                       ("internal_cost", "Fazer"), ("city_pt", "Cidade"),
+                       ("market_price", "Comprar"), ("save_pct", "Economia %"),
+                       ("verdict", "Veredito")], fmt)
+    finally:
+        con.close()
+
+
 def cmd_risk(args, fmt):
     """Risco & portfólio: perfil de risco, sizing, correlação."""
     from albion import risk
@@ -1908,6 +2032,22 @@ def cmd_risk(args, fmt):
         emit([{**size}], [("units", "Comprar (un)"), ("kelly_frac", "Fração Kelly"),
               ("capital_used", "Capital"), ("profit_total", "Lucro total"),
               ("limited_by", "Limite")], fmt)
+
+
+def _clean_price_lookups(con, server):
+    """(q1, allq) a partir das linhas de prices SANEADAS (sem preços-âncora)."""
+    from albion.microstructure import clean_price_rows
+    rows = clean_price_rows(_cache_price_dicts(con, server))
+    q1, allq = {}, {}
+    for r in rows:
+        sp = r.get("sell_price_min") or 0
+        if sp <= 0:
+            continue
+        item, city, q = r["item_id"], r["city"], r["quality"]
+        allq[(item, city, q)] = min(allq.get((item, city, q), sp), sp)
+        if q == 1:
+            q1[(item, city)] = min(q1.get((item, city), sp), sp)
+    return q1, allq
 
 
 def cmd_prod(args, fmt):
@@ -2046,7 +2186,7 @@ def build_parser():
         dest="cmd", required=True,
         metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,watch,"
                 "collect,intel,survival,backtest,journals,refine,report,pos,"
-                "indexes,prod,logi,risk,fc,micro,gold,status,prune,sql}")
+                "indexes,prod,logi,risk,fc,demand,guild,micro,gold,status,prune,sql}")
 
     p = sub.add_parser("search", parents=[common],
                        help="busca itens por nome PT/EN ou id")
@@ -2309,6 +2449,24 @@ def build_parser():
     p.add_argument("--tier-max", type=int)
     p.add_argument("--days", type=int, default=30)
     p.set_defaults(func=cmd_indexes)
+
+    p = sub.add_parser("demand", parents=[common],
+                       help="demanda (killboard): consumíveis, qualidade destruída, meta")
+    p.add_argument("acao", choices=("burn", "quality", "meta"))
+    p.add_argument("--days", type=float, default=7, help="janela killboard")
+    p.add_argument("--recent", type=float, default=2, help="janela recente (meta)")
+    p.add_argument("--limit", type=int, default=40)
+    p.set_defaults(func=cmd_demand)
+
+    p = sub.add_parser("guild", parents=[common],
+                       help="guild: ROI de coleta, cesta de regear, make-or-buy")
+    p.add_argument("acao", choices=("watch", "kit", "makeorbuy"))
+    p.add_argument("--days", type=float, default=7, help="janela killboard")
+    p.add_argument("--hist-days", type=int, default=120, help="janela do índice (kit)")
+    p.add_argument("--focus", action="store_true", help="usa foco (makeorbuy)")
+    p.add_argument("--no-premium", action="store_true")
+    p.add_argument("--limit", type=int, default=40)
+    p.set_defaults(func=cmd_guild)
 
     p = sub.add_parser("fc", parents=[common],
                        help="previsão: reversão à média, par trading, previsibilidade")

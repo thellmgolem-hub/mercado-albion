@@ -852,5 +852,60 @@ class ForecastTests(unittest.TestCase):
                       ("vender A / comprar B", "comprar A / vender B"))
 
 
+class DemandGuildTests(unittest.TestCase):
+    def test_item_family(self):
+        from albion import demand as dm
+        self.assertEqual(dm.item_family("T4_MAIN_AXE@1"), "MAIN_AXE")
+        self.assertEqual(dm.item_family("T8_2H_BOW"), "2H_BOW")
+
+    def test_consumable_burn_and_coverage(self):
+        from datetime import datetime, timezone, timedelta
+        from albion import demand as dm
+        ts = (datetime.now(timezone.utc) - timedelta(hours=2)).strftime(
+            "%Y-%m-%dT%H:%M:%S")
+        with TemporaryDirectory() as tmp:
+            client = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                client.db.execute(
+                    "INSERT INTO kill_events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    ("americas", 1, ts, 0, "kill", "OPEN", None, 0, 4, 1,
+                     "k", "v", 0))
+                client.db.executemany(
+                    "INSERT INTO kill_event_equipment VALUES (?,?,?,?,?,?,?)",
+                    [("americas", 1, "victim", "Potion", "T8_POT", 70, 1)])
+                client.db.commit()
+                res = dm.consumable_burn(
+                    client.db, "americas", days=7,
+                    price_of=lambda i: 100, vol_of=lambda i: 5)
+            finally:
+                client.db.close()
+        r = next(x for x in res if x["item_id"] == "T8_POT")
+        self.assertEqual(r["burned_units"], 70)
+        self.assertAlmostEqual(r["per_day"], 10.0, places=1)   # 70/7
+        self.assertTrue(r["undersupplied"])                    # 5 < 10
+
+    def test_watchlist_roi_add_vs_watched(self):
+        from albion import guild as gd
+        with TemporaryDirectory() as tmp:
+            client = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                client.db.executemany(
+                    "INSERT INTO item_demand_daily VALUES (?,?,?,?,?,?,?)",
+                    [("americas", "2026-06-15", "T6_BAG", 100, 1, 0, 0),
+                     ("americas", "2026-06-15", "T7_BAG", 50, 1, 0, 0)])
+                client.db.execute(
+                    "INSERT INTO watchlist VALUES (?,?,?)",
+                    ("americas", "T7_BAG", 0))
+                client.db.commit()
+                res = gd.watchlist_roi(client.db, "americas",
+                                       price_of=lambda i: 1000, days=3650)
+            finally:
+                client.db.close()
+        add_ids = {r["item_id"] for r in res["add"]}
+        self.assertIn("T6_BAG", add_ids)        # destruído e fora da watchlist
+        self.assertNotIn("T7_BAG", add_ids)     # já vigiado
+        self.assertEqual(res["watched_count"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()
