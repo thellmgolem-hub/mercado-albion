@@ -1702,8 +1702,9 @@ def cmd_logi(args, fmt):
         con.close()
 
 
-def _history_daily(con, server, item_ids=None, cities=None, days=180):
-    """Linhas (item, city, dia, avg_price) do history diário q1 no cache."""
+def _history_daily(con, server, item_ids=None, cities=None, days=180,
+                   with_count=False):
+    """Linhas (item, city, dia, avg_price[, item_count]) do history q1 no cache."""
     where = ["server=?", "time_scale=24", "quality=1", "avg_price>0",
              "ts >= date('now', ?)"]
     params = [server, f"-{int(days)} days"]
@@ -1713,10 +1714,96 @@ def _history_daily(con, server, item_ids=None, cities=None, days=180):
     if cities:
         where.append(f"city IN ({','.join('?' * len(cities))})")
         params += list(cities)
+    cols = "item_id, city, substr(ts,1,10) AS day, avg_price"
+    if with_count:
+        cols += ", item_count"
     return con.execute(
-        f"""SELECT item_id, city, substr(ts,1,10) AS day, avg_price
-            FROM history WHERE {' AND '.join(where)}
+        f"""SELECT {cols} FROM history WHERE {' AND '.join(where)}
             ORDER BY item_id, city, day""", params).fetchall()
+
+
+def cmd_fc(args, fmt):
+    """Previsão & econometria: reversão à média, par trading, previsibilidade."""
+    from albion import forecast as fc
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado — rode `collect` antes.")
+    db = ItemDB()
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid)
+    cities = parse_cities(args.cities)
+    item_ids = None
+    if args.itens:
+        item_ids = [i["id"] for i in resolve_items(db, " ".join(args.itens))]
+    elif args.cat or args.sub or args.tier_min or args.tier_max:
+        item_ids = [i["id"] for i in db.filter(cat=args.cat, sub=args.sub,
+                    tier_min=args.tier_min, tier_max=args.tier_max)]
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        rows = _history_daily(con, config.DEFAULT_SERVER, item_ids, cities,
+                              days=args.days, with_count=True)
+    finally:
+        con.close()
+    if not rows:
+        die("Sem histórico no cache para o filtro — rode `collect`/`history`.")
+
+    if args.acao == "pair":
+        if not item_ids or len(item_ids) != 1:
+            die("pair exige exatamente 1 item (compara entre cidades).")
+        by_city = {}
+        for item, city, day, price, _c in rows:
+            by_city.setdefault(city, {})[day] = price
+        out = []
+        cs = sorted(by_city)
+        for i in range(len(cs)):
+            for j in range(i + 1, len(cs)):
+                ca, cb = cs[i], cs[j]
+                common = sorted(set(by_city[ca]) & set(by_city[cb]))
+                if len(common) < args.min_points:
+                    continue
+                pa = [by_city[ca][d] for d in common]
+                pb = [by_city[cb][d] for d in common]
+                r = fc.pair_trade(pa, pb, min_points=args.min_points)
+                if r:
+                    r["pair"] = f"{city_pt(ca)} × {city_pt(cb)}"
+                    out.append(r)
+        out.sort(key=lambda r: (-(1 if r["signal"] else 0), -abs(r["z_spread"])))
+        info(f"Par trading de {name(item_ids[0])} entre cidades: spread cointegrado "
+             "e desviado. 'sinal' = z forte + meia-vida curta + cobre as taxas.")
+        emit(out[:args.limit], [("pair", "Par"), ("z_spread", "z spread"),
+             ("halflife_days", "Meia-vida"), ("gross_gap_pct", "Desvio %"),
+             ("action", "Ação"), ("signal", "Sinal")], fmt)
+        return
+
+    series, counts = {}, {}
+    for item, city, day, price, c in rows:
+        series.setdefault((item, city), []).append(price)
+        counts.setdefault((item, city), []).append(c or 0)
+    out = []
+    if args.acao == "revert":
+        for (item, city), prices in series.items():
+            r = fc.mean_reversion(prices, min_points=args.min_points)
+            if r and (not args.signals or r["signal"]):
+                out.append({"item": name(item), "city_pt": city_pt(city), **r})
+        out.sort(key=lambda r: (-(1 if r["signal"] else 0), -abs(r["z_resid"])))
+        info(f"Reversão à média ({args.days}d): alvo de equilíbrio + meia-vida. "
+             "'sinal' = preço esticado (|z|>=1,5) e meia-vida <= 7 dias.")
+        emit(out[:args.limit], [("item", "Item"), ("city_pt", "Cidade"),
+             ("current", "Atual"), ("target", "Alvo"), ("gap_pct", "Gap %"),
+             ("z_resid", "z"), ("halflife_days", "Meia-vida"),
+             ("direction", "Direção"), ("signal", "Sinal")], fmt)
+    else:  # predict
+        for (item, city), prices in series.items():
+            r = fc.predictability(prices, counts.get((item, city)),
+                                  min_points=args.min_points)
+            if r:
+                out.append({"item": name(item), "city_pt": city_pt(city), **r})
+        out.sort(key=lambda r: -r["predictability"])
+        info(f"Score de previsibilidade ({args.days}d): autocorrelação + R² da "
+             "tendência + estabilidade de volume. Porteiro dos outros sinais.")
+        emit(out[:args.limit], [("item", "Item"), ("city_pt", "Cidade"),
+             ("points", "Dias"), ("autocorr_lag1", "Autocorr"),
+             ("trend_r2", "R² tend."), ("vol_stability", "Estab.vol"),
+             ("predictability", "Score"), ("label", "Rótulo")], fmt)
 
 
 def cmd_risk(args, fmt):
@@ -1959,7 +2046,7 @@ def build_parser():
         dest="cmd", required=True,
         metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,watch,"
                 "collect,intel,survival,backtest,journals,refine,report,pos,"
-                "indexes,prod,logi,risk,micro,gold,status,prune,sql}")
+                "indexes,prod,logi,risk,fc,micro,gold,status,prune,sql}")
 
     p = sub.add_parser("search", parents=[common],
                        help="busca itens por nome PT/EN ou id")
@@ -2222,6 +2309,23 @@ def build_parser():
     p.add_argument("--tier-max", type=int)
     p.add_argument("--days", type=int, default=30)
     p.set_defaults(func=cmd_indexes)
+
+    p = sub.add_parser("fc", parents=[common],
+                       help="previsão: reversão à média, par trading, previsibilidade")
+    p.add_argument("acao", choices=("revert", "pair", "predict"))
+    p.add_argument("itens", nargs="*", help="itens (pair exige 1)")
+    p.add_argument("--cat", help="categoria (cesta)")
+    p.add_argument("--sub", help="subcategoria")
+    p.add_argument("--tier-min", type=int)
+    p.add_argument("--tier-max", type=int)
+    p.add_argument("--cities", help="cidades (filtra)")
+    p.add_argument("--days", type=int, default=180, help="janela de history")
+    p.add_argument("--min-points", type=int, default=20,
+                   help="dias mínimos (revert/predict 20; pair 60)")
+    p.add_argument("--signals", action="store_true",
+                   help="só linhas com sinal (revert)")
+    p.add_argument("--limit", type=int, default=40)
+    p.set_defaults(func=cmd_fc)
 
     p = sub.add_parser("risk", parents=[common],
                        help="risco & portfólio: perfil de risco, sizing, correlação")

@@ -818,5 +818,39 @@ class RiskTests(unittest.TestCase):
         self.assertAlmostEqual(pairs[0]["corr"], 1.0, places=3)
 
 
+class ForecastTests(unittest.TestCase):
+    def test_mean_reversion_direction_and_sanity_guard(self):
+        from albion import forecast as fc
+        # série em tendência de alta, mas o último ponto cai abaixo da tendência
+        prices = [100 + i for i in range(29)] + [110]
+        r = fc.mean_reversion(prices, min_points=10)
+        self.assertEqual(r["direction"], "comprar")   # z < 0
+        self.assertEqual(r["current"], 110)
+        # ponto final anômalo (10x a mediana) não vira sinal
+        wild = [100 + (i % 5) for i in range(30)] + [1000]
+        rw = fc.mean_reversion(wild, min_points=10)
+        self.assertFalse(rw["signal"])
+
+    def test_predictability_returns_score(self):
+        import math
+        from albion import forecast as fc
+        prices = [math.exp(0.01 * i) * 100 for i in range(40)]
+        r = fc.predictability(prices, min_points=20)
+        self.assertIn(r["label"], ("modelável", "cautela", "ruído"))
+        self.assertTrue(0 <= r["predictability"] <= 1)
+        self.assertGreater(r["trend_r2"], 0.9)        # série quase log-linear
+
+    def test_pair_trade_needs_length_and_returns_beta(self):
+        from albion import forecast as fc
+        self.assertIsNone(fc.pair_trade([1, 2, 3], [1, 2, 3], min_points=60))
+        a = [100 + i + (i % 3) for i in range(70)]
+        b = [50 + 0.5 * i + (i % 2) for i in range(70)]
+        r = fc.pair_trade(a, b, min_points=60)
+        self.assertIsNotNone(r)
+        self.assertIn("beta", r)
+        self.assertIn(r["action"],
+                      ("vender A / comprar B", "comprar A / vender B"))
+
+
 if __name__ == "__main__":
     unittest.main()
