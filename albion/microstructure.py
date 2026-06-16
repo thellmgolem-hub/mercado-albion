@@ -189,6 +189,33 @@ def book_metrics(con, server, cities=None, item_ids=None, qualities=None,
     return out[:limit] if limit else out
 
 
+def clean_price_rows(rows, z_threshold=4.0):
+    """Zera preços-âncora (outliers entre cidades) em linhas no formato da API.
+
+    Para cada (item, qualidade), calcula o z robusto (mediana+MAD) de
+    sell_price_min e buy_price_max entre as cidades e ZERA a ponta que for
+    outlier (alta OU baixa) — uma ordem de 1 prata ou de 751 milhões numa única
+    cidade deixa de contaminar qualquer análise que pegue o melhor/maior. Só
+    atua com >=3 cidades cotadas naquela ponta. Devolve cópias das linhas.
+    """
+    out = [dict(r) for r in rows]
+    by_iq = {}
+    for idx, r in enumerate(out):
+        by_iq.setdefault((r["item_id"], r["quality"]), []).append(idx)
+    for idxs in by_iq.values():
+        for field in ("sell_price_min", "buy_price_max"):
+            vals = [(i, out[i].get(field) or 0) for i in idxs
+                    if (out[i].get(field) or 0) > 0]
+            if len(vals) < 3:
+                continue
+            zs = _robust_z([v for _, v in vals])
+            for (i, _), z in zip(vals, zs):
+                if abs(z) > z_threshold:
+                    out[i][field] = 0
+                    out[i][field + "_date"] = "0001-01-01T00:00:00"
+    return out
+
+
 def _robust_z(values):
     """z robusto (mediana + MAD) por elemento; lista alinhada à entrada."""
     xs = sorted(values)

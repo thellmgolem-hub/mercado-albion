@@ -1576,6 +1576,132 @@ def _load_cache_prices(con, server, qualities=(1,)):
     return q1, allq
 
 
+_PRICE_COLS = ("item_id", "city", "quality", "sell_price_min",
+               "sell_price_min_date", "sell_price_max", "sell_price_max_date",
+               "buy_price_min", "buy_price_min_date", "buy_price_max",
+               "buy_price_max_date", "fetched_at")
+
+
+def _cache_price_dicts(con, server, cities=None, item_ids=None):
+    """Linhas da tabela prices (cache) no formato dos rows da API."""
+    where = ["server=?"]
+    params = [server]
+    if cities:
+        where.append(f"city IN ({','.join('?' * len(cities))})")
+        params += list(cities)
+    if item_ids:
+        where.append(f"item_id IN ({','.join('?' * len(item_ids))})")
+        params += list(item_ids)
+    rows = con.execute(
+        f"SELECT {','.join(_PRICE_COLS)} FROM prices WHERE {' AND '.join(where)}",
+        params).fetchall()
+    return [dict(zip(_PRICE_COLS, r)) for r in rows]
+
+
+def _meta_for(db, price_rows):
+    ids = {r["item_id"] for r in price_rows}
+    return {iid: m for iid in ids if (m := db.get(iid))}
+
+
+def cmd_logi(args, fmt):
+    """Arbitragem & logística: carga, reposição, escada de qualidade, BM."""
+    from albion import logistics as logi
+    from albion.microstructure import clean_price_rows
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado — rode `collect` antes.")
+    premium = not args.no_premium
+    db = ItemDB()
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        if args.acao == "cargo":
+            bcity = parse_cities(args.buy_city)
+            scity = parse_cities(args.sell_city)
+            if not bcity or not scity:
+                die("cargo exige --buy-city e --sell-city.")
+            bcity, scity = bcity[0], scity[0]
+            prows = clean_price_rows(_cache_price_dicts(con, config.DEFAULT_SERVER, [bcity, scity]))
+            metas = _meta_for(db, prows)
+            opps = compute_flips(prows, metas, premium=premium,
+                                 buy_mode=args.buy_mode, sell_mode=args.sell_mode,
+                                 buy_cities={bcity}, sell_cities={scity},
+                                 qualities=[1])
+            vol = {}
+            for iid, n in con.execute(
+                    """SELECT item_id, SUM(item_count)*1.0/COUNT(DISTINCT substr(ts,1,10))
+                       FROM history WHERE server=? AND time_scale=24 AND quality=1
+                         AND city=? AND item_count>0 AND ts>=date('now','-7 days')
+                       GROUP BY item_id""",
+                    [config.DEFAULT_SERVER, scity]).fetchall():
+                vol[iid] = n
+            res = logi.cargo_knapsack(opps, lambda i: vol.get(i, 0),
+                                      w_max=args.kg, limit=args.limit)
+            if fmt == "json":
+                print(json.dumps(res, ensure_ascii=False, indent=2)); return
+            info(f"Carga ótima {city_pt(bcity)}→{city_pt(scity)} em {res['w_max']}kg"
+                 f": lucro/viagem {res['trip_profit']:,} · usado {res['used_kg']}kg"
+                 + (f" · preço-sombra do kg: {res['shadow_price_per_kg']}"
+                    if res.get('shadow_price_per_kg') else "")
+                 + ". Teto por item = volume×20%.")
+            rows = [{"item": b["name_pt"], "unid": b["units"], "kg": b["kg"],
+                     "lucro": b["profit"], "lucro_kg": b["profit_per_kg"]}
+                    for b in res["basket"]]
+            emit(rows, [("item", "Item"), ("unid", "Unid."), ("kg", "Peso"),
+                        ("lucro", "Lucro"), ("lucro_kg", "Lucro/kg")], fmt)
+        elif args.acao == "ladder":
+            cities = parse_cities(args.cities)
+            prows = clean_price_rows(_cache_price_dicts(con, config.DEFAULT_SERVER, cities))
+            res = logi.quality_ladder(prows, _meta_for(db, prows),
+                                      premium=premium, sell_mode=args.sell_mode,
+                                      min_premium_pct=args.min_premium,
+                                      limit=args.limit)
+            for r in res:
+                r["city_pt"] = city_pt(r["city"])
+                r["quals"] = ",".join(map(str, r["qualities"]))
+            info("Prêmio por degrau de qualidade na MESMA cidade (maior salto). "
+                 "Compre a qualidade barata que ainda satisfaz a ordem-alvo.")
+            emit(res, [("name_pt", "Item"), ("city_pt", "Cidade"),
+                       ("quals", "Q cotadas"), ("best_step", "Maior salto"),
+                       ("best_premium_pct", "Prêmio %"),
+                       ("best_premium_abs", "Prêmio prata")], fmt)
+        elif args.acao == "bm":
+            prows = clean_price_rows(_cache_price_dicts(con, config.DEFAULT_SERVER))
+            res = logi.black_market_premium(prows, _meta_for(db, prows),
+                                            premium=premium, limit=args.limit)
+            for r in res:
+                r["best_city_pt"] = city_pt(r["best_city"])
+            info("Prêmio do Mercado Negro sobre a melhor venda nas cidades reais "
+                 "(venda instantânea na ordem do sistema, sem taxa de anúncio). "
+                 "Só equipamento de combate.")
+            emit(res, [("name_pt", "Item"), ("quality", "Q"),
+                       ("best_city_pt", "Melhor real"),
+                       ("best_city_net", "Real líq"), ("bm_net", "BM líq"),
+                       ("premium_abs", "Prêmio"), ("premium_pct", "Prêmio %")], fmt)
+        else:  # restock
+            demand = con.execute(
+                """SELECT item_id, SUM(victim_units) AS u FROM item_demand_daily
+                   WHERE server=? AND day >= date('now', ?)
+                   GROUP BY item_id HAVING u>0 ORDER BY u DESC LIMIT 400""",
+                [config.DEFAULT_SERVER, f"-{args.days} days"]).fetchall()
+            if not demand:
+                die("Sem demanda no killboard — rode `intel collect` antes.")
+            prows = clean_price_rows(_cache_price_dicts(con, config.DEFAULT_SERVER))
+            res = logi.restock_map(demand, prows, _meta_for(db, prows),
+                                   premium=premium, limit=args.limit)
+            for r in res:
+                r["buy_pt"] = city_pt(r["buy_city"])
+                r["sell_pt"] = city_pt(r["sell_city"])
+            info(f"Mapa de reposição ({args.days}d): o servidor está perdendo "
+                 "estes itens (killboard) — onde comprar barato e vender. "
+                 "Ordenado por demanda × lucro/kg.")
+            emit(res, [("name_pt", "Item"), ("demand_units", "Perdidos"),
+                       ("buy_pt", "Comprar em"), ("buy_price", "Custo"),
+                       ("sell_pt", "Vender em"), ("sell_net", "Venda líq"),
+                       ("profit", "Lucro/un"), ("profit_per_kg", "Lucro/kg")], fmt)
+    finally:
+        con.close()
+
+
 def cmd_prod(args, fmt):
     """Economia de produção: foco, cadeia vertical, refinar-vs-vender, qualidade."""
     from albion import production as prod
@@ -1712,7 +1838,7 @@ def build_parser():
         dest="cmd", required=True,
         metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,watch,"
                 "collect,intel,survival,backtest,journals,refine,report,pos,"
-                "indexes,prod,micro,gold,status,prune,sql}")
+                "indexes,prod,logi,micro,gold,status,prune,sql}")
 
     p = sub.add_parser("search", parents=[common],
                        help="busca itens por nome PT/EN ou id")
@@ -1975,6 +2101,23 @@ def build_parser():
     p.add_argument("--tier-max", type=int)
     p.add_argument("--days", type=int, default=30)
     p.set_defaults(func=cmd_indexes)
+
+    p = sub.add_parser("logi", parents=[common],
+                       help="logística: carga, reposição, escada de qualidade, BM")
+    p.add_argument("acao", choices=("cargo", "restock", "ladder", "bm"))
+    p.add_argument("--buy-city", help="cidade de compra (cargo)")
+    p.add_argument("--sell-city", help="cidade de venda (cargo)")
+    p.add_argument("--cities", help="cidades (ladder)")
+    p.add_argument("--kg", type=float, default=1500,
+                   help="capacidade de carga em kg (cargo; padrão: 1500 = boi)")
+    p.add_argument("--buy-mode", choices=("instant", "order"), default="instant")
+    p.add_argument("--sell-mode", choices=("instant", "order"), default="order")
+    p.add_argument("--no-premium", action="store_true")
+    p.add_argument("--min-premium", type=float, default=0,
+                   help="prêmio %% mínimo (ladder)")
+    p.add_argument("--days", type=float, default=1, help="janela killboard (restock)")
+    p.add_argument("--limit", type=int, default=40)
+    p.set_defaults(func=cmd_logi)
 
     p = sub.add_parser("prod", parents=[common],
                        help="produção: foco, cadeia vertical, refinar-vs-vender, qualidade")

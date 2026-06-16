@@ -749,5 +749,47 @@ class ProductionTests(unittest.TestCase):
         self.assertGreater(row["focus_gain"], 0)
 
 
+class LogisticsTests(unittest.TestCase):
+    def test_clean_price_rows_zeroes_outlier(self):
+        from albion.microstructure import clean_price_rows
+        rows = [row("T4_X", c, 1, sell=s) for c, s in
+                [("Martlock", 100), ("Lymhurst", 105), ("Thetford", 98),
+                 ("Caerleon", 10_000_000)]]
+        out = {r["city"]: r for r in clean_price_rows(rows)}
+        self.assertEqual(out["Caerleon"]["sell_price_min"], 0)   # âncora zerada
+        self.assertEqual(out["Martlock"]["sell_price_min"], 100)  # mantida
+
+    def test_cargo_knapsack_respects_caps(self):
+        from albion import logistics as logi
+        flips = [
+            {"item_id": "A", "name_pt": "A", "profit": 100, "weight": 1,
+             "buy_city": "X", "sell_city": "Y", "quality": 1},   # 100/kg
+            {"item_id": "B", "name_pt": "B", "profit": 50, "weight": 1,
+             "buy_city": "X", "sell_city": "Y", "quality": 1},   # 50/kg
+        ]
+        vol = {"A": 50, "B": 1000}        # cap A = 50*0.2=10 unid
+        res = logi.cargo_knapsack(flips, lambda i: vol.get(i, 0), w_max=15,
+                                  capture_rate=0.2)
+        basket = {b["item_id"]: b for b in res["basket"]}
+        # A é mais lucrativa/kg: enche o cap (10 unid, 10kg), depois B nos 5kg
+        self.assertEqual(basket["A"]["units"], 10)
+        self.assertEqual(basket["B"]["units"], 5)
+        self.assertAlmostEqual(res["used_kg"], 15)
+        self.assertEqual(res["trip_profit"], 10 * 100 + 5 * 50)
+
+    def test_bm_premium_uses_correct_fee_no_setup(self):
+        from albion import logistics as logi
+        # BM compra a 1000; melhor real instantâneo = ordem de compra de 900
+        rows = [row("T4_SWORD", "Black Market", 1, buy=1000),
+                row("T4_SWORD", "Martlock", 1, buy=900)]
+        meta = {"T4_SWORD": {"pt": "Espada", "cat": "weapons", "w": 5}}
+        res = logi.black_market_premium(rows, meta, premium=True)
+        self.assertEqual(len(res), 1)
+        r = res[0]
+        # BM net = 1000*(1-0.04) = 960 (sem taxa de anúncio); real = 900*(1-0.04)=864
+        self.assertEqual(r["bm_net"], 960)
+        self.assertEqual(r["best_city_net"], 864)
+
+
 if __name__ == "__main__":
     unittest.main()
