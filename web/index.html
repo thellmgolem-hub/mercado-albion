@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260615-3">
+<link rel="stylesheet" href="style.css?v=20260616-3">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -185,6 +185,13 @@
     </div>
   </div>
   <div id="itemCard"></div>
+  <div class="empty-state" id="itemEmpty">
+    <div class="ico">🔍</div>
+    <div><b>Escolha um item acima</b> para ver preços por cidade, margem de
+    craft/refino, de onde ele vem e a análise estatística.</div>
+    <div class="muted">Busque por nome (PT ou EN) ou id — atalhos: <b>t6</b>,
+    <b>4.1</b>, <b>@2</b>. Ex.: <b>bolsa do adepto</b>, <b>elmo soldado t6</b>.</div>
+  </div>
   <nav class="subtabs" id="itemSubtabs">
     <button data-sub="precos" class="active">Preços por cidade</button>
     <button data-sub="vender">Onde vender</button>
@@ -503,6 +510,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260615-3"></script>
+<script src="app.js?v=20260616-3"></script>
 </body>
 </html>

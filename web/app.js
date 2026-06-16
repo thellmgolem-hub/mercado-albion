@@ -831,6 +831,8 @@ function showItemSub(sub) {
 
 function selectItem(it) {
   state.item = it;
+  // revela as sub-abas do inspetor (antes disso, mostra só a busca + orientação)
+  document.getElementById('tab-item').classList.add('has-item');
   // as funções de carga ainda leem destes campos — mantém todas em sincronia
   state.precosItem = it;
   state.venderItem = it;
