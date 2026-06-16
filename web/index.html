@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260616-3">
+<link rel="stylesheet" href="style.css?v=20260616-5">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -30,7 +30,26 @@
 
 <!-- ============================ INÍCIO ============================ -->
 <section class="tab active" id="tab-dashboard">
-  <div class="section-head">
+
+  <!-- HERO: mercado de moedas (ouro & prata) -->
+  <div class="section-head coin-head">
+    <div>
+      <h1>Mercado de moedas — Ouro &amp; Prata</h1>
+      <div class="sub">Cotação do ouro (prata por 1 ouro) e o valor da prata em ouro,
+        com tendência, volatilidade e extremos do período</div>
+    </div>
+    <div class="field-row chips" id="goldRange">
+      <button class="chip" data-range="48">48 h</button>
+      <button class="chip on" data-range="168">7 dias</button>
+      <button class="chip" data-range="360">15 dias</button>
+      <button class="chip" data-range="720">30 dias</button>
+    </div>
+  </div>
+  <div class="coin-stats lab-summary" id="goldStats"></div>
+  <div class="chart-box coin-chart"><canvas id="goldChart"></canvas></div>
+  <div class="status" id="goldChartStatus"></div>
+
+  <div class="section-head" style="margin-top:22px">
     <div>
       <h1>Recomendações agora</h1>
       <div class="sub">Rotas reais seguras · volume histórico · dados frescos · score multifator absoluto</div>
@@ -510,6 +529,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260616-3"></script>
+<script src="app.js?v=20260616-5"></script>
 </body>
 </html>

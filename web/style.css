@@ -448,11 +448,32 @@ tbody tr:nth-child(even):hover { background: rgba(212, 168, 67, 0.08); }
 .chart-box {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   padding: 12px;
   height: 360px;
+  box-shadow: var(--shadow-sm);
 }
 .chart-box.small { height: 220px; }
+
+/* hero de moedas (ouro & prata) na página inicial */
+.coin-head .chips { align-items: center; }
+.coin-chart { height: 300px; }
+.coin-stats {
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  margin-bottom: 12px;
+}
+.coin-stats .lab-pill { display: flex; flex-direction: column; gap: 2px; }
+.coin-stats .lab-pill b { color: var(--muted); }
+.coin-stats .lab-pill .v {
+  display: block;
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.coin-stats .v.up { color: var(--green); }
+.coin-stats .v.down { color: var(--red); }
+.coin-stats .v small { font-size: 0.72rem; font-weight: 500; color: var(--muted); }
 
 .lab-panel {
   display: grid;

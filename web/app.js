@@ -1355,6 +1355,135 @@ async function loadGold() {
   } catch (e) { $('goldTicker').textContent = ''; }
 }
 
+let goldChart = null, goldRangeCount = 168;
+
+function _median(xs) {
+  if (!xs.length) return null;
+  const s = [...xs].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+}
+function _stdev(xs) {
+  if (xs.length < 2) return 0;
+  const m = xs.reduce((a, b) => a + b, 0) / xs.length;
+  return Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length - 1));
+}
+
+async function loadGoldChart(count) {
+  goldRangeCount = count || goldRangeCount;
+  const st = $('goldChartStatus');
+  st.className = 'status';
+  st.textContent = 'carregando cotação do ouro…';
+  try {
+    let g = await api('/api/gold', { count: goldRangeCount });
+    g = g.slice().reverse().filter((x) => x.price > 0);   // cronológico
+    if (g.length < 2) { st.textContent = 'sem dados de ouro suficientes.'; return; }
+    // remove pontos anômalos (z robusto: mediana + MAD) que distorcem a escala
+    const prices0 = g.map((x) => x.price);
+    const med = _median(prices0);
+    const mad = _median(prices0.map((p) => Math.abs(p - med))) || 1;
+    const clean = g.filter((x) => Math.abs(x.price - med) <= 6 * 1.4826 * mad);
+    const dropped = g.length - clean.length;
+
+    const prices = clean.map((x) => x.price);
+    const silver = clean.map((x) => 1e6 / x.price);       // ouro por 1 milhão de prata
+    const labels = clean.map((x) => {
+      const d = new Date(x.ts + 'Z');
+      return goldRangeCount <= 72
+        ? `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')} ${String(d.getUTCHours()).padStart(2, '0')}h`
+        : `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+    });
+
+    // análise
+    const cur = prices[prices.length - 1], first = prices[0];
+    const min = Math.min(...prices), max = Math.max(...prices);
+    const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const changePct = 100 * (cur / first - 1);
+    const rets = [];
+    for (let i = 1; i < prices.length; i++) rets.push(Math.log(prices[i] / prices[i - 1]));
+    const volDay = _stdev(rets) * Math.sqrt(24) * 100;    // pontos horários -> dia
+    // tendência: regressão linear simples do preço sobre o índice
+    const n = prices.length, xm = (n - 1) / 2, ym = mean;
+    let num = 0, den = 0;
+    prices.forEach((p, i) => { num += (i - xm) * (p - ym); den += (i - xm) ** 2; });
+    const slope = den ? num / den : 0;
+    const trendSpan = slope * (n - 1);                    // variação ajustada ponta a ponta
+    const trend = Math.abs(trendSpan) < 0.4 * _stdev(prices)
+      ? { t: 'lateral', c: '' }
+      : (slope > 0 ? { t: 'em alta', c: 'up' } : { t: 'em baixa', c: 'down' });
+
+    const up = (v) => v >= 0 ? 'up' : 'down';
+    const arrow = (v) => v >= 0 ? '▲' : '▼';
+    const pill = (label, value, cls) =>
+      `<div class="lab-pill"><b>${label}</b><span class="v ${cls || ''}">${value}</span></div>`;
+    $('goldStats').innerHTML = [
+      pill('Ouro agora', `${fmt(cur)} <small>prata</small>`, ''),
+      pill('Variação período', `${arrow(changePct)} ${fmtDec(Math.abs(changePct), 1)}%`, up(changePct)),
+      pill('Mínimo', fmt(min), ''),
+      pill('Máximo', fmt(max), ''),
+      pill('Média', fmt(Math.round(mean)), ''),
+      pill('Volatilidade', `${fmtDec(volDay, 1)}% <small>/dia</small>`, ''),
+      pill('Tendência', trend.t, trend.c),
+      pill('Prata agora', `${fmt(Math.round(1e6 / cur))} <small>ouro/1 mi</small>`, ''),
+    ].join('');
+
+    Chart.defaults.color = '#9a8c6d';
+    Chart.defaults.borderColor = '#3d3322';
+    if (goldChart) goldChart.destroy();
+    goldChart = new Chart($('goldChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Ouro (prata / 1 ouro)', data: prices, yAxisID: 'y',
+            borderColor: '#f0c860', backgroundColor: 'rgba(240,200,96,0.10)',
+            borderWidth: 2, fill: true, tension: 0.25, pointRadius: 0,
+            pointHoverRadius: 4,
+          },
+          {
+            label: 'Prata (ouro / 1 milhão de prata)', data: silver, yAxisID: 'y1',
+            borderColor: '#9fb4c8', borderWidth: 1.5, borderDash: [5, 4],
+            fill: false, tension: 0.25, pointRadius: 0, pointHoverRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { boxWidth: 14, usePointStyle: true } },
+          tooltip: {
+            callbacks: {
+              label: (c) => c.datasetIndex === 0
+                ? ` Ouro: ${fmt(Math.round(c.parsed.y))} prata`
+                : ` Prata: ${fmt(Math.round(c.parsed.y))} ouro / 1 mi`,
+            },
+          },
+        },
+        scales: {
+          y: {
+            position: 'left',
+            title: { display: true, text: 'prata por 1 ouro' },
+            ticks: { callback: (v) => fmt(Math.round(v)) },
+          },
+          y1: {
+            position: 'right',
+            title: { display: true, text: 'ouro por 1 mi de prata' },
+            grid: { drawOnChartArea: false },
+            ticks: { callback: (v) => fmt(Math.round(v)) },
+          },
+          x: { ticks: { maxTicksLimit: 12, autoSkip: true } },
+        },
+      },
+    });
+    st.textContent = `${clean.length} pontos · ${labels[0]} → ${labels[labels.length - 1]}`
+      + (dropped ? ` · ${dropped} ponto(s) anômalo(s) filtrado(s)` : '');
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = 'erro ao carregar o ouro: ' + e.message;
+  }
+}
+
 async function loadSurvival() {
   const st = $('survStatus');
   st.className = 'status';
@@ -1772,6 +1901,12 @@ async function init() {
   });
   $('dashRecsRefresh').addEventListener('click', loadDashboardRecommendations);
   $('dashCollect').addEventListener('click', runCollect);
+  document.querySelectorAll('#goldRange .chip').forEach((b) =>
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#goldRange .chip').forEach((x) =>
+        x.classList.toggle('on', x === b));
+      loadGoldChart(+b.dataset.range);
+    }));
   $('ordersRefresh').addEventListener('click', () => loadServiceOrders(true));
   $('survLoad').addEventListener('click', loadSurvival);
   $('histWatch').addEventListener('click', watchCurrentLabItem);
@@ -1798,6 +1933,7 @@ async function init() {
   setInterval(loadIntel, 5 * 60 * 1000);
 
   refreshWatchCount();
+  loadGoldChart();
   loadDashboardRecommendations();
   loadHeatmap();
   loadIntel();

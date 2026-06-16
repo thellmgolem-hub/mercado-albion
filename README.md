@@ -24,7 +24,7 @@ campo de busca, cinco sub-abas para o item selecionado.
 
 | Aba | O que faz |
 |---|---|
-| **Início** | Recomendações automáticas (só cache local) com score 0–100 de régua **absoluta** e selos executar/monitorar/cautela; botão **Coletar watchlist** busca preços + histórico frescos dos itens vigiados. Abaixo: persistência das ordens, mapa de rotas, demanda por destruição (killboard), divergência demanda×preço, guerra & risco e ordens de serviço. |
+| **Início** | Abre com o **Mercado de moedas — Ouro & Prata**: gráfico da cotação do ouro (prata por 1 ouro) e do valor da prata em ouro, com janelas de 48 h a 30 dias e painel de análise (atual, variação, mín/máx, média, volatilidade/dia, tendência). Abaixo: recomendações automáticas (score 0–100 absoluto, selos executar/monitorar/cautela; **Coletar watchlist**), persistência das ordens, mapa de rotas, demanda por destruição (killboard), divergência demanda×preço, guerra & risco e ordens de serviço. |
 | **Item** | Inspetor de um item com sub-abas (ver tabela abaixo). |
 | **Flips** | "Descobrir flips" por características do mercado + cálculo para itens específicos, com os 4 modos de compra/venda e lucro líquido já descontadas as taxas. |
 | **Scanner** | Varre uma categoria inteira (até 800 itens) atrás de oportunidades, com presets de um clique: **Reais → Mercado Negro**, **Entre cidades reais** e **Market making** (ordem → ordem na mesma cidade). Mostra volume diário, potencial de lucro/dia e lucro por kg. Exporta CSV. |
