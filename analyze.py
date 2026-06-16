@@ -1559,6 +1559,130 @@ def cmd_micro(args, fmt):
         con.close()
 
 
+def _load_cache_prices(con, server, qualities=(1,)):
+    """Menor venda por (item, cidade, qualidade) da tabela prices (cache)."""
+    ph = ",".join("?" * len(qualities))
+    rows = con.execute(
+        f"""SELECT item_id, city, quality, sell_price_min FROM prices
+            WHERE server=? AND sell_price_min>0 AND quality IN ({ph})""",
+        [server, *qualities]).fetchall()
+    allq, q1 = {}, {}
+    for item, city, q, sp in rows:
+        key = (item, city, q)
+        if key not in allq or sp < allq[key]:
+            allq[key] = sp
+        if q == 1 and ((item, city) not in q1 or sp < q1[(item, city)]):
+            q1[(item, city)] = sp
+    return q1, allq
+
+
+def cmd_prod(args, fmt):
+    """Economia de produção: foco, cadeia vertical, refinar-vs-vender, qualidade."""
+    from albion import production as prod
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado — rode `collect` antes.")
+    premium = not args.no_premium
+    cities = parse_cities(args.cities)
+    db = ItemDB()
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid)
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        q1, allq = _load_cache_prices(
+            con, config.DEFAULT_SERVER,
+            qualities=(1, 2, 3, 4, 5) if args.acao == "quality" else (1,))
+    finally:
+        con.close()
+
+    if args.acao == "focus":
+        res = prod.focus_efficiency(q1, premium=premium, sell_mode=args.sell_mode,
+                                    cities=cities, min_margin=args.min_margin,
+                                    limit=args.limit)
+        for r in res:
+            r["item"] = name(r["item_id"]); r["city_pt"] = city_pt(r["city"])
+            r["tipo"] = "refino" if r["is_refining"] else "craft"
+        info("Prata por foco da cadeia inteira (craft + refino), melhor cidade. "
+             "Só itens com insumo+produto cotados no cache. 'ganho_foco' = quanto "
+             "o foco rendeu vs sem foco.")
+        emit(res, [("item", "Item"), ("tipo", "Tipo"), ("city_pt", "Cidade"),
+                   ("silver_per_focus", "Prata/foco"), ("focus", "Foco"),
+                   ("margin_focus", "Margem c/foco"), ("focus_gain", "Ganho foco")],
+             fmt)
+    elif args.acao == "chain":
+        if not args.itens:
+            die("prod chain exige um item (ex.: `prod chain \"Espada Larga T5\"`).")
+        it = resolve_item(db, " ".join(args.itens))
+        res = prod.vertical_pnl(it["id"], q1, premium=premium,
+                                sell_mode=args.sell_mode, focus=args.focus,
+                                city=cities[0] if cities else None)
+        if fmt == "json":
+            print(json.dumps(res, ensure_ascii=False, indent=2)); return
+        info(f"PnL de cadeia de {it['pt']} em {city_pt(res['city'])} "
+             f"({'com' if args.focus else 'sem'} foco). Venda líq: "
+             f"{res['sell_net']} · custo de fazer a raiz: {res['make_cost']} · "
+             f"PnL fazer: {res['pnl_make']}. Cada degrau mostra comprar vs fazer.")
+        rows = [{"item": name(s["item_id"]), "nivel": s["depth"],
+                 "comprar": s["buy"], "fazer": s["make"],
+                 "decisao": s["decision"]} for s in res["steps"]]
+        emit(rows, [("item", "Insumo"), ("nivel", "Nível"),
+                    ("comprar", "Comprar"), ("fazer", "Fazer"),
+                    ("decisao", "Decisão")], fmt)
+    elif args.acao == "refine":
+        if args.itens:
+            it = resolve_item(db, " ".join(args.itens))
+            res = prod.refine_premium(it["id"], q1, premium=premium,
+                                      sell_mode=args.sell_mode, focus=args.focus,
+                                      cities=cities)
+            for r in res:
+                r["item"] = name(r["item_id"])
+                r["city_pt"] = city_pt(r["city"]) + ("  ★" if r["is_bonus_city"] else "")
+            info(f"Refinar {it['pt']} vs vender o bruto, por cidade "
+                 f"({'com' if args.focus else 'sem'} foco). Prêmio % > 0 = refinar paga.")
+            emit(res, [("city_pt", "Cidade"), ("raw_cost", "Custo bruto"),
+                       ("rrr_pct", "RRR %"), ("refined_net", "Refinado líq"),
+                       ("margin", "Margem"), ("premium_pct", "Prêmio %"),
+                       ("verdict", "Veredito")], fmt)
+        else:  # ranqueia todos os refinados cotados no cache
+            from albion import production as prod2
+            recipes = prod2.craft._load("recipes_refining.json")
+            best = []
+            for rid in recipes:
+                r = prod.refine_premium(rid, q1, premium=premium,
+                                        sell_mode=args.sell_mode, focus=args.focus,
+                                        cities=cities)
+                if r:
+                    top = r[0]
+                    top["item"] = name(rid)
+                    top["city_pt"] = city_pt(top["city"]) + ("  ★" if top["is_bonus_city"] else "")
+                    best.append(top)
+            best.sort(key=lambda r: -r["premium_pct"])
+            info("Melhor cidade de cada material refinado cotado no cache, "
+                 "ordenado por prêmio de refino (refinar vs vender o bruto).")
+            emit(best[:args.limit], [("item", "Refinado"), ("city_pt", "Cidade"),
+                 ("premium_pct", "Prêmio %"), ("margin", "Margem"),
+                 ("rrr_pct", "RRR %"), ("verdict", "Veredito")], fmt)
+    else:  # quality
+        if not args.itens:
+            die("prod quality exige um item (ex.: `prod quality \"Arco do Adepto\"`).")
+        it = resolve_item(db, " ".join(args.itens))
+        res = prod.quality_ev(it["id"], allq, premium=premium,
+                              sell_mode=args.sell_mode, focus=args.focus,
+                              cities=cities)
+        if not res:
+            die("Sem qualidades suficientes cotadas no cache p/ esperança "
+                "(precisa de >=3 qualidades com preço). Colete mais e tente de novo.")
+        for r in res:
+            r["item"] = name(r["item_id"])
+            r["city_pt"] = city_pt(r["city"]) + ("  ★" if r["is_bonus_city"] else "")
+            r["quals"] = ",".join(map(str, r["qualities_priced"]))
+        info(f"Valor esperado do craft de {it['pt']} ponderado por qualidade "
+             "(pesos 689/250/50/10/1 do jogo) vs só-q1. uplift = ganho de "
+             "olhar a esperança em vez de q1.")
+        emit(res, [("city_pt", "Cidade"), ("quals", "Q cotadas"),
+                   ("eff_cost", "Custo efetivo"), ("margin_q1", "Margem q1"),
+                   ("margin_ev", "Margem esperada"), ("ev_uplift", "Uplift")], fmt)
+
+
 def cmd_prune(args, fmt):
     aodp = make_aodp()
     res = aodp.snapshot_prune(days=args.days)
@@ -1588,7 +1712,7 @@ def build_parser():
         dest="cmd", required=True,
         metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,watch,"
                 "collect,intel,survival,backtest,journals,refine,report,pos,"
-                "indexes,micro,gold,status,prune,sql}")
+                "indexes,prod,micro,gold,status,prune,sql}")
 
     p = sub.add_parser("search", parents=[common],
                        help="busca itens por nome PT/EN ou id")
@@ -1851,6 +1975,20 @@ def build_parser():
     p.add_argument("--tier-max", type=int)
     p.add_argument("--days", type=int, default=30)
     p.set_defaults(func=cmd_indexes)
+
+    p = sub.add_parser("prod", parents=[common],
+                       help="produção: foco, cadeia vertical, refinar-vs-vender, qualidade")
+    p.add_argument("acao", choices=("focus", "chain", "refine", "quality"))
+    p.add_argument("itens", nargs="*",
+                   help="item (chain/quality exigem; refine opcional)")
+    p.add_argument("--cities", help="cidades (filtra)")
+    p.add_argument("--sell-mode", choices=("instant", "order"), default="order")
+    p.add_argument("--no-premium", action="store_true")
+    p.add_argument("--focus", action="store_true", help="usa foco (RRR maior)")
+    p.add_argument("--min-margin", type=float, default=0,
+                   help="margem mínima (focus)")
+    p.add_argument("--limit", type=int, default=40)
+    p.set_defaults(func=cmd_prod)
 
     p = sub.add_parser("micro", parents=[common],
                        help="microestrutura: market-making, livro, armadilhas")

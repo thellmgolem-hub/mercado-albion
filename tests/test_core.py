@@ -713,5 +713,41 @@ class MicrostructureTests(unittest.TestCase):
         self.assertIn("outlier", flags[("T4_POT", "Caerleon")])
 
 
+class ProductionTests(unittest.TestCase):
+    def test_raw_resource_classification(self):
+        from albion import production as prod
+        self.assertTrue(prod.is_raw_resource("T5_ORE"))
+        self.assertTrue(prod.is_raw_resource("T6_HIDE_LEVEL1@1"))
+        self.assertFalse(prod.is_raw_resource("T5_METALBAR"))
+        self.assertFalse(prod.is_raw_resource("T6_2H_BOW"))
+        # transmutação de bruto é ignorada na cadeia de produção
+        self.assertIsNone(prod._prod_recipe("T5_ORE"))
+
+    def test_rrr_refining_family_matches_dump(self):
+        from albion import production as prod
+        rec = {"category": None}
+        # ore refina em Thetford: 15,3% fora / 53,9% na cidade-bônus com foco
+        self.assertAlmostEqual(
+            prod.rrr_for("T5_METALBAR", rec, "Lymhurst", False) * 100, 15.3, places=1)
+        self.assertAlmostEqual(
+            prod.rrr_for("T5_METALBAR", rec, "Thetford", True) * 100, 53.9, places=1)
+
+    def test_focus_efficiency_uses_refining_rrr(self):
+        from albion import production as prod
+        # receita real T4_METALBAR = 2x T4_ORE + 1x T3_METALBAR, foco 54
+        price = {
+            ("T4_METALBAR", "Thetford"): 1000,
+            ("T4_ORE", "Thetford"): 100,
+            ("T3_METALBAR", "Thetford"): 200,
+        }
+        res = prod.focus_efficiency(price, premium=True, sell_mode="order",
+                                    cities=["Thetford"])
+        row = next(r for r in res if r["item_id"] == "T4_METALBAR")
+        self.assertTrue(row["is_refining"])
+        # eff c/foco = 400*(1-0.5392)=184,3; venda líq=935; margem=750,7; /54=13,9
+        self.assertAlmostEqual(row["silver_per_focus"], 13.9, delta=0.3)
+        self.assertGreater(row["focus_gain"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()
