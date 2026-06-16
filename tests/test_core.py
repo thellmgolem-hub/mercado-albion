@@ -885,6 +885,28 @@ class RigorIIITests(unittest.TestCase):
         self.assertAlmostEqual(ph["profit_day"], pf["profit_day"] / 2, delta=1)
 
 
+class FusionTests(unittest.TestCase):
+    def test_composite_blends_signals(self):
+        from albion import fusion
+        base = 60
+        self.assertEqual(fusion.composite(base)[0], 60)               # sem fatores
+        # risco alto penaliza
+        self.assertLess(fusion.composite(base,
+                        risk_profile={"vol_annual_pct": 100})[0], 60)
+        # previsibilidade nula encolhe via porteiro (60*0.6=36)
+        c2, _ = fusion.composite(base, predictability={"predictability": 0.0})
+        self.assertAlmostEqual(c2, 36, delta=1)
+        # reversão a favor + divergência bonificam
+        c3, _ = fusion.composite(base, reversion={"signal": True,
+                                 "direction": "comprar", "z_resid": -2.5},
+                                 divergence=True)
+        self.assertGreater(c3, 60)
+        # clamp em 0..100
+        self.assertLessEqual(fusion.composite(200)[0], 100)
+        self.assertGreaterEqual(fusion.composite(5,
+                                risk_profile={"vol_annual_pct": 500})[0], 0)
+
+
 class RiskTests(unittest.TestCase):
     def test_risk_profile_drawdown_and_label(self):
         from albion import risk

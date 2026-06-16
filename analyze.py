@@ -759,11 +759,65 @@ def cmd_recommend(args, fmt):
     info(f"{res.get('items_considered', 0)} itens avaliados · cobertura: "
          f"{cov.get('price_items', 0)}/{cov.get('catalog_items', 0)} com preço, "
          f"{cov.get('history_items', 0)} com histórico.")
-    rows = _prep_flip_rows(res.get("opportunities", []))
+    opps = res.get("opportunities", [])
+    if getattr(args, "fused", False) and opps:
+        opps = _fuse_opportunities(opps)
+        info("Escore COMPOSTO: opportunity_score × porteiro de previsibilidade "
+             "− risco + bônus de reversão/divergência (ver docs/MELHORIAS).")
+        rows = _prep_flip_rows(opps)
+        cols = [("composite_score", "Composto"), ("opportunity_score", "Score"),
+                ("vol_pct", "Vol %a.a."), ("revert_flag", "Reversão"),
+                ("div_flag", "Diverg."), *FLIP_COLS]
+        emit(rows, cols, fmt)
+        return
+    rows = _prep_flip_rows(opps)
     cols = [("opportunity_score", "Score"), ("opportunity_label", "Selo"),
             *FLIP_COLS,
             ("liquidity_day", "Liq/dia"), ("daily_potential", "Pot/dia")]
     emit(rows, cols, fmt)
+
+
+def _fuse_opportunities(opps):
+    """Enriquece as oportunidades com risco/reversão/divergência e o escore
+    composto (D1+D2). Aditivo: não altera o opportunity_score original."""
+    from albion import fusion, risk, forecast as fc
+    db_path = (DATA / "cache.db").resolve()
+    ids = list({o["item_id"] for o in opps})
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        hrows = _history_daily(con, config.DEFAULT_SERVER, ids, days=120)
+        # conjunto de itens com divergência demanda×preço recente (killboard)
+        div_set = set()
+        try:
+            from albion import gameinfo
+            for s in gameinfo.demand_price_divergence(con, config.DEFAULT_SERVER):
+                div_set.add(s.get("item_id"))
+        except Exception:
+            pass
+    finally:
+        con.close()
+    # melhor série por item = cidade com mais pontos
+    by_ic = {}
+    for item, city, _day, price in hrows:
+        by_ic.setdefault((item, city), []).append(price)
+    best = {}
+    for (item, city), series in by_ic.items():
+        if item not in best or len(series) > len(best[item]):
+            best[item] = series
+    for o in opps:
+        s = best.get(o["item_id"])
+        rp = risk.risk_profile(s) if s else None
+        rv = fc.mean_reversion(s) if s else None
+        pr = fc.predictability(s) if s else None
+        div = o["item_id"] in div_set
+        comp, _parts = fusion.composite(o.get("opportunity_score"), rp, rv, pr, div)
+        o["composite_score"] = comp
+        o["vol_pct"] = rp["vol_annual_pct"] if rp else None
+        o["revert_flag"] = "✓comprar" if (rv and rv.get("signal")
+                                          and rv["direction"] == "comprar") else ""
+        o["div_flag"] = "✓" if div else ""
+    opps.sort(key=lambda o: -(o.get("composite_score") or 0))
+    return opps
 
 
 def cmd_lab(args, fmt):
@@ -2456,6 +2510,8 @@ def build_parser():
     p.add_argument("--max-age-buy", type=int, default=720)
     p.add_argument("--max-age-sell", type=int, default=720)
     p.add_argument("--buy-cities"); p.add_argument("--sell-cities")
+    p.add_argument("--fused", action="store_true",
+                   help="escore COMPOSTO: funde risco, reversão e divergência")
     p.add_argument("--limit", type=int, default=25)
     p.set_defaults(func=cmd_recommend)
 
