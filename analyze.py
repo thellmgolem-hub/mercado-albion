@@ -693,10 +693,13 @@ def cmd_collect(args, fmt):
             tier_max=args.tier_max, limit=args.max_items)]
     cities = parse_cities(args.cities) or config.CITIES
     n = len(item_ids) if item_ids is not None else len(aodp.watch_list())
-    info(f"Coletando preços + histórico de {n} item(ns) em "
+    # B2: --deep busca 365 d de histórico (recarga semanal) p/ destravar
+    # regime/risco/reversão sobre séries longas; o normal fica em --days (30).
+    days = 365 if args.deep else args.days
+    info(f"Coletando preços + histórico ({days} d) de {n} item(ns) em "
          f"{len(cities)} cidades (pode levar minutos pelo rate limit)...")
     res = api_guard(lambda: aodp.collect(
-        item_ids=item_ids, cities=cities, days=args.days,
+        item_ids=item_ids, cities=cities, days=days,
         max_items=args.max_items, source="cli"))
     emit([res], [("items", "Itens"), ("price_rows", "Linhas de preço"),
                  ("history_series", "Séries de histórico")], fmt)
@@ -2342,6 +2345,8 @@ def build_parser():
     p.add_argument("--cities", help="cidades separadas por vírgula")
     p.add_argument("--days", type=int, default=30,
                    help="janela de histórico (padrão: 30)")
+    p.add_argument("--deep", action="store_true",
+                   help="recarga profunda de 365 d (semanal) p/ séries longas")
     p.add_argument("--max-items", type=int, default=config.COLLECT_MAX_ITEMS)
     p.add_argument("--skip-if-recent", type=int, metavar="MIN",
                    help="não coleta se a última rodada OK tiver menos de MIN "

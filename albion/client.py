@@ -505,6 +505,11 @@ class AODP:
                                       days=days, max_age=0)
             result["price_rows"] = len(price_rows)
             result["history_series"] = len(series)
+            # B1: mantém o roll-up diário sempre atual (não só na poda). Agrega
+            # os ultimos 2 dias dos itens coletados (today + boundary de ontem) —
+            # idempotente por (server,item,city,quality,day). Antes,
+            # price_snapshots_daily so era escrito na poda (>7d) e ficava vazio.
+            self._rollup_daily(item_ids, days=2)
         except Exception as e:
             ok, error = 0, repr(e)[:500]
             raise
@@ -518,6 +523,34 @@ class AODP:
                      result["history_series"], ok, error))
                 self.db.commit()
         return result
+
+    def _rollup_daily(self, item_ids: list[str] | None = None, days: int = 2):
+        """Agrega price_snapshots -> price_snapshots_daily na janela recente.
+
+        Roda na coleta para o roll-up diário ficar sempre atual (a poda só
+        cuidava dos dias > retenção). Idempotente: INSERT OR REPLACE pela PK do
+        dia. Restringe aos item_ids coletados para limitar o custo."""
+        cutoff = time.time() - days * 86400
+        where = ["server=?", "fetched_at >= ?"]
+        params = [self.server, cutoff]
+        if item_ids:
+            ph = ",".join("?" * len(item_ids))
+            where.append(f"item_id IN ({ph})")
+            params += list(item_ids)
+        with self.db_lock:
+            self.db.execute(f"""
+                INSERT OR REPLACE INTO price_snapshots_daily
+                SELECT server, item_id, city, quality,
+                       date(fetched_at, 'unixepoch') AS day,
+                       MIN(NULLIF(sell_price_min,0)), AVG(NULLIF(sell_price_min,0)),
+                       MAX(NULLIF(sell_price_min,0)),
+                       MIN(NULLIF(buy_price_max,0)), AVG(NULLIF(buy_price_max,0)),
+                       MAX(NULLIF(buy_price_max,0)), COUNT(*)
+                FROM price_snapshots
+                WHERE {' AND '.join(where)}
+                GROUP BY server, item_id, city, quality, day
+            """, params)
+            self.db.commit()
 
     def sync_static_items(self, items: list[dict]) -> int:
         """Espelha o catálogo de itens no SQLite (joins do killboard etc.)."""

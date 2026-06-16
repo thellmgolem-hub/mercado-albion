@@ -902,6 +902,7 @@ def _auto_collect_loop():
                            config.AUTO_COLLECT_INTERVAL_MIN))
     last_market = 0.0
     last_signal_log = 0.0
+    last_gold = 0.0
     last_prune = time.time()  # não poda logo no boot; espera o intervalo
     while True:
         time.sleep(tick)
@@ -931,6 +932,14 @@ def _auto_collect_loop():
                 _generate_service_orders()
         except Exception:
             pass  # registrado em collection_runs pelo collect()
+        try:
+            # B7: 1x/dia estende a janela do ouro (a AODP serve N pontos por
+            # count) p/ ~30 d+ — fator macro para risco/previsão
+            if time.time() - last_gold >= 24 * 3600:
+                aodp.get_gold(count=1000)
+                last_gold = time.time()
+        except Exception:
+            pass
         try:
             # poda diária: agrega snapshots brutos antigos e limita a tabela
             # (sem VACUUM para não segurar o lock; o espaço é reclamado pelo

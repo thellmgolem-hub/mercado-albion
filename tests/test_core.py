@@ -791,6 +791,35 @@ class LogisticsTests(unittest.TestCase):
         self.assertEqual(r["best_city_net"], 864)
 
 
+class RollupTests(unittest.TestCase):
+    def test_rollup_daily_aggregates_snapshots(self):
+        import time as _t
+        now = _t.time()
+
+        def snap(item, fetched, sell, buy):
+            return ("americas", item, "Martlock", 1, sell, "d", 0, "d",
+                    0, "d", buy, "d", fetched)
+        with TemporaryDirectory() as tmp:
+            client = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                client.db.executemany(
+                    "INSERT INTO price_snapshots VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    [snap("T4_X", now - 3600, 100, 80),
+                     snap("T4_X", now - 1800, 120, 90)])
+                client.db.commit()
+                client._rollup_daily(["T4_X"], days=2)
+                row = client.db.execute(
+                    "SELECT sell_min, sell_max, buy_max, samples "
+                    "FROM price_snapshots_daily WHERE item_id='T4_X'").fetchone()
+            finally:
+                client.db.close()
+        self.assertIsNotNone(row)            # daily deixou de ficar vazio
+        self.assertEqual(row[0], 100)        # sell_min
+        self.assertEqual(row[1], 120)        # sell_max
+        self.assertEqual(row[2], 90)         # buy_max
+        self.assertEqual(row[3], 2)          # 2 snapshots agregados
+
+
 class RiskTests(unittest.TestCase):
     def test_risk_profile_drawdown_and_label(self):
         from albion import risk
