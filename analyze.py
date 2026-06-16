@@ -1317,6 +1317,19 @@ def cmd_backtest(args, fmt):
                 ("expected_profit_avg", "Esperado médio"),
                 ("realized_profit_avg", "Realizado médio"),
                 ("capture_pct", "Captura %")], fmt)
+    # D3: fecha o loop — calibra CAPTURE_RATE pela captura REALIZADA no backtest
+    cap = ov.get("capture_pct")
+    if cap is not None:
+        realized = max(0.0, min(1.0, cap / 100))
+        n = ov["n"]
+        conf = "alta" if n >= 300 else "média" if n >= 80 else "baixa"
+        info(f"Calibração (D3): CAPTURE_RATE configurado = "
+             f"{config.CAPTURE_RATE:.0%}; captura realizada no backtest = "
+             f"{cap:.1f}% (n={n}, confiança {conf}). "
+             + (f"Sugestão: ajustar config.CAPTURE_RATE para ~{realized:.0%} "
+                "(confirme com mais rodadas antes de mudar)."
+                if conf != "baixa" else
+                "Amostra pequena — deixe a coleta acumular antes de recalibrar."))
 
 
 def cmd_intel(args, fmt):
