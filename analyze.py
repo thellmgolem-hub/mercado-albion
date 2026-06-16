@@ -1702,6 +1702,127 @@ def cmd_logi(args, fmt):
         con.close()
 
 
+def _history_daily(con, server, item_ids=None, cities=None, days=180):
+    """Linhas (item, city, dia, avg_price) do history diário q1 no cache."""
+    where = ["server=?", "time_scale=24", "quality=1", "avg_price>0",
+             "ts >= date('now', ?)"]
+    params = [server, f"-{int(days)} days"]
+    if item_ids:
+        where.append(f"item_id IN ({','.join('?' * len(item_ids))})")
+        params += list(item_ids)
+    if cities:
+        where.append(f"city IN ({','.join('?' * len(cities))})")
+        params += list(cities)
+    return con.execute(
+        f"""SELECT item_id, city, substr(ts,1,10) AS day, avg_price
+            FROM history WHERE {' AND '.join(where)}
+            ORDER BY item_id, city, day""", params).fetchall()
+
+
+def cmd_risk(args, fmt):
+    """Risco & portfólio: perfil de risco, sizing, correlação."""
+    from albion import risk
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado — rode `collect` antes.")
+    db = ItemDB()
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid)
+    cities = parse_cities(args.cities)
+    item_ids = None
+    if args.itens:
+        item_ids = [i["id"] for i in resolve_items(db, " ".join(args.itens))]
+    elif args.cat or args.sub or args.tier_min or args.tier_max:
+        item_ids = [i["id"] for i in db.filter(cat=args.cat, sub=args.sub,
+                    tier_min=args.tier_min, tier_max=args.tier_max)]
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        rows = _history_daily(con, config.DEFAULT_SERVER, item_ids, cities,
+                              days=args.days)
+    finally:
+        con.close()
+    if not rows:
+        die("Sem histórico no cache para o filtro — rode `collect`/`history`.")
+
+    if args.acao == "profile":
+        series = {}
+        for item, city, _day, price in rows:
+            series.setdefault((item, city), []).append(price)
+        out = []
+        for (item, city), prices in series.items():
+            rp = risk.risk_profile(prices, min_points=args.min_points)
+            if rp:
+                out.append({"item": name(item), "city_pt": city_pt(city), **rp})
+        if not out:
+            die(f"Nenhuma série com >= {args.min_points} dias. Baixe o --min-points "
+                "ou colete mais histórico.")
+        order = {"seguro": 0, "médio": 1, "especulativo": 2}
+        out.sort(key=lambda r: (order.get(r["risk_label"], 9), -r["vol_annual_pct"]))
+        info(f"Perfil de risco (history diário, {args.days}d, >= {args.min_points} "
+             "dias). Vol anualizada · max drawdown · VaR 1-dia 5% · selo absoluto.")
+        emit(out[:args.limit], [("item", "Item"), ("city_pt", "Cidade"),
+             ("points", "Dias"), ("vol_annual_pct", "Vol %a.a."),
+             ("max_drawdown_pct", "Max DD %"), ("var_1d_pct", "VaR 1d %"),
+             ("sortino", "Sortino"), ("risk_label", "Selo")], fmt)
+    elif args.acao == "corr":
+        if not item_ids:
+            die("corr exige uma cesta: --cat/--sub/--tier ou itens.")
+        by_item = {}
+        for item, _city, day, price in rows:
+            by_item.setdefault(item, {}).setdefault(day, []).append(price)
+        series = {it: {d: sum(v) / len(v) for d, v in dd.items()}
+                  for it, dd in by_item.items()}
+        if len(series) > 80:
+            series = dict(list(series.items())[:80])
+            info("(cesta truncada em 80 itens p/ a matriz de correlação)")
+        pairs = risk.correlation_pairs(series, min_common=args.min_points,
+                                       limit=args.limit)
+        for p in pairs:
+            p["a_pt"] = name(p["a"]); p["b_pt"] = name(p["b"])
+            p["tipo"] = "andam juntos" if p["corr"] >= 0.6 else \
+                ("hedge" if p["corr"] <= 0.1 else "fraca")
+        info("Correlação dos retornos diários (não níveis). corr alta = "
+             "concentração de risco; baixa/negativa = candidato a hedge.")
+        emit(pairs, [("a_pt", "Item A"), ("b_pt", "Item B"),
+                     ("corr", "Correl."), ("common_days", "Dias comuns"),
+                     ("tipo", "Leitura")], fmt)
+    else:  # size
+        if not args.itens:
+            die("size exige um item e --capital.")
+        it = resolve_item(db, " ".join(args.itens))
+        prices = [p for i, c, d, p in rows if i == it["id"]]
+        rp = risk.risk_profile(prices, min_points=args.min_points)
+        vol = (rp or {}).get("vol_annual_pct", 0) / 100
+        con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+        try:
+            prows = _cache_price_dicts(con, config.DEFAULT_SERVER, item_ids=[it["id"]])
+            liq = {iid: n for iid, n in con.execute(
+                """SELECT item_id, AVG(item_count) FROM history WHERE server=?
+                   AND time_scale=24 AND quality=1 AND item_id=? AND item_count>0
+                   AND ts>=date('now','-7 days') GROUP BY item_id""",
+                [config.DEFAULT_SERVER, it["id"]]).fetchall()}
+        finally:
+            con.close()
+        from albion.microstructure import clean_price_rows
+        opps = compute_flips(clean_price_rows(prows), {it["id"]: it},
+                             premium=not args.no_premium, qualities=[1])
+        if not opps:
+            die("Sem flip cotado p/ o item no cache (colete preços primeiro).")
+        best = opps[0]
+        size = risk.position_size(
+            best["profit"], best["buy_price"], vol,
+            liq.get(it["id"], 0), persistence=args.persistence,
+            capital=args.capital)
+        if fmt == "json":
+            print(json.dumps({"flip": best, "risk": rp, "size": size},
+                             ensure_ascii=False, indent=2)); return
+        info(f"Sizing de {it['pt']}: melhor flip {city_pt(best['buy_city'])}→"
+             f"{city_pt(best['sell_city'])} lucro/un {best['profit']:,.0f} · "
+             f"vol {round(vol*100,1)}%a.a. · limitado por {size['limited_by']}.")
+        emit([{**size}], [("units", "Comprar (un)"), ("kelly_frac", "Fração Kelly"),
+              ("capital_used", "Capital"), ("profit_total", "Lucro total"),
+              ("limited_by", "Limite")], fmt)
+
+
 def cmd_prod(args, fmt):
     """Economia de produção: foco, cadeia vertical, refinar-vs-vender, qualidade."""
     from albion import production as prod
@@ -1838,7 +1959,7 @@ def build_parser():
         dest="cmd", required=True,
         metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,watch,"
                 "collect,intel,survival,backtest,journals,refine,report,pos,"
-                "indexes,prod,logi,micro,gold,status,prune,sql}")
+                "indexes,prod,logi,risk,micro,gold,status,prune,sql}")
 
     p = sub.add_parser("search", parents=[common],
                        help="busca itens por nome PT/EN ou id")
@@ -2101,6 +2222,25 @@ def build_parser():
     p.add_argument("--tier-max", type=int)
     p.add_argument("--days", type=int, default=30)
     p.set_defaults(func=cmd_indexes)
+
+    p = sub.add_parser("risk", parents=[common],
+                       help="risco & portfólio: perfil de risco, sizing, correlação")
+    p.add_argument("acao", choices=("profile", "size", "corr"))
+    p.add_argument("itens", nargs="*", help="itens (size exige 1; profile/corr opc.)")
+    p.add_argument("--cat", help="categoria (cesta)")
+    p.add_argument("--sub", help="subcategoria")
+    p.add_argument("--tier-min", type=int)
+    p.add_argument("--tier-max", type=int)
+    p.add_argument("--cities", help="cidades (filtra)")
+    p.add_argument("--days", type=int, default=180, help="janela de history (padrão 180)")
+    p.add_argument("--min-points", type=int, default=30,
+                   help="dias mínimos de série (padrão 30)")
+    p.add_argument("--capital", type=float, help="capital p/ sizing")
+    p.add_argument("--persistence", type=float, default=0.7,
+                   help="persistência da ordem 0..1 (sizing; padrão 0,7)")
+    p.add_argument("--no-premium", action="store_true")
+    p.add_argument("--limit", type=int, default=40)
+    p.set_defaults(func=cmd_risk)
 
     p = sub.add_parser("logi", parents=[common],
                        help="logística: carga, reposição, escada de qualidade, BM")

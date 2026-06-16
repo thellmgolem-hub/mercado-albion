@@ -791,5 +791,32 @@ class LogisticsTests(unittest.TestCase):
         self.assertEqual(r["best_city_net"], 864)
 
 
+class RiskTests(unittest.TestCase):
+    def test_risk_profile_drawdown_and_label(self):
+        from albion import risk
+        rp = risk.risk_profile([100, 120, 60, 90], min_points=3)
+        self.assertEqual(rp["max_drawdown_pct"], -50.0)   # 120 -> 60
+        self.assertEqual(rp["risk_label"], "especulativo")  # vol enorme
+        flat = risk.risk_profile([100, 100.5, 100.2, 100.4, 100.1, 100.3],
+                                 min_points=3)
+        self.assertEqual(flat["risk_label"], "seguro")
+
+    def test_position_size_caps(self):
+        from albion import risk
+        s = risk.position_size(profit_per_unit=100, buy_price=1000,
+                               vol_annual=0.365, liquidity_day=100,
+                               persistence=1.0, capital=1_000_000)
+        self.assertEqual(s["units"], 20)            # 100*0.2*1 < capital cap
+        self.assertEqual(s["limited_by"], "liquidez")
+
+    def test_correlation_identical_series(self):
+        from albion import risk
+        a = {f"d{i}": 100 + i * 5 + (i % 2) for i in range(8)}
+        series = {"A": dict(a), "B": dict(a)}
+        pairs = risk.correlation_pairs(series, min_common=4)
+        self.assertEqual(len(pairs), 1)
+        self.assertAlmostEqual(pairs[0]["corr"], 1.0, places=3)
+
+
 if __name__ == "__main__":
     unittest.main()
