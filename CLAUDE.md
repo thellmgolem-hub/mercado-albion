@@ -35,6 +35,11 @@ python analyze.py risk profile|size|corr              # risco: VaR/drawdown, siz
 python analyze.py fc revert|pair|predict              # previsão: reversão, par trading, previsibilidade
 python analyze.py demand burn|quality|meta            # demanda killboard: consumíveis/qualidade/meta
 python analyze.py guild watch|kit|makeorbuy           # guild: ROI coleta/cesta regear/make-or-buy
+python analyze.py prod chaincity|farm                 # cidade-bônus por cadeia; economia de fazenda
+python analyze.py fc regime|backtest                  # quebra de regime; backtest do sinal de reversão
+python analyze.py recommend --fused                   # escore COMPOSTO (lucro+risco+reversão+divergência)
+python analyze.py watch rebuild [--replace]           # prioriza a coleta por ROI-de-informação
+python analyze.py collect --deep                      # recarga de 365d (séries longas; semanal)
 python analyze.py status --detail                     # cobertura local do cache
 python analyze.py prune                               # agrega snapshots antigos
 python analyze.py sql "SELECT ..."                    # SQL somente-leitura no cache

@@ -1,5 +1,16 @@
 # Melhorias analíticas — roadmap aterrado
 
+> **STATUS (16/06/2026): roadmap APLICADO por inteiro** em 6 levas commitadas e
+> testadas (61 testes). A1–A3 (correções de viés), B1–B7 (destrava-dados),
+> C1–C7 (rigor), D1–D3 (fusão), E1–E5 (estimadores) e F (cidade-bônus por
+> cadeia + fazenda). Novos comandos/flags: `prod chaincity|farm`, `fc
+> regime|backtest`, `risk profile` (IC/shrinkage/EWMA), `recommend --fused`,
+> `watch rebuild`, `collect --deep`, `micro traps` (persist) / `micro capital`
+> (fill survival). O que segue limitado é só por dado que precisa amadurecer
+> (série fina <7 d para timing/nowcast; positions/feedback vazias para PnL
+> atribuído) — os motores existem e ativam conforme a coleta acumula.
+
+
 > Workflow multiagêntico (16/06/2026) auditou o **código e os dados reais** das ~22
 > análises já construídas. 2 das 6 dimensões rodaram completas (killboard, camada
 > de dados); as outras 4 sofreram throttle transitório do servidor e foram
