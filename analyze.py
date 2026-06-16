@@ -2150,19 +2150,28 @@ def cmd_risk(args, fmt):
         # C5: calibra o selo aos TERCIS do cross-section real (relativo), em vez
         # dos cortes fixos — 'seguro' é o terço menos volátil do que foi medido.
         bands = risk.calibrate_bands([r["vol_annual_pct"] / 100 for r in out])
+        # E4: encolhe a vol de séries curtas para a mediana do cross-section
+        # (prior) — corta o excesso de 'vol enorme' de itens com poucos dias.
+        prior = sorted(r["vol_annual_pct"] for r in out)[len(out) // 2]
         for r in out:
-            r["risk_label"] = risk.label_for(r["vol_annual_pct"] / 100, bands)
+            shrunk = risk.shrink(r["vol_annual_pct"], r["points"] - 1, prior, k=20)
+            r["vol_shrunk_pct"] = round(shrunk, 1)
+            r["risk_label"] = risk.label_for(shrunk / 100, bands)
+            r["vol_ci"] = (f"{r['vol_ci_pct'][0]:.0f}–{r['vol_ci_pct'][1]:.0f}"
+                           if r.get("vol_ci_pct") else "—")
             del r["_iid"], r["_city"], r["_prices"]
         order = {"seguro": 0, "médio": 1, "especulativo": 2}
-        out.sort(key=lambda r: (order.get(r["risk_label"], 9), -r["vol_annual_pct"]))
+        out.sort(key=lambda r: (order.get(r["risk_label"], 9), -r["vol_shrunk_pct"]))
         calib = "tercis do cross-section" if bands is not risk.VOL_BANDS else "default"
         info(f"Perfil de risco (history diário, {args.days}d, >= {args.min_points} "
-             f"dias). Vol anual./EWMA · max DD · VaR 1d 5% · selo ({calib}).")
+             f"dias). Vol anual. (IC bootstrap) · EWMA · vol ajustada (shrinkage) "
+             f"· selo ({calib}).")
         emit(out[:args.limit], [("item", "Item"), ("city_pt", "Cidade"),
              ("points", "Dias"), ("vol_annual_pct", "Vol %a.a."),
+             ("vol_ci", "IC vol"), ("vol_shrunk_pct", "Vol ajust."),
              ("vol_ewma_pct", "Vol EWMA"),
              ("max_drawdown_pct", "Max DD %"), ("var_1d_pct", "VaR 1d %"),
-             ("sortino", "Sortino"), ("risk_label", "Selo")], fmt)
+             ("risk_label", "Selo")], fmt)
     elif args.acao == "corr":
         if not item_ids:
             die("corr exige uma cesta: --cat/--sub/--tier ou itens.")

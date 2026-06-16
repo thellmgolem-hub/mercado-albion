@@ -106,15 +106,23 @@ def persistence(con, server, item_id=None, city=None, quality=None, days=3):
     out = {}
     for side, buckets in counters.items():
         rows_out = []
+        # E1: curva de sobrevivência estilo Kaplan-Meier — S(idade) acumula os
+        # hazards por faixa: probabilidade de a ordem ainda existir tendo
+        # alcançado aquela idade = produto das taxas de sobrevivência por
+        # coleta até ali. (rate_pct é P(sobrevive 1 coleta | idade na faixa).)
+        km = 1.0
         for (lo, hi), c in zip(AGE_BUCKETS, buckets):
             gaps = sorted(c["gaps"])
+            rate = (c["survived"] / c["pairs"]) if c["pairs"] else None
+            if rate is not None:
+                km *= rate
             rows_out.append({
                 "age_label": _bucket_label(lo, hi),
                 "age_min": lo,
                 "pairs": c["pairs"],
                 "survived": c["survived"],
-                "rate_pct": round(100 * c["survived"] / c["pairs"], 1)
-                if c["pairs"] else None,
+                "rate_pct": round(100 * rate, 1) if rate is not None else None,
+                "km_survival_pct": round(100 * km, 1) if c["pairs"] else None,
                 "median_gap_min": round(gaps[len(gaps) // 2], 1) if gaps else None,
             })
         out[side] = {"buckets": rows_out,

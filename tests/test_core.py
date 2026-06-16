@@ -885,6 +885,58 @@ class RigorIIITests(unittest.TestCase):
         self.assertAlmostEqual(ph["profit_day"], pf["profit_day"] / 2, delta=1)
 
 
+class EstimatorTests(unittest.TestCase):
+    def test_winsorize_caps_extremes(self):
+        from albion import risk
+        xs = [1, 2, 3, 4, 5, 6, 7, 8, 9, 1000]   # 1000 é outlier (cauda alta)
+        w = risk.winsorize(xs, p=10)
+        self.assertEqual(len(w), len(xs))
+        self.assertEqual(max(w), 9)               # 1000 -> p90 (=9)
+        self.assertEqual(min(w), 2)               # 1   -> p10 (=2), capa as 2 caudas
+
+    def test_shrink_pulls_short_samples(self):
+        from albion import risk
+        # n pequeno -> perto do prior; n grande -> perto do estimador
+        self.assertAlmostEqual(risk.shrink(100, 2, 40, k=20), 100 * (2 / 22) + 40 * (20 / 22), places=1)
+        self.assertGreater(risk.shrink(100, 200, 40, k=20), 90)   # confia no item
+
+    def test_bootstrap_ci_brackets_value(self):
+        from albion import risk
+        xs = [0.01 * (i % 5 - 2) for i in range(40)]   # retornos ~simétricos
+        ci = risk._bootstrap_ci(xs, lambda v: risk._pstdev(v))
+        self.assertIsNotNone(ci)
+        self.assertLessEqual(ci[0], ci[1])
+
+    def test_km_survival_curve_monotone(self):
+        from datetime import datetime, timezone
+        from albion import survival
+        base = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc).timestamp()
+
+        def iso(e):
+            return datetime.fromtimestamp(e, timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+
+        def snap(item, fetched, sp, sd):
+            return ("americas", item, "Martlock", 1, sp, sd, 0,
+                    "0001-01-01T00:00:00", 0, "0001-01-01T00:00:00", 0,
+                    "0001-01-01T00:00:00", fetched)
+        with TemporaryDirectory() as tmp:
+            client = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                rows = [snap("T4_A", base, 100, iso(base - 15 * 60)),
+                        snap("T4_A", base + 1800, 100, iso(base - 15 * 60))]
+                client.db.executemany(
+                    "INSERT INTO price_snapshots VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    rows)
+                client.db.commit()
+                res = survival.persistence(client.db, "americas", days=None)
+            finally:
+                client.db.close()
+        buckets = res["sides"]["sell"]["buckets"]
+        kms = [b["km_survival_pct"] for b in buckets if b["km_survival_pct"] is not None]
+        self.assertTrue(kms)                       # curva KM presente
+        self.assertTrue(all(a >= b - 1e-9 for a, b in zip(kms, kms[1:])))  # não-crescente
+
+
 class FusionTests(unittest.TestCase):
     def test_composite_blends_signals(self):
         from albion import fusion

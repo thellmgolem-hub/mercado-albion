@@ -74,6 +74,44 @@ def _percentile(xs, p):
     return s[k]
 
 
+def winsorize(xs, p=2.5):
+    """E5: capa os valores nos percentis p/100-p (em vez de descartar) — um
+    retorno de 1 dia extremo deixa de dominar a vol, sem perder a observação."""
+    if len(xs) < 5:
+        return list(xs)
+    lo, hi = _percentile(xs, p), _percentile(xs, 100 - p)
+    return [min(hi, max(lo, x)) for x in xs]
+
+
+def _bootstrap_ci(values, stat, n=300, lo=5, hi=95, seed=1234):
+    """E3: IC por reamostragem com reposição (Python puro). stat: lista->número."""
+    import random
+    if len(values) < 8:
+        return None
+    rng = random.Random(seed)
+    k = len(values)
+    samples = []
+    for _ in range(n):
+        rs = [values[rng.randrange(k)] for _ in range(k)]
+        try:
+            samples.append(stat(rs))
+        except Exception:
+            pass
+    if not samples:
+        return None
+    return _percentile(samples, lo), _percentile(samples, hi)
+
+
+def shrink(estimate, n, prior, k=20):
+    """E4: encolhe um estimador de amostra pequena para o prior (média da
+    categoria). w = n/(n+k): com poucos dias, puxa para o prior; com muitos,
+    confia no item. Corta o excesso de 'sinais fortes' em série fina."""
+    if estimate is None or prior is None:
+        return estimate
+    w = n / (n + k)
+    return w * estimate + (1 - w) * prior
+
+
 def risk_profile(prices, min_points=30, bands=None):
     """Métricas de risco de uma série de preços diários (cronológica).
 
@@ -83,11 +121,14 @@ def risk_profile(prices, min_points=30, bands=None):
     prices = [p for p in prices if p and p > 0]
     if len(prices) < min_points:
         return None
-    r = _log_returns(prices)
-    if len(r) < min_points - 1:
+    r_raw = _log_returns(prices)
+    if len(r_raw) < min_points - 1:
         return None
+    r = winsorize(r_raw)                    # E5: capa retornos extremos p/ a vol
     vol_annual = _pstdev(r) * math.sqrt(365)
     vol_ewma = _ewma_vol(r)
+    # E3: IC da vol por bootstrap dos retornos
+    ci = _bootstrap_ci(r, lambda xs: _pstdev(xs) * math.sqrt(365))
     # máximo drawdown sobre o nível de preço
     peak, max_dd = prices[0], 0.0
     for p in prices:
@@ -101,6 +142,7 @@ def risk_profile(prices, min_points=30, bands=None):
         "points": len(prices),
         "vol_annual_pct": round(vol_annual * 100, 1),
         "vol_ewma_pct": round(vol_ewma * 100, 1) if vol_ewma else None,
+        "vol_ci_pct": [round(ci[0] * 100, 1), round(ci[1] * 100, 1)] if ci else None,
         "max_drawdown_pct": round(max_dd * 100, 1),
         "var_1d_pct": round((var5 or 0) * 100, 1),
         "downside_dev_pct": round(downside * 100, 2),
