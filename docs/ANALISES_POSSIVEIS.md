@@ -1,5 +1,16 @@
 # Análises possíveis com os dados atuais — backlog validado
 
+> **STATUS (16/06/2026): ~22 destas análises já foram CONSTRUÍDAS** na CLI
+> (`analyze.py`), em 7 levas commitadas, nos módulos `albion/microstructure.py`,
+> `production.py`, `logistics.py`, `risk.py`, `forecast.py`, `demand.py`,
+> `guild.py` — cada uma com testes (46 no total). Comandos novos: `micro`,
+> `prod`, `logi`, `risk`, `fc`, `demand`, `guild`. Ficaram DOCUMENTADAS para
+> depois as que precisam de mais histórico fino (meia-vida de spread, nowcast,
+> elasticidade, timing intradiário), de `positions` preenchida (atribuição de
+> PnL), de modelo de transporte (cidade-bônus por cadeia, pegada logística) ou
+> são pesadas (regime estrutural, lista-de-guerra recursiva). Próximo passo:
+> expor as melhores na interface web (hoje são CLI / `--format json`).
+
 > Gerado por workflow multiagêntico (15/06/2026): 7 lentes econômicas geraram 40 ideias; 7 validadores céticos aterraram cada uma nas tabelas/arquivos reais. **39 viáveis e novas, 0 vaporware, 1 já existia.** Cada item traz método concreto (tabela.campo + SQL/fórmula), dificuldade de implementar e valor pro jogador.
 
 ## ⭐ Ganhos rápidos (alto valor, fácil)

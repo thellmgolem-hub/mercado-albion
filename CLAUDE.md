@@ -28,6 +28,13 @@ python analyze.py journals [--family ORE]             # margem de diários vazio
 python analyze.py pos add|sell|list|rm                # portfolio (PnL real)
 python analyze.py indexes --cat X --sub Y             # índice de preço da cesta
 python analyze.py intel collect|top|status            # killboard: destruição/demanda
+python analyze.py micro spread|book|traps|capital|hours  # microestrutura/market-making
+python analyze.py prod focus|chain|refine|quality     # produção: foco/cadeia/refino/EV qualidade
+python analyze.py logi cargo|restock|ladder|bm        # logística: carga/reposição/qualidade/BM
+python analyze.py risk profile|size|corr              # risco: VaR/drawdown, sizing, correlação
+python analyze.py fc revert|pair|predict              # previsão: reversão, par trading, previsibilidade
+python analyze.py demand burn|quality|meta            # demanda killboard: consumíveis/qualidade/meta
+python analyze.py guild watch|kit|makeorbuy           # guild: ROI coleta/cesta regear/make-or-buy
 python analyze.py status --detail                     # cobertura local do cache
 python analyze.py prune                               # agrega snapshots antigos
 python analyze.py sql "SELECT ..."                    # SQL somente-leitura no cache
@@ -43,6 +50,17 @@ censurado; Pot./dia aplica CAPTURE_RATE (20%); persistência de ordens vem de
 albion/survival.py sobre price_snapshots. O servidor coleta a watchlist
 automaticamente a cada AUTO_COLLECT_INTERVAL_MIN (30 min), registrando em
 collection_runs. Detalhes e pendências: AUDITORIA.md.
+
+Camada analítica avançada (módulos albion/microstructure, production, logistics,
+risk, forecast, demand, guild) — ~22 análises derivadas de um workflow
+multiagêntico validado; backlog e ressalvas de dado em docs/ANALISES_POSSIVEIS.md.
+Todas operam somente-leitura sobre o cache. Defesa comum contra ordens-isca:
+microstructure.clean_price_rows zera preços-âncora (outlier z robusto entre
+cidades) — use-a sempre que uma análise pegar o "melhor/maior" preço. Recurso
+BRUTO é folha na cadeia de produção (a receita do dump é transmutação, sem RRR).
+Venda no Mercado Negro não leva taxa de anúncio (venda instantânea na ordem do
+sistema). Onde a série fina (~5-7 dias) ou positions (vazia) limitam, a análise
+existe mas sai "provisória" e melhora conforme a coleta acumula.
 Categorias: weapons, armors, head, shoes, offhands, capes, bags, mounts,
 consumables, gathering, crafting (recursos ficam em crafting/resources), artefacts.
 

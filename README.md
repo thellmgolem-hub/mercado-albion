@@ -111,6 +111,19 @@ python analyze.py report --discord                               # relatório do
 python analyze.py refine hide --tier 6 --ench 2 --rrr 53.9       # margem de refino por cidade
 python analyze.py craft "Arco do Adepto" --focus                 # margem de craft (RRR real)
 python analyze.py origin "Arco do Adepto"                        # de onde o item dropa
+python analyze.py micro spread --min-volume 20                   # market-making intra-cidade
+python analyze.py micro capital --capital 2000000               # alocar capital por velocidade
+python analyze.py prod focus                                     # ranking prata/foco (refino+craft)
+python analyze.py prod chain "T5_METALBAR"                       # PnL make-vs-buy da cadeia
+python analyze.py logi cargo --buy-city Caerleon --sell-city Martlock --kg 1500  # carga ótima
+python analyze.py logi restock --days 7                          # reposição (killboard × mercado)
+python analyze.py risk profile --cat bags                        # vol/drawdown/VaR por item
+python analyze.py risk size T5_BAG --capital 1000000             # quanto comprar (ajustado a risco)
+python analyze.py fc revert --cat crafting --sub refinedresources --signals  # reversão à média
+python analyze.py fc pair T5_METALBAR                            # par trading entre cidades
+python analyze.py demand burn                                    # giro de consumíveis (killboard)
+python analyze.py guild watch                                    # o que adicionar à watchlist
+python analyze.py guild makeorbuy                                # fazer vs comprar (guild)
 python analyze.py pos add T4_BAG --qty 10 --price 4000           # portfolio: PnL real da guild
 python analyze.py indexes --cat crafting --sub resources         # índice de preço (base 100)
 python analyze.py intel collect                                  # ingere killboard público
