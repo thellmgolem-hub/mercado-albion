@@ -851,6 +851,7 @@ function loadItemSub(sub, force = false) {
   else if (sub === 'vender') loadVender();
   else if (sub === 'craft') loadCraft();
   else if (sub === 'origem') loadOrigin();
+  else if (sub === 'risco') loadRisco();
   else if (sub === 'lab') runHist();
 }
 
@@ -873,7 +874,7 @@ function selectItem(it) {
   state.itemLoadedFor = {};
   // limpa as sub-abas para não exibir dados do item anterior enquanto a
   // sub-aba não-ativa não foi recarregada (evita misturar itens)
-  ['precosTable', 'venderTable', 'craftTable', 'origemTable',
+  ['precosTable', 'venderTable', 'craftTable', 'origemTable', 'riscoBody',
    'histLabSummary', 'histLabCards'].forEach((id) => {
     const el = $(id); if (el) el.innerHTML = '';
   });
@@ -960,6 +961,73 @@ async function loadOrigin() {
     ];
     renderTable('origemTable', cols, srcs, { sortKey: 'fame' });
     st.textContent = `${srcs.length} fontes de drop (ordenadas por fama do mob)`;
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  }
+}
+
+// sub-aba Risco & Previsão
+async function loadRisco() {
+  const it = state.item;
+  if (!it) return;
+  const st = $('riscoStatus');
+  st.className = 'status';
+  st.textContent = 'analisando risco e previsão…';
+  try {
+    const res = await api('/api/item_signals', { item: it.id });
+    const body = $('riscoBody');
+    if (!res.available) {
+      body.innerHTML = '';
+      st.textContent = res.note || 'sem histórico suficiente para o item';
+      return;
+    }
+    const rk = res.risk, rv = res.reversion, rg = res.regime, pr = res.predictability;
+    const pill = (label, val, cls) =>
+      `<div class="lab-pill"><b>${label}</b><span class="${cls || ''}">${val}</span></div>`;
+    let html = '';
+    if (rk) {
+      const ci = rk.vol_ci_pct ? ` <small>(IC ${Math.round(rk.vol_ci_pct[0])}–${Math.round(rk.vol_ci_pct[1])})</small>` : '';
+      html += '<div class="lab-summary">' +
+        pill('Selo de risco', esc(rk.risk_label || '—')) +
+        pill('Vol anualizada', `${fmtDec(rk.vol_annual_pct, 1)}%${ci}`) +
+        pill('Vol EWMA', rk.vol_ewma_pct != null ? `${fmtDec(rk.vol_ewma_pct, 1)}%` : '—') +
+        pill('Máx. drawdown', `${fmtDec(rk.max_drawdown_pct, 1)}%`, 'profit-neg') +
+        pill('VaR 1-dia (5%)', `${fmtDec(rk.var_1d_pct, 1)}%`) +
+        pill('Sortino', rk.sortino != null ? fmtDec(rk.sortino, 2) : '—') +
+        pill('Dias de série', rk.points) +
+        '</div>';
+    } else {
+      html += '<div class="status">série curta demais para o perfil de risco.</div>';
+    }
+    if (rv) {
+      const dir = rv.signal
+        ? (rv.direction === 'comprar'
+          ? '<span class="profit-pos">comprar — preço abaixo do equilíbrio</span>'
+          : '<span class="profit-neg">esperar / vender — preço acima</span>')
+        : '<span class="muted">sem sinal forte agora</span>';
+      html += '<div class="lab-card" style="margin-top:12px">' +
+        '<div class="lab-card-head"><h3>Reversão à média</h3>' +
+        `<span class="lab-stance">${rv.signal ? 'SINAL' : 'neutro'}</span></div>` +
+        '<div class="lab-metrics">' +
+        `<div><span>Preço atual</span><b>${fmt(rv.current)}</b></div>` +
+        `<div><span>Alvo (equilíbrio)</span><b>${fmt(rv.target)}</b></div>` +
+        `<div><span>Gap p/ o alvo</span><b>${fmtDec(rv.gap_pct, 1)}%</b></div>` +
+        `<div><span>Meia-vida</span><b>${rv.halflife_days != null ? rv.halflife_days + 'd' : '—'}</b></div>` +
+        '</div>' +
+        `<div class="forecast">Banda ~68%: <b>${fmt(rv.band_low)}</b> a <b>${fmt(rv.band_high)}</b>` +
+        ` · z ${fmtDec(rv.z_resid, 2)} · ${dir}</div></div>`;
+    }
+    const foot = [];
+    if (rg) {
+      foot.push(rg.significant
+        ? `Quebra de regime detectada (${esc(rg.kind)}${rg.level_change_pct != null ? `, ${rg.level_change_pct}% de nível` : ''}) — confie só nos últimos <b>${rg.valid_points}</b> dias.`
+        : 'Sem quebra de regime significativa (série estável).');
+    }
+    if (pr) foot.push(`Previsibilidade: <b>${esc(pr.label)}</b> (score ${fmtDec(pr.predictability, 2)}).`);
+    if (foot.length) html += `<p class="hint">${foot.join(' ')}</p>`;
+    body.innerHTML = html;
+    st.textContent = `Melhor série: ${esc(res.city)} · ${res.points} dias`;
   } catch (e) {
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;

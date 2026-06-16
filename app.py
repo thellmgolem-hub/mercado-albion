@@ -934,6 +934,46 @@ def micro(view: str = "spread", premium: bool = True,
         con.close()
 
 
+@app.get("/api/item_signals")
+def item_signals(item: str, days: int = Query(180, ge=30, le=400)):
+    """Risco + reversão + regime + previsibilidade de um item, da melhor série
+    de history (cidade com mais pontos). Para a sub-aba 'Risco & Previsão'."""
+    from albion import risk, forecast as fc
+    ids = _resolve_items([item])
+    if not ids:
+        raise HTTPException(404, "item nao encontrado")
+    iid = ids[0]
+    con = _cache_connection()
+    if con is None:
+        return {"item_id": iid, "available": False}
+    try:
+        rows = con.execute(
+            """SELECT city, substr(ts,1,10) AS day, avg_price FROM history
+               WHERE server=? AND time_scale=24 AND quality=1 AND avg_price>0
+                 AND ts >= date('now', ?) AND item_id=?
+               ORDER BY city, day""",
+            [aodp.server, f"-{int(days)} days", iid]).fetchall()
+    finally:
+        con.close()
+    by_city = {}
+    for city, _day, price in rows:
+        by_city.setdefault(city, []).append(price)
+    if not by_city:
+        return {"item_id": iid, "available": False,
+                "note": "sem histórico para o item — colete-o primeiro"}
+    best_city = max(by_city, key=lambda c: len(by_city[c]))
+    series = by_city[best_city]
+    return {
+        "item_id": iid, "available": True, "city": best_city,
+        "points": len(series),
+        "risk": risk.risk_profile(series),
+        "reversion": fc.mean_reversion(series),
+        "regime": fc.structural_break(series, permutations=100)
+        if len(series) >= 20 else None,
+        "predictability": fc.predictability(series),
+    }
+
+
 # ------------------------------------------------------- coleta automática
 def _auto_collect_loop():
     """Cadência dupla: killboard (intel) mais frequente que o mercado."""

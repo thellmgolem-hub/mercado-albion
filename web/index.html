@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260616-7">
+<link rel="stylesheet" href="style.css?v=20260616-9">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -220,6 +220,7 @@
     <button data-sub="vender">Onde vender</button>
     <button data-sub="craft">Craft / Refino</button>
     <button data-sub="origem">De onde vem</button>
+    <button data-sub="risco">Risco &amp; Previsão</button>
     <button data-sub="lab">Item Lab</button>
   </nav>
 
@@ -257,6 +258,17 @@
        e, no caso de ordem, a taxa de anúncio de 2,5%). Venda <b>instantânea</b> = você
        preenche a ordem de compra mais alta agora. <b>Ordem</b> = você anuncia pelo menor
        preço de venda atual e espera vender.</p>
+  </div>
+
+  <!-- sub: Risco & Previsão -->
+  <div class="subtab" id="sub-risco">
+    <div class="status" id="riscoStatus"></div>
+    <div id="riscoBody"></div>
+    <p class="hint">Sobre a melhor série de histórico do item (cidade com mais
+       dados). <b>Risco</b>: volatilidade anualizada (com IC por bootstrap e
+       ajuste para séries curtas), drawdown máximo e VaR 1-dia. <b>Reversão</b>:
+       alvo de equilíbrio e meia-vida quando o preço está esticado. <b>Regime</b>:
+       quebra estrutural — se houver, os sinais valem só na janela pós-quebra.</p>
   </div>
 
   <!-- sub: Item Lab -->
@@ -555,6 +567,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260616-7"></script>
+<script src="app.js?v=20260616-9"></script>
 </body>
 </html>
