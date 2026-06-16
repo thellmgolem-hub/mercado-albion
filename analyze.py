@@ -1816,6 +1816,36 @@ def cmd_fc(args, fmt):
              ("action", "Ação"), ("signal", "Sinal")], fmt)
         return
 
+    if args.acao == "regime":
+        # quebra estrutural por item×cidade. O teste de permutação é caro
+        # (O(N²)×perms), então: item específico -> rigor cheio; varredura ->
+        # só as séries mais longas (mais informativas) e menos permutações.
+        series = {}
+        for item, city, _day, price, _c in rows:
+            series.setdefault((item, city), []).append(price)
+        targeted = bool(item_ids and len(item_ids) <= 3)
+        perms = 150 if targeted else 80
+        ranked = sorted(series.items(), key=lambda kv: -len(kv[1]))
+        if not targeted:
+            ranked = ranked[:60]            # teto de séries na varredura
+            info(f"(varredura: {len(ranked)} séries mais longas, {perms} "
+                 "permutações; passe um item p/ rigor cheio)")
+        out = []
+        for (item, city), prices in ranked:
+            br = fc.structural_break(prices, min_seg=max(6, args.min_points // 2),
+                                     permutations=perms)
+            if br and br["significant"]:
+                out.append({"item": name(item), "city_pt": city_pt(city), **br})
+        out.sort(key=lambda r: (r["p_value"], -abs(r["level_change_pct"] or 0)))
+        info(f"Quebras de regime ({args.days}d, teste de permutação): a janela "
+             "PÓS-quebra é a única confiável p/ reversão/VWAP/previsibilidade.")
+        emit(out[:args.limit], [("item", "Item"), ("city_pt", "Cidade"),
+             ("points", "Dias"), ("kind", "Tipo"), ("break_frac", "Quebra em"),
+             ("mean_before", "Média antes"), ("mean_after", "Média depois"),
+             ("level_change_pct", "Δ nível %"), ("valid_points", "Dias válidos"),
+             ("p_value", "p")], fmt)
+        return
+
     series, counts = {}, {}
     for item, city, day, price, c in rows:
         series.setdefault((item, city), []).append(price)
@@ -2004,16 +2034,25 @@ def cmd_risk(args, fmt):
         for (item, city), prices in series.items():
             rp = risk.risk_profile(prices, min_points=args.min_points)
             if rp:
-                out.append({"item": name(item), "city_pt": city_pt(city), **rp})
+                out.append({"item": name(item), "city_pt": city_pt(city),
+                            "_iid": item, "_city": city, "_prices": prices, **rp})
         if not out:
             die(f"Nenhuma série com >= {args.min_points} dias. Baixe o --min-points "
                 "ou colete mais histórico.")
+        # C5: calibra o selo aos TERCIS do cross-section real (relativo), em vez
+        # dos cortes fixos — 'seguro' é o terço menos volátil do que foi medido.
+        bands = risk.calibrate_bands([r["vol_annual_pct"] / 100 for r in out])
+        for r in out:
+            r["risk_label"] = risk.label_for(r["vol_annual_pct"] / 100, bands)
+            del r["_iid"], r["_city"], r["_prices"]
         order = {"seguro": 0, "médio": 1, "especulativo": 2}
         out.sort(key=lambda r: (order.get(r["risk_label"], 9), -r["vol_annual_pct"]))
+        calib = "tercis do cross-section" if bands is not risk.VOL_BANDS else "default"
         info(f"Perfil de risco (history diário, {args.days}d, >= {args.min_points} "
-             "dias). Vol anualizada · max drawdown · VaR 1-dia 5% · selo absoluto.")
+             f"dias). Vol anual./EWMA · max DD · VaR 1d 5% · selo ({calib}).")
         emit(out[:args.limit], [("item", "Item"), ("city_pt", "Cidade"),
              ("points", "Dias"), ("vol_annual_pct", "Vol %a.a."),
+             ("vol_ewma_pct", "Vol EWMA"),
              ("max_drawdown_pct", "Max DD %"), ("var_1d_pct", "VaR 1d %"),
              ("sortino", "Sortino"), ("risk_label", "Selo")], fmt)
     elif args.acao == "corr":
@@ -2525,8 +2564,8 @@ def build_parser():
     p.set_defaults(func=cmd_guild)
 
     p = sub.add_parser("fc", parents=[common],
-                       help="previsão: reversão à média, par trading, previsibilidade")
-    p.add_argument("acao", choices=("revert", "pair", "predict"))
+                       help="previsão: reversão, par trading, previsibilidade, regime")
+    p.add_argument("acao", choices=("revert", "pair", "predict", "regime"))
     p.add_argument("itens", nargs="*", help="itens (pair exige 1)")
     p.add_argument("--cat", help="categoria (cesta)")
     p.add_argument("--sub", help="subcategoria")

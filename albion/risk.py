@@ -15,8 +15,40 @@ import math
 
 from . import config
 
-# faixas absolutas de volatilidade anualizada -> selo (calibráveis)
+# faixas de volatilidade anualizada -> selo. Default (fallback); o ideal é
+# calibrar aos percentis do cross-section real via calibrate_bands().
 VOL_BANDS = [(0.35, "seguro"), (0.75, "médio")]
+EWMA_LAMBDA = 0.94   # decaimento RiskMetrics (vol responde a regime recente)
+
+
+def calibrate_bands(vols, labels=("seguro", "médio")):
+    """Faixas de selo a partir dos TERCIS do cross-section (vol anualizada).
+
+    Em vez de cortes mágicos, 'seguro' = tércil inferior, 'médio' = central,
+    'especulativo' = superior — relativo ao universo realmente observado."""
+    xs = sorted(v for v in vols if v and v > 0)
+    if len(xs) < 6:
+        return VOL_BANDS
+    t1 = xs[len(xs) // 3]
+    t2 = xs[2 * len(xs) // 3]
+    return [(t1, labels[0]), (t2, labels[1])]
+
+
+def label_for(vol_annual, bands=VOL_BANDS):
+    for thr, lbl in bands:
+        if vol_annual <= thr:
+            return lbl
+    return "especulativo"
+
+
+def _ewma_vol(returns, lam=EWMA_LAMBDA):
+    """Volatilidade EWMA anualizada — pondera retornos recentes mais alto."""
+    if len(returns) < 2:
+        return None
+    var = sum(x * x for x in returns) / len(returns)   # semente
+    for r in returns:
+        var = lam * var + (1 - lam) * r * r
+    return math.sqrt(var) * math.sqrt(365)
 
 
 def _log_returns(prices):
@@ -42,9 +74,10 @@ def _percentile(xs, p):
     return s[k]
 
 
-def risk_profile(prices, min_points=30):
+def risk_profile(prices, min_points=30, bands=None):
     """Métricas de risco de uma série de preços diários (cronológica).
 
+    bands: faixas de selo (de calibrate_bands); None usa o default absoluto.
     Retorna None se a série for curta demais para ser informativa.
     """
     prices = [p for p in prices if p and p > 0]
@@ -54,6 +87,7 @@ def risk_profile(prices, min_points=30):
     if len(r) < min_points - 1:
         return None
     vol_annual = _pstdev(r) * math.sqrt(365)
+    vol_ewma = _ewma_vol(r)
     # máximo drawdown sobre o nível de preço
     peak, max_dd = prices[0], 0.0
     for p in prices:
@@ -63,19 +97,15 @@ def risk_profile(prices, min_points=30):
     downside = _pstdev([x for x in r if x < 0])
     mean_r = sum(r) / len(r)
     sortino = (mean_r / downside * math.sqrt(365)) if downside else None
-    label = "especulativo"
-    for thr, lbl in VOL_BANDS:
-        if vol_annual <= thr:
-            label = lbl
-            break
     return {
         "points": len(prices),
         "vol_annual_pct": round(vol_annual * 100, 1),
+        "vol_ewma_pct": round(vol_ewma * 100, 1) if vol_ewma else None,
         "max_drawdown_pct": round(max_dd * 100, 1),
         "var_1d_pct": round((var5 or 0) * 100, 1),
         "downside_dev_pct": round(downside * 100, 2),
         "sortino": round(sortino, 2) if sortino is not None else None,
-        "risk_label": label,
+        "risk_label": label_for(vol_annual, bands or VOL_BANDS),
     }
 
 

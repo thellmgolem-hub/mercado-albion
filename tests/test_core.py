@@ -847,6 +847,38 @@ class RiskTests(unittest.TestCase):
         self.assertAlmostEqual(pairs[0]["corr"], 1.0, places=3)
 
 
+class RigorTests(unittest.TestCase):
+    def test_calibrate_bands_tercis_and_label(self):
+        from albion import risk
+        vols = [i / 100 for i in range(3, 99, 3)]   # 0.03..0.96
+        bands = risk.calibrate_bands(vols)
+        self.assertEqual(len(bands), 2)
+        self.assertLess(bands[0][0], bands[1][0])     # t1 < t2
+        # selo relativo: vol baixa -> seguro; alta -> especulativo
+        self.assertEqual(risk.label_for(0.01, bands), "seguro")
+        self.assertEqual(risk.label_for(5.0, bands), "especulativo")
+
+    def test_ewma_vol_present_and_responsive(self):
+        from albion import risk
+        # série calma e depois turbulenta: EWMA deve superar a vol estática
+        calm = [100 + (i % 2) for i in range(40)]
+        shock = [100, 130, 90, 140, 80, 150]
+        rp = risk.risk_profile(calm + shock, min_points=20)
+        self.assertIsNotNone(rp["vol_ewma_pct"])
+        self.assertGreater(rp["vol_ewma_pct"], rp["vol_annual_pct"])
+
+    def test_structural_break_detects_level_shift(self):
+        from albion import forecast as fc
+        # 30 dias ~100, depois 30 dias ~200: quebra de NÍVEL no meio
+        prices = [100 + (i % 3) for i in range(30)] + [200 + (i % 3) for i in range(30)]
+        br = fc.structural_break(prices, permutations=80)
+        self.assertIsNotNone(br)
+        self.assertTrue(br["significant"])
+        self.assertEqual(br["kind"], "nível")
+        self.assertAlmostEqual(br["break_frac"], 0.5, delta=0.12)
+        self.assertGreater(br["level_change_pct"], 50)
+
+
 class ForecastTests(unittest.TestCase):
     def test_mean_reversion_direction_and_sanity_guard(self):
         from albion import forecast as fc

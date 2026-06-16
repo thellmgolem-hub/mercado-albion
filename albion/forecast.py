@@ -5,13 +5,90 @@ Reaproveita o núcleo de albion/stats.py (linear_fit, residuals, std — Python
 puro, sem numpy). Opera sobre o history diário (avg_price, escala 24h).
 
 HONESTIDADE: para alguns itens a série fina ainda é curta; cada função exige um
-mínimo de pontos e devolve a confiança/meia-vida para o usuário pesar. Regime
-estrutural (Chow/CUSUM) e nowcast intradiário ficaram de fora por enquanto — o
-primeiro é pesado e o segundo depende de cobertura horária que ainda não temos.
+mínimo de pontos e devolve a confiança/meia-vida para o usuário pesar. O nowcast
+intradiário ainda depende de cobertura horária que não temos; a detecção de
+regime (quebra estrutural) está implementada em structural_break().
 """
 import math
+import random
 
 from . import config, stats
+
+
+def _ssr(values):
+    """Soma dos quadrados dos resíduos da tendência linear."""
+    fit = stats.linear_fit(values)
+    if not fit:
+        return 0.0
+    return sum(r * r for r in stats.residuals(values, fit))
+
+
+def structural_break(prices, min_seg=8, permutations=150, p_threshold=0.1,
+                     seed=1234):
+    """Detecta quebra de regime (estilo Chow) sobre log-preço diário.
+
+    Varre o ponto t* que mais reduz a SSR ao dividir a série em dois ajustes
+    lineares; a significância vem de um teste de permutação (embaralha a série N
+    vezes e mede com que frequência o ganho máximo iguala/supera o observado —
+    Python puro, sem scipy). Classifica a quebra como de NÍVEL, TENDÊNCIA ou
+    VOLATILIDADE e devolve a janela válida (pós-quebra), que os demais sinais
+    (reversão/VWAP/previsibilidade) deveriam usar para não se envenenar com
+    dados de um regime morto.
+    """
+    prices = [p for p in prices if p and p > 0]
+    n = len(prices)
+    if n < 2 * min_seg + 1:
+        return None
+    logp = [math.log(p) for p in prices]
+
+    def max_gain(ys):
+        full = _ssr(ys)
+        best, bt = 0.0, None
+        for t in range(min_seg, len(ys) - min_seg):
+            gain = full - (_ssr(ys[:t]) + _ssr(ys[t:]))
+            if gain > best:
+                best, bt = gain, t
+        return best, bt
+
+    obs_gain, t_star = max_gain(logp)
+    if t_star is None or obs_gain <= 0:
+        return None
+    rng = random.Random(seed)
+    ge = 0
+    for _ in range(permutations):
+        sh = logp[:]
+        rng.shuffle(sh)
+        if max_gain(sh)[0] >= obs_gain:
+            ge += 1
+    pval = (ge + 1) / (permutations + 1)
+
+    left, right = prices[:t_star], prices[t_star:]
+    ml, mr = sum(left) / len(left), sum(right) / len(right)
+    fl, fr = stats.linear_fit([math.log(p) for p in left]), \
+        stats.linear_fit([math.log(p) for p in right])
+    slope_l = fl[1] if fl else 0
+    slope_r = fr[1] if fr else 0
+    sd_l = stats.std(left) or 1e-9
+    sd_r = stats.std(right) or 1e-9
+    # mudança normalizada em nível, tendência e dispersão -> a dominante
+    chg = {
+        "nível": abs(mr - ml) / (ml or 1),
+        "tendência": abs(slope_r - slope_l) / (abs(slope_l) + 1e-6),
+        "volatilidade": abs(sd_r - sd_l) / (sd_l or 1),
+    }
+    kind = max(chg, key=chg.get)
+    return {
+        "points": n,
+        "break_index": t_star,
+        "break_frac": round(t_star / n, 2),
+        "p_value": round(pval, 3),
+        "significant": pval <= p_threshold,
+        "kind": kind,
+        "mean_before": round(ml),
+        "mean_after": round(mr),
+        "level_change_pct": round(100 * (mr / ml - 1), 1) if ml else None,
+        "valid_points": n - t_star,
+    }
 
 
 def _ar1(resid):
