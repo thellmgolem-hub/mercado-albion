@@ -1216,5 +1216,28 @@ class DemandGuildTests(unittest.TestCase):
         self.assertEqual(res["watched_count"], 1)
 
 
+class ApiUiTests(unittest.TestCase):
+    def setUp(self):
+        self.c = TestClient(app.app)
+
+    def test_item_signals_unknown_is_404(self):
+        r = self.c.get('/api/item_signals', params={'item': 'LIXO_INEXISTENTE_XYZ'})
+        self.assertEqual(r.status_code, 404)   # antes 400 (dead code na 944)
+
+    def test_micro_endpoint_shapes(self):
+        r = self.c.get('/api/micro', params={'view': 'spread', 'limit': 3})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json().get('view'), 'spread')
+        r2 = self.c.get('/api/micro', params={'view': 'capital', 'limit': 3})
+        self.assertEqual(r2.status_code, 200)
+        self.assertIn('plan', r2.json())
+
+    def test_recommendations_fused_param_ok(self):
+        r = self.c.get('/api/recommendations',
+                       params={'fused': 'true', 'min_daily_volume': 0, 'limit': 3})
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.json().get('fused'))
+
+
 if __name__ == "__main__":
     unittest.main()

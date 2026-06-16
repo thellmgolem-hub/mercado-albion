@@ -939,8 +939,9 @@ def item_signals(item: str, days: int = Query(180, ge=30, le=400)):
     """Risco + reversão + regime + previsibilidade de um item, da melhor série
     de history (cidade com mais pontos). Para a sub-aba 'Risco & Previsão'."""
     from albion import risk, forecast as fc
-    ids = _resolve_items([item])
-    if not ids:
+    try:
+        ids = _resolve_items([item])     # resolve id/nome; 404 se desconhecido
+    except HTTPException:
         raise HTTPException(404, "item nao encontrado")
     iid = ids[0]
     con = _cache_connection()
