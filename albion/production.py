@@ -283,6 +283,96 @@ def refine_premium_history(refined_id, hist, premium=True, sell_mode="order",
     }
 
 
+def chain_city(item_id, price_q1, weight_of=None, premium=True,
+               sell_mode="order", focus=False, cities=None):
+    """Cidade-bônus ótima por cadeia: onde CRAFTAR sourcing os insumos onde for
+    mais barato (F). Para cada cidade de craft, valora os insumos pelo menor
+    preço entre as cidades (melhor fonte) e aplica o RRR de craft local; reporta
+    a margem e o PESO a mover (proxy de logística — o dump não tem frete/risco
+    de rota, então o transporte fica como peso, não silver).
+    """
+    recipe = craft.recipe_for(item_id)
+    if not recipe or refining_family(item_id) or not recipe.get("inputs"):
+        return []
+    cat = recipe.get("category")
+    cities = cities or config.ROYAL_CITIES
+    sourced = []
+    for inp in recipe["inputs"]:
+        ps = [price_q1.get((inp["id"], c)) for c in cities]
+        ps = [p for p in ps if p]
+        if not ps:
+            return []                      # cobertura de insumo insuficiente
+        sourced.append((inp, min(ps)))
+    out = []
+    for ccity in cities:
+        sell = price_q1.get((item_id, ccity))
+        if not sell:
+            continue
+        cost = sum(inp["count"] * cp for inp, cp in sourced)
+        rrr = craft.craft_rrr(cat, ccity, focus)
+        eff = cost * (1 - rrr)
+        margin = sell_revenue(sell, sell_mode, premium) - eff
+        weight = sum(inp["count"] * ((weight_of(inp["id"]) if weight_of else 0) or 0)
+                     for inp, _ in sourced)
+        out.append({
+            "item_id": item_id, "craft_city": ccity,
+            "rrr_pct": round(rrr * 100, 1),
+            "materials": round(cost), "eff_cost": round(eff), "sell": sell,
+            "margin": round(margin),
+            "margin_pct": round(100 * margin / eff, 1) if eff else None,
+            "weight_to_move": round(weight, 1),
+            "is_bonus_city": ccity == craft.bonus_city(cat),
+        })
+    out.sort(key=lambda r: -r["margin"])
+    return out
+
+
+# ----------------------------------------------------- 5) economia de fazenda
+
+def farm_economy(price_q1, premium=True, sell_mode="order", cities=None,
+                 min_coverage=2, limit=40):
+    """Prata/dia de canteiro: cria/semente (+ração) -> produto (LATENTE).
+
+    Lê data/farm_data.json (se existir, do dump: growtime, offspring, ração) e
+    valora cria+ração vs produto. HONESTO: a cobertura de preço dos itens de
+    fazenda é esparsa hoje, então a maioria sai sem preço — a função existe e
+    ativa conforme a coleta cobrir os itens de fazenda (watch rebuild ajuda).
+    """
+    fd = craft._load("farm_data.json")
+    if not fd:
+        return {"available": False, "rows": [], "note":
+                "data/farm_data.json ausente — rode scripts/build_farm_data.py"}
+    cities = cities or config.ROYAL_CITIES
+
+    def best(item):
+        ps = [price_q1.get((item, c)) for c in cities]
+        ps = [p for p in ps if p]
+        return min(ps) if ps else None
+
+    rows = []
+    for baby, info in fd.items():
+        grown = info.get("grown")
+        growtime_d = (info.get("growtime_s") or 0) / 86400
+        yield_n = 1 + (info.get("offspring_amount", 0) * info.get("offspring_chance", 0))
+        seed_p = best(baby)
+        grown_p = best(grown) if grown else None
+        if not seed_p or not grown_p or growtime_d <= 0:
+            continue
+        feed = info.get("feed_cost") or 0
+        revenue = yield_n * sell_revenue(grown_p, sell_mode, premium)
+        profit = revenue - seed_p - feed
+        rows.append({
+            "baby": baby, "grown": grown,
+            "yield": round(yield_n, 2),
+            "cost": round(seed_p + feed),
+            "revenue": round(revenue),
+            "profit_per_day": round(profit / growtime_d),
+        })
+    rows.sort(key=lambda r: -r["profit_per_day"])
+    return {"available": True, "rows": rows[:limit] if limit else rows,
+            "priced": len(rows)}
+
+
 def refine_premium(refined_id, price_q1, premium=True, sell_mode="order",
                    focus=False, cities=None):
     """Prêmio de refinar vs vender o bruto, por cidade (instantâneo, cache).

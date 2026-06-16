@@ -2362,7 +2362,7 @@ def cmd_prod(args, fmt):
             emit(best[:args.limit], [("item", "Refinado"), ("city_pt", "Cidade"),
                  ("premium_pct", "Prêmio %"), ("margin", "Margem"),
                  ("rrr_pct", "RRR %"), ("verdict", "Veredito")], fmt)
-    else:  # quality
+    elif args.acao == "quality":
         if not args.itens:
             die("prod quality exige um item (ex.: `prod quality \"Arco do Adepto\"`).")
         it = resolve_item(db, " ".join(args.itens))
@@ -2382,6 +2382,40 @@ def cmd_prod(args, fmt):
         emit(res, [("city_pt", "Cidade"), ("quals", "Q cotadas"),
                    ("eff_cost", "Custo efetivo"), ("margin_q1", "Margem q1"),
                    ("margin_ev", "Margem esperada"), ("ev_uplift", "Uplift")], fmt)
+    elif args.acao == "chaincity":
+        if not args.itens:
+            die("prod chaincity exige um item craftável.")
+        it = resolve_item(db, " ".join(args.itens))
+        res = prod.chain_city(it["id"], q1, weight_of=lambda i: (db.get(i) or {}).get("w"),
+                              premium=premium, sell_mode=args.sell_mode,
+                              focus=args.focus, cities=cities)
+        if not res:
+            die("Sem cobertura de insumo/produto no cache p/ a matriz de cidade.")
+        for r in res:
+            r["city_pt"] = city_pt(r["craft_city"]) + ("  ★" if r["is_bonus_city"] else "")
+        info(f"Cidade ótima p/ craftar {it['pt']} (insumos pela fonte mais barata "
+             "entre cidades). 'Peso a mover' = proxy de logística (sem frete/risco "
+             "no dump). RRR de craft local aplicado.")
+        emit(res, [("city_pt", "Craftar em"), ("rrr_pct", "RRR %"),
+                   ("materials", "Insumos"), ("eff_cost", "Custo efetivo"),
+                   ("sell", "Venda"), ("margin", "Margem"),
+                   ("margin_pct", "Margem %"), ("weight_to_move", "Peso a mover")],
+             fmt)
+    else:  # farm
+        res = prod.farm_economy(q1, premium=premium, sell_mode=args.sell_mode,
+                                cities=cities, limit=args.limit)
+        if not res.get("available"):
+            die(res.get("note", "economia de fazenda indisponível."))
+        if not res["rows"]:
+            die("Sem cobertura de preço dos itens de fazenda no cache — a análise "
+                "ativa conforme a coleta cobrir cria/produto (use `watch rebuild`).")
+        for r in res["rows"]:
+            r["baby_pt"] = name(r["baby"]); r["grown_pt"] = name(r["grown"])
+        info(f"Economia de fazenda ({res['priced']} cadeias cotadas): cria/semente "
+             "(+ração) -> produto, prata/dia de canteiro.")
+        emit(res["rows"], [("grown_pt", "Produto"), ("yield", "Rendim."),
+                           ("cost", "Custo cria"), ("revenue", "Receita"),
+                           ("profit_per_day", "Lucro/dia canteiro")], fmt)
 
 
 def cmd_prune(args, fmt):
@@ -2759,9 +2793,10 @@ def build_parser():
 
     p = sub.add_parser("prod", parents=[common],
                        help="produção: foco, cadeia vertical, refinar-vs-vender, qualidade")
-    p.add_argument("acao", choices=("focus", "chain", "refine", "quality"))
+    p.add_argument("acao", choices=("focus", "chain", "refine", "quality",
+                                    "chaincity", "farm"))
     p.add_argument("itens", nargs="*",
-                   help="item (chain/quality exigem; refine opcional)")
+                   help="item (chain/quality/chaincity exigem; refine opcional)")
     p.add_argument("--cities", help="cidades (filtra)")
     p.add_argument("--sell-mode", choices=("instant", "order"), default="order")
     p.add_argument("--no-premium", action="store_true")

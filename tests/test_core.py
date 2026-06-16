@@ -885,6 +885,38 @@ class RigorIIITests(unittest.TestCase):
         self.assertAlmostEqual(ph["profit_day"], pf["profit_day"] / 2, delta=1)
 
 
+class ChainFarmTests(unittest.TestCase):
+    def test_chain_city_ranks_and_marks_bonus(self):
+        from albion import production as prod
+        cities = ["Lymhurst", "Thetford", "Bridgewatch"]
+        # T4_2H_BOW = 32x T4_PLANKS (categoria bow, bônus em Lymhurst)
+        price = {("T4_2H_BOW", c): 10000 for c in cities}
+        price.update({("T4_PLANKS", c): 200 for c in cities})
+        res = prod.chain_city("T4_2H_BOW", price,
+                              weight_of=lambda i: 0.5, cities=cities)
+        self.assertTrue(res)
+        bonus = [r for r in res if r["is_bonus_city"]]
+        self.assertTrue(bonus)
+        # a cidade-bônus tem RRR de craft maior que as demais
+        self.assertGreater(bonus[0]["rrr_pct"],
+                           min(r["rrr_pct"] for r in res if not r["is_bonus_city"]))
+        self.assertEqual(res, sorted(res, key=lambda r: -r["margin"]))
+
+    def test_farm_economy_profit_per_day(self):
+        from albion import production as prod
+        cities = ["Martlock"]
+        # cadeia real: T3_FARM_OX_BABY -> T3_FARM_OX_GROWN (growtime 158400s, off 0.84)
+        price = {("T3_FARM_OX_BABY", "Martlock"): 100,
+                 ("T3_FARM_OX_GROWN", "Martlock"): 1000}
+        res = prod.farm_economy(price, cities=cities)
+        self.assertTrue(res["available"])
+        row = next((r for r in res["rows"] if r["baby"] == "T3_FARM_OX_BABY"), None)
+        self.assertIsNotNone(row)
+        # yield 1.84; receita 1.84*935; lucro/(158400/86400=1.833d)
+        self.assertGreater(row["profit_per_day"], 800)
+        self.assertLess(row["profit_per_day"], 950)
+
+
 class EstimatorTests(unittest.TestCase):
     def test_winsorize_caps_extremes(self):
         from albion import risk
