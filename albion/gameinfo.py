@@ -122,6 +122,7 @@ def ingest_events(aodp, client: GameinfoClient | None = None,
                 break
             events = client.events_page(offset)
             if not events:
+                caught_up = True   # API esgotou os eventos -> não há gap
                 break
             pages += 1
             seen += len(events)

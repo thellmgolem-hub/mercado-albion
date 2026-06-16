@@ -725,7 +725,9 @@ def cmd_collect(args, fmt):
                 return
     item_ids = None
     if args.itens:
-        item_ids = [i["id"] for i in resolve_items(db, ",".join(args.itens))]
+        # --itens é uma STRING (sem nargs); resolve_items/parse_csv já dividem
+        # por vírgula — ",".join(string) iteraria os caracteres (T4_BAG -> T,4,...)
+        item_ids = [i["id"] for i in resolve_items(db, args.itens)]
     elif args.cat:
         item_ids = [i["id"] for i in db.filter(
             cat=args.cat, sub=args.sub, tier_min=args.tier_min,
@@ -2445,7 +2447,7 @@ def build_parser():
 
     sub = ap.add_subparsers(
         dest="cmd", required=True,
-        metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,watch,"
+        metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,origin,watch,"
                 "collect,intel,survival,backtest,journals,refine,report,pos,"
                 "indexes,prod,logi,risk,fc,demand,guild,micro,gold,status,prune,sql}")
 
@@ -2817,7 +2819,7 @@ def build_parser():
     p.add_argument("--cities", help="cidades (filtra; obrig. p/ hours)")
     p.add_argument("--qualities", help="qualidades (ex.: 1,2)")
     p.add_argument("--no-premium", action="store_true",
-                   help="usa imposto de 8% (sem premium)")
+                   help="usa imposto de 8%% (sem premium)")
     p.add_argument("--max-age", type=int, default=720,
                    help="idade máx. do livro em min (padrão: 720)")
     p.add_argument("--min-net", type=float, default=1,

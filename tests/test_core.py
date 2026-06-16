@@ -425,6 +425,37 @@ class IntelTests(unittest.TestCase):
         self.assertEqual(inv["T4_LOOT"]["unidades"], 5)
         self.assertIsNone(inv["T4_LOOT"]["valor_estimado"])  # sem preço ref.
 
+    def test_ingest_no_false_saturation_on_empty_page(self):
+        # regressão: run incremental calmo (checkpoint existe, página 0 traz
+        # novos, página 1 vazia) NÃO pode marcar saturação (B5)
+        from albion import gameinfo
+        ts = "2026-06-16T12:00:00.000Z"
+
+        def ev(eid):
+            return {"EventId": eid, "TimeStamp": ts, "Type": "KILL",
+                    "KillArea": "OPEN_WORLD", "Killer": {"Id": "k"},
+                    "Victim": {"Id": "v"}, "Participants": []}
+
+        class Fake:
+            def __init__(self, pages):
+                self.pages = pages
+
+            def events_page(self, offset):
+                return self.pages.get(offset // 51, [])
+
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                # 1ª carga: define o checkpoint
+                gameinfo.ingest_events(aodp, Fake({0: [ev(100), ev(99)]}), max_pages=18)
+                # 2ª carga: só novos na página 0, página 1 vazia (API esgotou)
+                r = gameinfo.ingest_events(
+                    aodp, Fake({0: [ev(102), ev(101)]}), max_pages=18)
+            finally:
+                aodp.db.close()
+        self.assertEqual(r["inserted"], 2)
+        self.assertFalse(r["saturated"])      # página vazia != burst
+
 
 class DivergenceTests(unittest.TestCase):
     def test_demand_aggregation_and_price_divergence(self):
