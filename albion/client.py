@@ -473,6 +473,16 @@ class AODP:
                 [(self.server, i) for i in item_ids])
             self.db.commit()
 
+    def watch_replace(self, item_ids: list[str]) -> int:
+        """Substitui a watchlist inteira por item_ids (rebuild priorizado)."""
+        with self.db_lock:
+            self.db.execute("DELETE FROM watchlist WHERE server=?", [self.server])
+            self.db.executemany(
+                "INSERT OR IGNORE INTO watchlist VALUES (?,?,?)",
+                [(self.server, i, time.time()) for i in item_ids])
+            self.db.commit()
+        return len(item_ids)
+
     def watch_list(self) -> list[dict]:
         with self.db_lock:
             rows = self.db.execute(

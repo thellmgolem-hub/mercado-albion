@@ -657,6 +657,45 @@ def cmd_watch(args, fmt):
         emit(rows, [("item_id", "Id"), ("item", "Item"),
                     ("tier_ench", "T.E")], fmt)
         return
+    if args.acao == "rebuild":
+        # B6: prioriza a coleta por ROI-de-informação = liquidez × demanda real.
+        # Itens que giram muito (history) e/ou são muito destruídos (killboard)
+        # valem mais a coleta que a lista plana atual.
+        with aodp.db_lock:
+            vol = dict(aodp.db.execute(
+                """SELECT item_id, AVG(item_count) FROM history
+                   WHERE server=? AND time_scale=24 AND quality=1 AND item_count>0
+                     AND ts>=date('now','-7 days') GROUP BY item_id""",
+                [aodp.server]).fetchall())
+            dem = dict(aodp.db.execute(
+                """SELECT item_id, SUM(victim_units) FROM item_demand_daily
+                   WHERE server=? AND day>=date('now','-7 days')
+                   GROUP BY item_id""", [aodp.server]).fetchall())
+        import math as _m
+        cand = set(vol) | set(dem)
+        scored = sorted(
+            ({"item_id": i,
+              "vol": round(vol.get(i, 0) or 0, 1),
+              "demanda": int(dem.get(i, 0) or 0),
+              "score": round((vol.get(i, 0) or 0) * (1 + _m.log1p(dem.get(i, 0) or 0)))}
+             for i in cand),
+            key=lambda r: -r["score"])[:args.limit]
+        ids = [r["item_id"] for r in scored]
+        if args.replace:
+            aodp.watch_replace(ids)
+            info(f"Watchlist substituída pelos {len(ids)} itens de maior "
+                 "ROI-de-informação (liquidez × demanda).")
+        else:
+            before = {w["item_id"] for w in aodp.watch_list()}
+            new = [i for i in ids if i not in before]
+            aodp.watch_add(new)
+            info(f"{len(new)} item(ns) de alto ROI-de-informação adicionados "
+                 f"(top {len(ids)}; use --replace para enxugar a lista).")
+        for r in scored:
+            r["item"] = (db.get(r["item_id"]) or {}).get("pt", r["item_id"])
+        emit(scored, [("item", "Item"), ("vol", "Vol/dia"),
+                      ("demanda", "Destruídos 7d"), ("score", "Score")], fmt)
+        return
     if not args.itens:
         die("Informe os itens (separados por vírgula).")
     items = resolve_items(db, ",".join(args.itens))
@@ -2332,9 +2371,13 @@ def build_parser():
 
     p = sub.add_parser("watch", parents=[common],
                        help="gerencia a watchlist de coleta")
-    p.add_argument("acao", choices=("add", "rm", "list"))
+    p.add_argument("acao", choices=("add", "rm", "list", "rebuild"))
     p.add_argument("itens", nargs="*",
                    help="itens (para add/rm), separados por vírgula")
+    p.add_argument("--limit", type=int, default=500,
+                   help="quantos itens manter no rebuild (padrão: 500)")
+    p.add_argument("--replace", action="store_true",
+                   help="rebuild substitui a watchlist (em vez de só adicionar)")
     p.set_defaults(func=cmd_watch)
 
     p = sub.add_parser("collect", parents=[common],
