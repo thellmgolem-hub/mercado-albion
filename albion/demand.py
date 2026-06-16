@@ -15,12 +15,33 @@ from . import config
 from .flips import sell_revenue
 
 _TIER_PREFIX = re.compile(r"^T\d+_")
+# sufixos de canal de artefato: a linha-base da arma é a mesma (ex.: arco normal
+# e Wailing/Keeper são "2H_BOW"). Agrupar por base evita fragmentar a meta.
+_ARTIFACT_SUFFIX = re.compile(r"_(KEEPER|HELL|UNDEAD|AVALON|MORGANA|FEY|CRYSTAL)$")
 
 
-def item_family(item_id):
-    """T4_MAIN_AXE@1 -> MAIN_AXE (sem tier nem encantamento)."""
+def item_family(item_id, base_only=True):
+    """T4_MAIN_AXE@1 -> MAIN_AXE. Com base_only, também funde o canal de
+    artefato (T4_2H_BOW_KEEPER@4 -> 2H_BOW), para a meta não fragmentar entre
+    variantes da mesma linha de arma."""
     base = (item_id or "").split("@")[0]
-    return _TIER_PREFIX.sub("", base)
+    fam = _TIER_PREFIX.sub("", base)
+    if base_only:
+        fam = _ARTIFACT_SUFFIX.sub("", fam)
+    return fam
+
+
+def _exposure_days(con, server, days):
+    """Dias EFETIVOS de exposição da ingestão (horas com ao menos 1 kill / 24).
+
+    O killboard só é coletado quando o servidor está ligado — contar por
+    dia-calendário superestima dias de pouca coleta. Normalizar por horas
+    observadas torna 'por dia' comparável entre janelas."""
+    hours = con.execute(
+        """SELECT COUNT(DISTINCT strftime('%Y-%m-%dT%H', ts))
+           FROM kill_events WHERE server=? AND ts >= datetime('now', ?)""",
+        [server, f"-{int(days)} days"]).fetchone()[0] or 0
+    return max(hours / 24.0, 1 / 24.0)   # piso de 1h p/ não dividir por zero
 
 
 def consumable_burn(con, server, days=7, price_of=None, vol_of=None, limit=40):
@@ -40,9 +61,10 @@ def consumable_burn(con, server, days=7, price_of=None, vol_of=None, limit=40):
              AND k.ts >= datetime('now', ?)
            GROUP BY e.item_id HAVING units>0""",
         [server, f"-{int(days)} days"]).fetchall()
+    exp_days = _exposure_days(con, server, days)   # normaliza por exposição
     out = []
     for item, units, _evs in rows:
-        per_day = units / days
+        per_day = units / exp_days
         price = price_of(item) if price_of else None
         market_vol = vol_of(item) if vol_of else None
         coverage = (market_vol / per_day) if (market_vol and per_day) else None

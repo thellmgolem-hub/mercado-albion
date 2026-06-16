@@ -2034,14 +2034,22 @@ def cmd_risk(args, fmt):
               ("limited_by", "Limite")], fmt)
 
 
-def _clean_price_lookups(con, server):
-    """(q1, allq) a partir das linhas de prices SANEADAS (sem preços-âncora)."""
+def _clean_price_lookups(con, server, max_age_days=3):
+    """(q1, allq) das linhas de prices SANEADAS: sem preços-âncora (outlier z
+    entre cidades) E sem pontas STALE — uma ordem com sell_price_min_date mais
+    velha que max_age_days é provável flip-fantasma e não deve entrar no min()
+    de make_or_buy/burn/watchlist."""
     from albion.microstructure import clean_price_rows
+    # corte de frescor em ISO (a data da ordem usa 'T'; placeholders '0001-' caem)
+    cutoff = con.execute(
+        "SELECT strftime('%Y-%m-%dT%H:%M:%S','now', ?)",
+        [f"-{int(max_age_days)} days"]).fetchone()[0]
     rows = clean_price_rows(_cache_price_dicts(con, server))
     q1, allq = {}, {}
     for r in rows:
         sp = r.get("sell_price_min") or 0
-        if sp <= 0:
+        d = r.get("sell_price_min_date") or ""
+        if sp <= 0 or d < cutoff:        # sem preço ou ponta velha -> ignora
             continue
         item, city, q = r["item_id"], r["city"], r["quality"]
         allq[(item, city, q)] = min(allq.get((item, city, q), sp), sp)

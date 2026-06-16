@@ -857,22 +857,33 @@ class DemandGuildTests(unittest.TestCase):
         from albion import demand as dm
         self.assertEqual(dm.item_family("T4_MAIN_AXE@1"), "MAIN_AXE")
         self.assertEqual(dm.item_family("T8_2H_BOW"), "2H_BOW")
+        # canal de artefato funde na linha-base (base_only padrão)
+        self.assertEqual(dm.item_family("T4_2H_BOW_KEEPER@4"), "2H_BOW")
+        self.assertEqual(dm.item_family("T4_2H_DUALCROSSBOW_HELL@2"),
+                         "2H_DUALCROSSBOW")
+        # mas dá para manter a distinção do artefato quando se quer
+        self.assertEqual(dm.item_family("T4_2H_BOW_KEEPER@4", base_only=False),
+                         "2H_BOW_KEEPER")
 
-    def test_consumable_burn_and_coverage(self):
+    def test_consumable_burn_normalizes_by_exposure(self):
         from datetime import datetime, timezone, timedelta
         from albion import demand as dm
-        ts = (datetime.now(timezone.utc) - timedelta(hours=2)).strftime(
-            "%Y-%m-%dT%H:%M:%S")
+        now = datetime.now(timezone.utc)
+        # 2 kills em 2 HORAS distintas (não 2 dias) -> exposição = 2h
+        rows = [(now - timedelta(hours=2), 1, 30),
+                (now - timedelta(hours=3), 2, 18)]
         with TemporaryDirectory() as tmp:
             client = AODP(db_path=Path(tmp) / "cache.db")
             try:
-                client.db.execute(
-                    "INSERT INTO kill_events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                    ("americas", 1, ts, 0, "kill", "OPEN", None, 0, 4, 1,
-                     "k", "v", 0))
-                client.db.executemany(
-                    "INSERT INTO kill_event_equipment VALUES (?,?,?,?,?,?,?)",
-                    [("americas", 1, "victim", "Potion", "T8_POT", 70, 1)])
+                for ts_dt, eid, units in rows:
+                    ts = ts_dt.strftime("%Y-%m-%dT%H:%M:%S")
+                    client.db.execute(
+                        "INSERT INTO kill_events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        ("americas", eid, ts, 0, "kill", "OPEN", None, 0, 4, 1,
+                         "k", "v", 0))
+                    client.db.execute(
+                        "INSERT INTO kill_event_equipment VALUES (?,?,?,?,?,?,?)",
+                        ("americas", eid, "victim", "Potion", "T8_POT", units, 1))
                 client.db.commit()
                 res = dm.consumable_burn(
                     client.db, "americas", days=7,
@@ -880,9 +891,10 @@ class DemandGuildTests(unittest.TestCase):
             finally:
                 client.db.close()
         r = next(x for x in res if x["item_id"] == "T8_POT")
-        self.assertEqual(r["burned_units"], 70)
-        self.assertAlmostEqual(r["per_day"], 10.0, places=1)   # 70/7
-        self.assertTrue(r["undersupplied"])                    # 5 < 10
+        self.assertEqual(r["burned_units"], 48)
+        # exposição = 2h = 2/24 dia; per_day = 48 / (2/24) = 576 (não 48/7)
+        self.assertAlmostEqual(r["per_day"], 576.0, delta=1)
+        self.assertTrue(r["undersupplied"])                    # 5 << 576
 
     def test_watchlist_roi_add_vs_watched(self):
         from albion import guild as gd
