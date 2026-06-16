@@ -867,6 +867,21 @@ class RigorTests(unittest.TestCase):
         self.assertIsNotNone(rp["vol_ewma_pct"])
         self.assertGreater(rp["vol_ewma_pct"], rp["vol_annual_pct"])
 
+    def test_refine_premium_history_percentile(self):
+        from albion import production as prod
+        city = "Thetford"
+        days = [f"2026-05-{d:02d}" for d in range(1, 26)]   # 25 dias
+        # insumos constantes; produto subindo -> prêmio crescente, hoje no topo
+        hist = {("T5_ORE", city): {d: 100 for d in days},
+                ("T4_METALBAR", city): {d: 200 for d in days},
+                ("T5_METALBAR", city): {d: 500 + i * 8 for i, d in enumerate(days)}}
+        hp = prod.refine_premium_history("T5_METALBAR", hist, city=city,
+                                         min_days=20)
+        self.assertIsNotNone(hp)
+        self.assertEqual(hp["days"], 25)
+        self.assertGreaterEqual(hp["percentile"], 90)        # hoje é o topo
+        self.assertIn("refinar", hp["verdict"])
+
     def test_structural_break_detects_level_shift(self):
         from albion import forecast as fc
         # 30 dias ~100, depois 30 dias ~200: quebra de NÍVEL no meio

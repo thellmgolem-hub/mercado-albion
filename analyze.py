@@ -2201,6 +2201,27 @@ def cmd_prod(args, fmt):
                 r["city_pt"] = city_pt(r["city"]) + ("  ★" if r["is_bonus_city"] else "")
             info(f"Refinar {it['pt']} vs vender o bruto, por cidade "
                  f"({'com' if args.focus else 'sem'} foco). Prêmio % > 0 = refinar paga.")
+            # C2: situa o prêmio de hoje no histórico (percentil + z) — não só o agora
+            recipe = prod.craft.recipe_for(it["id"])
+            if recipe:
+                hist_ids = [it["id"]] + [i["id"] for i in recipe["inputs"]]
+                con2 = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+                try:
+                    hrows = _history_daily(con2, config.DEFAULT_SERVER, hist_ids,
+                                           cities, days=args.hist_days)
+                finally:
+                    con2.close()
+                hist = {}
+                for i2, c2, d2, p2 in hrows:
+                    hist.setdefault((i2, c2), {})[d2] = p2
+                hp = prod.refine_premium_history(
+                    it["id"], hist, premium=premium, sell_mode=args.sell_mode,
+                    focus=args.focus, city=(cities[0] if cities else None))
+                if hp:
+                    info(f"Histórico ({hp['days']}d, {city_pt(hp['city'])}): prêmio "
+                         f"hoje {hp['premium_now_pct']}% = percentil {hp['percentile']} "
+                         f"(z {hp['z_resid']}); faixa p10/med/p90 = "
+                         f"{hp['p10']}/{hp['median']}/{hp['p90']}% → {hp['verdict']}.")
             emit(res, [("city_pt", "Cidade"), ("raw_cost", "Custo bruto"),
                        ("rrr_pct", "RRR %"), ("refined_net", "Refinado líq"),
                        ("margin", "Margem"), ("premium_pct", "Prêmio %"),
@@ -2627,6 +2648,8 @@ def build_parser():
     p.add_argument("--focus", action="store_true", help="usa foco (RRR maior)")
     p.add_argument("--min-margin", type=float, default=0,
                    help="margem mínima (focus)")
+    p.add_argument("--hist-days", type=int, default=120,
+                   help="janela do percentil histórico (refine; padrão 120)")
     p.add_argument("--limit", type=int, default=40)
     p.set_defaults(func=cmd_prod)
 

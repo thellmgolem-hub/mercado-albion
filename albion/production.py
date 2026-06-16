@@ -14,6 +14,7 @@ coletado, sem novas chamadas à API.
 """
 from . import config
 from . import craft
+from . import stats
 from .flips import sell_revenue
 from .microstructure import _robust_z
 
@@ -228,6 +229,59 @@ def vertical_pnl(item_id, price_q1, premium=True, sell_mode="order",
 
 
 # --------------------------------------------- 3) refinar vs vender o bruto
+
+def refine_premium_history(refined_id, hist, premium=True, sell_mode="order",
+                           focus=False, city=None, min_days=20):
+    """Percentil HISTÓRICO do prêmio de refino (não só o instantâneo).
+
+    hist: dict (item, city) -> {dia: avg_price} (history diário). Reconstrói a
+    série diária do prêmio de refino numa cidade e situa o prêmio de HOJE no
+    seu próprio histórico (percentil + z sobre os resíduos da tendência) — um
+    prêmio alto vs o passado é hora de refinar; baixo, de vender o bruto.
+    """
+    recipe = _prod_recipe(refined_id)
+    if not recipe or not refining_family(refined_id):
+        return None
+    city = city or bonus_city_for(refined_id, recipe) or config.ROYAL_CITIES[0]
+    prod_s = hist.get((refined_id, city)) or {}
+    in_series = [(inp["count"], hist.get((inp["id"], city)) or {})
+                 for inp in recipe["inputs"]]
+    if not prod_s or any(not s for _, s in in_series):
+        return None
+    rrr = rrr_for(refined_id, recipe, city, focus)
+    common = set(prod_s)
+    for _, s in in_series:
+        common &= set(s)
+    series = []
+    for d in sorted(common):
+        cost = sum(cnt * s[d] for cnt, s in in_series)
+        if cost <= 0:
+            continue
+        net = sell_revenue(prod_s[d], sell_mode, premium)
+        series.append(100 * (net - cost * (1 - rrr)) / cost)
+    if len(series) < min_days:
+        return None
+    cur = series[-1]
+    pct = 100 * sum(1 for v in series if v <= cur) / len(series)
+    fit = stats.linear_fit(series)
+    resid = stats.residuals(series, fit) if fit else [0]
+    sd = stats.std(resid)
+    z = resid[-1] / sd if sd else 0.0
+    s_sorted = sorted(series)
+    verdict = ("refinar (prêmio alto)" if pct >= 60 and cur > 0
+               else "vender bruto" if cur < 0
+               else "neutro")
+    return {
+        "item_id": refined_id, "city": city, "days": len(series),
+        "premium_now_pct": round(cur, 1),
+        "percentile": round(pct),
+        "z_resid": round(z, 2),
+        "p10": round(s_sorted[len(s_sorted) // 10], 1),
+        "median": round(s_sorted[len(s_sorted) // 2], 1),
+        "p90": round(s_sorted[9 * len(s_sorted) // 10], 1),
+        "verdict": verdict,
+    }
+
 
 def refine_premium(refined_id, price_q1, premium=True, sell_mode="order",
                    focus=False, cities=None):
