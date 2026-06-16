@@ -666,9 +666,37 @@ function wireItemCard(boxId, it) {
 }
 
 // ============================================================ recomendações
+function compositeBadge(v) {
+  const cls = v >= 70 ? 'score-executar' : v >= 40 ? 'score-monitorar' : 'score-cautela';
+  return `<span class="score ${cls}">${(v ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</span>`;
+}
+
 function renderRecommendationTable(tableId, statusId, rows, meta, emptyText) {
   const withCopy = rows.map((o) => ({ ...o, _copy: o.name_pt }));
-  renderTable(tableId, recommendationColumns(), withCopy, { sortKey: 'score' });
+  const fused = meta?.fused;
+  let cols = recommendationColumns();
+  if (fused) {
+    // escore COMPOSTO na frente + coluna de risco/sinais; ordena por composto
+    cols = [
+      {
+        key: 'composite', label: 'Composto', align: 'c',
+        value: (o) => o.composite_score ?? 0,
+        html: (o) => compositeBadge(o.composite_score ?? 0),
+      },
+      ...cols,
+      {
+        key: 'risco', label: 'Risco / sinais', align: 'l',
+        value: (o) => o.vol_pct ?? 0,
+        html: (o) => {
+          const vol = o.vol_pct != null ? `vol ${Math.round(o.vol_pct)}%` : '';
+          const rev = o.revert_signal ? ' <span class="profit-pos">↻compra</span>' : '';
+          const div = o.divergence ? ' <span class="bm">demanda↑</span>' : '';
+          return `<span class="muted">${vol}</span>${rev}${div}`;
+        },
+      },
+    ];
+  }
+  renderTable(tableId, cols, withCopy, { sortKey: fused ? 'composite' : 'score' });
   const st = $(statusId);
   const hist = meta?.history_until ? ` · histórico até ${meta.history_until.slice(0, 10)}` : '';
   const cov = meta?.coverage;
@@ -693,6 +721,7 @@ async function loadDashboardRecommendations() {
       max_age_buy: 720,
       max_age_sell: 720,
       min_profit: 0,
+      fused: $('dashFused') && $('dashFused').checked,
       limit: 10,
     });
     state.dashRecs = res.opportunities || [];
@@ -1900,6 +1929,7 @@ async function init() {
     if (ev.key === 'Escape') setGlossary(false);
   });
   $('dashRecsRefresh').addEventListener('click', loadDashboardRecommendations);
+  $('dashFused').addEventListener('change', loadDashboardRecommendations);
   $('dashCollect').addEventListener('click', runCollect);
   document.querySelectorAll('#goldRange .chip').forEach((b) =>
     b.addEventListener('click', () => {

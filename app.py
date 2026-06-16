@@ -444,6 +444,7 @@ def recommendations(cat: str | None = None, sub: str | None = None,
                     sell_cities: str | None = None,
                     same_city: bool = False,
                     exclude_outliers: bool = True,
+                    fused: bool = False,
                     limit: int = Query(25, le=200)):
     """Recomendacoes cache-only de flips por caracteristicas, sem item escolhido."""
     if buy_mode not in ("instant", "order") or sell_mode not in ("instant", "order"):
@@ -531,13 +532,19 @@ def recommendations(cat: str | None = None, sub: str | None = None,
             annotated.append(_liquidity_adjusted_confidence(o))
 
         _score_recommendations(annotated)
+        top = annotated[:limit]
+        if fused and top:
+            # escore COMPOSTO: funde risco/reversão/divergência ao score base
+            from albion import fusion
+            top = fusion.enrich(con, config.DEFAULT_SERVER, top)
         return {
             "source": "cache",
             "items_considered": len(item_ids),
             "price_rows_considered": len(rows),
             "coverage": coverage,
             "history_until": history_until,
-            "opportunities": annotated[:limit],
+            "fused": fused,
+            "opportunities": top,
         }
     finally:
         con.close()

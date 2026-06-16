@@ -780,45 +780,17 @@ def cmd_recommend(args, fmt):
 
 
 def _fuse_opportunities(opps):
-    """Enriquece as oportunidades com risco/reversão/divergência e o escore
-    composto (D1+D2). Aditivo: não altera o opportunity_score original."""
-    from albion import fusion, risk, forecast as fc
+    """Escore composto (D1+D2) via fusion.enrich — compartilhado com a API."""
+    from albion import fusion
     db_path = (DATA / "cache.db").resolve()
-    ids = list({o["item_id"] for o in opps})
     con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
     try:
-        hrows = _history_daily(con, config.DEFAULT_SERVER, ids, days=120)
-        # conjunto de itens com divergência demanda×preço recente (killboard)
-        div_set = set()
-        try:
-            from albion import gameinfo
-            for s in gameinfo.demand_price_divergence(con, config.DEFAULT_SERVER):
-                div_set.add(s.get("item_id"))
-        except Exception:
-            pass
+        opps = fusion.enrich(con, config.DEFAULT_SERVER, opps)
     finally:
         con.close()
-    # melhor série por item = cidade com mais pontos
-    by_ic = {}
-    for item, city, _day, price in hrows:
-        by_ic.setdefault((item, city), []).append(price)
-    best = {}
-    for (item, city), series in by_ic.items():
-        if item not in best or len(series) > len(best[item]):
-            best[item] = series
-    for o in opps:
-        s = best.get(o["item_id"])
-        rp = risk.risk_profile(s) if s else None
-        rv = fc.mean_reversion(s) if s else None
-        pr = fc.predictability(s) if s else None
-        div = o["item_id"] in div_set
-        comp, _parts = fusion.composite(o.get("opportunity_score"), rp, rv, pr, div)
-        o["composite_score"] = comp
-        o["vol_pct"] = rp["vol_annual_pct"] if rp else None
-        o["revert_flag"] = "✓comprar" if (rv and rv.get("signal")
-                                          and rv["direction"] == "comprar") else ""
-        o["div_flag"] = "✓" if div else ""
-    opps.sort(key=lambda o: -(o.get("composite_score") or 0))
+    for o in opps:                       # rótulos para a tabela da CLI
+        o["revert_flag"] = "✓comprar" if o.get("revert_signal") else ""
+        o["div_flag"] = "✓" if o.get("divergence") else ""
     return opps
 
 
