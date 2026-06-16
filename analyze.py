@@ -1461,6 +1461,104 @@ def cmd_indexes(args, fmt):
                ("volume", "Volume")], fmt)
 
 
+def cmd_micro(args, fmt):
+    """Microestrutura: market-making intra-cidade, livro e armadilhas."""
+    from albion import microstructure as mc
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado — rode `collect` antes.")
+    premium = not args.no_premium
+    cities = parse_cities(args.cities)
+    quals = parse_qualities(args.qualities)
+    item_ids = None
+    db = ItemDB()
+    if args.itens:
+        item_ids = [i["id"] for i in resolve_items(db, " ".join(args.itens))]
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid)
+
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        if args.acao == "spread":
+            res = mc.market_making_menu(
+                con, config.DEFAULT_SERVER, premium=premium,
+                max_age_min=args.max_age, cities=cities, item_ids=item_ids,
+                qualities=quals, min_net=args.min_net,
+                min_liquidity=args.min_volume, limit=args.limit)
+            for r in res:
+                r["item"] = name(r["item_id"]); r["city_pt"] = city_pt(r["city"])
+            info(f"Market-making intra-cidade (premium={'sim' if premium else 'não'}"
+                 "): posta ordem de compra E de venda no MESMO mercado. net já "
+                 "desconta imposto + 2,5% de anúncio nas duas pontas. Ordenado "
+                 "por potencial/dia (net × giro × 20%).")
+            emit(res, [("item", "Item"), ("city_pt", "Cidade"),
+                       ("quality", "Q"), ("buy_price_max", "Compra"),
+                       ("sell_price_min", "Venda"), ("net_per_unit", "Net/un"),
+                       ("net_pct", "Net %"), ("liquidity_day", "Giro/dia"),
+                       ("potential_day", "Pot./dia"), ("age_min", "Idade")], fmt)
+        elif args.acao == "book":
+            res = mc.book_metrics(
+                con, config.DEFAULT_SERVER, cities=cities, item_ids=item_ids,
+                qualities=quals, max_age_min=args.max_age, limit=args.limit)
+            for r in res:
+                r["item"] = name(r["item_id"]); r["city_pt"] = city_pt(r["city"])
+            info("Largura do topo do livro (PROXY de dispersão, não quantidade "
+                 "real): quanto mais larga, mais fácil o preço anda com volume.")
+            emit(res, [("item", "Item"), ("city_pt", "Cidade"), ("quality", "Q"),
+                       ("sell_min", "Venda mín"), ("sell_max", "Venda máx"),
+                       ("sell_width_pct", "Larg.venda %"),
+                       ("buy_width_pct", "Larg.compra %"),
+                       ("age_min", "Idade")], fmt)
+        elif args.acao == "traps":
+            res = mc.trap_signals(
+                con, config.DEFAULT_SERVER, cities=cities, item_ids=item_ids,
+                qualities=quals, max_age_min=args.max_age, limit=args.limit)
+            for r in res:
+                r["item"] = name(r["item_id"]); r["city_pt"] = city_pt(r["city"])
+                r["flags_pt"] = ", ".join(r["flags"])
+            info("Ordens suspeitas: 'cruzado' = venda <= compra (livro impossível"
+                 "); 'outlier' = preço fora da curva entre cidades (z robusto).")
+            emit(res, [("item", "Item"), ("city_pt", "Cidade"), ("quality", "Q"),
+                       ("sell_min", "Venda mín"), ("buy_max", "Compra máx"),
+                       ("sell_z", "z venda"), ("flags_pt", "Sinais"),
+                       ("age_min", "Idade")], fmt)
+        elif args.acao == "capital":
+            res = mc.capital_allocation(
+                con, config.DEFAULT_SERVER, capital=args.capital,
+                premium=premium, max_age_min=args.max_age, cities=cities,
+                min_liquidity=max(1, args.min_volume), limit=args.limit)
+            if fmt == "json":
+                print(json.dumps(res, ensure_ascii=False, indent=2)); return
+            for p in res["plan"]:
+                p["item"] = name(p["item_id"]); p["city_pt"] = city_pt(p["city"])
+            info(f"Alocação de {res['capital']:,} de prata por velocidade "
+                 f"(lucro/dia por prata investida). Usado: {res['capital_used']:,}"
+                 f" · lucro/dia estimado: {res['profit_day_total']:,}"
+                 + (f" · próximo de fora rende {res['marginal_yield_pct']}%/dia"
+                    if res.get('marginal_yield_pct') else "")
+                 + ". Assume ~1 ciclo/dia (teto orientativo).")
+            emit(res["plan"], [("item", "Item"), ("city_pt", "Cidade"),
+                               ("yield_day_pct", "Rend/dia %"),
+                               ("net_per_unit", "Net/un"),
+                               ("units", "Unid."), ("alloc_capital", "Capital"),
+                               ("profit_day", "Lucro/dia")], fmt)
+        else:  # hours
+            if not item_ids:
+                die("micro hours exige --itens <item> e --cities <cidade>.")
+            if not cities:
+                die("micro hours exige --cities <cidade>.")
+            res = mc.hourly_spread(
+                con, config.DEFAULT_SERVER, item_ids[0], cities[0],
+                quality=(quals[0] if quals else 1), premium=premium,
+                days=args.days)
+            info(f"Spread líquido por hora UTC de {name(item_ids[0])} em "
+                 f"{city_pt(cities[0])} (price_snapshots, {args.days}d). "
+                 "Poucas amostras/hora = padrão de coleta, não de mercado.")
+            emit(res, [("hour_utc", "Hora UTC"), ("net_median", "Net mediano"),
+                       ("samples", "Amostras")], fmt)
+    finally:
+        con.close()
+
+
 def cmd_prune(args, fmt):
     aodp = make_aodp()
     res = aodp.snapshot_prune(days=args.days)
@@ -1490,7 +1588,7 @@ def build_parser():
         dest="cmd", required=True,
         metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,watch,"
                 "collect,intel,survival,backtest,journals,refine,report,pos,"
-                "indexes,gold,status,prune,sql}")
+                "indexes,micro,gold,status,prune,sql}")
 
     p = sub.add_parser("search", parents=[common],
                        help="busca itens por nome PT/EN ou id")
@@ -1753,6 +1851,28 @@ def build_parser():
     p.add_argument("--tier-max", type=int)
     p.add_argument("--days", type=int, default=30)
     p.set_defaults(func=cmd_indexes)
+
+    p = sub.add_parser("micro", parents=[common],
+                       help="microestrutura: market-making, livro, armadilhas")
+    p.add_argument("acao", choices=("spread", "book", "traps", "capital",
+                                    "hours"))
+    p.add_argument("itens", nargs="*",
+                   help="itens (opcional p/ spread/book/traps; obrigatório p/ hours)")
+    p.add_argument("--cities", help="cidades (filtra; obrig. p/ hours)")
+    p.add_argument("--qualities", help="qualidades (ex.: 1,2)")
+    p.add_argument("--no-premium", action="store_true",
+                   help="usa imposto de 8% (sem premium)")
+    p.add_argument("--max-age", type=int, default=720,
+                   help="idade máx. do livro em min (padrão: 720)")
+    p.add_argument("--min-net", type=float, default=1,
+                   help="net mínimo por unidade (spread)")
+    p.add_argument("--min-volume", type=float, default=0,
+                   help="giro/dia mínimo (spread/capital)")
+    p.add_argument("--capital", type=float,
+                   help=f"capital p/ alocar (padrão: {config.ORDER_MAX_CAPITAL})")
+    p.add_argument("--days", type=int, default=7, help="janela p/ hours")
+    p.add_argument("--limit", type=int, default=40)
+    p.set_defaults(func=cmd_micro)
 
     p = sub.add_parser("prune", parents=[common],
                        help="agrega snapshots antigos e compacta o cache")

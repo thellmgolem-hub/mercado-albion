@@ -10,6 +10,13 @@ Fórmulas (verificadas no wiki oficial, jun/2026):
 
 Mercado Negro: só compra equipamento de combate, só por ordens de compra do
 sistema; um item de qualidade q pode preencher ordens de qualidade <= q.
+Você VENDE INSTANTANEAMENTE numa ordem do sistema — não cria ordem própria —
+então NÃO há taxa de anúncio (setup fee) do seu lado; só incide o imposto de
+venda (smugglertransactiontax = 0,08 base, reduzido a 0,04 com premium, igual
+ao mercado normal — confirmado no wiki oficial e em gamedata.json). O
+smugglersetupfee (1,5%) do dump é do lado do sistema/contrabando, não do
+vendedor; por isso o cálculo do BM usa sell_revenue(..., "instant"), sem
+SETUP_FEE — e isso está correto.
 """
 from datetime import datetime, timezone
 

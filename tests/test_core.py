@@ -657,5 +657,61 @@ class SeasonalityAndScoreTests(unittest.TestCase):
         self.assertEqual(o["opportunity_label"], "executar")
 
 
+class MicrostructureTests(unittest.TestCase):
+    def _price_row(self, item, city, q, smin, smax, bmin, bmax, fetched):
+        return ("americas", item, city, q, smin, DATE, smax, DATE,
+                bmin, DATE, bmax, DATE, fetched)
+
+    def test_market_making_filters_traps_and_bm(self):
+        import time
+        from albion import microstructure as mc
+        now = time.time()
+        with TemporaryDirectory() as tmp:
+            client = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                rows = [
+                    # MM real: spread positivo plausível em 3 cidades
+                    self._price_row("T4_POT", "Martlock", 1, 100, 110, 70, 80, now),
+                    self._price_row("T4_POT", "Lymhurst", 1, 102, 112, 71, 81, now),
+                    self._price_row("T4_POT", "Thetford", 1, 99, 109, 69, 79, now),
+                    # ordem-âncora (outlier): venda absurda numa cidade
+                    self._price_row("T4_POT", "Caerleon", 1, 100000, 100000,
+                                    70, 80, now),
+                    # livro cruzado: venda <= compra -> descartado
+                    self._price_row("T4_BAG", "Martlock", 1, 50, 60, 40, 90, now),
+                    # Mercado Negro: não é MM-able -> excluído
+                    self._price_row("T4_SWORD", "Black Market", 1, 500, 0,
+                                    0, 200, now),
+                ]
+                client.db.executemany(
+                    "INSERT INTO prices VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
+                # liquidez para o item de MM (history diário)
+                client.db.executemany(
+                    "INSERT INTO history VALUES (?,?,?,?,?,?,?,?,?)",
+                    [("americas", "T4_POT", "Martlock", 1, 24,
+                      "2026-06-1%dT00:00:00" % d, 500, 100, now)
+                     for d in range(1, 6)])
+                client.db.commit()
+                menu = mc.market_making_menu(client.db, "americas",
+                                             premium=True, max_age_min=None)
+                traps = mc.trap_signals(client.db, "americas", max_age_min=None)
+            finally:
+                client.db.close()
+
+        cities = {m["city"] for m in menu}
+        self.assertIn("Martlock", cities)
+        self.assertNotIn("Black Market", cities)        # BM excluído
+        self.assertNotIn("Caerleon", cities)            # âncora outlier filtrada
+        self.assertTrue(all(m["item_id"] != "T4_BAG" for m in menu))  # cruzado
+        mm = next(m for m in menu if m["city"] == "Martlock")
+        # net = 100*(1-0.04-0.025) - 80*(1.025) = 93.5 - 82 = 11.5
+        self.assertAlmostEqual(mm["net_per_unit"], 11.5, places=1)
+        self.assertEqual(mm["liquidity_day"], 500)
+
+        flags = {(t["item_id"], t["city"]): t["flags"] for t in traps}
+        self.assertIn("cruzado", flags[("T4_BAG", "Martlock")])
+        self.assertIn("outlier", flags[("T4_POT", "Caerleon")])
+
+
 if __name__ == "__main__":
     unittest.main()
