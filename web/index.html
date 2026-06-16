@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260616-6">
+<link rel="stylesheet" href="style.css?v=20260616-7">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -24,6 +24,7 @@
   <button data-tab="item">Item</button>
   <button data-tab="flips">Flips</button>
   <button data-tab="scanner">Scanner</button>
+  <button data-tab="avancado">Avançado</button>
 </nav>
 
 <main>
@@ -498,6 +499,28 @@
      "flips fantasmas" (a ordem já foi consumida). Use o ✕ para ocultar uma linha já executada.</p>
 </section>
 
+<!-- ============================ AVANÇADO ============================ -->
+<section class="tab" id="tab-avancado">
+  <div class="section-head">
+    <div>
+      <h1>Market-making intra-cidade</h1>
+      <div class="sub">Poste ordem de compra <b>e</b> de venda no mesmo mercado e embolse o
+        spread líquido (já descontados imposto + 2,5% de anúncio nas duas pontas). Exclui
+        Mercado Negro, livros cruzados e preços-âncora. Só cache local.</div>
+    </div>
+    <div class="field-row chips" id="avView">
+      <button class="chip on" data-view="spread">Cardápio (spread)</button>
+      <button class="chip" data-view="capital">Alocar capital</button>
+    </div>
+  </div>
+  <div class="status" id="avStatus"></div>
+  <div class="table-wrap" id="avTable"></div>
+  <p class="hint">O spread líquido por unidade costuma ser fino — o valor vem do <b>giro</b>
+     (Pot./dia = net × giro × 20%). Em <b>Alocar capital</b>, o plano distribui seu capital
+     por velocidade (lucro/dia por prata investida), com a taxa de preenchimento medida na
+     persistência das ordens.</p>
+</section>
+
 </main>
 
 <div id="toast"></div>
@@ -532,6 +555,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260616-6"></script>
+<script src="app.js?v=20260616-7"></script>
 </body>
 </html>

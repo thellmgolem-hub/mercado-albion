@@ -591,6 +591,10 @@ document.querySelectorAll('#tabs button').forEach((b) => {
     document.querySelectorAll('section.tab').forEach((x) => x.classList.remove('active'));
     b.classList.add('active');
     $('tab-' + b.dataset.tab).classList.add('active');
+    if (b.dataset.tab === 'avancado' && !state.avancadoLoaded) {
+      state.avancadoLoaded = true;
+      loadAvancado();
+    }
   });
 });
 
@@ -1513,6 +1517,53 @@ async function loadGoldChart(count) {
   }
 }
 
+let avView = 'spread';
+async function loadAvancado(view) {
+  if (view) avView = view;
+  const st = $('avStatus');
+  st.className = 'status';
+  st.textContent = 'calculando…';
+  try {
+    const res = await api('/api/micro', {
+      view: avView, premium: state.premium, min_volume: 5, limit: 40,
+    });
+    const itemCell = (o) => `<div class="cell-item">${iconImg(o.item_id, o.quality)}` +
+      `<div class="nm">${esc(o.name_pt)} ${qHtml(o.quality)}</div></div>`;
+    if (avView === 'capital') {
+      renderTable('avTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: itemCell },
+        { key: 'city', label: 'Cidade', align: 'l', value: (o) => o.city, html: (o) => cityHtml(o.city) },
+        { key: 'yield', label: 'Rend/dia %', value: (o) => o.yield_day_pct, html: (o) => fmtDec(o.yield_day_pct, 1) + '%' },
+        { key: 'net', label: 'Net/un', value: (o) => o.net_per_unit, html: (o) => fmt(o.net_per_unit) },
+        { key: 'units', label: 'Unid.', value: (o) => o.units, html: (o) => fmt(o.units) },
+        { key: 'cap', label: 'Capital', value: (o) => o.alloc_capital, html: (o) => fmt(o.alloc_capital) },
+        { key: 'profit', label: 'Lucro/dia', value: (o) => o.profit_day, html: (o) => `<span class="profit-pos">${fmt(o.profit_day)}</span>` },
+      ], res.plan || [], { sortKey: 'yield' });
+      st.textContent = `Capital ${fmt(res.capital)} · usado ${fmt(res.capital_used)} · ` +
+        `lucro/dia estimado ${fmt(res.profit_day_total)}` +
+        (res.fill_rate ? ` · preenchimento (survival) ${Math.round(res.fill_rate * 100)}%` : '');
+    } else {
+      const rows = res.rows || [];
+      renderTable('avTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: itemCell },
+        { key: 'city', label: 'Cidade', align: 'l', value: (o) => o.city, html: (o) => cityHtml(o.city) },
+        { key: 'buy', label: 'Compra', value: (o) => o.buy_price_max, html: (o) => fmt(o.buy_price_max) },
+        { key: 'sell', label: 'Venda', value: (o) => o.sell_price_min, html: (o) => fmt(o.sell_price_min) },
+        { key: 'net', label: 'Net/un', value: (o) => o.net_per_unit, html: (o) => `<span class="profit-pos">${fmt(o.net_per_unit)}</span>` },
+        { key: 'netpct', label: 'Net %', value: (o) => o.net_pct, html: (o) => fmtDec(o.net_pct, 1) + '%' },
+        { key: 'liq', label: 'Giro/dia', value: (o) => o.liquidity_day, html: (o) => fmt(o.liquidity_day) },
+        { key: 'pot', label: 'Pot./dia', value: (o) => o.potential_day, html: (o) => fmt(o.potential_day) },
+      ], rows, { sortKey: 'pot' });
+      st.textContent = rows.length
+        ? `${rows.length} oportunidades de market-making (poste compra+venda na mesma cidade)`
+        : 'sem spread líquido positivo no cache agora — colete mais ou tente sem premium';
+    }
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  }
+}
+
 async function loadSurvival() {
   const st = $('survStatus');
   st.className = 'status';
@@ -1930,6 +1981,12 @@ async function init() {
   });
   $('dashRecsRefresh').addEventListener('click', loadDashboardRecommendations);
   $('dashFused').addEventListener('change', loadDashboardRecommendations);
+  document.querySelectorAll('#avView .chip').forEach((b) =>
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#avView .chip').forEach((x) =>
+        x.classList.toggle('on', x === b));
+      loadAvancado(b.dataset.view);
+    }));
   $('dashCollect').addEventListener('click', runCollect);
   document.querySelectorAll('#goldRange .chip').forEach((b) =>
     b.addEventListener('click', () => {

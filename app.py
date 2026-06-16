@@ -902,6 +902,38 @@ def order_survival(item: str | None = None, city: str | None = None,
         con.close()
 
 
+@app.get("/api/micro")
+def micro(view: str = "spread", premium: bool = True,
+          min_volume: float = Query(0, ge=0), capital: float | None = None,
+          limit: int = Query(40, ge=1, le=200)):
+    """Microestrutura p/ a aba Avançado: market-making (spread) e alocação de capital."""
+    from albion import microstructure as mc
+    con = _cache_connection()
+    if con is None:
+        return {"view": view, "rows": []}
+    try:
+        name = lambda i: (db.get(i) or {}).get("pt", i)
+        if view == "capital":
+            # giro a 100% (teto orientativo) — a taxa de preenchimento real
+            # (survival) é pesada p/ a web; use `analyze.py micro capital` p/ ela
+            res = mc.capital_allocation(
+                con, aodp.server, capital=capital, premium=premium,
+                min_liquidity=max(1, min_volume), fill_rate=None, limit=limit)
+            for p in res["plan"]:
+                p["name_pt"] = name(p["item_id"])
+            res["view"] = "capital"
+            res["fill_rate"] = None
+            return res
+        rows = mc.market_making_menu(
+            con, aodp.server, premium=premium, min_liquidity=min_volume,
+            limit=limit)
+        for r in rows:
+            r["name_pt"] = name(r["item_id"])
+        return {"view": "spread", "rows": rows}
+    finally:
+        con.close()
+
+
 # ------------------------------------------------------- coleta automática
 def _auto_collect_loop():
     """Cadência dupla: killboard (intel) mais frequente que o mercado."""
