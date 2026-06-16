@@ -947,6 +947,25 @@ class RigorTests(unittest.TestCase):
         self.assertGreaterEqual(hp["percentile"], 90)        # hoje é o topo
         self.assertIn("refinar", hp["verdict"])
 
+    def test_backtest_reversion_rewards_reverting_series(self):
+        import math
+        import random
+        from albion import forecast as fc
+        # processo AR(1) mean-reverting (semente fixa -> determinístico): o
+        # sinal de reversão deve disparar e ACERTAR a maioria das vezes
+        rng = random.Random(42)
+        x, base, prices = 0.0, math.log(1000), []
+        for _ in range(160):
+            x = 0.6 * x + rng.gauss(0, 0.06)
+            prices.append(math.exp(base + x))
+        bt = fc.backtest_reversion(prices, min_history=25)
+        self.assertIsNotNone(bt)
+        self.assertGreater(bt["n_signals"], 5)
+        self.assertGreaterEqual(bt["hit_rate_pct"], 70)   # reversão real paga
+        self.assertGreater(bt["avg_edge_pct"], 0)
+        # série curta demais -> None
+        self.assertIsNone(fc.backtest_reversion([100, 101, 102], min_history=25))
+
     def test_structural_break_detects_level_shift(self):
         from albion import forecast as fc
         # 30 dias ~100, depois 30 dias ~200: quebra de NÍVEL no meio

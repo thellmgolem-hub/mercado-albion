@@ -150,6 +150,43 @@ def mean_reversion(prices, min_points=20, max_halflife=7, z_gate=1.5):
     }
 
 
+def backtest_reversion(prices, min_history=25, z_gate=1.5, max_halflife=7):
+    """Walk-forward do sinal de reversão: ele de fato pagou no passado?
+
+    Para cada dia com histórico suficiente, recalcula mean_reversion SÓ com os
+    dados até ali (sem espiar o futuro) e, quando o sinal dispara, mede o
+    retorno realizado nos ~meia-vida dias seguintes, com o sinal da direção
+    prevista. Devolve nº de sinais, taxa de acerto e edge médio — separa sinal
+    de promessa não-auditada. (O(n²) por série; varredura limita as séries.)
+    """
+    prices = [p for p in prices if p and p > 0]
+    n = len(prices)
+    if n < min_history + 2:
+        return None
+    edges = []
+    for t in range(min_history, n - 1):
+        sig = mean_reversion(prices[:t + 1], min_points=min_history,
+                             z_gate=z_gate, max_halflife=max_halflife)
+        if not sig or not sig["signal"]:
+            continue
+        h = min(int(round(sig["halflife_days"] or 3)), n - 1 - t)
+        if h < 1:
+            continue
+        fwd = prices[t + h] / prices[t] - 1            # retorno realizado
+        edges.append(fwd if sig["direction"] == "comprar" else -fwd)
+    if not edges:
+        return None
+    hits = sum(1 for e in edges if e > 0)
+    edges_s = sorted(edges)
+    return {
+        "points": n,
+        "n_signals": len(edges),
+        "hit_rate_pct": round(100 * hits / len(edges), 1),
+        "avg_edge_pct": round(100 * sum(edges) / len(edges), 2),
+        "median_edge_pct": round(100 * edges_s[len(edges_s) // 2], 2),
+    }
+
+
 def predictability(prices, counts=None, min_points=20):
     """Score 0..1 de previsibilidade + rótulo modelável/cautela/ruído.
 

@@ -1828,6 +1828,35 @@ def cmd_fc(args, fmt):
              ("action", "Ação"), ("signal", "Sinal")], fmt)
         return
 
+    if args.acao == "backtest":
+        # C1: valida o sinal de reversão walk-forward (acerto + edge realizado)
+        series = {}
+        for item, city, _day, price, _c in rows:
+            series.setdefault((item, city), []).append(price)
+        out = []
+        agg_edges, agg_signals, agg_hits = [], 0, 0
+        for (item, city), prices in sorted(series.items(), key=lambda kv: -len(kv[1]))[:120]:
+            bt = fc.backtest_reversion(prices, min_history=max(20, args.min_points))
+            if bt:
+                out.append({"item": name(item), "city_pt": city_pt(city), **bt})
+                agg_signals += bt["n_signals"]
+                agg_hits += round(bt["n_signals"] * bt["hit_rate_pct"] / 100)
+                agg_edges.append(bt["avg_edge_pct"])
+        out.sort(key=lambda r: -r["n_signals"])
+        if agg_signals:
+            hr = round(100 * agg_hits / agg_signals, 1)
+            ae = round(sum(agg_edges) / len(agg_edges), 2)
+            info(f"Backtest do sinal de reversão ({args.days}d, walk-forward): "
+                 f"{agg_signals} disparos em {len(out)} séries · acerto agregado "
+                 f"{hr}% · edge médio {ae}%. >50% e edge>0 = o sinal pagou.")
+        else:
+            info("Sem disparos de reversão no histórico do filtro.")
+        emit(out[:args.limit], [("item", "Item"), ("city_pt", "Cidade"),
+             ("n_signals", "Disparos"), ("hit_rate_pct", "Acerto %"),
+             ("avg_edge_pct", "Edge médio %"),
+             ("median_edge_pct", "Edge mediano %")], fmt)
+        return
+
     if args.acao == "regime":
         # quebra estrutural por item×cidade. O teste de permutação é caro
         # (O(N²)×perms), então: item específico -> rigor cheio; varredura ->
@@ -2598,7 +2627,8 @@ def build_parser():
 
     p = sub.add_parser("fc", parents=[common],
                        help="previsão: reversão, par trading, previsibilidade, regime")
-    p.add_argument("acao", choices=("revert", "pair", "predict", "regime"))
+    p.add_argument("acao", choices=("revert", "pair", "predict", "regime",
+                                    "backtest"))
     p.add_argument("itens", nargs="*", help="itens (pair exige 1)")
     p.add_argument("--cat", help="categoria (cesta)")
     p.add_argument("--sub", help="subcategoria")
