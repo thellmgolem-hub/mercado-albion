@@ -229,15 +229,17 @@ def _robust_z(values):
 
 
 def trap_signals(con, server, cities=None, item_ids=None, qualities=None,
-                 max_age_min=720, z_threshold=3.5, limit=80):
+                 max_age_min=720, z_threshold=3.5, check_ghost=True, limit=80):
     """Sinais de ordem-armadilha sobre o livro atual.
 
     (1) CRUZADO: sell_price_min <= buy_price_max no mesmo (item,city,q) — livro
         impossível, dado podre ou ordem que já sumiu.
     (2) OUTLIER: z robusto do sell_price_min do item/qualidade contra as outras
         cidades no mesmo instante > limiar — preço fora da curva (isca/erro).
-    Serve de camada de saneamento para flips/recommend não apontarem para
-    preços que evaporam antes de você chegar.
+    (3) NOVO/FANTASMA: a ordem do topo NÃO estava na coleta anterior (apareceu
+        agora) — não-confirmada, mais sujeita a evaporar; vs 'persistido', que
+        já sobreviveu a um ciclo de coleta. Olha price_snapshots por-ordem.
+    Camada de saneamento p/ flips/recommend não apontarem para preços que somem.
     """
     rows = _current_book(con, server, cities, item_ids, max_age_min=None)
     # agrupa por (item, q) para o corte transversal entre cidades
@@ -265,12 +267,29 @@ def trap_signals(con, server, cities=None, item_ids=None, qualities=None,
     out = [r for r in flags if r["flags"]]
     out.sort(key=lambda r: (0 if "cruzado" in r["flags"] else 1,
                             -abs(r.get("sell_z") or 0)))
-    return out[:limit] if limit else out
+    out = out[:limit] if limit else out
+    if check_ghost:
+        # 3º sinal por-ordem: a ordem do topo (sell) persistiu da coleta
+        # anterior? Só p/ os já flagrados (poucos) — consulta indexada.
+        for r in out:
+            snaps = con.execute(
+                """SELECT sell_price_min FROM price_snapshots
+                   WHERE server=? AND item_id=? AND city=? AND quality=?
+                   ORDER BY fetched_at DESC LIMIT 2""",
+                [server, r["item_id"], r["city"], r["quality"]]).fetchall()
+            if len(snaps) >= 2:
+                persisted = snaps[0][0] == snaps[1][0] and snaps[0][0]
+                r["persist"] = "persistido" if persisted else "novo"
+                if not persisted:
+                    r["flags"].append("novo")
+            else:
+                r["persist"] = "?"
+    return out
 
 
 def capital_allocation(con, server, capital=None, premium=True,
                        max_age_min=720, cities=None, hist_days=7,
-                       min_liquidity=1, limit=40):
+                       min_liquidity=1, fill_rate=None, limit=40):
     """Alocação de capital escasso por VELOCIDADE (lucro/dia por prata investida).
 
     Sobre o cardápio de market-making: para cada oportunidade, o giro
@@ -278,12 +297,14 @@ def capital_allocation(con, server, capital=None, premium=True,
     gulosamente por rendimento/dia (ROI por round-trip × giro) até esgotar o
     capital. Reporta o rendimento marginal do primeiro item que ficou de fora.
 
-    Simplificação honesta: assume ~1 ciclo/dia de inventário (o tempo de fila
-    real vem do módulo survival e a série fina ainda é curta), então o número é
-    um teto orientativo, não uma promessa.
+    fill_rate (0..1): fração das ordens do topo que realmente enchem num ciclo,
+    medida pelo módulo survival (persistência). Sem ela assume 1.0 (teto
+    orientativo); com ela o giro capturável vira (liquidez × CAPTURE_RATE ×
+    fill_rate) — quanto mais a ordem evapora antes de encher, menos giro real.
     """
     capital = capital or config.ORDER_MAX_CAPITAL
     f = config.SETUP_FEE
+    fill = 1.0 if fill_rate is None else max(0.05, min(1.0, fill_rate))
     menu = market_making_menu(con, server, premium=premium,
                               max_age_min=max_age_min, cities=cities,
                               hist_days=hist_days, min_liquidity=min_liquidity,
@@ -292,7 +313,7 @@ def capital_allocation(con, server, capital=None, premium=True,
     for m in menu:
         cap_unit = m["buy_price_max"] * (1 + f)
         m["cap_unit"] = round(cap_unit, 1)
-        m["units_day"] = round(m["liquidity_day"] * config.CAPTURE_RATE, 1)
+        m["units_day"] = round(m["liquidity_day"] * config.CAPTURE_RATE * fill, 1)
         m["yield_day_pct"] = round(100 * m["net_per_unit"] / cap_unit, 2) \
             if cap_unit > 0 else 0
     menu = [m for m in menu if m["units_day"] >= 0.5 and m["yield_day_pct"] > 0]

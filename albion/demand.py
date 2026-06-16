@@ -131,7 +131,7 @@ def destroyed_quality(con, server, days=7, price_q=None, limit=40):
     return out[:limit] if limit else out
 
 
-def meta_shift(con, server, days=7, recent=2, limit=30):
+def meta_shift(con, server, days=7, recent=2, limit=30, min_recent_n=15):
     """Builds (arma+armadura) cuja participação nas mortes está subindo.
 
     Self-join de kill_event_equipment (victim) MainHand × Armor por evento;
@@ -170,6 +170,11 @@ def meta_shift(con, server, days=7, recent=2, limit=30):
         return []
     out = []
     for key, n in recent_agg.items():
+        # C4: gate contra ruído — uma build que aparece só com poucas mortes na
+        # janela recente (ex.: um pico de 3 h) não é "meta subindo". Exige um
+        # mínimo de observações recentes antes de emitir o sinal de Δshare.
+        if n < min_recent_n:
+            continue
         share_r = n / recent_total
         share_b = (base_agg.get(key, 0) / base_total) if base_total else 0
         out.append({

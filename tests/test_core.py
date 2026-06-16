@@ -820,6 +820,71 @@ class RollupTests(unittest.TestCase):
         self.assertEqual(row[3], 2)          # 2 snapshots agregados
 
 
+class RigorIIITests(unittest.TestCase):
+    def test_meta_shift_gates_low_count_noise(self):
+        from datetime import datetime, timezone, timedelta
+        from albion import demand as dm
+        now = datetime.now(timezone.utc)
+        with TemporaryDirectory() as tmp:
+            client = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                eid = 0
+                # 1 build raro (2 mortes) + 1 build comum (30 mortes) na janela
+                def add(weapon, armor, k):
+                    nonlocal eid
+                    for _ in range(k):
+                        eid += 1
+                        ts = (now - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S")
+                        client.db.execute(
+                            "INSERT INTO kill_events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                            ("americas", eid, ts, 0, "kill", "OPEN", None, 0, 4,
+                             1, "k", "v", 0))
+                        client.db.execute(
+                            "INSERT INTO kill_event_equipment VALUES (?,?,?,?,?,?,?)",
+                            ("americas", eid, "victim", "MainHand", weapon, 1, 1))
+                        client.db.execute(
+                            "INSERT INTO kill_event_equipment VALUES (?,?,?,?,?,?,?)",
+                            ("americas", eid, "victim", "Armor", armor, 1, 1))
+                add("T4_2H_BOW", "T4_ARMOR_LEATHER_SET1", 30)
+                add("T4_MAIN_SWORD", "T4_ARMOR_PLATE_SET1", 2)
+                client.db.commit()
+                res = dm.meta_shift(client.db, "americas", days=7, recent=7,
+                                    min_recent_n=15)
+            finally:
+                client.db.close()
+        builds = {r["build"] for r in res}
+        self.assertIn("2H_BOW + ARMOR_LEATHER_SET1", builds)   # 30 >= 15
+        self.assertNotIn("MAIN_SWORD + ARMOR_PLATE_SET1", builds)  # 2 < 15 gated
+
+    def test_capital_fill_rate_scales_turnover(self):
+        from albion import microstructure as mc
+        import time as _t
+        now = _t.time()
+        with TemporaryDirectory() as tmp:
+            client = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                client.db.execute(
+                    "INSERT INTO prices VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    ("americas", "T4_POT", "Martlock", 1, 110, DATE, 0, DATE,
+                     0, DATE, 80, DATE, now))
+                client.db.executemany(
+                    "INSERT INTO history VALUES (?,?,?,?,?,?,?,?,?)",
+                    [("americas", "T4_POT", "Martlock", 1, 24,
+                      "2026-06-1%dT00:00:00" % d, 1000, 100, now)
+                     for d in range(1, 6)])
+                client.db.commit()
+                full = mc.capital_allocation(client.db, "americas",
+                                             capital=10_000_000, fill_rate=1.0)
+                half = mc.capital_allocation(client.db, "americas",
+                                             capital=10_000_000, fill_rate=0.5)
+            finally:
+                client.db.close()
+        pf = next(p for p in full["plan"] if p["item_id"] == "T4_POT")
+        ph = next(p for p in half["plan"] if p["item_id"] == "T4_POT")
+        # metade do fill -> metade do giro/dia capturável (e do lucro/dia)
+        self.assertAlmostEqual(ph["profit_day"], pf["profit_day"] / 2, delta=1)
+
+
 class RiskTests(unittest.TestCase):
     def test_risk_profile_drawdown_and_label(self):
         from albion import risk

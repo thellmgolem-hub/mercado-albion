@@ -1558,16 +1558,27 @@ def cmd_micro(args, fmt):
                 r["item"] = name(r["item_id"]); r["city_pt"] = city_pt(r["city"])
                 r["flags_pt"] = ", ".join(r["flags"])
             info("Ordens suspeitas: 'cruzado' = venda <= compra (livro impossível"
-                 "); 'outlier' = preço fora da curva entre cidades (z robusto).")
+                 "); 'outlier' = preço fora da curva entre cidades; 'novo' = ordem "
+                 "do topo não estava na coleta anterior (não-confirmada).")
             emit(res, [("item", "Item"), ("city_pt", "Cidade"), ("quality", "Q"),
                        ("sell_min", "Venda mín"), ("buy_max", "Compra máx"),
                        ("sell_z", "z venda"), ("flags_pt", "Sinais"),
-                       ("age_min", "Idade")], fmt)
+                       ("persist", "Persist."), ("age_min", "Idade")], fmt)
         elif args.acao == "capital":
+            # C7: taxa de preenchimento real (survival) escala o giro capturável
+            from albion import survival as _surv
+            try:
+                sv = _surv.persistence(con, config.DEFAULT_SERVER)
+                rates = [b["rate_pct"] for b in sv["sides"]["sell"]["buckets"]
+                         if b.get("rate_pct") is not None and b["pairs"] >= 3]
+                fill = (sum(rates) / len(rates) / 100) if rates else None
+            except Exception:
+                fill = None
             res = mc.capital_allocation(
                 con, config.DEFAULT_SERVER, capital=args.capital,
                 premium=premium, max_age_min=args.max_age, cities=cities,
-                min_liquidity=max(1, args.min_volume), limit=args.limit)
+                min_liquidity=max(1, args.min_volume), fill_rate=fill,
+                limit=args.limit)
             if fmt == "json":
                 print(json.dumps(res, ensure_ascii=False, indent=2)); return
             for p in res["plan"]:
@@ -1577,7 +1588,8 @@ def cmd_micro(args, fmt):
                  f" · lucro/dia estimado: {res['profit_day_total']:,}"
                  + (f" · próximo de fora rende {res['marginal_yield_pct']}%/dia"
                     if res.get('marginal_yield_pct') else "")
-                 + ". Assume ~1 ciclo/dia (teto orientativo).")
+                 + (f" · taxa de preenchimento (survival): {round(fill*100)}%."
+                    if fill else " · giro a 100% (survival sem dados — teto)."))
             emit(res["plan"], [("item", "Item"), ("city_pt", "Cidade"),
                                ("yield_day_pct", "Rend/dia %"),
                                ("net_per_unit", "Net/un"),
