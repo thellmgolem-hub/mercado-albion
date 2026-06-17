@@ -160,6 +160,11 @@ class AODP:
             );
             CREATE INDEX IF NOT EXISTS idx_kill_equip_item
               ON kill_event_equipment (server, item_id);
+            -- PvP/meta: filtra direto por papel+slot (killer/MainHand) e leva
+            -- o event_id p/ o join com kill_events — sem isto a consulta varria
+            -- a tabela inteira (~1,5M linhas, ~15 s).
+            CREATE INDEX IF NOT EXISTS idx_kill_equip_role_slot
+              ON kill_event_equipment (server, role, slot, event_id);
             CREATE TABLE IF NOT EXISTS battle_summaries (
               server TEXT, battle_id INTEGER, start_time TEXT, end_time TEXT,
               total_fame INTEGER, total_kills INTEGER, players INTEGER,

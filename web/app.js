@@ -601,6 +601,10 @@ document.querySelectorAll('#tabs button').forEach((b) => {
       state.moedasLoaded = true;
       loadGoldChart();
     }
+    if (b.dataset.tab === 'pvp' && !state.pvpLoaded) {
+      state.pvpLoaded = true;
+      loadPvp();
+    }
   });
 });
 
@@ -1638,6 +1642,59 @@ async function loadAvancado(view) {
   }
 }
 
+let pvpView = 'weapon';
+function winBadge(v) {
+  const cls = v >= 55 ? 'score-executar' : v >= 45 ? 'score-monitorar' : 'score-cautela';
+  return `<span class="score ${cls}">${fmtDec(v, 1)}%</span>`;
+}
+async function loadPvp(view) {
+  if (view) pvpView = view;
+  const st = $('pvpStatus');
+  st.className = 'status';
+  st.textContent = 'analisando killboard…';
+  try {
+    const days = $('pvpDays').value || 7;
+    const res = await api('/api/pvp', { view: pvpView, days, min_fights: 20, limit: 40 });
+    if (pvpView === 'overview') {
+      const o = res;
+      const pill = (l, v) => `<div class="lab-pill"><b>${l}</b><span class="v">${v}</span></div>`;
+      $('pvpTable').innerHTML = '<div class="coin-stats lab-summary">' +
+        pill('Kills observados', fmt(o.kills)) +
+        pill('Participantes médios', o.avg_participants != null ? o.avg_participants : '—') +
+        pill('Solo', o.solo_pct != null ? o.solo_pct + '%' : '—') +
+        pill('Grupo (≥4)', o.group_pct != null ? o.group_pct + '%' : '—') +
+        pill('IP médio killer', o.avg_ip_killer != null ? fmt(o.avg_ip_killer) : '—') +
+        pill('IP médio vítima', o.avg_ip_victim != null ? fmt(o.avg_ip_victim) : '—') +
+        pill('Fama total', fmt(o.total_fame)) +
+        '</div>';
+      st.textContent = `Panorama PvP · ${fmt(o.kills)} kills na janela`;
+      return;
+    }
+    const rows = res.rows || [];
+    const isBuild = pvpView === 'builds';
+    const cols = [
+      {
+        key: 'name', label: isBuild ? 'Build (arma + armadura)' : 'Arma', align: 'l',
+        value: (r) => r.build || r.weapon,
+        html: (r) => esc((r.build || r.weapon || '').replace(/_/g, ' ')),
+      },
+      { key: 'fights', label: 'Confrontos', value: (r) => r.fights, html: (r) => fmt(r.fights) },
+      { key: 'win', label: 'Vitória %', value: (r) => r.win_rate_pct, html: (r) => winBadge(r.win_rate_pct) },
+      { key: 'wins', label: 'V', value: (r) => r.wins, html: (r) => fmt(r.wins) },
+      { key: 'losses', label: 'D', value: (r) => r.losses, html: (r) => fmt(r.losses) },
+      { key: 'kd', label: 'K/D', value: (r) => r.kd == null ? 0 : r.kd, html: (r) => r.kd != null ? fmtDec(r.kd, 2) : '—' },
+      { key: 'pick', label: 'Pick %', value: (r) => r.pick_rate_pct, html: (r) => fmtDec(r.pick_rate_pct, 2) + '%' },
+    ];
+    renderTable('pvpTable', cols, rows, { sortKey: 'win' });
+    st.textContent = rows.length
+      ? `${rows.length} ${isBuild ? 'builds' : 'armas'} · ${fmt(res.total_fights)} confrontos na janela`
+      : 'sem confrontos suficientes na janela — aumente o período ou colete mais killboard';
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  }
+}
+
 async function loadSurvival() {
   const st = $('survStatus');
   st.className = 'status';
@@ -2061,6 +2118,13 @@ async function init() {
         x.classList.toggle('on', x === b));
       loadAvancado(b.dataset.view);
     }));
+  document.querySelectorAll('#pvpView .chip').forEach((b) =>
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#pvpView .chip').forEach((x) =>
+        x.classList.toggle('on', x === b));
+      loadPvp(b.dataset.view);
+    }));
+  $('pvpDays').addEventListener('change', () => loadPvp());
   $('dashCollect').addEventListener('click', runCollect);
   document.querySelectorAll('#goldRange .chip').forEach((b) =>
     b.addEventListener('click', () => {

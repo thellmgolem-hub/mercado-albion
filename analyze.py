@@ -2392,6 +2392,51 @@ def cmd_prod(args, fmt):
                            ("profit_per_day", "Lucro/dia canteiro")], fmt)
 
 
+def cmd_pvp(args, fmt):
+    """PvP: meta de builds com taxa de vitória (killboard)."""
+    from albion import pvp
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado — rode `intel collect` antes.")
+    clean = lambda f: (f or "").replace("_", " ")
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        if args.acao == "overview":
+            res = pvp.overview(con, config.DEFAULT_SERVER, days=args.days)
+            if fmt == "json":
+                print(json.dumps(res, ensure_ascii=False, indent=2)); return
+            info(f"Panorama PvP ({args.days}d) — killboard público (amostra).")
+            emit([res], [("kills", "Kills"), ("avg_participants", "Part. médios"),
+                         ("solo_pct", "Solo %"), ("group_pct", "Grupo %"),
+                         ("avg_ip_killer", "IP killer"),
+                         ("avg_ip_victim", "IP vítima"),
+                         ("total_fame", "Fama total")], fmt)
+            return
+        if args.acao == "builds":
+            res = pvp.build_meta(con, config.DEFAULT_SERVER, days=args.days,
+                                 min_fights=args.min_fights, limit=args.limit)
+            rows = [{**r, "build": clean(r["build"])} for r in res["rows"]]
+            info(f"Win rate por BUILD (arma+armadura), {res['total_fights']} "
+                 f"confrontos em {args.days}d. win% = golpe-final/(golpe-final+morte). "
+                 "Burst single-target infla; cruze com pick rate.")
+            emit(rows, [("build", "Build (arma + armadura)"), ("fights", "Confrontos"),
+                        ("win_rate_pct", "Vitória %"), ("kd", "K/D"),
+                        ("pick_rate_pct", "Pick %")], fmt)
+            return
+        res = pvp.weapon_meta(con, config.DEFAULT_SERVER, days=args.days,
+                              min_fights=args.min_fights, limit=args.limit)
+        rows = [{**r, "weapon": clean(r["weapon"])} for r in res["rows"]]
+        info(f"Win rate por ARMA, {res['total_fights']} confrontos em {args.days}d. "
+             "win% = golpe-final/(golpe-final+morte) — proxy do killboard; "
+             "armas de burst inflam, leia junto com o pick rate.")
+        emit(rows, [("weapon", "Arma"), ("fights", "Confrontos"),
+                    ("wins", "Vitórias"), ("losses", "Derrotas"),
+                    ("win_rate_pct", "Vitória %"), ("kd", "K/D"),
+                    ("pick_rate_pct", "Pick %")], fmt)
+    finally:
+        con.close()
+
+
 def cmd_prune(args, fmt):
     aodp = make_aodp()
     res = aodp.snapshot_prune(days=args.days)
@@ -2421,7 +2466,7 @@ def build_parser():
         dest="cmd", required=True,
         metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,origin,watch,"
                 "collect,intel,survival,backtest,journals,refine,report,pos,"
-                "indexes,prod,logi,risk,fc,demand,guild,micro,gold,status,prune,sql}")
+                "indexes,prod,logi,risk,fc,demand,guild,pvp,micro,gold,status,prune,sql}")
 
     p = sub.add_parser("search", parents=[common],
                        help="busca itens por nome PT/EN ou id")
@@ -2781,6 +2826,15 @@ def build_parser():
                    help="janela do percentil histórico (refine; padrão 120)")
     p.add_argument("--limit", type=int, default=40)
     p.set_defaults(func=cmd_prod)
+
+    p = sub.add_parser("pvp", parents=[common],
+                       help="PvP: meta de builds com taxa de vitória (killboard)")
+    p.add_argument("acao", choices=("meta", "builds", "overview"))
+    p.add_argument("--days", type=float, default=7, help="janela killboard (padrão 7)")
+    p.add_argument("--min-fights", type=int, default=20,
+                   help="confrontos mínimos p/ entrar no ranking")
+    p.add_argument("--limit", type=int, default=40)
+    p.set_defaults(func=cmd_pvp)
 
     p = sub.add_parser("micro", parents=[common],
                        help="microestrutura: market-making, livro, armadilhas")

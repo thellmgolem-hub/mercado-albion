@@ -1216,6 +1216,43 @@ class DemandGuildTests(unittest.TestCase):
         self.assertEqual(res["watched_count"], 1)
 
 
+class PvpTests(unittest.TestCase):
+    def test_weapon_meta_win_rate(self):
+        from datetime import datetime, timezone, timedelta
+        from albion import pvp
+        ts = (datetime.now(timezone.utc) - timedelta(hours=1)).strftime(
+            "%Y-%m-%dT%H:%M:%S")
+        with TemporaryDirectory() as tmp:
+            client = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                # 3 confrontos: AXE vence 2 (killer), perde 1 (vítima); BOW o inverso
+                fights = [(1, "T4_2H_AXE", "T4_2H_BOW"),
+                          (2, "T4_2H_AXE", "T4_2H_BOW"),
+                          (3, "T4_2H_BOW", "T4_2H_AXE")]
+                for eid, killer_w, victim_w in fights:
+                    client.db.execute(
+                        "INSERT INTO kill_events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        ("americas", eid, ts, 0, "kill", "OPEN", None, 0, 2, 1,
+                         "k", "v", 0))
+                    client.db.execute(
+                        "INSERT INTO kill_event_equipment VALUES (?,?,?,?,?,?,?)",
+                        ("americas", eid, "killer", "MainHand", killer_w, 1, 1))
+                    client.db.execute(
+                        "INSERT INTO kill_event_equipment VALUES (?,?,?,?,?,?,?)",
+                        ("americas", eid, "victim", "MainHand", victim_w, 1, 1))
+                client.db.commit()
+                res = pvp.weapon_meta(client.db, "americas", days=7, min_fights=1)
+            finally:
+                client.db.close()
+        rows = {r["weapon"]: r for r in res["rows"]}
+        self.assertEqual(rows["2H_AXE"]["wins"], 2)
+        self.assertEqual(rows["2H_AXE"]["losses"], 1)
+        self.assertAlmostEqual(rows["2H_AXE"]["win_rate_pct"], 66.7, delta=0.2)
+        self.assertEqual(rows["2H_BOW"]["wins"], 1)
+        self.assertEqual(rows["2H_BOW"]["losses"], 2)
+        self.assertEqual(res["total_fights"], 6)   # 3 killers + 3 vítimas
+
+
 class ApiUiTests(unittest.TestCase):
     def setUp(self):
         self.c = TestClient(app.app)

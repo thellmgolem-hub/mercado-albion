@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260616-10">
+<link rel="stylesheet" href="style.css?v=20260616-11">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -26,6 +26,7 @@
   <button data-tab="flips">Flips</button>
   <button data-tab="scanner">Scanner</button>
   <button data-tab="killboard">Killboard</button>
+  <button data-tab="pvp">PvP</button>
   <button data-tab="avancado">Avançado</button>
 </nav>
 
@@ -208,6 +209,37 @@
   </div>
   <div class="status" id="riskStatus"></div>
   <div class="table-wrap" id="riskTable"></div>
+</section>
+
+<!-- ============================ PVP ============================ -->
+<section class="tab" id="tab-pvp">
+  <div class="section-head">
+    <div>
+      <h1>PvP — builds meta &amp; taxa de vitória</h1>
+      <div class="sub">Do killboard público: win% = vezes que a arma deu o
+        golpe final ÷ (golpes finais + mortes com ela). Cruze com o pick rate
+        (popularidade) — armas de burst inflam o win% vs suportes/tanques.</div>
+    </div>
+    <div class="field-row">
+      <div class="chips" id="pvpView">
+        <button class="chip on" data-view="weapon">Por arma</button>
+        <button class="chip" data-view="builds">Por build</button>
+        <button class="chip" data-view="overview">Panorama</button>
+      </div>
+      <select id="pvpDays">
+        <option value="1">24 horas</option>
+        <option value="7" selected>7 dias</option>
+        <option value="14">14 dias</option>
+      </select>
+    </div>
+  </div>
+  <div class="status" id="pvpStatus"></div>
+  <div class="table-wrap" id="pvpTable"></div>
+  <p class="hint">Métrica honesta de killboard: "vitória" é a posse do golpe
+     final (em grupo, atribui a um killer; o feed só guarda equipamento de
+     killer e vítima). Use a coluna <b>Confrontos</b> como tamanho de amostra —
+     win% de poucas lutas é ruído. <b>Pick %</b> = participação da arma/build no
+     total observado. <b>K/D</b> = golpes finais ÷ mortes.</p>
 </section>
 
 <!-- ============================ ITEM ============================ -->
@@ -578,6 +610,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260616-10"></script>
+<script src="app.js?v=20260616-11"></script>
 </body>
 </html>

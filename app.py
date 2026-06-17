@@ -934,6 +934,28 @@ def micro(view: str = "spread", premium: bool = True,
         con.close()
 
 
+@app.get("/api/pvp")
+def pvp_meta(view: str = "weapon", days: float = Query(7, ge=0.25, le=30),
+             min_fights: int = Query(20, ge=1), limit: int = Query(40, ge=1, le=200)):
+    """PvP: meta de builds com taxa de vitória (killboard). view=weapon|builds|overview."""
+    from albion import pvp
+    con = _cache_connection()
+    if con is None:
+        return {"view": view, "rows": []}
+    try:
+        if view == "overview":
+            return {"view": "overview", **pvp.overview(con, aodp.server, days=days)}
+        if view == "builds":
+            return {"view": "builds",
+                    **pvp.build_meta(con, aodp.server, days=days,
+                                     min_fights=min_fights, limit=limit)}
+        return {"view": "weapon",
+                **pvp.weapon_meta(con, aodp.server, days=days,
+                                  min_fights=min_fights, limit=limit)}
+    finally:
+        con.close()
+
+
 @app.get("/api/item_signals")
 def item_signals(item: str, days: int = Query(180, ge=30, le=400)):
     """Risco + reversão + regime + previsibilidade de um item, da melhor série
@@ -1027,6 +1049,11 @@ def _auto_collect_loop():
             if (config.AUTO_PRUNE_INTERVAL_H > 0 and
                     time.time() - last_prune >= config.AUTO_PRUNE_INTERVAL_H * 3600):
                 aodp.snapshot_prune(vacuum=False)
+                # mantém as estatísticas do planejador frescas (sem isto o
+                # planner ignora os índices e as consultas de PvP/meta sobre
+                # kill_event_equipment caem de ~0,5 s para ~15 s)
+                with aodp.db_lock:
+                    aodp.db.execute("PRAGMA optimize")
                 last_prune = time.time()
         except Exception:
             pass
