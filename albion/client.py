@@ -545,7 +545,12 @@ class AODP:
         Roda na coleta para o roll-up diário ficar sempre atual (a poda só
         cuidava dos dias > retenção). Idempotente: INSERT OR REPLACE pela PK do
         dia. Restringe aos item_ids coletados para limitar o custo."""
-        cutoff = time.time() - days * 86400
+        # corta na MEIA-NOITE UTC (como snapshot_prune, SQL-4): um cutoff
+        # deslizante por instante re-agregaria o dia de fronteira só com os
+        # snapshots dentro da janela e o INSERT OR REPLACE sobrescreveria o
+        # agregado COMPLETO daquele dia por um PARCIAL (min/avg/max errados).
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).replace(
+            hour=0, minute=0, second=0, microsecond=0).timestamp()
         where = ["server=?", "fetched_at >= ?"]
         params = [self.server, cutoff]
         if item_ids:

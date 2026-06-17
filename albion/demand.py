@@ -40,7 +40,7 @@ def _exposure_days(con, server, days):
     hours = con.execute(
         """SELECT COUNT(DISTINCT strftime('%Y-%m-%dT%H', ts))
            FROM kill_events WHERE server=? AND ts >= datetime('now', ?)""",
-        [server, f"-{int(days)} days"]).fetchone()[0] or 0
+        [server, f"-{days} days"]).fetchone()[0] or 0
     return max(hours / 24.0, 1 / 24.0)   # piso de 1h p/ não dividir por zero
 
 
@@ -60,7 +60,7 @@ def consumable_burn(con, server, days=7, price_of=None, vol_of=None, limit=40):
            WHERE e.server=? AND e.role='victim' AND e.slot IN ('Potion','Food')
              AND k.ts >= datetime('now', ?)
            GROUP BY e.item_id HAVING units>0""",
-        [server, f"-{int(days)} days"]).fetchall()
+        [server, f"-{days} days"]).fetchall()
     exp_days = _exposure_days(con, server, days)   # normaliza por exposição
     out = []
     for item, units, _evs in rows:
@@ -99,7 +99,7 @@ def destroyed_quality(con, server, days=7, price_q=None, limit=40):
              AND event_id IN (SELECT event_id FROM kill_events
                               WHERE server=? AND ts >= datetime('now', ?))
            GROUP BY item_id, quality""",
-        [server, server, f"-{int(days)} days"]).fetchall()
+        [server, server, f"-{days} days"]).fetchall()
     by_item = {}
     for item, q, units in rows:
         by_item.setdefault(item, {})[q] = units
@@ -140,10 +140,10 @@ def meta_shift(con, server, days=7, recent=2, limit=30, min_recent_n=15):
     """
     def combo_counts(since, until=None):
         cond = "k.ts >= datetime('now', ?)"
-        params = [server, f"-{int(since)} days"]
+        params = [server, f"-{since} days"]
         if until is not None:
             cond += " AND k.ts < datetime('now', ?)"
-            params.append(f"-{int(until)} days")
+            params.append(f"-{until} days")
         rows = con.execute(
             f"""SELECT m.item_id AS weapon, a.item_id AS armor, COUNT(*) AS n
                 FROM kill_event_equipment m

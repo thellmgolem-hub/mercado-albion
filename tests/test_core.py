@@ -850,6 +850,36 @@ class RollupTests(unittest.TestCase):
         self.assertEqual(row[2], 90)         # buy_max
         self.assertEqual(row[3], 2)          # 2 snapshots agregados
 
+    def test_rollup_boundary_day_is_complete(self):
+        # regressão: o dia de fronteira deve agregar TODOS os seus snapshots,
+        # não só os que caem na janela deslizante (cutoff alinhado à meia-noite)
+        from datetime import datetime, timezone, timedelta
+        midnight2 = (datetime.now(timezone.utc) - timedelta(days=2)).replace(
+            hour=0, minute=0, second=0, microsecond=0)
+        early = (midnight2 + timedelta(hours=2)).timestamp()    # 02:00
+        late = (midnight2 + timedelta(hours=20)).timestamp()    # 20:00
+
+        def snap(fetched, sell):
+            return ("americas", "T4_Y", "Martlock", 1, sell, "d", 0, "d",
+                    0, "d", 0, "d", fetched)
+        with TemporaryDirectory() as tmp:
+            client = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                client.db.executemany(
+                    "INSERT INTO price_snapshots VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    [snap(early, 50), snap(late, 200)])
+                client.db.commit()
+                client._rollup_daily(["T4_Y"], days=3)   # janela inclui o dia -2
+                row = client.db.execute(
+                    "SELECT sell_min, sell_avg, sell_max, samples "
+                    "FROM price_snapshots_daily WHERE item_id='T4_Y'").fetchone()
+            finally:
+                client.db.close()
+        self.assertEqual(row[0], 50)         # manhã não foi perdida
+        self.assertEqual(row[2], 200)        # tarde presente
+        self.assertEqual(row[3], 2)          # dia inteiro, não parcial
+        self.assertAlmostEqual(row[1], 125)  # avg dos 2
+
 
 class RigorIIITests(unittest.TestCase):
     def test_meta_shift_gates_low_count_noise(self):
@@ -1242,8 +1272,12 @@ class PvpTests(unittest.TestCase):
                         ("americas", eid, "victim", "MainHand", victim_w, 1, 1))
                 client.db.commit()
                 res = pvp.weapon_meta(client.db, "americas", days=7, min_fights=1)
+                # janela FRACIONÁRIA deve ser honrada (eventos em now-1h):
+                # cutoff -12h inclui; com int(0.5)=0 dias daria -0d (=now) e zeraria
+                frac = pvp.weapon_meta(client.db, "americas", days=0.5, min_fights=1)
             finally:
                 client.db.close()
+        self.assertEqual(frac["total_fights"], 6)   # bug do int(days) corrigido
         rows = {r["weapon"]: r for r in res["rows"]}
         self.assertEqual(rows["2H_AXE"]["wins"], 2)
         self.assertEqual(rows["2H_AXE"]["losses"], 1)

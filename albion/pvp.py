@@ -35,7 +35,7 @@ def _slot_counts(con, server, days, slot, role):
            WHERE k.server=? AND k.ts >= datetime('now', ?)
              AND e.role=? AND e.slot=?
            GROUP BY e.item_id""",
-        [server, f"-{int(days)} days", role, slot]).fetchall()
+        [server, f"-{days} days", role, slot]).fetchall()
     out = {}
     for item_id, n in rows:
         fam = item_family(item_id)
@@ -78,7 +78,7 @@ def _build_counts(con, server, days, role):
                 AND a.role=? AND a.slot='Armor'
            WHERE k.server=? AND k.ts >= datetime('now', ?)
            GROUP BY weapon, armor""",
-        [role, role, server, f"-{int(days)} days"]).fetchall()
+        [role, role, server, f"-{days} days"]).fetchall()
     out = {}
     for w, a, n in rows:
         key = (item_family(w), item_family(a))
@@ -116,7 +116,7 @@ def overview(con, server, days=7):
                   SUM(CASE WHEN n_participants>=4 THEN 1 ELSE 0 END) AS grupo,
                   SUM(total_victim_kill_fame) AS fame
            FROM kill_events WHERE server=? AND ts >= datetime('now', ?)""",
-        [server, f"-{int(days)} days"]).fetchone()
+        [server, f"-{days} days"]).fetchone()
     ip = dict(con.execute(
         """SELECT a.role, AVG(a.avg_ip)
            FROM kill_events k
@@ -125,7 +125,7 @@ def overview(con, server, days=7):
            WHERE k.server=? AND k.ts >= datetime('now', ?)
              AND a.role IN ('killer','victim') AND a.avg_ip>0
            GROUP BY a.role""",
-        [server, f"-{int(days)} days"]).fetchall())
+        [server, f"-{days} days"]).fetchall())
     kills = k[0] or 0
     return {
         "kills": kills,
