@@ -1336,6 +1336,26 @@ class ApiUiTests(unittest.TestCase):
         self.assertEqual(rk.status_code, 200)
         self.assertIsInstance(rk.json().get('series'), list)
 
+    def test_logi_endpoint_views(self):
+        # hub Avançado/Logística: bm/ladder/restock todos 200 com rows
+        for view in ('bm', 'ladder', 'restock'):
+            r = self.c.get('/api/logi', params={'view': view, 'days': 7, 'limit': 3})
+            self.assertEqual(r.status_code, 200, view)
+            self.assertEqual(r.json().get('view'), view)
+            self.assertIsInstance(r.json().get('rows'), list)
+
+    def test_risk_endpoint_views(self):
+        # hub Avançado/Risco: profile e corr respondem 200 com rows; o perfil
+        # limita o universo aos itens mais líquidos (bootstrap caro)
+        rp = self.c.get('/api/risk', params={'view': 'profile', 'limit': 5})
+        self.assertEqual(rp.status_code, 200)
+        self.assertEqual(rp.json().get('view'), 'profile')
+        self.assertIsInstance(rp.json().get('rows'), list)
+        rc = self.c.get('/api/risk', params={'view': 'corr', 'limit': 5})
+        self.assertEqual(rc.status_code, 200)
+        self.assertEqual(rc.json().get('view'), 'corr')
+        self.assertIsInstance(rc.json().get('rows'), list)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1653,7 +1653,8 @@ function showAvSub(av) {
   if (state.avSubLoaded[av]) return;
   state.avSubLoaded[av] = true;
   ({ micro: loadAvancado, prod: loadAvProd, demanda: loadAvDemanda,
-     guild: loadAvGuild }[av] || (() => {}))();
+     guild: loadAvGuild, logi: loadAvLogi, risco: loadAvRisco }[av]
+    || (() => {}))();
 }
 
 const avItemCell = (o) => `<div class="cell-item">${iconImg(o.item_id, o.quality)}` +
@@ -1767,6 +1768,84 @@ async function loadAvGuild(view) {
       ], rows, { sortKey: 'score' });
     }
     st.textContent = `${rows.length} itens (${avGuildView})`;
+  } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
+}
+
+let avLogiView = 'bm';
+async function loadAvLogi(view) {
+  if (view) avLogiView = view;
+  const st = $('logiStatus');
+  st.className = 'status';
+  st.textContent = 'calculando…';
+  try {
+    const res = await api('/api/logi', { view: avLogiView, premium: state.premium, days: 7, limit: 50 });
+    const rows = res.rows || [];
+    if (avLogiView === 'ladder') {
+      renderTable('logiTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'city', label: 'Cidade', align: 'l', value: (o) => o.city, html: (o) => cityHtml(o.city) },
+        { key: 'quals', label: 'Q cotadas', align: 'l', value: (o) => o.quals, html: (o) => esc(o.quals) },
+        { key: 'step', label: 'Maior salto', align: 'l', value: (o) => o.best_step, html: (o) => esc(o.best_step) },
+        { key: 'pct', label: 'Prêmio %', value: (o) => o.best_premium_pct, html: (o) => fmtDec(o.best_premium_pct, 1) + '%' },
+        { key: 'abs', label: 'Prêmio prata', value: (o) => o.best_premium_abs, html: (o) => fmt(o.best_premium_abs) },
+      ], rows, { sortKey: 'pct' });
+    } else if (avLogiView === 'restock') {
+      renderTable('logiTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'dem', label: 'Perdidos', value: (o) => o.demand_units, html: (o) => fmt(o.demand_units) },
+        { key: 'buy', label: 'Comprar em', align: 'l', value: (o) => o.buy_city, html: (o) => cityHtml(o.buy_city) },
+        { key: 'bp', label: 'Custo', value: (o) => o.buy_price, html: (o) => fmt(o.buy_price) },
+        { key: 'sell', label: 'Vender em', align: 'l', value: (o) => o.sell_city, html: (o) => cityHtml(o.sell_city) },
+        { key: 'sn', label: 'Venda líq', value: (o) => o.sell_net, html: (o) => fmt(o.sell_net) },
+        { key: 'pk', label: 'Lucro/kg', value: (o) => o.profit_per_kg, html: (o) => fmt(o.profit_per_kg) },
+      ], rows, { sortKey: 'pk' });
+    } else {
+      renderTable('logiTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'q', label: 'Q', value: (o) => o.quality, html: (o) => 'q' + o.quality },
+        { key: 'real', label: 'Melhor real', align: 'l', value: (o) => o.best_city, html: (o) => cityHtml(o.best_city) },
+        { key: 'rn', label: 'Real líq', value: (o) => o.best_city_net, html: (o) => fmt(o.best_city_net) },
+        { key: 'bm', label: 'BM líq', value: (o) => o.bm_net, html: (o) => fmt(o.bm_net) },
+        { key: 'pa', label: 'Prêmio', value: (o) => o.premium_abs, html: (o) => fmt(o.premium_abs) },
+        { key: 'pct', label: 'Prêmio %', value: (o) => o.premium_pct, html: (o) => fmtDec(o.premium_pct, 1) + '%' },
+      ], rows, { sortKey: 'pa' });
+    }
+    st.textContent = rows.length ? `${rows.length} itens (${avLogiView})` : 'sem dados para esta visão (colete preços/killboard)';
+  } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
+}
+
+let avRiscoView = 'profile';
+async function loadAvRisco(view) {
+  if (view) avRiscoView = view;
+  const st = $('riscoStatus');
+  st.className = 'status';
+  st.textContent = avRiscoView === 'profile' ? 'calculando risco (bootstrap)…' : 'calculando correlação…';
+  try {
+    const res = await api('/api/risk', { view: avRiscoView, days: 120, limit: 60 });
+    const rows = res.rows || [];
+    if (avRiscoView === 'corr') {
+      renderTable('riscoTable', [
+        { key: 'a', label: 'Item A', align: 'l', value: (o) => o.a_pt, html: (o) => esc(o.a_pt) },
+        { key: 'b', label: 'Item B', align: 'l', value: (o) => o.b_pt, html: (o) => esc(o.b_pt) },
+        { key: 'corr', label: 'Correl.', value: (o) => o.corr, html: (o) => fmtDec(o.corr, 2) },
+        { key: 'days', label: 'Dias comuns', value: (o) => o.common_days, html: (o) => fmt(o.common_days) },
+        { key: 'tipo', label: 'Leitura', align: 'l', value: (o) => o.tipo, html: (o) => esc(o.tipo) },
+      ], rows, { sortKey: 'corr' });
+    } else {
+      const lbl = (o) => `<span class="risk-${o.risk_label === 'seguro' ? 'lo' : o.risk_label === 'médio' ? 'mid' : 'hi'}">${esc(o.risk_label)}</span>`;
+      renderTable('riscoTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'city', label: 'Cidade', align: 'l', value: (o) => o.city, html: (o) => cityHtml(o.city) },
+        { key: 'pts', label: 'Dias', value: (o) => o.points, html: (o) => fmt(o.points) },
+        { key: 'vol', label: 'Vol %a.a.', value: (o) => o.vol_annual_pct, html: (o) => fmtDec(o.vol_annual_pct, 1) + '%' },
+        { key: 'ci', label: 'IC vol', align: 'l', value: (o) => o.vol_ci, html: (o) => esc(o.vol_ci) },
+        { key: 'shr', label: 'Vol ajust.', value: (o) => o.vol_shrunk_pct, html: (o) => fmtDec(o.vol_shrunk_pct, 1) + '%' },
+        { key: 'dd', label: 'Max DD %', value: (o) => o.max_drawdown_pct, html: (o) => fmtDec(o.max_drawdown_pct, 1) + '%' },
+        { key: 'var', label: 'VaR 1d %', value: (o) => o.var_1d_pct, html: (o) => fmtDec(o.var_1d_pct, 1) + '%' },
+        { key: 'lbl', label: 'Selo', align: 'l', value: (o) => o.risk_label, html: lbl },
+      ], rows, { sortKey: 'shr' });
+    }
+    st.textContent = rows.length ? `${rows.length} ${avRiscoView === 'corr' ? 'pares' : 'itens líquidos'}` : 'sem série suficiente no cache';
   } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
 }
 
@@ -2255,7 +2334,8 @@ async function init() {
   $('pvpDays').addEventListener('change', () => loadPvp());
   document.querySelectorAll('#avSubtabs button').forEach((b) =>
     b.addEventListener('click', () => showAvSub(b.dataset.av)));
-  [['#prodView', loadAvProd], ['#demandView', loadAvDemanda], ['#guildView', loadAvGuild]]
+  [['#prodView', loadAvProd], ['#demandView', loadAvDemanda], ['#guildView', loadAvGuild],
+   ['#logiView', loadAvLogi], ['#riscoView', loadAvRisco]]
     .forEach(([sel, loader]) =>
       document.querySelectorAll(sel + ' .chip').forEach((b) =>
         b.addEventListener('click', () => {

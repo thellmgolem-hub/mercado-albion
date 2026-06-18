@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260618-1">
+<link rel="stylesheet" href="style.css?v=20260618-2">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -561,6 +561,8 @@
     <button data-av="prod">Produção</button>
     <button data-av="demanda">Demanda</button>
     <button data-av="guild">Guild</button>
+    <button data-av="logi">Logística</button>
+    <button data-av="risco">Risco</button>
   </nav>
 
   <!-- av: Microestrutura -->
@@ -636,6 +638,43 @@
     <div class="status" id="guildStatus"></div>
     <div class="table-wrap" id="guildTable"></div>
   </div>
+
+  <!-- av: Logística -->
+  <div class="subtab" id="av-logi">
+    <div class="section-head">
+      <div>
+        <h1>Arbitragem &amp; logística</h1>
+        <div class="sub">Prêmio do Mercado Negro sobre a melhor venda real, prêmio por degrau de
+          qualidade na mesma cidade e o mapa de reposição (o que o servidor perde × onde abastecer).
+          Preços-âncora saneados.</div>
+      </div>
+      <div class="field-row chips" id="logiView">
+        <button class="chip on" data-view="bm">Mercado Negro</button>
+        <button class="chip" data-view="ladder">Escada de qualidade</button>
+        <button class="chip" data-view="restock">Mapa de reposição</button>
+      </div>
+    </div>
+    <div class="status" id="logiStatus"></div>
+    <div class="table-wrap" id="logiTable"></div>
+  </div>
+
+  <!-- av: Risco -->
+  <div class="subtab" id="av-risco">
+    <div class="section-head">
+      <div>
+        <h1>Risco &amp; portfólio</h1>
+        <div class="sub">Perfil de risco por item (volatilidade anual com IC bootstrap, EWMA, vol
+          ajustada por shrinkage, max drawdown e VaR 1d) com selo calibrado aos tercis do mercado, e
+          correlação dos retornos (concentração vs hedge). Universo: itens mais líquidos.</div>
+      </div>
+      <div class="field-row chips" id="riscoView">
+        <button class="chip on" data-view="profile">Perfil de risco</button>
+        <button class="chip" data-view="corr">Correlação</button>
+      </div>
+    </div>
+    <div class="status" id="riscoStatus"></div>
+    <div class="table-wrap" id="riscoTable"></div>
+  </div>
 </section>
 
 </main>
@@ -672,6 +711,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260618-1"></script>
+<script src="app.js?v=20260618-2"></script>
 </body>
 </html>

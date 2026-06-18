@@ -385,6 +385,13 @@ tbody tr:nth-child(even):hover { background: rgba(212, 168, 67, 0.08); }
 
 .profit-pos { color: var(--green); font-weight: 700; }
 .profit-neg { color: var(--red); }
+.risk-lo, .risk-mid, .risk-hi {
+  font-size: 0.72rem; font-weight: 700; padding: 1px 7px; border-radius: 10px;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+.risk-lo { color: var(--green); background: color-mix(in srgb, var(--green) 16%, transparent); }
+.risk-mid { color: var(--yellow); background: color-mix(in srgb, var(--yellow) 16%, transparent); }
+.risk-hi { color: var(--red); background: color-mix(in srgb, var(--red) 16%, transparent); }
 .silver { font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
 .conf {

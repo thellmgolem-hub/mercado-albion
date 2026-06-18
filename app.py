@@ -1098,6 +1098,151 @@ def guild_view(view: str = "watch", days: float = Query(7, ge=0.25, le=30),
         con.close()
 
 
+def _clean_prows(con):
+    """Linhas de prices saneadas (sem âncora) no formato dos rows da API —
+    base das análises de logística (carga, escada de qualidade, BM, reposição)."""
+    from albion.microstructure import clean_price_rows
+    return clean_price_rows([dict(r) for r in con.execute(
+        "SELECT * FROM prices WHERE server=?", [aodp.server]).fetchall()])
+
+
+def _metas_for(rows):
+    return {iid: m for iid in {r["item_id"] for r in rows} if (m := db.get(iid))}
+
+
+def _history_daily_rows(con, item_ids=None, cities=None, days=120,
+                        with_count=False):
+    """(item, city, dia, avg_price[, item_count]) do history q1 — espelha
+    analyze.py _history_daily, sobre a conexão somente-leitura do servidor."""
+    where = ["server=?", "time_scale=24", "quality=1", "avg_price>0",
+             "ts >= date('now', ?)"]
+    params = [aodp.server, f"-{int(days)} days"]
+    if item_ids:
+        where.append(f"item_id IN ({_placeholders(item_ids)})")
+        params += list(item_ids)
+    if cities:
+        where.append(f"city IN ({_placeholders(cities)})")
+        params += list(cities)
+    cols = "item_id, city, substr(ts,1,10) AS day, avg_price" + (
+        ", item_count" if with_count else "")
+    return con.execute(
+        f"""SELECT {cols} FROM history WHERE {' AND '.join(where)}
+            ORDER BY item_id, city, day""", params).fetchall()
+
+
+@app.get("/api/logi")
+def logi_view(view: str = "bm", premium: bool = True,
+              days: float = Query(7, ge=0.25, le=30),
+              limit: int = Query(40, ge=1, le=200)):
+    """Logística p/ o hub Avançado: prêmio do Mercado Negro, escada de
+    qualidade e mapa de reposição (killboard × onde abastecer)."""
+    from albion import logistics as logi
+    con = _cache_connection()
+    if con is None:
+        return {"view": view, "rows": []}
+    try:
+        prows = _clean_prows(con)
+        metas = _metas_for(prows)
+        if view == "ladder":
+            rows = logi.quality_ladder(prows, metas, premium=premium, limit=limit)
+            for r in rows:
+                r["quals"] = ",".join(map(str, r.get("qualities", [])))
+        elif view == "restock":
+            demand = con.execute(
+                """SELECT item_id, SUM(victim_units) AS u FROM item_demand_daily
+                   WHERE server=? AND day >= date('now', ?)
+                   GROUP BY item_id HAVING u>0 ORDER BY u DESC LIMIT 400""",
+                [aodp.server, f"-{int(days)} days"]).fetchall()
+            rows = logi.restock_map(demand, prows, metas, premium=premium,
+                                    limit=limit) if demand else []
+        else:  # bm
+            rows = logi.black_market_premium(prows, metas, premium=premium,
+                                             limit=limit)
+        return {"view": view, "rows": rows}
+    finally:
+        con.close()
+
+
+@app.get("/api/risk")
+def risk_view(view: str = "profile", days: int = Query(120, ge=30, le=365),
+              min_points: int = Query(30, ge=10, le=200),
+              limit: int = Query(60, ge=1, le=200),
+              cat: str | None = None, sub: str | None = None,
+              tier_min: int | None = None, tier_max: int | None = None):
+    """Risco & portfólio p/ o hub: perfil de risco (vol/drawdown/VaR, com IC
+    bootstrap, EWMA, shrinkage e selo calibrado) e correlação de retornos."""
+    from albion import risk
+    con = _cache_connection()
+    if con is None:
+        return {"view": view, "rows": []}
+    try:
+        item_ids = None
+        if cat or sub or tier_min or tier_max:
+            item_ids = [i["id"] for i in db.filter(
+                cat=cat, sub=sub, tier_min=tier_min, tier_max=tier_max)]
+        else:
+            # sem filtro: limita o universo aos itens mais líquidos (top vol 7d).
+            # O bootstrap de IC por série é caro; rodá-lo sobre milhares de séries
+            # esparsas levaria ~1 min e mediria risco de itens que ninguém troca.
+            vol = _market_volume(con, days=7)
+            item_ids = [i for i, _v in sorted(
+                vol.items(), key=lambda kv: -kv[1])[:250]]
+        rows = _history_daily_rows(con, item_ids, None, days)
+        name = lambda i: (db.get(i) or {}).get("pt", i)
+        if not rows:
+            return {"view": view, "rows": []}
+        if view == "corr":
+            by_item = {}
+            for item, _city, day, price in rows:
+                by_item.setdefault(item, {}).setdefault(day, []).append(price)
+            series = {it: {d: sum(v) / len(v) for d, v in dd.items()}
+                      for it, dd in by_item.items()}
+            # 80 séries mais ricas (mais dias) p/ a matriz — melhora o default
+            # do CLI (primeiras 80 arbitrárias) sem mudar a metodologia
+            series = dict(sorted(series.items(),
+                                 key=lambda kv: -len(kv[1]))[:80])
+            pairs = risk.correlation_pairs(series, min_common=min_points,
+                                           limit=limit)
+            for p in pairs:
+                p["a_pt"], p["b_pt"] = name(p["a"]), name(p["b"])
+                p["tipo"] = ("andam juntos" if p["corr"] >= 0.6 else
+                             ("hedge" if p["corr"] <= 0.1 else "fraca"))
+            return {"view": "corr", "rows": pairs}
+        # profile — uma série por ITEM (a cidade com mais pontos = mais
+        # confiável). O bootstrap de IC é caro; um perfil por item, em vez de
+        # um por (item,cidade), deixa a tabela responsiva e o ranking limpo.
+        series = {}
+        for item, city, _day, price in rows:
+            series.setdefault((item, city), []).append(price)
+        best = {}
+        for (item, city), prices in series.items():
+            if item not in best or len(prices) > len(best[item][1]):
+                best[item] = (city, prices)
+        out = []
+        for item, (city, prices) in best.items():
+            rp = risk.risk_profile(prices, min_points=min_points)
+            if rp:
+                out.append({"item_id": item, "name_pt": name(item),
+                            "city": city, **rp})
+        if not out:
+            return {"view": "profile", "rows": []}
+        bands = risk.calibrate_bands([r["vol_annual_pct"] / 100 for r in out])
+        prior = sorted(r["vol_annual_pct"] for r in out)[len(out) // 2]
+        for r in out:
+            shrunk = risk.shrink(r["vol_annual_pct"], r["points"] - 1, prior, k=20)
+            r["vol_shrunk_pct"] = round(shrunk, 1)
+            r["risk_label"] = risk.label_for(shrunk / 100, bands)
+            r["vol_ci"] = (f"{r['vol_ci_pct'][0]:.0f}–{r['vol_ci_pct'][1]:.0f}"
+                           if r.get("vol_ci_pct") else "—")
+            r.pop("vol_ci_pct", None)
+        order = {"seguro": 0, "médio": 1, "especulativo": 2}
+        out.sort(key=lambda r: (order.get(r["risk_label"], 9),
+                                -r["vol_shrunk_pct"]))
+        return {"view": "profile", "rows": out[:limit]}
+    finally:
+        con.close()
+
+
 @app.get("/api/item_signals")
 def item_signals(item: str, days: int = Query(180, ge=30, le=400)):
     """Risco + reversão + regime + previsibilidade de um item, da melhor série
