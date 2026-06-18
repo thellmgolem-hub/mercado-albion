@@ -593,6 +593,7 @@ document.querySelectorAll('#tabs button').forEach((b) => {
     $('tab-' + b.dataset.tab).classList.add('active');
     if (b.dataset.tab === 'avancado' && !state.avancadoLoaded) {
       state.avancadoLoaded = true;
+      state.avSubLoaded = { micro: true };
       loadAvancado();
     }
     // o gráfico do ouro precisa do canvas VISÍVEL para dimensionar — carrega
@@ -1642,6 +1643,133 @@ async function loadAvancado(view) {
   }
 }
 
+// ---- hub Avançado: sub-abas (microestrutura / produção / demanda / guild) ----
+function showAvSub(av) {
+  document.querySelectorAll('#avSubtabs button').forEach((b) =>
+    b.classList.toggle('active', b.dataset.av === av));
+  document.querySelectorAll('#tab-avancado .subtab').forEach((s) =>
+    s.classList.toggle('active', s.id === 'av-' + av));
+  state.avSubLoaded = state.avSubLoaded || {};
+  if (state.avSubLoaded[av]) return;
+  state.avSubLoaded[av] = true;
+  ({ micro: loadAvancado, prod: loadAvProd, demanda: loadAvDemanda,
+     guild: loadAvGuild }[av] || (() => {}))();
+}
+
+const avItemCell = (o) => `<div class="cell-item">${iconImg(o.item_id, o.quality)}` +
+  `<div class="nm">${esc(o.name_pt || o.item_id)}</div></div>`;
+
+let avProdView = 'focus';
+async function loadAvProd(view) {
+  if (view) avProdView = view;
+  const st = $('prodStatus');
+  st.className = 'status';
+  st.textContent = 'calculando…';
+  try {
+    const res = await api('/api/prod', { view: avProdView, premium: state.premium, limit: 50 });
+    const rows = res.rows || [];
+    if (avProdView === 'refine') {
+      renderTable('prodTable', [
+        { key: 'item', label: 'Refinado', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'city', label: 'Cidade', align: 'l', value: (o) => o.city, html: (o) => cityHtml(o.city) },
+        { key: 'prem', label: 'Prêmio %', value: (o) => o.premium_pct, html: (o) => fmtDec(o.premium_pct, 1) + '%' },
+        { key: 'margin', label: 'Margem', value: (o) => o.margin, html: (o) => fmt(o.margin) },
+        { key: 'rrr', label: 'RRR %', value: (o) => o.rrr_pct, html: (o) => fmtDec(o.rrr_pct, 1) + '%' },
+        { key: 'verdict', label: 'Veredito', align: 'l', value: (o) => o.verdict, html: (o) => esc(o.verdict) },
+      ], rows, { sortKey: 'prem' });
+    } else {
+      renderTable('prodTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'tipo', label: 'Tipo', align: 'l', value: (o) => o.tipo, html: (o) => esc(o.tipo) },
+        { key: 'city', label: 'Cidade', align: 'l', value: (o) => o.city, html: (o) => cityHtml(o.city) },
+        { key: 'spf', label: 'Prata/foco', value: (o) => o.silver_per_focus, html: (o) => fmt(o.silver_per_focus) },
+        { key: 'focus', label: 'Foco', value: (o) => o.focus, html: (o) => fmt(o.focus) },
+        { key: 'margin', label: 'Margem c/foco', value: (o) => o.margin_focus, html: (o) => fmt(o.margin_focus) },
+      ], rows, { sortKey: 'spf' });
+    }
+    st.textContent = `${rows.length} ${avProdView === 'refine' ? 'refinados' : 'receitas'} cotados no cache`;
+  } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
+}
+
+let avDemView = 'burn';
+async function loadAvDemanda(view) {
+  if (view) avDemView = view;
+  const st = $('demandStatus');
+  st.className = 'status';
+  st.textContent = 'analisando killboard…';
+  try {
+    const res = await api('/api/demand', { view: avDemView, days: 7, limit: 50 });
+    const rows = res.rows || [];
+    if (avDemView === 'quality') {
+      renderTable('demandTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'dest', label: 'Destruídos', value: (o) => o.destroyed, html: (o) => fmt(o.destroyed) },
+        { key: 'q4', label: 'Q4+ %', value: (o) => o.share_q4plus_pct, html: (o) => fmtDec(o.share_q4plus_pct, 1) + '%' },
+        { key: 'qdom', label: 'Q dom.', value: (o) => o.dominant_q, html: (o) => 'q' + o.dominant_q },
+        { key: 'ev', label: 'E[prêmio]', value: (o) => o.ev_quality_premium, html: (o) => fmtDec(o.ev_quality_premium, 2) + '×' },
+      ], rows, { sortKey: 'ev' });
+    } else if (avDemView === 'meta') {
+      renderTable('demandTable', [
+        { key: 'build', label: 'Build (arma + armadura)', align: 'l', value: (o) => o.build, html: (o) => esc((o.build || '').replace(/_/g, ' ')) },
+        { key: 'n', label: 'N recente', value: (o) => o.recent_n, html: (o) => fmt(o.recent_n) },
+        { key: 'sr', label: 'Share rec.%', value: (o) => o.share_recent_pct, html: (o) => fmtDec(o.share_recent_pct, 2) + '%' },
+        { key: 'delta', label: 'Δ %', value: (o) => o.delta_pct, html: (o) => `<span class="${o.delta_pct >= 0 ? 'profit-pos' : 'profit-neg'}">${fmtDec(o.delta_pct, 2)}%</span>` },
+      ], rows, { sortKey: 'delta' });
+    } else {
+      renderTable('demandTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'burn', label: 'Queima/dia', value: (o) => o.per_day, html: (o) => fmt(o.per_day) },
+        { key: 'mkt', label: 'Oferta/dia', value: (o) => o.market_vol_day, html: (o) => fmt(o.market_vol_day) },
+        { key: 'cov', label: 'Cobertura', value: (o) => o.coverage == null ? 0 : o.coverage, html: (o) => o.coverage != null ? fmtDec(o.coverage, 1) + (o.undersupplied ? ' ⚠' : '') : '—' },
+        { key: 'spd', label: 'Prata/dia', value: (o) => o.silver_per_day == null ? 0 : o.silver_per_day, html: (o) => fmt(o.silver_per_day) },
+      ], rows, { sortKey: 'spd' });
+    }
+    st.textContent = rows.length ? `${rows.length} itens (${avDemView})` : 'sem dados de killboard na janela';
+  } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
+}
+
+let avGuildView = 'watch';
+async function loadAvGuild(view) {
+  if (view) avGuildView = view;
+  const st = $('guildStatus');
+  st.className = 'status';
+  st.textContent = 'calculando…';
+  try {
+    const res = await api('/api/guild', { view: avGuildView, days: 7, premium: state.premium, limit: 50 });
+    if (avGuildView === 'kit') {
+      const s = res.series || [];
+      if (!s.length) { $('guildTable').innerHTML = ''; st.textContent = 'sem história da cesta de regear — colete o gear que aparece no killboard'; return; }
+      renderTable('guildTable', [
+        { key: 'day', label: 'Dia', align: 'l', value: (o) => o.day, html: (o) => esc(o.day) },
+        { key: 'cost', label: 'Custo da cesta', value: (o) => o.cost, html: (o) => fmt(o.cost) },
+        { key: 'index', label: 'Índice (base 100)', value: (o) => o.index, html: (o) => fmtDec(o.index, 1) },
+      ], s, { sortKey: 'day' });
+      st.textContent = `Índice Soldier's Kit · ${s.length} dias · top: ` + (res.basket || []).slice(0, 4).map((b) => esc(b.name_pt)).join(', ');
+      return;
+    }
+    const rows = res.rows || [];
+    if (avGuildView === 'makeorbuy') {
+      renderTable('guildTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'dem', label: 'Demanda', value: (o) => o.demand_units, html: (o) => fmt(o.demand_units) },
+        { key: 'make', label: 'Fazer', value: (o) => o.internal_cost, html: (o) => fmt(o.internal_cost) },
+        { key: 'buy', label: 'Comprar', value: (o) => o.market_price, html: (o) => fmt(o.market_price) },
+        { key: 'save', label: 'Economia %', value: (o) => o.save_pct == null ? 0 : o.save_pct, html: (o) => fmtDec(o.save_pct, 1) + '%' },
+        { key: 'v', label: 'Veredito', align: 'l', value: (o) => o.verdict, html: (o) => esc(o.verdict) },
+      ], rows, { sortKey: 'save' });
+    } else {
+      renderTable('guildTable', [
+        { key: 'item', label: 'Item (ADD à watchlist)', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'dest', label: 'Destruídos', value: (o) => o.destroyed, html: (o) => fmt(o.destroyed) },
+        { key: 'days', label: 'Dias ativos', value: (o) => o.active_days, html: (o) => fmt(o.active_days) },
+        { key: 'price', label: 'Preço', value: (o) => o.price == null ? 0 : o.price, html: (o) => fmt(o.price) },
+        { key: 'score', label: 'Score', value: (o) => o.score, html: (o) => fmt(o.score) },
+      ], rows, { sortKey: 'score' });
+    }
+    st.textContent = `${rows.length} itens (${avGuildView})`;
+  } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
+}
+
 let pvpView = 'weapon';
 function winBadge(v) {
   const cls = v >= 55 ? 'score-executar' : v >= 45 ? 'score-monitorar' : 'score-cautela';
@@ -2125,6 +2253,16 @@ async function init() {
       loadPvp(b.dataset.view);
     }));
   $('pvpDays').addEventListener('change', () => loadPvp());
+  document.querySelectorAll('#avSubtabs button').forEach((b) =>
+    b.addEventListener('click', () => showAvSub(b.dataset.av)));
+  [['#prodView', loadAvProd], ['#demandView', loadAvDemanda], ['#guildView', loadAvGuild]]
+    .forEach(([sel, loader]) =>
+      document.querySelectorAll(sel + ' .chip').forEach((b) =>
+        b.addEventListener('click', () => {
+          document.querySelectorAll(sel + ' .chip').forEach((x) =>
+            x.classList.toggle('on', x === b));
+          loader(b.dataset.view);
+        })));
   $('dashCollect').addEventListener('click', runCollect);
   document.querySelectorAll('#goldRange .chip').forEach((b) =>
     b.addEventListener('click', () => {

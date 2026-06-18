@@ -956,6 +956,148 @@ def pvp_meta(view: str = "weapon", days: float = Query(7, ge=0.25, le=30),
         con.close()
 
 
+def _price_lookups(con, max_age_days=3):
+    """(q1, allq) das linhas de prices saneadas (sem âncora) e frescas — base
+    das análises do hub Avançado. Espelha analyze.py _clean_price_lookups."""
+    from albion.microstructure import clean_price_rows
+    cutoff = con.execute("SELECT strftime('%Y-%m-%dT%H:%M:%S','now', ?)",
+                         [f"-{int(max_age_days)} days"]).fetchone()[0]
+    rows = clean_price_rows(
+        [dict(r) for r in con.execute(
+            "SELECT * FROM prices WHERE server=?", [aodp.server]).fetchall()])
+    q1, allq = {}, {}
+    for r in rows:
+        sp = r.get("sell_price_min") or 0
+        if sp <= 0 or (r.get("sell_price_min_date") or "") < cutoff:
+            continue
+        item, city, q = r["item_id"], r["city"], r["quality"]
+        allq[(item, city, q)] = min(allq.get((item, city, q), sp), sp)
+        if q == 1:
+            q1[(item, city)] = min(q1.get((item, city), sp), sp)
+    return q1, allq
+
+
+def _cheapest_by_item(q1):
+    out = {}
+    for (item, _c), p in q1.items():
+        if item not in out or p < out[item]:
+            out[item] = p
+    return out
+
+
+def _market_volume(con, days=7):
+    return {i: n for i, n in con.execute(
+        """SELECT item_id, SUM(item_count)*1.0/COUNT(DISTINCT substr(ts,1,10))
+           FROM history WHERE server=? AND time_scale=24 AND quality=1
+             AND item_count>0 AND ts>=date('now', ?) GROUP BY item_id""",
+        [aodp.server, f"-{int(days)} days"]).fetchall()}
+
+
+@app.get("/api/prod")
+def prod_view(view: str = "focus", premium: bool = True,
+              limit: int = Query(40, ge=1, le=200)):
+    """Produção p/ o hub Avançado: prata/foco e refinar-vs-vender (rankings)."""
+    from albion import production as prod
+    con = _cache_connection()
+    if con is None:
+        return {"view": view, "rows": []}
+    try:
+        q1, _ = _price_lookups(con)
+        name = lambda i: (db.get(i) or {}).get("pt", i)
+        if view == "refine":
+            recipes = prod.craft._load("recipes_refining.json")
+            best = []
+            for rid in recipes:
+                r = prod.refine_premium(rid, q1, premium=premium)
+                if r:
+                    top = r[0]
+                    top["name_pt"] = name(rid)
+                    best.append(top)
+            best.sort(key=lambda r: -r["premium_pct"])
+            return {"view": "refine", "rows": best[:limit]}
+        rows = prod.focus_efficiency(q1, premium=premium, limit=limit)
+        for r in rows:
+            r["name_pt"] = name(r["item_id"])
+            r["tipo"] = "refino" if r["is_refining"] else "craft"
+        return {"view": "focus", "rows": rows}
+    finally:
+        con.close()
+
+
+@app.get("/api/demand")
+def demand_view(view: str = "burn", days: float = Query(7, ge=0.25, le=30),
+                recent: float = Query(2, ge=0.25, le=14),
+                limit: int = Query(40, ge=1, le=200)):
+    """Demanda (killboard) p/ o hub: consumíveis, qualidade destruída, meta."""
+    from albion import demand as dm
+    con = _cache_connection()
+    if con is None:
+        return {"view": view, "rows": []}
+    try:
+        name = lambda i: (db.get(i) or {}).get("pt", i)
+        if view == "meta":
+            rows = dm.meta_shift(con, aodp.server, days=days, recent=recent,
+                                 limit=limit)
+            return {"view": "meta", "rows": rows}
+        q1, allq = _price_lookups(con)
+        if view == "quality":
+            pq = {}
+            for (item, _c, q), p in allq.items():
+                pq[(item, q)] = min(pq.get((item, q), p), p)
+            rows = dm.destroyed_quality(con, aodp.server, days=days,
+                                        price_q=lambda i, q: pq.get((i, q)),
+                                        limit=limit)
+            for r in rows:
+                r["name_pt"] = name(r["item_id"])
+            return {"view": "quality", "rows": rows}
+        price_item = _cheapest_by_item(q1)
+        vol = _market_volume(con, days=days)
+        rows = dm.consumable_burn(con, aodp.server, days=days,
+                                  price_of=price_item.get, vol_of=vol.get,
+                                  limit=limit)
+        for r in rows:
+            r["name_pt"] = name(r["item_id"])
+        return {"view": "burn", "rows": rows}
+    finally:
+        con.close()
+
+
+@app.get("/api/guild")
+def guild_view(view: str = "watch", days: float = Query(7, ge=0.25, le=30),
+               premium: bool = True, limit: int = Query(40, ge=1, le=200)):
+    """Guild p/ o hub: ROI de coleta, cesta de regear, make-or-buy."""
+    from albion import guild as gd
+    con = _cache_connection()
+    if con is None:
+        return {"view": view, "rows": []}
+    try:
+        name = lambda i: (db.get(i) or {}).get("pt", i)
+        if view == "kit":
+            res = gd.soldier_kit_index(con, aodp.server, days=days)
+            res["basket"] = [{"item_id": i, "name_pt": name(i), "weight": w}
+                             for i, w in res.get("basket", [])]
+            res["view"] = "kit"
+            return res
+        q1, _ = _price_lookups(con)
+        if view == "makeorbuy":
+            rows = gd.make_or_buy(con, aodp.server,
+                                  price_of=lambda i, c: q1.get((i, c)),
+                                  days=days, premium=premium, limit=limit)
+            for r in rows:
+                r["name_pt"] = name(r["item_id"])
+            return {"view": "makeorbuy", "rows": rows}
+        price_item = _cheapest_by_item(q1)
+        res = gd.watchlist_roi(con, aodp.server, price_of=price_item.get,
+                               days=days, limit=limit)
+        for r in res.get("add", []):
+            r["name_pt"] = name(r["item_id"])
+        res["view"] = "watch"
+        res["rows"] = res.pop("add", [])
+        return res
+    finally:
+        con.close()
+
+
 @app.get("/api/item_signals")
 def item_signals(item: str, days: int = Query(180, ge=30, le=400)):
     """Risco + reversão + regime + previsibilidade de um item, da melhor série

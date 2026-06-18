@@ -1,10 +1,10 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260616-11">
+<link rel="stylesheet" href="style.css?v=20260618-1">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -556,24 +556,86 @@
 
 <!-- ============================ AVANÇADO ============================ -->
 <section class="tab" id="tab-avancado">
-  <div class="section-head">
-    <div>
-      <h1>Market-making intra-cidade</h1>
-      <div class="sub">Poste ordem de compra <b>e</b> de venda no mesmo mercado e embolse o
-        spread líquido (já descontados imposto + 2,5% de anúncio nas duas pontas). Exclui
-        Mercado Negro, livros cruzados e preços-âncora. Só cache local.</div>
+  <nav class="subtabs" id="avSubtabs">
+    <button data-av="micro" class="active">Microestrutura</button>
+    <button data-av="prod">Produção</button>
+    <button data-av="demanda">Demanda</button>
+    <button data-av="guild">Guild</button>
+  </nav>
+
+  <!-- av: Microestrutura -->
+  <div class="subtab active" id="av-micro">
+    <div class="section-head">
+      <div>
+        <h1>Market-making intra-cidade</h1>
+        <div class="sub">Poste ordem de compra <b>e</b> de venda no mesmo mercado e embolse o
+          spread líquido (já descontados imposto + 2,5% de anúncio nas duas pontas). Exclui
+          Mercado Negro, livros cruzados e preços-âncora. Só cache local.</div>
+      </div>
+      <div class="field-row chips" id="avView">
+        <button class="chip on" data-view="spread">Cardápio (spread)</button>
+        <button class="chip" data-view="capital">Alocar capital</button>
+      </div>
     </div>
-    <div class="field-row chips" id="avView">
-      <button class="chip on" data-view="spread">Cardápio (spread)</button>
-      <button class="chip" data-view="capital">Alocar capital</button>
-    </div>
+    <div class="status" id="avStatus"></div>
+    <div class="table-wrap" id="avTable"></div>
+    <p class="hint">O spread líquido por unidade costuma ser fino — o valor vem do <b>giro</b>
+       (Pot./dia = net × giro × 20%). Em <b>Alocar capital</b>, o plano distribui seu capital
+       por velocidade (lucro/dia por prata investida).</p>
   </div>
-  <div class="status" id="avStatus"></div>
-  <div class="table-wrap" id="avTable"></div>
-  <p class="hint">O spread líquido por unidade costuma ser fino — o valor vem do <b>giro</b>
-     (Pot./dia = net × giro × 20%). Em <b>Alocar capital</b>, o plano distribui seu capital
-     por velocidade (lucro/dia por prata investida), com a taxa de preenchimento medida na
-     persistência das ordens.</p>
+
+  <!-- av: Produção -->
+  <div class="subtab" id="av-prod">
+    <div class="section-head">
+      <div>
+        <h1>Produção — prata por foco &amp; refino</h1>
+        <div class="sub">Onde gastar o foco escasso (prata/foco da cadeia inteira, craft+refino)
+          e se vale refinar o bruto ou vendê-lo. Só itens cotados no cache.</div>
+      </div>
+      <div class="field-row chips" id="prodView">
+        <button class="chip on" data-view="focus">Prata por foco</button>
+        <button class="chip" data-view="refine">Refinar vs vender</button>
+      </div>
+    </div>
+    <div class="status" id="prodStatus"></div>
+    <div class="table-wrap" id="prodTable"></div>
+  </div>
+
+  <!-- av: Demanda -->
+  <div class="subtab" id="av-demanda">
+    <div class="section-head">
+      <div>
+        <h1>Demanda real (killboard)</h1>
+        <div class="sub">O que o servidor consome de verdade: queima de consumíveis vs oferta,
+          qualidade do gear destruído e builds (arma+armadura) subindo na meta.</div>
+      </div>
+      <div class="field-row chips" id="demandView">
+        <button class="chip on" data-view="burn">Consumíveis</button>
+        <button class="chip" data-view="quality">Qualidade destruída</button>
+        <button class="chip" data-view="meta">Meta subindo</button>
+      </div>
+    </div>
+    <div class="status" id="demandStatus"></div>
+    <div class="table-wrap" id="demandTable"></div>
+  </div>
+
+  <!-- av: Guild -->
+  <div class="subtab" id="av-guild">
+    <div class="section-head">
+      <div>
+        <h1>Guild &amp; estratégico</h1>
+        <div class="sub">O que a guild deve vigiar (ROI de informação), o índice de custo de
+          regear e fazer-vs-comprar dos itens consumidos.</div>
+      </div>
+      <div class="field-row chips" id="guildView">
+        <button class="chip on" data-view="watch">Vigiar (ROI)</button>
+        <button class="chip" data-view="kit">Cesta de regear</button>
+        <button class="chip" data-view="makeorbuy">Fazer vs comprar</button>
+      </div>
+    </div>
+    <div class="status" id="guildStatus"></div>
+    <div class="table-wrap" id="guildTable"></div>
+  </div>
 </section>
 
 </main>
@@ -610,6 +672,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260616-11"></script>
+<script src="app.js?v=20260618-1"></script>
 </body>
 </html>
