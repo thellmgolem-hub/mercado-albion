@@ -1356,6 +1356,13 @@ class ApiUiTests(unittest.TestCase):
         self.assertEqual(rc.json().get('view'), 'corr')
         self.assertIsInstance(rc.json().get('rows'), list)
 
+    def test_risk_empty_filter_short_circuits(self):
+        # filtro sem match => item_ids vazio: NÃO pode cair no caminho ilimitado
+        # (IN vazio varreria tudo). Deve voltar vazio na hora.
+        r = self.c.get('/api/risk', params={'view': 'profile', 'cat': 'XYZ_INEXISTENTE'})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json().get('rows'), [])
+
 
 if __name__ == "__main__":
     unittest.main()

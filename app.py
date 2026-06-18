@@ -1187,6 +1187,11 @@ def risk_view(view: str = "profile", days: int = Query(120, ge=30, le=365),
             vol = _market_volume(con, days=7)
             item_ids = [i for i, _v in sorted(
                 vol.items(), key=lambda kv: -kv[1])[:250]]
+        # item_ids vazio (filtro sem match OU sem volume no cache) NÃO pode cair
+        # no caminho ilimitado de _history_daily_rows (que ignoraria um IN vazio
+        # e varreria tudo, ~1 min). Curto-circuita p/ vazio.
+        if not item_ids:
+            return {"view": view, "rows": []}
         rows = _history_daily_rows(con, item_ids, None, days)
         name = lambda i: (db.get(i) or {}).get("pt", i)
         if not rows:
