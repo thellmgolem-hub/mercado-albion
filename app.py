@@ -740,6 +740,75 @@ def origin(item: str):
             "sources": srcs}
 
 
+def _wiki_name(item_id):
+    """Nome PT do item, com fallback do encanto (T4_METALBAR@1 -> base + encanto)."""
+    meta = db.get(item_id)
+    if meta and meta.get("pt"):
+        return meta["pt"]
+    base, _, e = item_id.partition("@")
+    nm = (db.get(base) or {}).get("pt", item_id)
+    return f"{nm} (encanto {e})" if e and e != "0" else nm
+
+
+def _drops_for(item_id):
+    if "data" not in _supply_cache:
+        import json as _j
+        p = ROOT / "data" / "supply_data.json"
+        _supply_cache["data"] = (_j.loads(p.read_text(encoding="utf-8"))
+                                 if p.exists() else {})
+    supply = _supply_cache["data"]
+    return supply.get(item_id) or supply.get(item_id.split("@")[0]) or []
+
+
+@app.get("/api/wiki")
+def wiki_view(item: str, focus: bool = False,
+              qty: float | None = Query(None, gt=0, le=100000),
+              max_age: int = Query(config.PRICES_TTL, ge=0)):
+    """Ficha-wiki do item: detalhes do dump, receita, usado-em (índice reverso),
+    drops e a CADEIA DE PRODUÇÃO recursiva + lista de compras de bruto."""
+    from albion import wiki as wk
+    from albion import craft as craft_mod
+    from albion.microstructure import clean_price_rows
+    item_id = _resolve_items([item])[0]
+    meta = db.get(item_id) or {}
+    tier_of = lambda i: (db.get(i.split("@")[0]) or {}).get("tier")
+    # preços de TODA a cadeia (menor venda q1 entre cidades reais, sem âncora)
+    chain_ids = list(wk.chain_item_ids(item_id))
+    cheapest = {}
+    if chain_ids:
+        cities = list(config.ROYAL_CITIES) + ["Brecilien"]
+        rows = _api_guard(lambda: aodp.get_prices(chain_ids, cities, max_age=max_age))
+        for r in clean_price_rows(rows):
+            if r["quality"] != 1:
+                continue
+            sp = r.get("sell_price_min") or 0
+            if sp > 0 and (r["item_id"] not in cheapest or sp < cheapest[r["item_id"]]):
+                cheapest[r["item_id"]] = sp
+    price_of = cheapest.get
+    tree = wk.production_tree(item_id, price_of, _wiki_name, tier_of,
+                             focus=focus, qty=qty)
+    recipe = craft_mod.recipe_for(item_id)
+    recipe_out = None
+    if recipe:
+        recipe_out = {
+            "inputs": [{"id": i["id"], "count": i["count"],
+                        "name_pt": _wiki_name(i["id"]), "tier": tier_of(i["id"]),
+                        "buy": price_of(i["id"])} for i in recipe["inputs"]],
+            "focus": recipe.get("focus"), "output": recipe.get("output", 1),
+            "category": recipe.get("category"),
+            "bonus_city": craft_mod.unified_bonus_city(item_id, recipe.get("category")),
+        }
+    return {
+        "details": wk.item_details(item_id, meta),
+        "recipe": recipe_out,
+        "used_in": wk.used_in(item_id, _wiki_name),
+        "drops": _drops_for(item_id),
+        "tree": tree["tree"], "shopping": tree["shopping"],
+        "totals": {k: tree[k] for k in ("target_qty", "output", "raw_cost",
+                                        "make_unit", "buy_unit", "best_unit")},
+    }
+
+
 @app.get("/api/sell")
 def sell(items: str, qualities: str | None = None, premium: bool = True,
          cities: str | None = None,

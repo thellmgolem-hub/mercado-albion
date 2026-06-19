@@ -885,6 +885,7 @@ function loadItemSub(sub, force = false) {
   if (sub === 'precos') loadPrecos();
   else if (sub === 'vender') loadVender();
   else if (sub === 'craft') loadCraft();
+  else if (sub === 'cadeia') loadWiki();
   else if (sub === 'origem') loadOrigin();
   else if (sub === 'risco') loadRisco();
   else if (sub === 'lab') runHist();
@@ -910,7 +911,8 @@ function selectItem(it) {
   // limpa as sub-abas para não exibir dados do item anterior enquanto a
   // sub-aba não-ativa não foi recarregada (evita misturar itens)
   ['precosTable', 'venderTable', 'craftTable', 'origemTable', 'riscoBody',
-   'histLabSummary', 'histLabCards'].forEach((id) => {
+   'histLabSummary', 'histLabCards', 'wikiDetails', 'wikiRecipe', 'wikiUsedIn',
+   'wikiTree', 'wikiShopping'].forEach((id) => {
     const el = $(id); if (el) el.innerHTML = '';
   });
   if (priceChart) { priceChart.destroy(); priceChart = null; }
@@ -996,6 +998,93 @@ async function loadCraft() {
       { key: 'pf', label: 'Prata/foco', value: (r) => r.silver_per_focus, html: (r) => r.silver_per_focus == null ? '—' : `<span class="silver">${fmtDec(r.silver_per_focus, 1)}</span>` },
     ];
     renderTable('craftTable', cols, rows.map((r) => ({ ...r, _copy: it.pt })), { sortKey: 'margin' });
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  }
+}
+
+// sub-aba Cadeia / Wiki ----------------------------------------------------
+function wikiLink(id, name) {
+  return `<a class="wiki-link" data-id="${esc(id)}">${esc(name)}</a>`;
+}
+
+function treeNodeHtml(node, root = false) {
+  const price = node.best_unit != null
+    ? `<span class="silver">${fmt(node.best_unit)}</span>`
+    : '<span class="muted">s/ preço</span>';
+  const dec = root ? '' : ` <span class="chain-${node.decision === 'fazer' ? 'make' : 'buy'}">${node.decision}</span>`;
+  const cnt = node.count != null ? ` <span class="chain-cnt">×${fmt(node.count)}</span>` : '';
+  const rrr = (node.decision === 'fazer' && node.rrr_pct != null)
+    ? ` <span class="muted">RRR ${fmtDec(node.rrr_pct, 0)}%${node.craft_city ? ' @ ' + esc(node.craft_city) : ''}</span>` : '';
+  const head = `${iconImg(node.id, 0)} ${wikiLink(node.id, node.name_pt)}${cnt}${dec} ${price}${rrr}`;
+  if (node.children && node.children.length) {
+    return `<details ${root ? 'open' : ''} class="chain-node"><summary>${head}</summary><ul>${
+      node.children.map((c) => `<li>${treeNodeHtml(c)}</li>`).join('')}</ul></details>`;
+  }
+  return `<div class="chain-leaf">${head}${node.is_raw ? ' <span class="te-badge">bruto</span>' : ''}</div>`;
+}
+
+async function navigateToItem(id) {
+  try {
+    const r = await api('/api/search', { q: id });
+    const list = Array.isArray(r) ? r : (r.results || r.items || []);
+    const it = list.find((x) => x.id === id) || list[0];
+    if (it) { selectItem(it); showItemSub('cadeia'); }
+  } catch (e) { /* item não encontrado */ }
+}
+
+async function loadWiki() {
+  const it = state.item;
+  if (!it) return;
+  const st = $('wikiStatus');
+  st.className = 'status';
+  st.textContent = 'montando a cadeia de produção…';
+  try {
+    const res = await api('/api/wiki', {
+      item: it.id, focus: $('wikiFocus').checked, qty: $('wikiQty').value || '',
+    });
+    const d = res.details || {}, s = d.stats || {};
+    const pill = (l, v) => (v == null || v === '') ? '' : `<div class="lab-pill"><b>${l}</b><span>${v}</span></div>`;
+    $('wikiDetails').innerHTML = [
+      pill('Tier', d.tier != null ? 'T' + d.tier + (d.ench ? '.' + d.ench : '') : null),
+      pill('Categoria', d.category ? esc(d.category) + (d.subcategory ? ' / ' + esc(d.subcategory) : '') : null),
+      pill('Peso', d.weight != null ? fmtDec(d.weight, 2) + ' kg' : null),
+      pill('Item Power', s.item_power), pill('Dano', s.attack_damage),
+      pill('Vel. ataque', s.attack_speed), pill('Alcance', s.attack_range),
+      pill('Durabilidade', s.durability != null ? fmt(s.durability) : null),
+      pill('Armadura', s.armor), pill('Res. mágica', s.magic_resistance),
+      pill('Slot', s.slot ? esc(s.slot) : null),
+      pill('Duas mãos', s.two_handed === 'true' ? 'sim' : (s.two_handed === 'false' ? 'não' : null)),
+      pill('Slots ativos', s.active_slots), pill('Slots passivos', s.passive_slots),
+    ].filter(Boolean).join('') || '<div class="muted">sem detalhes no dump</div>';
+
+    if (res.recipe) {
+      const r = res.recipe;
+      $('wikiRecipe').innerHTML = `<div class="wiki-chips">${
+        r.inputs.map((i) => `<span class="wiki-ing">${iconImg(i.id, 0)} ${wikiLink(i.id, i.name_pt)} <b>×${fmt(i.count)}</b>${i.buy != null ? ` <span class="muted">(${fmt(i.buy)})</span>` : ''}</span>`).join('')
+      }</div><div class="muted" style="margin-top:6px">Produz <b>${fmt(r.output)}</b> · foco ${fmt(r.focus)} · categoria ${esc(r.category || '—')}${r.bonus_city ? ` · cidade-bônus <b>${esc(r.bonus_city)}</b>` : ''}</div>`;
+    } else {
+      $('wikiRecipe').innerHTML = '<div class="muted">não é craftável (recurso bruto ou sem receita no dump)</div>';
+    }
+
+    const u = res.used_in || [];
+    $('wikiUsedIn').innerHTML = u.length ? `<div class="wiki-chips">${
+      u.map((x) => `<span class="wiki-ing">${iconImg(x.item_id, 0)} ${wikiLink(x.item_id, x.name_pt)}${x.count ? ` <span class="muted">×${fmt(x.count)}</span>` : ''}</span>`).join('')
+    }</div>` : '<div class="muted">não é insumo de nenhuma receita</div>';
+
+    $('wikiTree').innerHTML = treeNodeHtml(res.tree, true);
+    const t = res.totals || {};
+    $('wikiTreeMeta').textContent = `· fazer do bruto ≈ ${t.raw_cost != null ? fmt(t.raw_cost) : '—'} · comprar pronto ${t.buy_unit != null ? fmt(t.buy_unit) : '—'} · melhor ${t.best_unit != null ? fmt(t.best_unit) : '—'}`;
+
+    renderTable('wikiShopping', [
+      { key: 'item', label: 'Recurso bruto', align: 'l', value: (o) => o.name_pt, html: (o) => `${iconImg(o.id, 0)} ${wikiLink(o.id, o.name_pt)}` },
+      { key: 't', label: 'Tier', align: 'c', value: (o) => o.tier, html: (o) => o.tier != null ? 'T' + o.tier : '—' },
+      { key: 'u', label: 'Qtd', value: (o) => o.units, html: (o) => fmt(o.units) },
+      { key: 'p', label: 'Preço un', value: (o) => o.unit_price, html: (o) => o.unit_price != null ? `<span class="silver">${fmt(o.unit_price)}</span>` : '—' },
+      { key: 'sub', label: 'Subtotal', value: (o) => o.subtotal, html: (o) => o.subtotal != null ? `<span class="silver">${fmt(o.subtotal)}</span>` : '—' },
+    ], res.shopping || [], { sortKey: 'sub' });
+    st.textContent = `${(res.shopping || []).length} recursos brutos na base da cadeia · matéria-prima ≈ ${t.raw_cost != null ? fmt(t.raw_cost) : '—'} prata`;
   } catch (e) {
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
@@ -2417,6 +2506,14 @@ async function init() {
   ['craftSellMode', 'craftFocus', 'craftSpec', 'craftDaily', 'craftFocusBudget',
    'craftFee', 'craftSourcing'].forEach((id) =>
     $(id).addEventListener('change', () => loadItemSub('craft', true)));
+  ['wikiFocus', 'wikiQty'].forEach((id) =>
+    $(id).addEventListener('change', () => loadItemSub('cadeia', true)));
+  // navegação tipo-wiki: clicar em qualquer item abre a ficha dele (delegado,
+  // sobrevive a re-render de tabela/árvore)
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('.wiki-link');
+    if (a) { e.stopPropagation(); navigateToItem(a.dataset.id); }
+  });
   $('discoverRun').addEventListener('click', runDiscover);
   $('precosRefresh').addEventListener('click', () => loadPrecos(true));
   $('flipsRun').addEventListener('click', runFlips);

@@ -1287,6 +1287,37 @@ class PvpTests(unittest.TestCase):
         self.assertEqual(res["total_fights"], 6)   # 3 killers + 3 vítimas
 
 
+class WikiTests(unittest.TestCase):
+    """Camada wiki: índice reverso, cadeia recursiva, lista de compras."""
+    def setUp(self):
+        from albion import wiki
+        from albion.items import ItemDB
+        self.wiki = wiki
+        db = ItemDB()
+        self.name = lambda i: (db.get(i) or {}).get("pt", i)
+        self.tier = lambda i: (db.get(i.split("@")[0]) or {}).get("tier")
+
+    def test_used_in_inverts_recipes(self):
+        # T4_ORE é insumo de T4_METALBAR (refino) -> aparece no índice reverso
+        outs = {r["item_id"] for r in self.wiki.used_in("T4_ORE", self.name)}
+        self.assertIn("T4_METALBAR", outs)
+
+    def test_chain_ids_reach_raw(self):
+        ids = self.wiki.chain_item_ids("T4_METALBAR")
+        self.assertIn("T4_METALBAR", ids)
+        self.assertIn("T4_ORE", ids)        # desce até o minério bruto
+
+    def test_production_tree_expands_and_lists_raw(self):
+        # preço fixo p/ todos; a árvore deve expandir e a lista somar o bruto
+        res = self.wiki.production_tree(
+            "T4_METALBAR", lambda i: 100, self.name, self.tier, qty=1)
+        self.assertTrue(res["tree"]["children"])          # expandiu a receita
+        shop_ids = {s["id"] for s in res["shopping"]}
+        self.assertIn("T4_ORE", shop_ids)                 # bruto na lista
+        # custo de matéria-prima > 0 com preço 100 em tudo
+        self.assertGreater(res["raw_cost"] or 0, 0)
+
+
 class ApiUiTests(unittest.TestCase):
     def setUp(self):
         self.c = TestClient(app.app)
@@ -1355,6 +1386,16 @@ class ApiUiTests(unittest.TestCase):
         self.assertEqual(rc.status_code, 200)
         self.assertEqual(rc.json().get('view'), 'corr')
         self.assertIsInstance(rc.json().get('rows'), list)
+
+    def test_wiki_endpoint_shape(self):
+        r = self.c.get('/api/wiki', params={'item': 'T4_2H_CLAYMORE'})
+        self.assertEqual(r.status_code, 200)
+        j = r.json()
+        self.assertIn('details', j)
+        self.assertIn('tree', j)
+        self.assertIsInstance(j.get('shopping'), list)
+        self.assertIsInstance(j.get('used_in'), list)
+        self.assertTrue(j['tree'].get('children'))   # claymore expande a cadeia
 
     def test_risk_empty_filter_short_circuits(self):
         # filtro sem match => item_ids vazio: NÃO pode cair no caminho ilimitado

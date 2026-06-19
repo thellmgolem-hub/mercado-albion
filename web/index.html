@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260619-2">
+<link rel="stylesheet" href="style.css?v=20260619-3">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -262,6 +262,7 @@
     <button data-sub="precos" class="active">Preços por cidade</button>
     <button data-sub="vender">Onde vender</button>
     <button data-sub="craft">Craft / Refino</button>
+    <button data-sub="cadeia">Cadeia / Wiki</button>
     <button data-sub="origem">De onde vem</button>
     <button data-sub="risco">Risco &amp; Previsão</button>
     <button data-sub="lab">Item Lab</button>
@@ -417,6 +418,40 @@
        (mais crafts/dia), <u>não</u> muda o RRR. Com "melhor cidade por recurso", a margem é
        <b>teórica</b> (ignora transporte). Receitas em <b>lote</b> (poção/comida) já contam
        o nº de itens por craft.</p>
+  </div>
+
+  <!-- sub: Cadeia de produção / Wiki -->
+  <div class="subtab" id="sub-cadeia">
+    <div class="controls">
+      <div class="field">
+        <label title="Quantas unidades do item final você quer produzir (afeta a lista de compras).">Quantidade</label>
+        <input type="number" id="wikiQty" value="" min="1" max="100000" step="1" placeholder="1 craft">
+      </div>
+      <label class="field-row muted" style="gap:4px; align-self:end; padding-bottom:8px"
+             title="Usa o RRR com foco em cada nó (custos menores).">
+        <input type="checkbox" id="wikiFocus"> RRR com foco
+      </label>
+    </div>
+    <div class="status" id="wikiStatus"></div>
+    <div id="wikiDetails" class="lab-summary"></div>
+    <div class="wiki-cols">
+      <div class="wiki-col">
+        <h3 class="wiki-h">Receita (insumos diretos)</h3>
+        <div id="wikiRecipe"></div>
+      </div>
+      <div class="wiki-col">
+        <h3 class="wiki-h">Usado para fabricar</h3>
+        <div id="wikiUsedIn"></div>
+      </div>
+    </div>
+    <h3 class="wiki-h">Cadeia de produção <span class="muted" id="wikiTreeMeta"></span></h3>
+    <div id="wikiTree" class="chain-tree"></div>
+    <h3 class="wiki-h">Lista de compras <span class="muted">(craftar tudo a partir do bruto)</span></h3>
+    <div class="table-wrap" id="wikiShopping"></div>
+    <p class="hint">Cada nó é craftado na sua <b>cidade-bônus</b> (ótimo teórico; ignora
+       transporte). <b>fazer</b>/<b>comprar</b> = o que sai mais barato no nó. Clique em
+       qualquer item para abrir a ficha dele. Custos vêm do menor preço de venda q1 entre as
+       cidades reais (saneado de âncoras).</p>
   </div>
 
   <!-- sub: De onde vem -->
@@ -739,6 +774,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260619-2"></script>
+<script src="app.js?v=20260619-3"></script>
 </body>
 </html>

@@ -518,6 +518,28 @@ tbody tr:nth-child(even):hover { background: rgba(212, 168, 67, 0.08); }
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 10px;
 }
+/* wiki / cadeia de produção */
+.wiki-h { font-size: 0.95rem; margin: 16px 0 8px; color: var(--text); }
+.wiki-h .muted { font-weight: 400; font-size: 0.8rem; }
+.wiki-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+@media (max-width: 720px) { .wiki-cols { grid-template-columns: 1fr; } }
+.wiki-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.wiki-ing {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px 9px; font-size: 0.86rem;
+}
+.wiki-ing img, .chain-tree img { width: 22px; height: 22px; vertical-align: middle; }
+.wiki-link { color: var(--gold); cursor: pointer; text-decoration: none; }
+.wiki-link:hover { text-decoration: underline; }
+.chain-tree { font-size: 0.88rem; line-height: 1.9; }
+.chain-tree ul { list-style: none; margin: 0; padding-left: 22px; border-left: 1px dashed var(--border); }
+.chain-tree details > summary { cursor: pointer; list-style-position: outside; }
+.chain-tree summary::marker { color: var(--muted); }
+.chain-leaf { padding-left: 2px; }
+.chain-cnt { color: var(--muted); font-variant-numeric: tabular-nums; }
+.chain-make { color: var(--green); font-weight: 600; font-size: 0.78rem; }
+.chain-buy { color: var(--muted); font-size: 0.78rem; }
 .craft-plan { margin: 4px 0 12px; }
 .craft-plan:empty { display: none; }
 .craft-plan-head {
