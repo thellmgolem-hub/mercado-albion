@@ -1364,5 +1364,75 @@ class ApiUiTests(unittest.TestCase):
         self.assertEqual(r.json().get('rows'), [])
 
 
+class CraftStudioTests(unittest.TestCase):
+    """Estúdio de craft: lote (output), custo de foco por spec, sourcing,
+    melhor venda e teto anti-âncora."""
+    def setUp(self):
+        from albion import craft
+        self.craft = craft
+        # receita sintética: 2 insumos, sai em lote de 5, categoria potion
+        self.recipe = {"inputs": [{"id": "A", "count": 8}, {"id": "B", "count": 4}],
+                       "focus": 84, "output": 5, "category": "potion"}
+
+    def test_focus_cost_halves_per_10000_fce(self):
+        self.assertAlmostEqual(self.craft.focus_cost(84, 0), 84.0)
+        self.assertAlmostEqual(self.craft.focus_cost(84, 10000), 42.0)
+        self.assertAlmostEqual(self.craft.focus_cost(84, 20000), 21.0)
+
+    def test_output_quantity_multiplies_revenue(self):
+        acq = {("A", "Caerleon"): 100, ("B", "Caerleon"): 50,
+               ("PROD", "Caerleon"): 1000}
+        rows = self.craft.studio(
+            "PROD", self.recipe, lambda i, c: acq.get((i, c)),
+            lambda i, c: None, premium=True, sell_mode="order",
+            source_cities=["Caerleon"], sell_cities=["Caerleon"])
+        self.assertTrue(rows)
+        r = rows[0]
+        self.assertEqual(r["output"], 5)
+        # receita = 5 × venda líquida de 1 unidade (ordem: 1 - 0.04 - 0.025)
+        self.assertEqual(r["revenue"], round(5 * 1000 * (1 - 0.04 - 0.025)))
+
+    def test_sources_each_input_cheapest_and_sells_best(self):
+        acq = {("A", "Thetford"): 100, ("A", "Lymhurst"): 130,
+               ("B", "Lymhurst"): 40, ("B", "Thetford"): 60,
+               ("PROD", "Caerleon"): 1000, ("PROD", "Thetford"): 1200}
+        rows = self.craft.studio(
+            "PROD", self.recipe, lambda i, c: acq.get((i, c)),
+            lambda i, c: None, premium=True, sell_mode="order",
+            source_cities=["Thetford", "Lymhurst"],
+            sell_cities=["Caerleon", "Thetford"])
+        best = rows[0]
+        buys = {s["id"]: s["buy_city"] for s in best["sourcing"]}
+        self.assertEqual(buys["A"], "Thetford")    # A mais barato em Thetford
+        self.assertEqual(buys["B"], "Lymhurst")    # B mais barato em Lymhurst
+        self.assertEqual(best["sell_city"], "Thetford")  # melhor venda (1200>1000)
+
+    def test_bonus_city_has_higher_rrr(self):
+        acq = {("A", c): 100 for c in ("Brecilien", "Thetford")}
+        acq.update({("B", c): 50 for c in ("Brecilien", "Thetford")})
+        acq.update({("PROD", "Caerleon"): 1000})
+        rows = self.craft.studio(
+            "PROD", self.recipe, lambda i, c: acq.get((i, c)),
+            lambda i, c: None, premium=True, sell_mode="order",
+            source_cities=["Brecilien", "Thetford"], sell_cities=["Caerleon"])
+        by_city = {r["craft_city"]: r for r in rows}
+        # potion tem bônus em Brecilien -> RRR maior que numa cidade sem bônus
+        self.assertGreater(by_city["Brecilien"]["rrr_pct"],
+                           by_city["Thetford"]["rrr_pct"])
+        self.assertTrue(by_city["Brecilien"]["is_bonus_city"])
+
+    def test_sell_ceiling_drops_anchor(self):
+        # uma cidade cota âncora (1e6); o teto força usar a venda real
+        acq = {("A", "Caerleon"): 100, ("B", "Caerleon"): 50,
+               ("PROD", "Caerleon"): 1000, ("PROD", "Thetford"): 1_000_000}
+        rows = self.craft.studio(
+            "PROD", self.recipe, lambda i, c: acq.get((i, c)),
+            lambda i, c: None, premium=True, sell_mode="order",
+            source_cities=["Caerleon"], sell_cities=["Caerleon", "Thetford"],
+            sell_ceiling=5000)
+        self.assertEqual(rows[0]["sell_city"], "Caerleon")
+        self.assertEqual(rows[0]["sell_unit"], 1000)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -21,8 +21,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 
+# Brecilien é cidade real (cluster 5000/5001 no dump) e carrega o bônus de
+# craft de poção/mochila/capa (potion/bag/cape = 0,15). Sem ela aqui, esses
+# bônus eram descartados e o RRR de poção saía subestimado (só estação 15,2%).
 ROYAL = {"Thetford", "Lymhurst", "Bridgewatch", "Martlock",
-         "Fort Sterling", "Caerleon"}
+         "Fort Sterling", "Caerleon", "Brecilien"}
 RESOURCE_CATS = {"fiber", "ore", "rock", "wood", "hide"}
 FOCUS_BONUS_SUM = 0.59  # contribuição do foco à soma de bônus (ver docstring)
 

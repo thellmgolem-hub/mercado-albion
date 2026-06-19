@@ -320,13 +320,28 @@ function makeItemPicker(containerId, onSelect, placeholder = 'buscar item… ex.
   return { input };
 }
 
-function makeChips(containerId, options, { selected = [], multi = true, onChange = null } = {}) {
+function makeChips(containerId, options, { selected = [], multi = true, onChange = null, allToggle = false } = {}) {
   const box = $(containerId);
   const on = new Set(selected.map(String));
   box.innerHTML = '';
+  const sync = () => box.querySelectorAll('.chip-opt').forEach((c, i) =>
+    c.classList.toggle('on', on.has(String(options[i].value))));
+  if (allToggle && multi) {
+    const all = document.createElement('span');
+    all.className = 'chip chip-all';
+    all.textContent = 'todas';
+    all.title = 'marcar todas / limpar';
+    all.addEventListener('click', () => {
+      if (on.size >= options.length) on.clear();
+      else options.forEach((o) => on.add(String(o.value)));
+      sync();
+      if (onChange) onChange([...on]);
+    });
+    box.appendChild(all);
+  }
   for (const opt of options) {
     const b = document.createElement('span');
-    b.className = 'chip' + (on.has(String(opt.value)) ? ' on' : '');
+    b.className = 'chip chip-opt' + (on.has(String(opt.value)) ? ' on' : '');
     b.innerHTML = opt.html || esc(opt.label);
     b.title = opt.title || '';
     b.addEventListener('click', () => {
@@ -336,8 +351,7 @@ function makeChips(containerId, options, { selected = [], multi = true, onChange
       } else {
         on.clear(); on.add(v);
       }
-      box.querySelectorAll('.chip').forEach((c, i) =>
-        c.classList.toggle('on', on.has(String(options[i].value))));
+      sync();
       if (onChange) onChange([...on]);
     });
     box.appendChild(b);
@@ -347,8 +361,7 @@ function makeChips(containerId, options, { selected = [], multi = true, onChange
     set: (vals) => {
       on.clear();
       vals.map(String).forEach((v) => on.add(v));
-      box.querySelectorAll('.chip').forEach((c, i) =>
-        c.classList.toggle('on', on.has(String(options[i].value))));
+      sync();
     },
   };
 }
@@ -896,38 +909,74 @@ function selectItem(it) {
   loadItemSub(activeItemSub(), true);
 }
 
-// sub-aba Craft / Refino
+// sub-aba Estúdio de Craft
 async function loadCraft() {
   const it = state.item;
   if (!it) return;
   const st = $('craftStatus');
   st.className = 'status';
-  st.textContent = 'calculando margem de craft…';
+  st.textContent = 'calculando estúdio de craft…';
+  const focus = $('craftFocus').checked;
+  const sourcing = $('craftSourcing').checked;
   try {
     const res = await api('/api/craft', {
       item: it.id, premium: state.premium,
-      sell_mode: $('craftSellMode').value, focus: $('craftFocus').checked,
+      sell_mode: $('craftSellMode').value, focus,
+      spec_fce: +($('craftSpec').value || 0),
+      daily_bonus: +($('craftDaily').value || 0),
+      focus_budget: $('craftFocusBudget').value || '',
+      station_fee: +($('craftFee').value || 0),
+      same_city: !sourcing,
     });
-    const m = res.margins || [];
-    if (!m.length) {
+    const rows = res.rows || [];
+    if (!rows.length) {
       st.textContent = res.category
-        ? 'sem preços de insumo/produto no cache para calcular — colete e tente de novo'
+        ? 'sem preços de insumo/produto no cache/API para calcular — tente de novo em instantes'
         : 'este item não tem receita de craft/refino no dump';
+      $('craftPlan').innerHTML = '';
       $('craftTable').innerHTML = '';
       return;
     }
     const ins = (res.inputs || []).map((i) => `${i.count}× ${esc(i.name_pt)}`).join(' + ');
-    st.innerHTML = `Receita: ${ins} · foco ${fmt(res.focus)} · categoria <b>${esc(res.category || '—')}</b>` +
-      (res.bonus_city ? ` · cidade-bônus <b>${esc(res.bonus_city)}</b>` : '');
+    st.innerHTML = `Receita: ${ins} · foco base ${fmt(res.focus)} · categoria <b>${esc(res.category || '—')}</b>` +
+      (res.bonus_city ? ` · cidade-bônus <b>${esc(res.bonus_city)}</b>` : ' · sem cidade-bônus');
+
+    // plano recomendado = melhor linha (maior margem)
+    const best = rows[0];
+    const nameOf = (id) => (res.inputs.find((i) => i.id === id) || {}).name_pt || id;
+    const buyLine = (best.sourcing || []).map((s) =>
+      `${s.count}× ${esc(s.name_pt || nameOf(s.id))} em <b>${esc(s.buy_city)}</b> <span class="muted">(${fmt(s.unit_price)})</span>`).join(' · ');
+    const pill = (label, val) => `<div class="lab-pill"><b>${label}</b><span>${val}</span></div>`;
+    let plan = `<div class="craft-plan-head">Plano ótimo${sourcing ? '' : ' (tudo numa cidade)'}: craftar em <b>${esc(best.craft_city)}</b>${best.is_bonus_city ? ' ★' : ''}, vender em <b>${esc(best.sell_city)}</b></div>`;
+    plan += `<div class="craft-plan-buy">Comprar: ${buyLine || '—'}</div>`;
+    plan += '<div class="lab-summary" style="margin-top:8px">' +
+      pill('RRR', `${fmtDec(best.rrr_pct, 1)}%`) +
+      pill('Insumos', fmt(best.materials)) +
+      pill('Custo efetivo', fmt(best.eff_cost)) +
+      pill(`Vende ×${best.output}`, fmt(best.revenue)) +
+      pill('Margem/craft', `<span class="${best.margin >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(best.margin)}</span>`) +
+      (best.margin_pct != null ? pill('Margem %', `${fmtDec(best.margin_pct, 1)}%`) : '') +
+      (focus && best.silver_per_focus != null ? pill('Prata/foco', fmtDec(best.silver_per_focus, 1)) : '') +
+      (best.focus_cost_eff != null ? pill('Foco/craft', fmtDec(best.focus_cost_eff, 1)) : '') +
+      (best.crafts_per_day != null ? pill('Crafts/dia', fmt(best.crafts_per_day)) : '') +
+      (best.items_per_day != null ? pill('Itens/dia', fmt(best.items_per_day)) : '') +
+      (best.resource_saved_per_day != null ? pill('Recurso poupado/dia', fmt(best.resource_saved_per_day)) : '') +
+      '</div>';
+    $('craftPlan').innerHTML = plan;
+
     const cols = [
       {
-        key: 'city', label: 'Cidade', align: 'l', value: (r) => r.city,
-        html: (r) => cityHtml(r.city) + (r.is_bonus_city ? ' <span class="te-badge">★</span>' : ''),
+        key: 'city', label: 'Craftar em', align: 'l', value: (r) => r.craft_city,
+        html: (r) => cityHtml(r.craft_city) + (r.is_bonus_city ? ' <span class="te-badge">★</span>' : ''),
       },
-      { key: 'mat', label: 'Insumos', value: (r) => r.materials, html: (r) => `<span class="silver">${fmt(r.materials)}</span>` },
       { key: 'rrr', label: 'RRR %', align: 'c', value: (r) => r.rrr_pct, html: (r) => `${fmtDec(r.rrr_pct, 1)}%` },
+      { key: 'mat', label: 'Insumos', value: (r) => r.materials, html: (r) => `<span class="silver">${fmt(r.materials)}</span>` },
       { key: 'eff', label: 'Custo efetivo', value: (r) => r.eff_cost, html: (r) => `<span class="silver">${fmt(r.eff_cost)}</span>` },
-      { key: 'sell', label: 'Venda', value: (r) => r.sell, html: (r) => `<span class="silver">${fmt(r.sell)}</span>` },
+      {
+        key: 'sellc', label: 'Vender em', align: 'l', value: (r) => r.sell_city,
+        html: (r) => cityHtml(r.sell_city),
+      },
+      { key: 'rev', label: `Receita ×${best.output}`, value: (r) => r.revenue, html: (r) => `<span class="silver">${fmt(r.revenue)}</span>` },
       {
         key: 'margin', label: 'Margem', value: (r) => r.margin,
         html: (r) => `<span class="silver ${r.margin >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(r.margin)}</span>`,
@@ -935,7 +984,7 @@ async function loadCraft() {
       { key: 'pct', label: 'Margem %', align: 'c', value: (r) => r.margin_pct, html: (r) => r.margin_pct == null ? '—' : `${fmtDec(r.margin_pct, 1)}%` },
       { key: 'pf', label: 'Prata/foco', value: (r) => r.silver_per_focus, html: (r) => r.silver_per_focus == null ? '—' : `<span class="silver">${fmtDec(r.silver_per_focus, 1)}</span>` },
     ];
-    renderTable('craftTable', cols, m.map((r) => ({ ...r, _copy: it.pt })), { sortKey: 'margin' });
+    renderTable('craftTable', cols, rows.map((r) => ({ ...r, _copy: it.pt })), { sortKey: 'margin' });
   } catch (e) {
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
@@ -2255,7 +2304,8 @@ async function init() {
   const buyCityOpts = cityOpts.filter((c) => c.value !== 'Black Market');
   scanBuyCities = makeChips('scanBuyCities', buyCityOpts, { selected: state.meta.royal_cities });
   scanSellCities = makeChips('scanSellCities', cityOpts, { selected: state.meta.cities });
-  histCities = makeChips('histCities', cityOpts, { selected: ['Caerleon', 'Lymhurst'] });
+  histCities = makeChips('histCities', cityOpts, {
+    selected: state.meta.royal_cities, allToggle: true });
 
   // descoberta de flips
   $('discCat').innerHTML = '<option value="">todas</option>' + Object.entries(state.meta.categories)
@@ -2353,8 +2403,9 @@ async function init() {
   $('ordersRefresh').addEventListener('click', () => loadServiceOrders(true));
   $('survLoad').addEventListener('click', loadSurvival);
   $('histWatch').addEventListener('click', watchCurrentLabItem);
-  $('craftSellMode').addEventListener('change', () => loadItemSub('craft', true));
-  $('craftFocus').addEventListener('change', () => loadItemSub('craft', true));
+  ['craftSellMode', 'craftFocus', 'craftSpec', 'craftDaily', 'craftFocusBudget',
+   'craftFee', 'craftSourcing'].forEach((id) =>
+    $(id).addEventListener('change', () => loadItemSub('craft', true)));
   $('discoverRun').addEventListener('click', runDiscover);
   $('precosRefresh').addEventListener('click', () => loadPrecos(true));
   $('flipsRun').addEventListener('click', runFlips);

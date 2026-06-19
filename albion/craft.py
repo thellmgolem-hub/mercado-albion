@@ -35,13 +35,30 @@ def recipe_for(item_id):
             or _load("recipes_refining.json").get(item_id))
 
 
-def craft_rrr(category, city, focus=False):
-    """RRR de craft/refino para uma categoria numa cidade (fração 0..1)."""
+def craft_rrr(category, city, focus=False, extra=0.0):
+    """RRR de craft/refino para uma categoria numa cidade (fração 0..1).
+
+    extra: bônus aditivo opcional (ex.: ciclo diário +0,10 prata / +0,20 ouro),
+    somado À PILHA antes da conversão côncava — nunca multiplicativo.
+    """
     cd = craft_data()
     station = cd.get("station_refining_bonus") or 0.18
     bonus = (cd.get("crafting") or {}).get(category, {}).get(city, 0.0)
-    s = station + bonus + (cd.get("focus_bonus_sum", 0.59) if focus else 0.0)
+    s = station + bonus + (cd.get("focus_bonus_sum", 0.59) if focus else 0.0) + extra
     return 1 - 1 / (1 + s)
+
+
+def focus_cost(base_focus, spec_fce=0):
+    """Custo de foco EFETIVO por craft dado o Focus Cost Efficiency (spec).
+
+    A especialização do jogador NÃO muda o RRR/rendimento — ela barateia o foco:
+    custo = base × 0,5^(FCE/10000) (cada 10.000 de FCE corta o foco pela metade).
+    Verificado (jun/2026) contra wiki + guias; os PONTOS por nível variam por
+    patch, então o FCE é entrada editável, não derivado de nível automaticamente.
+    """
+    if not base_focus:
+        return 0.0
+    return base_focus * (0.5 ** (max(spec_fce, 0) / 10000.0))
 
 
 def bonus_city(category):
@@ -57,6 +74,7 @@ def margins(item_id, recipe, price_of, premium=True, sell_mode="order",
     """
     cities = cities or config.ROYAL_CITIES
     cat = recipe.get("category")
+    out_qty = recipe.get("output", 1) or 1   # 1 craft rende N (poção/comida)
     out = []
     for city in cities:
         cost, ok = 0.0, True
@@ -71,7 +89,7 @@ def margins(item_id, recipe, price_of, premium=True, sell_mode="order",
             continue
         rrr = craft_rrr(cat, city, focus)
         eff = cost * (1 - rrr) + fee
-        margin = sell_revenue(sell, sell_mode, premium) - eff
+        margin = sell_revenue(sell, sell_mode, premium) * out_qty - eff
         foc = recipe.get("focus") or 0
         out.append({
             "city": city,
@@ -80,6 +98,7 @@ def margins(item_id, recipe, price_of, premium=True, sell_mode="order",
             "rrr_pct": round(rrr * 100, 1),
             "is_bonus_city": city == bonus_city(cat),
             "eff_cost": round(eff),
+            "output": out_qty,
             "sell": sell,
             "margin": round(margin),
             "margin_pct": round(100 * margin / eff, 1) if eff else None,
@@ -88,3 +107,110 @@ def margins(item_id, recipe, price_of, premium=True, sell_mode="order",
         })
     out.sort(key=lambda r: -r["margin"])
     return out
+
+
+def studio(item_id, recipe, acquire_of, bid_of, *, premium=True,
+           sell_mode="order", focus=False, spec_fce=0, focus_budget=None,
+           daily_bonus=0.0, station_fee=0, source_cities=None,
+           sell_cities=None, same_city=False, sell_ceiling=None, limit=None):
+    """Estúdio de craft: desacopla COMPRA (cidade mais barata por insumo),
+    LOCAL de craft (define o RRR pela cidade-bônus) e VENDA (melhor cidade
+    líquida) — o que margins() não faz (trava tudo numa cidade só).
+
+    acquire_of(id, city) -> menor venda q1 (custo p/ comprar instantâneo) | None.
+    bid_of(id, city)     -> maior compra q1 (p/ vender instantâneo / Mercado Negro).
+
+    A especialização entra SÓ pelo custo de foco (spec_fce), nunca no RRR.
+    Sem same_city, o resultado é TEÓRICO: ignora custo/risco de transporte entre
+    a cidade de compra, a de craft e a de venda.
+    Devolve uma linha por cidade de craft (RRR varia; a melhor cidade-bônus lidera).
+    """
+    cat = recipe.get("category")
+    base_foc = recipe.get("focus") or 0
+    out_qty = recipe.get("output", 1) or 1   # 1 craft rende N (poção/comida = 5/10)
+    source_cities = list(source_cities or (list(config.ROYAL_CITIES) + ["Brecilien"]))
+    sell_cities = list(sell_cities or config.CITIES)
+    bcity = bonus_city(cat)
+    foc_eff = focus_cost(base_foc, spec_fce) if focus else 0.0
+
+    def best_acquire(inp_id):
+        best, bc = None, None
+        for c in source_cities:
+            p = acquire_of(inp_id, c)
+            if p and (best is None or p < best):
+                best, bc = p, c
+        return best, bc
+
+    def sell_net_at(city):
+        """(receita líquida, preço de referência) ao vender o produto em city.
+
+        sell_ceiling derruba ordens-âncora que sobrevivem ao saneamento entre
+        cidades quando a MAIORIA das cidades cota preço-isca (ex.: 5/7 cidades a
+        ~1M numa base T4) — ancora no preço real negociado (history)."""
+        if city == "Black Market" or sell_mode == "instant":
+            p = bid_of(item_id, city)            # bate na ordem de compra
+        else:
+            p = acquire_of(item_id, city)        # lista pelo menor preço de venda
+        if not p or (sell_ceiling and p > sell_ceiling):
+            return (None, None)
+        mode = "instant" if (city == "Black Market" or sell_mode == "instant") else "order"
+        return (sell_revenue(p, mode, premium), p)
+
+    # melhor venda global (independe do local de craft)
+    g_net, g_city, g_ref = None, None, None
+    for c in sell_cities:
+        net, ref = sell_net_at(c)
+        if net is not None and (g_net is None or net > g_net):
+            g_net, g_city, g_ref = net, c, ref
+
+    out = []
+    for craft_city in source_cities:
+        sourcing, cost, ok = [], 0.0, True
+        for inp in recipe["inputs"]:
+            if same_city:
+                p, bc = acquire_of(inp["id"], craft_city), craft_city
+            else:
+                p, bc = best_acquire(inp["id"])
+            if not p:
+                ok = False
+                break
+            cost += inp["count"] * p
+            sourcing.append({"id": inp["id"], "count": inp["count"],
+                             "buy_city": bc, "unit_price": round(p)})
+        if not ok:
+            continue
+        rrr = craft_rrr(cat, craft_city, focus, extra=daily_bonus)
+        eff = cost * (1 - rrr) + station_fee
+        if same_city:
+            net, ref = sell_net_at(craft_city)
+            s_city, s_ref = craft_city, ref
+        else:
+            net, s_city, s_ref = g_net, g_city, g_ref
+        if net is None:
+            continue
+        revenue = net * out_qty                     # 1 craft rende out_qty itens
+        margin = revenue - eff                       # lucro por CRAFT (lote inteiro)
+        crafts_day = (focus_budget / foc_eff) if (focus and foc_eff and focus_budget) else None
+        out.append({
+            "craft_city": craft_city,
+            "is_bonus_city": craft_city == bcity,
+            "rrr_pct": round(rrr * 100, 1),
+            "materials": round(cost),
+            "eff_cost": round(eff),
+            "output": out_qty,
+            "sourcing": sourcing,
+            "sell_city": s_city,
+            "sell_unit": round(s_ref) if s_ref else None,
+            "sell_net": round(net),
+            "revenue": round(revenue),
+            "margin": round(margin),
+            "margin_pct": round(100 * margin / eff, 1) if eff else None,
+            "focus": base_foc,
+            "focus_cost_eff": round(foc_eff, 1) if foc_eff else None,
+            "silver_per_focus": round(margin / foc_eff, 1) if (focus and foc_eff) else None,
+            "crafts_per_day": round(crafts_day) if crafts_day else None,
+            "items_per_day": round(crafts_day * out_qty) if crafts_day else None,
+            "resource_saved_per_day": round(crafts_day * rrr * cost) if crafts_day else None,
+        })
+    out.sort(key=lambda r: -r["margin"])
+    return out[:limit] if limit else out

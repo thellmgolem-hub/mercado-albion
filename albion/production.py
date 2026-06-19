@@ -118,6 +118,7 @@ def focus_efficiency(price_q1, premium=True, sell_mode="order", cities=None,
         foc = recipe.get("focus") or 0
         if foc <= 0:
             continue
+        out_qty = recipe.get("output", 1) or 1   # poção/comida saem em lote
         anchors = _anchor_cities(price_q1, item_id, cities, q=None)
         best = None
         for city in cities:
@@ -135,7 +136,7 @@ def focus_efficiency(price_q1, premium=True, sell_mode="order", cities=None,
                 cost += inp["count"] * p
             if not ok:
                 continue
-            net = sell_revenue(sell, sell_mode, premium)
+            net = sell_revenue(sell, sell_mode, premium) * out_qty
             m_focus = net - cost * (1 - rrr_for(item_id, recipe, city, True))
             m_plain = net - cost * (1 - rrr_for(item_id, recipe, city, False))
             cand = {

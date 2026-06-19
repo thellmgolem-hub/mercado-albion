@@ -255,6 +255,7 @@ button.btn.secondary:hover { border-color: var(--gold); background: var(--panel)
 .chip:hover { border-color: var(--gold); color: var(--text); }
 .chip.on { background: var(--gold); color: #1d1812; border-color: var(--gold); font-weight: 600; }
 .chip.on span { color: #1d1812 !important; }
+.chip-all { border-style: dashed; font-weight: 600; }
 
 .item-chip {
   display: inline-flex;
@@ -517,6 +518,15 @@ tbody tr:nth-child(even):hover { background: rgba(212, 168, 67, 0.08); }
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 10px;
 }
+.craft-plan { margin: 4px 0 12px; }
+.craft-plan:empty { display: none; }
+.craft-plan-head {
+  font-size: 1rem; font-weight: 700; color: var(--text);
+  padding: 8px 0 2px;
+}
+.craft-plan-head b { color: var(--green); }
+.craft-plan-buy { color: var(--muted); font-size: 0.86rem; margin-bottom: 4px; }
+.craft-plan-buy b { color: var(--text); }
 .lab-card {
   background: var(--panel);
   border: 1px solid var(--border);

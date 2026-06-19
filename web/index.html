@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260618-2">
+<link rel="stylesheet" href="style.css?v=20260619-1">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body>
@@ -380,15 +380,43 @@
           <option value="instant">venda instantânea</option>
         </select>
       </div>
+      <div class="field">
+        <label title="Reduz o CUSTO DE FOCO por craft (Focus Cost Efficiency). NÃO muda o RRR/rendimento. ~28.000 ≈ nível 100 no nó.">Especialização (FCE)</label>
+        <input type="number" id="craftSpec" value="0" min="0" max="80000" step="1000" placeholder="0">
+      </div>
+      <div class="field">
+        <label title="Bônus do dia em jogo, somado à pilha de RRR. Selecione conforme o ciclo.">Ciclo diário</label>
+        <select id="craftDaily">
+          <option value="0">nenhum</option>
+          <option value="0.10">prata +10%</option>
+          <option value="0.20">ouro +20%</option>
+        </select>
+      </div>
+      <div class="field">
+        <label title="Opcional. Com o orçamento de foco diário, calcula crafts/dia e itens/dia.">Foco/dia (opc.)</label>
+        <input type="number" id="craftFocusBudget" value="" min="0" step="1000" placeholder="—">
+      </div>
+      <div class="field">
+        <label title="Taxa de uso da estação por craft, em prata (definida pelo dono da estação).">Taxa estação</label>
+        <input type="number" id="craftFee" value="0" min="0" step="50">
+      </div>
       <label class="field-row muted" style="gap:4px; align-self:end; padding-bottom:8px">
-        <input type="checkbox" id="craftFocus"> usar foco (RRR maior)
+        <input type="checkbox" id="craftFocus"> usar foco
+      </label>
+      <label class="field-row muted" style="gap:4px; align-self:end; padding-bottom:8px"
+             title="Compra cada insumo na cidade mais barata e vende na melhor cidade (resultado teórico, ignora transporte). Desmarcado = tudo numa cidade só.">
+        <input type="checkbox" id="craftSourcing" checked> melhor cidade por recurso
       </label>
     </div>
     <div class="status" id="craftStatus"></div>
+    <div class="craft-plan" id="craftPlan"></div>
     <div class="table-wrap" id="craftTable"></div>
-    <p class="hint">Custo já com o <b>retorno de recursos (RRR)</b> real do jogo
-       (derivado do dump); <b>★</b> = cidade com bônus da categoria. Compra os
-       insumos e vende o produto na mesma cidade. "Prata/foco" só aparece com foco.</p>
+    <p class="hint">RRR (retorno de recursos) real do dump: <b>15,2%</b> base →
+       <b>24,8%</b> na cidade-bônus → <b>43,5%</b> com foco → <b>47,9%</b> foco+bônus.
+       <b>★</b> = cidade-bônus da categoria. A <b>especialização só barateia o foco</b>
+       (mais crafts/dia), <u>não</u> muda o RRR. Com "melhor cidade por recurso", a margem é
+       <b>teórica</b> (ignora transporte). Receitas em <b>lote</b> (poção/comida) já contam
+       o nº de itens por craft.</p>
   </div>
 
   <!-- sub: De onde vem -->
@@ -711,6 +739,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260618-2"></script>
+<script src="app.js?v=20260619-1"></script>
 </body>
 </html>

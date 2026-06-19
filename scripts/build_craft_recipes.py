@@ -49,7 +49,11 @@ def first_recipe(entry):
               for x in res if "@uniquename" in x]
     if not inputs:
         return None
-    return {"inputs": inputs, "focus": int(float(r0.get("@craftingfocus", 0)))}
+    # @amountcrafted: quantos itens UM craft produz (poções/comida saem em lote
+    # de 5; equipamento sai 1). Sem isso, a margem de consumíveis ficava por-1.
+    output = int(float(r0.get("@amountcrafted", 1) or 1))
+    return {"inputs": inputs, "focus": int(float(r0.get("@craftingfocus", 0))),
+            "output": max(output, 1)}
 
 
 def main():
@@ -78,7 +82,7 @@ def main():
                                    if i["id"].split("@")[0] in refined_bases
                                    else i["id"],
                                    "count": i["count"]} for i in rec["inputs"]],
-                       "focus": rec["focus"]}
+                       "focus": rec["focus"], "output": rec.get("output", 1)}
             rec["category"] = cat
             recipes[mid] = rec
 

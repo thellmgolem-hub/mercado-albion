@@ -642,41 +642,89 @@ def scan(cat: str | None = None, sub: str | None = None,
 
 @app.get("/api/craft")
 def craft_margin(item: str, premium: bool = True, sell_mode: str = "order",
-                 focus: bool = False, fee: float = 0,
+                 focus: bool = False, spec_fce: int = Query(0, ge=0, le=80000),
+                 focus_budget: int | None = Query(None, ge=0, le=100_000_000),
+                 daily_bonus: float = Query(0.0, ge=0, le=0.5),
+                 station_fee: float = Query(0, ge=0), same_city: bool = False,
+                 source_cities: str | None = None, sell_cities: str | None = None,
+                 fee: float = 0,  # compat: alias antigo de station_fee
                  max_age: int = Query(config.PRICES_TTL, ge=0)):
-    """Margem de craft de um item, com receita e RRR reais do jogo."""
+    """Estúdio de craft: melhor cidade p/ comprar CADA insumo + melhor cidade de
+    venda + RRR pela cidade-bônus + camada de especialização (custo de foco).
+    A spec (FCE) só barateia o foco — não muda o RRR (rendimento de recursos)."""
     from albion import craft as craft_mod
     item_id = _resolve_items([item])[0]
     recipe = craft_mod.recipe_for(item_id)
     if recipe is None:
         raise HTTPException(404, "Item sem receita de craft no dump")
+    src = _csv(source_cities) or (list(config.ROYAL_CITIES) + ["Brecilien"])
+    sells = _csv(sell_cities) or list(config.CITIES)
+    all_cities = list(dict.fromkeys(src + sells))
     ids = [item_id] + [i["id"] for i in recipe["inputs"]]
-    rows = _api_guard(lambda: aodp.get_prices(ids, config.ROYAL_CITIES,
-                                              max_age=max_age))
-    price = {}
+    rows = _api_guard(lambda: aodp.get_prices(ids, all_cities, max_age=max_age))
+    # o estúdio pega o MENOR custo de compra e a MAIOR venda entre cidades —
+    # exatamente o que ordens-isca exploram. Zera âncoras (outlier z entre
+    # cidades) antes, como manda a defesa comum do projeto.
+    from albion.microstructure import clean_price_rows
+    rows = clean_price_rows(rows)
+    # Teto de venda anti-âncora. O saneamento entre cidades não pega o caso em
+    # que a MAIORIA das cidades cota isca (ex.: 5/7 a ~1M numa base T4). Dois
+    # ancoradores, o mais apertado vence:
+    #  (a) preço REAL negociado (history mediana ~21d × 5), quando há histórico;
+    #  (b) salto >8× entre as cotações de venda ordenadas = início das âncoras.
+    ceilings = []
+    _hcon = _cache_connection()
+    if _hcon is not None:
+        try:
+            hv = sorted(v[0] for v in _hcon.execute(
+                """SELECT avg_price FROM history WHERE server=? AND item_id=?
+                   AND quality=1 AND time_scale=24 AND avg_price>0
+                   AND ts>=date('now','-21 days')""", [aodp.server, item_id]).fetchall())
+            if hv:
+                ceilings.append(hv[len(hv) // 2] * 5)
+        finally:
+            _hcon.close()
+    out_sells = sorted(
+        (r.get("sell_price_min") or 0) for r in rows
+        if r["item_id"] == item_id and r["quality"] == 1 and (r.get("sell_price_min") or 0) > 0)
+    for i in range(len(out_sells) - 1, 0, -1):       # maior salto, de cima p/ baixo
+        if out_sells[i] > out_sells[i - 1] * 8:
+            ceilings.append(out_sells[i - 1] * 3)    # teto logo acima do real
+            break
+    sell_ceiling = min(ceilings) if ceilings else None
+    acq, bid = {}, {}
     for r in rows:
         if r["quality"] != 1:
             continue
-        sp = r["sell_price_min"] or 0
-        if sp > 0:
-            key = (r["item_id"], r["city"])
-            if key not in price or sp < price[key]:
-                price[key] = sp
-    res = craft_mod.margins(item_id, recipe,
-                            lambda i, c: price.get((i, c)),
-                            premium=premium, sell_mode=sell_mode,
-                            focus=focus, fee=fee)
+        key = (r["item_id"], r["city"])
+        sp = r.get("sell_price_min") or 0
+        bp = r.get("buy_price_max") or 0
+        if sp > 0 and (key not in acq or sp < acq[key]):
+            acq[key] = sp
+        if bp > 0 and (key not in bid or bp > bid[key]):
+            bid[key] = bp
+    res = craft_mod.studio(
+        item_id, recipe, lambda i, c: acq.get((i, c)),
+        lambda i, c: bid.get((i, c)), premium=premium, sell_mode=sell_mode,
+        focus=focus, spec_fce=spec_fce, focus_budget=focus_budget,
+        daily_bonus=daily_bonus, station_fee=station_fee or fee,
+        source_cities=src, sell_cities=sells, same_city=same_city,
+        sell_ceiling=sell_ceiling)
+    name = lambda i: (db.get(i) or {}).get("pt", i)
+    for row in res:
+        for s in row.get("sourcing", []):
+            s["name_pt"] = name(s["id"])
     meta = db.get(item_id) or {}
     return {
         "item": {"id": item_id, "name_pt": meta.get("pt", item_id),
                  "tier": meta.get("tier", 0), "ench": meta.get("ench", 0)},
         "category": recipe.get("category"),
         "bonus_city": craft_mod.bonus_city(recipe.get("category")),
-        "focus": recipe.get("focus"),
-        "inputs": [{"id": i["id"], "count": i["count"],
-                    "name_pt": (db.get(i["id"]) or {}).get("pt", i["id"])}
+        "focus": recipe.get("focus"), "spec_fce": spec_fce,
+        "focus_budget": focus_budget, "same_city": same_city,
+        "inputs": [{"id": i["id"], "count": i["count"], "name_pt": name(i["id"])}
                    for i in recipe["inputs"]],
-        "margins": res,
+        "rows": res,
     }
 
 
