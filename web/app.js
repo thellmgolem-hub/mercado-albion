@@ -191,10 +191,6 @@ function applyAuth(payload) {
   $('accountOpen').hidden = false;
   $('accountOpen').textContent = accountLabel(state.auth);
   $('adminTabButton').hidden = state.auth.role !== 'admin';
-  const canOperate = OPERATOR_ROLES.has(state.auth.role);
-  for (const id of ['dashCollect', 'histWatch', 'ordersRefresh']) {
-    if ($(id)) $(id).hidden = !canOperate;
-  }
   $('accountSummary').innerHTML = `<div class="account-summary">
     <div><span>Usuário</span>${esc(state.auth.username)}</div>
     <div><span>Papel</span>${esc(state.roles[state.auth.role] || state.auth.role)}</div>
@@ -888,10 +884,6 @@ document.querySelectorAll('#tabs button').forEach((b) => {
       state.moedasLoaded = true;
       loadGoldChart();
     }
-    if (b.dataset.tab === 'pvp' && !state.pvpLoaded) {
-      state.pvpLoaded = true;
-      loadPvp();
-    }
   });
 });
 
@@ -917,9 +909,7 @@ $('premiumToggle').addEventListener('change', (e) => {
     const a = document.querySelector('#avSubtabs button.active');
     if (a) showAvSub(a.dataset.av);
   }
-  // Início (recomendações + mapa de rotas) usa o imposto no líquido — sempre presente
   loadDashboardRecommendations();
-  loadHeatmap();
   toast(`imposto de venda: ${state.premium ? '4%' : '8%'} — análises recalculadas`);
 });
 
@@ -2099,7 +2089,7 @@ function showAvSub(av) {
   state.avSubLoaded = state.avSubLoaded || {};
   if (state.avSubLoaded[av]) return;
   state.avSubLoaded[av] = true;
-  ({ micro: loadAvancado, prod: loadAvProd, demanda: loadAvDemanda,
+  ({ micro: loadAvancado, prod: loadAvProd,
      guild: loadAvGuild, logi: loadAvLogi, risco: loadAvRisco }[av]
     || (() => {}))();
 }
@@ -2139,82 +2129,24 @@ async function loadAvProd(view) {
   } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
 }
 
-let avDemView = 'burn';
-async function loadAvDemanda(view) {
-  if (view) avDemView = view;
-  const st = $('demandStatus');
-  st.className = 'status';
-  st.textContent = 'analisando killboard…';
-  try {
-    const res = await api('/api/demand', { view: avDemView, days: 7, limit: 50 });
-    const rows = res.rows || [];
-    if (avDemView === 'quality') {
-      renderTable('demandTable', [
-        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
-        { key: 'dest', label: 'Destruídos', value: (o) => o.destroyed, html: (o) => fmt(o.destroyed) },
-        { key: 'q4', label: 'Q4+ %', value: (o) => o.share_q4plus_pct, html: (o) => fmtDec(o.share_q4plus_pct, 1) + '%' },
-        { key: 'qdom', label: 'Q dom.', value: (o) => o.dominant_q, html: (o) => 'q' + o.dominant_q },
-        { key: 'ev', label: 'E[prêmio]', value: (o) => o.ev_quality_premium, html: (o) => fmtDec(o.ev_quality_premium, 2) + '×' },
-      ], rows, { sortKey: 'ev' });
-    } else if (avDemView === 'meta') {
-      renderTable('demandTable', [
-        { key: 'build', label: 'Build (arma + armadura)', align: 'l', value: (o) => o.build, html: (o) => esc((o.build || '').replace(/_/g, ' ')) },
-        { key: 'n', label: 'N recente', value: (o) => o.recent_n, html: (o) => fmt(o.recent_n) },
-        { key: 'sr', label: 'Share rec.%', value: (o) => o.share_recent_pct, html: (o) => fmtDec(o.share_recent_pct, 2) + '%' },
-        { key: 'delta', label: 'Δ %', value: (o) => o.delta_pct, html: (o) => `<span class="${o.delta_pct >= 0 ? 'profit-pos' : 'profit-neg'}">${fmtDec(o.delta_pct, 2)}%</span>` },
-      ], rows, { sortKey: 'delta' });
-    } else {
-      renderTable('demandTable', [
-        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
-        { key: 'burn', label: 'Queima/dia', value: (o) => o.per_day, html: (o) => fmt(o.per_day) },
-        { key: 'mkt', label: 'Oferta/dia', value: (o) => o.market_vol_day, html: (o) => fmt(o.market_vol_day) },
-        { key: 'cov', label: 'Cobertura', value: (o) => o.coverage == null ? 0 : o.coverage, html: (o) => o.coverage != null ? fmtDec(o.coverage, 1) + (o.undersupplied ? ' ⚠' : '') : '—' },
-        { key: 'spd', label: 'Prata/dia', value: (o) => o.silver_per_day == null ? 0 : o.silver_per_day, html: (o) => fmt(o.silver_per_day) },
-      ], rows, { sortKey: 'spd' });
-    }
-    st.textContent = rows.length ? `${rows.length} itens (${avDemView})` : 'sem dados de killboard na janela';
-  } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
-}
-
-let avGuildView = 'watch';
+let avGuildView = 'makeorbuy';
 async function loadAvGuild(view) {
   if (view) avGuildView = view;
   const st = $('guildStatus');
   st.className = 'status';
   st.textContent = 'calculando…';
   try {
-    const res = await api('/api/guild', { view: avGuildView, days: 7, premium: state.premium, limit: 50 });
-    if (avGuildView === 'kit') {
-      const s = res.series || [];
-      if (!s.length) { $('guildTable').innerHTML = ''; st.textContent = 'sem história da cesta de regear — colete o gear que aparece no killboard'; return; }
-      renderTable('guildTable', [
-        { key: 'day', label: 'Dia', align: 'l', value: (o) => o.day, html: (o) => esc(o.day) },
-        { key: 'cost', label: 'Custo da cesta', value: (o) => o.cost, html: (o) => fmt(o.cost) },
-        { key: 'index', label: 'Índice (base 100)', value: (o) => o.index, html: (o) => fmtDec(o.index, 1) },
-      ], s, { sortKey: 'day' });
-      st.textContent = `Índice Soldier's Kit · ${s.length} dias · top: ` + (res.basket || []).slice(0, 4).map((b) => esc(b.name_pt)).join(', ');
-      return;
-    }
+    const res = await api('/api/guild', { view: 'makeorbuy', days: 7, premium: state.premium, limit: 50 });
     const rows = res.rows || [];
-    if (avGuildView === 'makeorbuy') {
-      renderTable('guildTable', [
-        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
-        { key: 'dem', label: 'Demanda', value: (o) => o.demand_units, html: (o) => fmt(o.demand_units) },
-        { key: 'make', label: 'Fazer', value: (o) => o.internal_cost, html: (o) => fmt(o.internal_cost) },
-        { key: 'buy', label: 'Comprar', value: (o) => o.market_price, html: (o) => fmt(o.market_price) },
-        { key: 'save', label: 'Economia %', value: (o) => o.save_pct == null ? 0 : o.save_pct, html: (o) => fmtDec(o.save_pct, 1) + '%' },
-        { key: 'v', label: 'Veredito', align: 'l', value: (o) => o.verdict, html: (o) => esc(o.verdict) },
-      ], rows, { sortKey: 'save' });
-    } else {
-      renderTable('guildTable', [
-        { key: 'item', label: 'Item (ADD à watchlist)', align: 'l', value: (o) => o.name_pt, html: avItemCell },
-        { key: 'dest', label: 'Destruídos', value: (o) => o.destroyed, html: (o) => fmt(o.destroyed) },
-        { key: 'days', label: 'Dias ativos', value: (o) => o.active_days, html: (o) => fmt(o.active_days) },
-        { key: 'price', label: 'Preço', value: (o) => o.price == null ? 0 : o.price, html: (o) => fmt(o.price) },
-        { key: 'score', label: 'Score', value: (o) => o.score, html: (o) => fmt(o.score) },
-      ], rows, { sortKey: 'score' });
-    }
-    st.textContent = `${rows.length} itens (${avGuildView})`;
+    renderTable('guildTable', [
+      { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+      { key: 'dem', label: 'Demanda', value: (o) => o.demand_units, html: (o) => fmt(o.demand_units) },
+      { key: 'make', label: 'Fazer', value: (o) => o.internal_cost, html: (o) => fmt(o.internal_cost) },
+      { key: 'buy', label: 'Comprar', value: (o) => o.market_price, html: (o) => fmt(o.market_price) },
+      { key: 'save', label: 'Economia %', value: (o) => o.save_pct == null ? 0 : o.save_pct, html: (o) => fmtDec(o.save_pct, 1) + '%' },
+      { key: 'v', label: 'Veredito', align: 'l', value: (o) => o.verdict, html: (o) => esc(o.verdict) },
+    ], rows, { sortKey: 'save' });
+    st.textContent = `${rows.length} itens (fazer vs comprar)`;
   } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
 }
 
@@ -2236,16 +2168,6 @@ async function loadAvLogi(view) {
         { key: 'pct', label: 'Prêmio %', value: (o) => o.best_premium_pct, html: (o) => fmtDec(o.best_premium_pct, 1) + '%' },
         { key: 'abs', label: 'Prêmio prata', value: (o) => o.best_premium_abs, html: (o) => fmt(o.best_premium_abs) },
       ], rows, { sortKey: 'pct' });
-    } else if (avLogiView === 'restock') {
-      renderTable('logiTable', [
-        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
-        { key: 'dem', label: 'Perdidos', value: (o) => o.demand_units, html: (o) => fmt(o.demand_units) },
-        { key: 'buy', label: 'Comprar em', align: 'l', value: (o) => o.buy_city, html: (o) => cityHtml(o.buy_city) },
-        { key: 'bp', label: 'Custo', value: (o) => o.buy_price, html: (o) => fmt(o.buy_price) },
-        { key: 'sell', label: 'Vender em', align: 'l', value: (o) => o.sell_city, html: (o) => cityHtml(o.sell_city) },
-        { key: 'sn', label: 'Venda líq', value: (o) => o.sell_net, html: (o) => fmt(o.sell_net) },
-        { key: 'pk', label: 'Lucro/kg', value: (o) => o.profit_per_kg, html: (o) => fmt(o.profit_per_kg) },
-      ], rows, { sortKey: 'pk' });
     } else {
       renderTable('logiTable', [
         { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
@@ -2296,386 +2218,6 @@ async function loadAvRisco(view) {
   } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
 }
 
-let pvpView = 'weapon';
-function winBadge(v) {
-  if (v == null || isNaN(v)) return '<span class="muted">—</span>';
-  const cls = v >= 55 ? 'score-executar' : v >= 45 ? 'score-monitorar' : 'score-cautela';
-  return `<span class="score ${cls}">${fmtDec(v, 1)}%</span>`;
-}
-async function loadPvp(view) {
-  if (view) pvpView = view;
-  const st = $('pvpStatus');
-  st.className = 'status';
-  st.textContent = 'analisando killboard…';
-  try {
-    const days = $('pvpDays').value || 7;
-    const res = await api('/api/pvp', { view: pvpView, days, min_fights: 20, limit: 40 });
-    if (pvpView === 'overview') {
-      const o = res;
-      const pill = (l, v) => `<div class="lab-pill"><b>${l}</b><span class="v">${v}</span></div>`;
-      $('pvpTable').innerHTML = '<div class="coin-stats lab-summary">' +
-        pill('Kills observados', fmt(o.kills)) +
-        pill('Participantes médios', o.avg_participants != null ? o.avg_participants : '—') +
-        pill('Solo', o.solo_pct != null ? o.solo_pct + '%' : '—') +
-        pill('Grupo (≥4)', o.group_pct != null ? o.group_pct + '%' : '—') +
-        pill('IP médio killer', o.avg_ip_killer != null ? fmt(o.avg_ip_killer) : '—') +
-        pill('IP médio vítima', o.avg_ip_victim != null ? fmt(o.avg_ip_victim) : '—') +
-        pill('Fama total', fmt(o.total_fame)) +
-        '</div>';
-      st.textContent = `Panorama PvP · ${fmt(o.kills)} kills na janela`;
-      return;
-    }
-    const rows = res.rows || [];
-    const isBuild = pvpView === 'builds';
-    const cols = [
-      {
-        key: 'name', label: isBuild ? 'Build (arma + armadura)' : 'Arma', align: 'l',
-        value: (r) => r.build || r.weapon,
-        html: (r) => esc((r.build || r.weapon || '').replace(/_/g, ' ')),
-      },
-      { key: 'fights', label: 'Confrontos', value: (r) => r.fights, html: (r) => fmt(r.fights) },
-      { key: 'win', label: 'Vitória %', value: (r) => r.win_rate_pct, html: (r) => winBadge(r.win_rate_pct) },
-      { key: 'wins', label: 'V', value: (r) => r.wins, html: (r) => fmt(r.wins) },
-      { key: 'losses', label: 'D', value: (r) => r.losses, html: (r) => fmt(r.losses) },
-      { key: 'kd', label: 'K/D', value: (r) => r.kd == null ? 0 : r.kd, html: (r) => r.kd != null ? fmtDec(r.kd, 2) : '—' },
-      { key: 'pick', label: 'Pick %', value: (r) => r.pick_rate_pct, html: (r) => fmtDec(r.pick_rate_pct, 2) + '%' },
-    ];
-    renderTable('pvpTable', cols, rows, { sortKey: 'win' });
-    st.textContent = rows.length
-      ? `${rows.length} ${isBuild ? 'builds' : 'armas'} · ${fmt(res.total_fights)} confrontos na janela`
-      : 'sem confrontos suficientes na janela — aumente o período ou colete mais killboard';
-  } catch (e) {
-    st.className = 'status err';
-    st.textContent = 'erro: ' + e.message;
-  }
-}
-
-async function loadSurvival() {
-  const st = $('survStatus');
-  st.className = 'status';
-  st.textContent = 'analisando snapshots…';
-  $('survLoad').disabled = true;
-  try {
-    const res = await api('/api/survival');
-    const sidePt = { sell: 'venda (anúncio)', buy: 'compra (ordem)' };
-    const rows = [];
-    for (const [side, data] of Object.entries(res.sides || {})) {
-      for (const b of data.buckets || []) {
-        if (b.pairs) rows.push({ ...b, side: sidePt[side] || side });
-      }
-    }
-    if (!rows.length) {
-      st.textContent = 'ainda sem pares de coleta suficientes — use "Coletar watchlist" algumas vezes ao longo do dia';
-      $('survTable').innerHTML = '';
-      return;
-    }
-    const cols = [
-      { key: 'side', label: 'Lado', align: 'l', value: (r) => r.side, html: (r) => esc(r.side) },
-      { key: 'age', label: 'Idade da ordem', align: 'l', value: (r) => r.age_min, html: (r) => esc(r.age_label) },
-      { key: 'pairs', label: 'Pares', value: (r) => r.pairs, html: (r) => fmt(r.pairs) },
-      {
-        key: 'rate', label: 'Persistiu %', value: (r) => r.rate_pct,
-        html: (r) => {
-          const cls = r.rate_pct >= 70 ? 'profit-pos' : r.rate_pct >= 40 ? '' : 'profit-neg';
-          return `<span class="${cls}">${fmtDec(r.rate_pct, 1)}%</span>`;
-        },
-      },
-      { key: 'gap', label: 'Gap mediano', align: 'c', value: (r) => r.median_gap_min, html: (r) => `${fmtDec(r.median_gap_min, 0)} min` },
-    ];
-    renderTable('survTable', cols, rows, { sortKey: 'age', sortDir: 1 });
-    st.textContent = `${res.snapshot_pairs} pares de coleta analisados — ordens velhas que "persistem" pouco são os flips fantasmas`;
-  } catch (e) {
-    st.className = 'status err';
-    st.textContent = 'erro: ' + e.message;
-  } finally {
-    $('survLoad').disabled = false;
-  }
-}
-
-function fmtCompact(n) {
-  if (n >= 1e6) return (n / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'M';
-  if (n >= 1e3) return Math.round(n / 1e3).toLocaleString('pt-BR') + 'k';
-  return fmt(n);
-}
-
-async function loadHeatmap() {
-  const st = $('heatStatus');
-  st.className = 'status';
-  try {
-    const res = await api('/api/recommendations', {
-      premium: state.premium, limit: 200, min_daily_volume: 5,
-      min_active_days: 2, max_age_buy: 720, max_age_sell: 720,
-    });
-    const opps = res.opportunities || [];
-    if (!opps.length) {
-      st.textContent = 'sem rotas com os dados atuais — colete mais algumas vezes';
-      $('heatTable').innerHTML = '';
-      return;
-    }
-    const routes = {};
-    for (const o of opps) {
-      const r = routes[o.buy_city + '|' + o.sell_city] ||= {
-        buy: o.buy_city, sell: o.sell_city, total: 0, n: 0, top: null,
-      };
-      r.total += o.daily_realistic || 0;
-      r.n += 1;
-      if (!r.top || (o.daily_realistic || 0) > (r.top.daily_realistic || 0)) r.top = o;
-    }
-    const buys = [...new Set(Object.values(routes).map((r) => r.buy))].sort();
-    const sells = [...new Set(Object.values(routes).map((r) => r.sell))].sort();
-    const max = Math.max(...Object.values(routes).map((r) => r.total), 1);
-    let html = '<table><thead><tr><th class="l">compra ↓ / venda →</th>' +
-      sells.map((s) => `<th>${cityHtml(s)}</th>`).join('') + '</tr></thead><tbody>';
-    for (const b of buys) {
-      html += `<tr><td class="l">${cityHtml(b)}</td>`;
-      for (const s of sells) {
-        const r = routes[b + '|' + s];
-        if (!r) { html += '<td class="muted c">—</td>'; continue; }
-        const alpha = (0.12 + 0.55 * r.total / max).toFixed(2);
-        html += `<td class="c" style="background:rgba(212,168,67,${alpha})" ` +
-          `title="${esc(r.top.name_pt)}: ${fmt(r.top.daily_realistic)}/dia · ${r.n} oportunidades">` +
-          `<b>${fmtCompact(r.total)}</b><br><small class="muted">${r.n} itens</small></td>`;
-      }
-      html += '</tr>';
-    }
-    $('heatTable').innerHTML = html + '</tbody></table>';
-    st.textContent = `${opps.length} oportunidades agregadas em ${Object.keys(routes).length} rotas (passe o mouse para ver o item líder)`;
-  } catch (e) {
-    st.className = 'status err';
-    st.textContent = 'erro ao carregar (tente atualizar): ' + e.message;
-  }
-}
-
-async function loadIntel() {
-  const st = $('intelStatus');
-  st.className = 'status';
-  try {
-    const res = await api('/api/intel/top', {
-      days: $('intelDays').value,
-      inventory: $('intelInventory').checked,
-      limit: 15,
-    });
-    const items = res.items || [];
-    if (!items.length) {
-      st.textContent = 'sem eventos de kill coletados ainda — o servidor coleta o killboard a cada 10 min';
-      $('intelTable').innerHTML = '';
-      return;
-    }
-    const cols = [
-      {
-        key: 'item', label: 'Item', align: 'l', value: (r) => r.name_pt,
-        html: (r) => `<div class="cell-item">${iconImg(r.item_id)}
-          <div class="nm"><span class="te-badge">T${r.tier}.${r.ench}</span> ${esc(r.name_pt)}
-          <small>${esc(r.item_id)}</small></div></div>`,
-      },
-      { key: 'un', label: 'Unidades perdidas', value: (r) => r.unidades, html: (r) => `<b>${fmt(r.unidades)}</b>` },
-      { key: 'ev', label: 'Mortes', value: (r) => r.eventos, html: (r) => fmt(r.eventos) },
-      {
-        key: 'preco', label: 'Preço ref.', value: (r) => r.preco_ref,
-        html: (r) => r.preco_ref ? `<span class="silver">${fmt(r.preco_ref)}</span>` : '<span class="muted">sem preço</span>',
-      },
-      {
-        key: 'valor', label: 'Valor destruído (est.)', value: (r) => r.valor_estimado,
-        html: (r) => r.valor_estimado
-          ? `<span class="silver profit-neg" title="pós-trash (~${Math.round((r.trash_rate ?? 0.3) * 100)}% destruído de fato): ${fmt(r.valor_trash_estimado)} — taxa configurável, não validada">${fmt(r.valor_estimado)}</span>` : '—',
-      },
-    ];
-    renderTable('intelTable', cols, items.map((r) => ({ ...r, _copy: r.name_pt })),
-      { sortKey: 'un' });
-    const j = res.status?.janela_eventos || {};
-    const n = res.status?.kill_events ?? 0;
-    st.textContent = `${fmt(n)} kills no banco · janela: ${(j.de || '?').slice(0, 16).replace('T', ' ')} → ${(j.ate || '?').slice(0, 16).replace('T', ' ')} UTC · killboard é amostra pública, valor sem ajuste de trash`;
-  } catch (e) {
-    st.className = 'status err';
-    st.textContent = 'erro ao carregar (tente atualizar): ' + e.message;
-  }
-}
-
-async function loadSignals() {
-  const st = $('sigStatus');
-  st.className = 'status';
-  try {
-    const res = await api('/api/intel/signals', { limit: 12 });
-    const sigs = res.signals || [];
-    if (!sigs.length) {
-      st.textContent = res.demand_days < 3
-        ? `acumulando histórico de destruição (${res.demand_days} dia(s) — precisa de ~3+ para comparar recente × base)`
-        : 'nenhuma divergência relevante agora — mercado em dia com a destruição';
-      $('sigTable').innerHTML = '';
-      return;
-    }
-    const cols = [
-      {
-        key: 'item', label: 'Item', align: 'l', value: (r) => r.name_pt,
-        html: (r) => `<div class="cell-item">${iconImg(r.item_id)}
-          <div class="nm"><span class="te-badge">T${r.tier}.${r.ench}</span> ${esc(r.name_pt)}
-          <small>${esc(r.item_id)}</small></div></div>`,
-      },
-      {
-        key: 'dem', label: 'Destruição/dia', value: (r) => r.demanda_dia_recente,
-        html: (r) => `<b>${fmtDec(r.demanda_dia_recente, 0)}</b> <small class="muted">antes: ${fmtDec(r.demanda_dia_base, 0)}</small>`,
-      },
-      {
-        key: 'dratio', label: 'Δ demanda', align: 'c', value: (r) => r.demanda_ratio ?? 99,
-        html: (r) => r.demanda_ratio
-          ? `<span class="profit-pos">×${fmtDec(r.demanda_ratio, 2)}</span>`
-          : '<span class="muted" title="sem base de comparação">nova</span>',
-      },
-      {
-        key: 'pratio', label: 'Δ preço 7d', align: 'c', value: (r) => r.preco_ratio,
-        html: (r) => {
-          if (r.preco_ratio == null) return '<span class="muted">—</span>';
-          const pct = (r.preco_ratio - 1) * 100;
-          return `<span class="${pct >= 0 ? 'profit-pos' : 'profit-neg'}">${pct >= 0 ? '+' : ''}${fmtDec(pct, 1)}%</span>`;
-        },
-      },
-      { key: 'preco', label: 'Preço', value: (r) => r.preco_recente, html: (r) => `<span class="silver">${fmt(r.preco_recente)}</span>` },
-      { key: 'vol', label: 'Vol. mercado/dia', value: (r) => r.volume_dia, html: (r) => fmt(r.volume_dia) },
-    ];
-    renderTable('sigTable', cols, sigs.map((r) => ({ ...r, _copy: r.name_pt })),
-      { sortKey: 'dratio' });
-    st.textContent = `${sigs.length} sinais (${res.demand_days} dias de destruição no banco) — verifique volume e frescor antes de agir`;
-  } catch (e) {
-    st.className = 'status err';
-    st.textContent = 'erro ao carregar (tente atualizar): ' + e.message;
-  }
-}
-
-async function loadRisk() {
-  const st = $('riskStatus');
-  st.className = 'status';
-  try {
-    const res = await api('/api/intel/risk', { days: 1 });
-    const cls = res.classificacao || {};
-    if (!cls.total_mortes) {
-      st.textContent = 'sem mortes coletadas ainda';
-      $('riskTable').innerHTML = '';
-      return;
-    }
-    st.innerHTML = (cls.classes || []).map((c) =>
-      `<b>${esc(c.classe)}</b> ${c.pct}% (${fmt(c.mortes)})`).join(' · ') +
-      ` — vítimas coletoras: <b>${fmt(cls.vitimas_coletoras)}</b>` +
-      ` · com montaria de carga: <b>${fmt(cls.vitimas_montaria_transporte)}</b>` +
-      ` · com inventário 10+: <b>${fmt(cls.vitimas_inventario_pesado)}</b>`;
-    const zvz = res.zvz_recentes || [];
-    if (!zvz.length) { $('riskTable').innerHTML = ''; return; }
-    const cols = [
-      { key: 'inicio', label: 'Início (UTC)', align: 'l', value: (r) => r.inicio, html: (r) => esc((r.inicio || '').slice(0, 16).replace('T', ' ')) },
-      { key: 'zona', label: 'Zona', align: 'l', value: (r) => r.zona, html: (r) => esc(r.zona || '—') },
-      { key: 'kills', label: 'Kills', value: (r) => r.kills, html: (r) => fmt(r.kills) },
-      { key: 'jog', label: 'Jogadores', value: (r) => r.jogadores, html: (r) => fmt(r.jogadores) },
-      { key: 'gld', label: 'Guildas', value: (r) => r.guildas, html: (r) => fmt(r.guildas) },
-      { key: 'fama', label: 'Fama destruída', value: (r) => r.fama, html: (r) => `<span class="silver profit-neg">${fmt(r.fama)}</span>` },
-    ];
-    renderTable('riskTable', cols, zvz, { sortKey: 'fama' });
-  } catch (e) {
-    st.className = 'status err';
-    st.textContent = 'erro ao carregar (tente atualizar): ' + e.message;
-  }
-}
-
-async function loadServiceOrders(regenerate = false) {
-  const st = $('ordersStatus');
-  try {
-    const res = regenerate
-      ? await apiSend('/api/service-orders/refresh', 'POST')
-      : await api('/api/service-orders');
-    let rows = res.orders || [];
-    if (!rows.length) {
-      st.textContent = 'sem ordens abertas agora — clique em Atualizar para gerar a partir dos sinais cacheados';
-      $('ordersTable').innerHTML = '';
-      return;
-    }
-    // segurança primeiro: avisos de risco no topo, depois maior lucro
-    rows = [...rows].sort((a, b) =>
-      (b.action_type === 'evitar_risco') - (a.action_type === 'evitar_risco')
-      || (b.expected_profit || 0) - (a.expected_profit || 0));
-    const cols = [
-      {
-        key: 'perfil', label: 'Perfil', align: 'l', value: (r) => r.profile_target,
-        html: (r) => `<b>${esc(r.profile_target)}</b><br><small class="muted">${esc(r.action_type)}</small>`,
-      },
-      {
-        key: 'item', label: 'Item', align: 'l', value: (r) => r.name_pt,
-        html: (r) => r.item_id ? `<div class="cell-item">${iconImg(r.item_id)}
-          <div class="nm"><span class="te-badge">T${r.tier}.${r.ench}</span> ${esc(r.name_pt)}
-          <small>${esc(r.item_id)}</small></div></div>` : '<span class="muted">geral</span>',
-      },
-      {
-        key: 'rota', label: 'Cidade/rota', align: 'l',
-        value: (r) => `${r.city_from || ''} ${r.city_to || ''}`,
-        html: (r) => r.city_from || r.city_to
-          ? `${r.city_from ? cityHtml(r.city_from) : '<span class="muted">—</span>'} → ${r.city_to ? cityHtml(r.city_to) : '<span class="muted">—</span>'}`
-          : '<span class="muted">—</span>',
-      },
-      { key: 'qtd', label: 'Qtd.', value: (r) => r.quantity_base || 0, html: (r) => r.quantity_base ? fmt(r.quantity_base) : '—' },
-      {
-        key: 'lucro', label: 'Lucro est.', value: (r) => r.expected_profit || 0,
-        html: (r) => r.expected_profit ? `<span class="silver profit-pos">${fmt(r.expected_profit)}</span>` : '—',
-      },
-      {
-        key: 'risco', label: 'Risco/conf.', align: 'c', value: (r) => r.risk_level,
-        html: (r) => `<span class="${r.risk_level === 'alto' ? 'profit-neg' : ''}">${esc(r.risk_level || '—')}</span><br><small class="muted">${esc(r.confidence || '—')}</small>`,
-      },
-      { key: 'motivo', label: 'Motivo', align: 'l', value: (r) => r.explanation_short, html: (r) => esc(r.explanation_short || '') },
-    ];
-    renderTable('ordersTable', cols, rows.map((r) => ({ ...r, _copy: r.explanation_short || r.name_pt || '' })),
-      {});
-    st.textContent = `${rows.length} ordens abertas, geradas de dados cacheados e sinais públicos`;
-    if (res.generated !== undefined) st.textContent += ` · ${res.generated} recalculadas`;
-  } catch (e) {
-    st.textContent = 'erro ao carregar ordens de serviço: ' + e.message;
-  }
-}
-
-async function loadSignalValidation() {
-  try {
-    const res = await api('/api/intel/validate');
-    const h1 = (res.horizons || []).find((h) => h.horizon_days === 1);
-    if (h1 && h1.n > 0) {
-      $('sigStatus').textContent +=
-        ` · backtest dos alertas (D+1): ${h1.hit_rate_pct}% de acerto, retorno mediano ${h1.retorno_mediano_pct}% (N=${h1.n})`;
-    }
-  } catch (e) { /* opcional */ }
-}
-
-async function refreshWatchCount() {
-  try {
-    const w = await api('/api/watchlist');
-    $('dashCollect').textContent = `Coletar watchlist (${w.count})`;
-    $('dashCollect').disabled = w.count === 0;
-  } catch (e) { /* opcional */ }
-}
-
-async function runCollect() {
-  const b = $('dashCollect');
-  b.disabled = true;
-  const original = b.textContent;
-  b.textContent = 'coletando…';
-  try {
-    const res = await apiSend('/api/collect', 'POST');
-    toast(`coletados ${res.items} itens · ${res.price_rows} preços · ${res.history_series} séries`);
-    loadStatus();
-    loadDashboardRecommendations();
-    loadHeatmap();
-  } catch (e) {
-    toast('erro na coleta: ' + e.message);
-  } finally {
-    b.textContent = original;
-    refreshWatchCount();
-  }
-}
-
-async function watchCurrentLabItem() {
-  if (!state.histItem) { toast('escolha um item primeiro'); return; }
-  try {
-    const res = await apiSend('/api/watchlist/' + encodeURIComponent(state.histItem.id), 'POST');
-    toast(`${state.histItem.pt} na watchlist (${res.count} itens)`);
-    refreshWatchCount();
-  } catch (e) {
-    toast('erro: ' + e.message);
-  }
-}
 
 async function loadStatus() {
   try {
@@ -2785,16 +2327,9 @@ async function init() {
         x.classList.toggle('on', x === b));
       loadAvancado(b.dataset.view);
     }));
-  document.querySelectorAll('#pvpView .chip').forEach((b) =>
-    b.addEventListener('click', () => {
-      document.querySelectorAll('#pvpView .chip').forEach((x) =>
-        x.classList.toggle('on', x === b));
-      loadPvp(b.dataset.view);
-    }));
-  $('pvpDays').addEventListener('change', () => loadPvp());
   document.querySelectorAll('#avSubtabs button').forEach((b) =>
     b.addEventListener('click', () => showAvSub(b.dataset.av)));
-  [['#prodView', loadAvProd], ['#demandView', loadAvDemanda], ['#guildView', loadAvGuild],
+  [['#prodView', loadAvProd], ['#guildView', loadAvGuild],
    ['#logiView', loadAvLogi], ['#riscoView', loadAvRisco]]
     .forEach(([sel, loader]) =>
       document.querySelectorAll(sel + ' .chip').forEach((b) =>
@@ -2803,16 +2338,12 @@ async function init() {
             x.classList.toggle('on', x === b));
           loader(b.dataset.view);
         })));
-  $('dashCollect').addEventListener('click', runCollect);
   document.querySelectorAll('#goldRange .chip').forEach((b) =>
     b.addEventListener('click', () => {
       document.querySelectorAll('#goldRange .chip').forEach((x) =>
         x.classList.toggle('on', x === b));
       loadGoldChart(+b.dataset.range);
     }));
-  $('ordersRefresh').addEventListener('click', () => loadServiceOrders(true));
-  $('survLoad').addEventListener('click', loadSurvival);
-  $('histWatch').addEventListener('click', watchCurrentLabItem);
   ['craftSellMode', 'craftFocus', 'craftSpec', 'craftDaily', 'craftFocusBudget',
    'craftFee', 'craftSourcing'].forEach((id) =>
     $(id).addEventListener('change', () => loadItemSub('craft', true)));
@@ -2840,20 +2371,8 @@ async function init() {
 
   renderFlipsItems();
   updateHiddenControls();
-  $('intelDays').addEventListener('change', loadIntel);
-  $('intelInventory').addEventListener('change', loadIntel);
-  setInterval(loadIntel, 5 * 60 * 1000);
 
-  refreshWatchCount();
   loadDashboardRecommendations();
-  loadHeatmap();
-  loadIntel();
-  loadSignals().then(loadSignalValidation);
-  loadRisk();
-  loadServiceOrders();
-  setInterval(() => { loadSignals().then(loadSignalValidation); loadRisk(); },
-    10 * 60 * 1000);
-  setInterval(loadServiceOrders, 10 * 60 * 1000);
 }
 
 bootAuth();

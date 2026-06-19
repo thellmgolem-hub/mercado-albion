@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260619-auth3">
+<link rel="stylesheet" href="style.css?v=20260619-pilot1">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body class="auth-pending">
@@ -40,8 +40,6 @@
   <button data-tab="item">Item</button>
   <button data-tab="flips">Flips</button>
   <button data-tab="scanner">Scanner</button>
-  <button data-tab="killboard">Killboard</button>
-  <button data-tab="pvp">PvP</button>
   <button data-tab="avancado">Avançado</button>
   <button data-tab="admin" id="adminTabButton" hidden>Contas</button>
 </nav>
@@ -60,7 +58,6 @@
       <label class="field-row muted" style="gap:5px" title="Funde risco (volatilidade), reversão à média e divergência de demanda ao score — ranking ajustado a risco">
         <input type="checkbox" id="dashFused"> Escore composto
       </label>
-      <button class="btn" id="dashCollect" title="Busca preços e histórico frescos de todos os itens da watchlist">Coletar watchlist</button>
       <button class="btn secondary" id="dashRecsRefresh">Atualizar</button>
     </div>
   </div>
@@ -133,34 +130,6 @@
   <div class="status" id="dashRecsStatus"></div>
   <div class="table-wrap" id="dashRecsTable"></div>
 
-  <div class="section-head" style="margin-top:22px">
-    <div>
-      <h1>Persistência das ordens</h1>
-      <div class="sub">Quanto tempo a ordem do topo sobrevive — medido nas suas coletas repetidas (proxy de flip fantasma). Análise pesada: carregue sob demanda.</div>
-    </div>
-    <button class="btn secondary" id="survLoad">Carregar persistência</button>
-  </div>
-  <div class="status" id="survStatus">clique em "Carregar persistência" — varre os snapshots dos últimos dias (alguns segundos)</div>
-  <div class="table-wrap" id="survTable"></div>
-
-  <div class="section-head" style="margin-top:22px">
-    <div>
-      <h1>Mapa de rotas</h1>
-      <div class="sub">Potencial realista por dia (prata) somado por rota compra → venda — só cache local</div>
-    </div>
-  </div>
-  <div class="status" id="heatStatus"></div>
-  <div class="table-wrap" id="heatTable"></div>
-
-  <div class="section-head" style="margin-top:22px">
-    <div>
-      <h1>Ordens de serviço</h1>
-      <div class="sub">Missões geradas a partir dos sinais técnicos para cada perfil econômico</div>
-    </div>
-    <button class="btn secondary" id="ordersRefresh">Atualizar</button>
-  </div>
-  <div class="status" id="ordersStatus"></div>
-  <div class="table-wrap" id="ordersTable"></div>
 </section>
 
 <!-- ============================ MOEDAS ============================ -->
@@ -185,77 +154,6 @@
      <b>prata por 1 ouro</b>. A linha tracejada mostra o <b>valor da prata em ouro</b>
      (o inverso) — quando o ouro sobe, sua prata vale menos. Pontos anômalos são
      filtrados; a janela é selecionável acima.</p>
-</section>
-
-<!-- ============================ KILLBOARD ============================ -->
-<section class="tab" id="tab-killboard">
-  <div class="section-head">
-    <div>
-      <h1>Demanda por destruição</h1>
-      <div class="sub">Itens mais perdidos em kills (killboard público) — demanda real antes do preço reagir</div>
-    </div>
-    <div class="field-row">
-      <select id="intelDays">
-        <option value="0.25">6 horas</option>
-        <option value="1" selected>24 horas</option>
-        <option value="7">7 dias</option>
-      </select>
-      <label class="field-row muted" style="gap:4px">
-        <input type="checkbox" id="intelInventory"> inventário
-      </label>
-    </div>
-  </div>
-  <div class="status" id="intelStatus"></div>
-  <div class="table-wrap" id="intelTable"></div>
-
-  <div class="section-head" style="margin-top:22px">
-    <div>
-      <h1>Demanda subindo, preço atrasado</h1>
-      <div class="sub">Divergência: destruição acelerando no killboard sem o mercado ter reagido — o sinal mais valioso da plataforma</div>
-    </div>
-  </div>
-  <div class="status" id="sigStatus"></div>
-  <div class="table-wrap" id="sigTable"></div>
-
-  <div class="section-head" style="margin-top:22px">
-    <div>
-      <h1>Guerra e risco</h1>
-      <div class="sub">Classes de morte (estrutural), vítimas econômicas e batalhas grandes nas últimas 24 h</div>
-    </div>
-  </div>
-  <div class="status" id="riskStatus"></div>
-  <div class="table-wrap" id="riskTable"></div>
-</section>
-
-<!-- ============================ PVP ============================ -->
-<section class="tab" id="tab-pvp">
-  <div class="section-head">
-    <div>
-      <h1>PvP — builds meta &amp; taxa de vitória</h1>
-      <div class="sub">Do killboard público: win% = vezes que a arma deu o
-        golpe final ÷ (golpes finais + mortes com ela). Cruze com o pick rate
-        (popularidade) — armas de burst inflam o win% vs suportes/tanques.</div>
-    </div>
-    <div class="field-row">
-      <div class="chips" id="pvpView">
-        <button class="chip on" data-view="weapon">Por arma</button>
-        <button class="chip" data-view="builds">Por build</button>
-        <button class="chip" data-view="overview">Panorama</button>
-      </div>
-      <select id="pvpDays">
-        <option value="1">24 horas</option>
-        <option value="7" selected>7 dias</option>
-        <option value="14">14 dias</option>
-      </select>
-    </div>
-  </div>
-  <div class="status" id="pvpStatus"></div>
-  <div class="table-wrap" id="pvpTable"></div>
-  <p class="hint">Métrica honesta de killboard: "vitória" é a posse do golpe
-     final (em grupo, atribui a um killer; o feed só guarda equipamento de
-     killer e vítima). Use a coluna <b>Confrontos</b> como tamanho de amostra —
-     win% de poucas lutas é ruído. <b>Pick %</b> = participação da arma/build no
-     total observado. <b>K/D</b> = golpes finais ÷ mortes.</p>
 </section>
 
 <!-- ============================ ITEM ============================ -->
@@ -374,7 +272,6 @@
         </div>
       </div>
       <button class="btn" id="histRun">Carregar</button>
-      <button class="btn secondary" id="histWatch" title="Adiciona o item à watchlist de coleta">+ watchlist</button>
     </div>
     <div class="status" id="histStatus"></div>
     <div class="lab-panel" id="histLabPanel">
@@ -638,7 +535,6 @@
   <nav class="subtabs" id="avSubtabs">
     <button data-av="micro" class="active">Microestrutura</button>
     <button data-av="prod">Produção</button>
-    <button data-av="demanda">Demanda</button>
     <button data-av="guild">Guild</button>
     <button data-av="logi">Logística</button>
     <button data-av="risco">Risco</button>
@@ -685,44 +581,22 @@
   </div>
 
   <!-- av: Demanda -->
-  <div class="subtab" id="av-demanda">
-    <div class="section-head">
-      <div>
-        <h1>Demanda real (killboard)</h1>
-        <div class="sub">O que o servidor consome de verdade: queima de consumíveis vs oferta,
-          qualidade do gear destruído e builds (arma+armadura) subindo na meta.</div>
-      </div>
-      <div class="field-row chips" id="demandView">
-        <button class="chip on" data-view="burn">Consumíveis</button>
-        <button class="chip" data-view="quality">Qualidade destruída</button>
-        <button class="chip" data-view="meta">Meta subindo</button>
-      </div>
-    </div>
-    <div class="status" id="demandStatus"></div>
-    <div class="table-wrap" id="demandTable"></div>
-    <p class="hint">Como agir: <b>cobertura &lt; 1</b> em Consumíveis = o mercado abastece menos do que
-       o servidor queima (preço pronto pra subir — estoque/craft). <b>Meta subindo</b> antecipa a compra
-       dos insumos da build antes do preço reagir.</p>
-  </div>
-
   <!-- av: Guild -->
   <div class="subtab" id="av-guild">
     <div class="section-head">
       <div>
         <h1>Guild &amp; estratégico</h1>
-        <div class="sub">O que a guild deve vigiar (ROI de informação), o índice de custo de
-          regear e fazer-vs-comprar dos itens consumidos.</div>
+        <div class="sub">Fazer-vs-comprar dos itens consumidos pela guild: craftar internamente
+          sai mais barato que comprar pronto?</div>
       </div>
       <div class="field-row chips" id="guildView">
-        <button class="chip on" data-view="watch">Vigiar (ROI)</button>
-        <button class="chip" data-view="kit">Cesta de regear</button>
-        <button class="chip" data-view="makeorbuy">Fazer vs comprar</button>
+        <button class="chip on" data-view="makeorbuy">Fazer vs comprar</button>
       </div>
     </div>
     <div class="status" id="guildStatus"></div>
     <div class="table-wrap" id="guildTable"></div>
-    <p class="hint">Como agir: <b>Vigiar</b> prioriza o que a guild perde mais (ROI de coletar dados);
-       <b>Fazer vs comprar</b> diz se craftar internamente sai mais barato que comprar pronto.</p>
+    <p class="hint">Como agir: <b>Economia %</b> positiva = craftar internamente sai mais barato
+       que comprar pronto no mercado.</p>
   </div>
 
   <!-- av: Logística -->
@@ -737,13 +611,11 @@
       <div class="field-row chips" id="logiView">
         <button class="chip on" data-view="bm">Mercado Negro</button>
         <button class="chip" data-view="ladder">Escada de qualidade</button>
-        <button class="chip" data-view="restock">Mapa de reposição</button>
       </div>
     </div>
     <div class="status" id="logiStatus"></div>
     <div class="table-wrap" id="logiTable"></div>
     <p class="hint">Como agir: <b>prêmio %</b> alto = vale levar pro Mercado Negro / subir de qualidade.
-       O <b>mapa de reposição</b> ordena o que o servidor mais perde por lucro/kg — fila de abastecimento.
        Resultado teórico: confira transporte e frescor.</p>
   </div>
 
@@ -863,6 +735,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260619-auth3"></script>
+<script src="app.js?v=20260619-pilot1"></script>
 </body>
 </html>
