@@ -1430,17 +1430,53 @@ class CraftStudioTests(unittest.TestCase):
         base = c.unified_rrr("T4_PLANKS", None, "Thetford", False)
         self.assertGreater(bonus, base + 0.15)   # +40% de especialidade vira ~+21pp
 
-    def test_sell_ceiling_drops_anchor(self):
-        # uma cidade cota âncora (1e6); o teto força usar a venda real
+    def test_band_drops_sell_anchor_and_buy_troll(self):
+        c = self.craft
+        # teto de venda (band) força a venda real, não a âncora de 1e6
         acq = {("A", "Caerleon"): 100, ("B", "Caerleon"): 50,
                ("PROD", "Caerleon"): 1000, ("PROD", "Thetford"): 1_000_000}
-        rows = self.craft.studio(
-            "PROD", self.recipe, lambda i, c: acq.get((i, c)),
-            lambda i, c: None, premium=True, sell_mode="order",
+        band = {"PROD": (None, 5000), "A": (None, None), "B": (None, None)}
+        rows = c.studio(
+            "PROD", self.recipe, lambda i, x: acq.get((i, x)),
+            lambda i, x: None, premium=True, sell_mode="order",
             source_cities=["Caerleon"], sell_cities=["Caerleon", "Thetford"],
-            sell_ceiling=5000)
+            band_of=lambda i: band.get(i, (None, None)))
         self.assertEqual(rows[0]["sell_city"], "Caerleon")
         self.assertEqual(rows[0]["sell_unit"], 1000)
+        # piso de compra (band) ignora a ordem-isca de 1 prata num insumo
+        acq2 = {("A", "Bridgewatch"): 1, ("A", "Thetford"): 100,
+                ("B", "Thetford"): 50, ("PROD", "Caerleon"): 1000}
+        band2 = {"A": (30, None), "B": (None, None), "PROD": (None, None)}
+        rows2 = c.studio(
+            "PROD", self.recipe, lambda i, x: acq2.get((i, x)),
+            lambda i, x: None, premium=True, sell_mode="order",
+            source_cities=["Bridgewatch", "Thetford"], sell_cities=["Caerleon"],
+            band_of=lambda i: band2.get(i, (None, None)))
+        buys = {s["id"]: s["buy_city"] for s in rows2[0]["sourcing"]}
+        self.assertEqual(buys["A"], "Thetford")    # isca de 1 prata descartada
+
+    def test_anchor_band_detects_majority_anchor(self):
+        c = self.craft
+        # 5/7 cidades em ~1M, 2 reais ~5k: o salto pega o teto mesmo em maioria
+        _, ceiling = c.anchor_band([5000, 5000, 1_000_000, 1_000_000, 1_000_000])
+        self.assertIsNotNone(ceiling)
+        self.assertLess(ceiling, 100_000)
+        # piso pega a isca de 1 prata
+        floor, _ = c.anchor_band([1, 250, 300])
+        self.assertIsNotNone(floor)
+        self.assertGreater(floor, 1)
+
+    def test_bm_gate_blocks_non_combat_sell(self):
+        c = self.craft
+        # poção (não-combate) não pode vender no Mercado Negro mesmo com bid alto
+        acq = {("A", "Caerleon"): 100, ("B", "Caerleon"): 50,
+               ("PROD", "Caerleon"): 1000}
+        bid = {("PROD", "Black Market"): 9000}
+        rows = c.studio(
+            "PROD", self.recipe, lambda i, x: acq.get((i, x)),
+            lambda i, x: bid.get((i, x)), premium=True, sell_mode="order",
+            source_cities=["Caerleon"], sell_cities=["Caerleon", "Black Market"])
+        self.assertNotEqual(rows[0]["sell_city"], "Black Market")
 
 
 if __name__ == "__main__":

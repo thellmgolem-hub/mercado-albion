@@ -662,54 +662,47 @@ def craft_margin(item: str, premium: bool = True, sell_mode: str = "order",
     all_cities = list(dict.fromkeys(src + sells))
     ids = [item_id] + [i["id"] for i in recipe["inputs"]]
     rows = _api_guard(lambda: aodp.get_prices(ids, all_cities, max_age=max_age))
-    # o estúdio pega o MENOR custo de compra e a MAIOR venda entre cidades —
-    # exatamente o que ordens-isca exploram. Zera âncoras (outlier z entre
-    # cidades) antes, como manda a defesa comum do projeto.
-    from albion.microstructure import clean_price_rows
-    rows = clean_price_rows(rows)
-    # Teto de venda anti-âncora. O saneamento entre cidades não pega o caso em
-    # que a MAIORIA das cidades cota isca (ex.: 5/7 a ~1M numa base T4). Dois
-    # ancoradores, o mais apertado vence:
-    #  (a) preço REAL negociado (history mediana ~21d × 5), quando há histórico;
-    #  (b) salto >8× entre as cotações de venda ordenadas = início das âncoras.
-    ceilings = []
-    _hcon = _cache_connection()
-    if _hcon is not None:
-        try:
-            hv = sorted(v[0] for v in _hcon.execute(
-                """SELECT avg_price FROM history WHERE server=? AND item_id=?
-                   AND quality=1 AND time_scale=24 AND avg_price>0
-                   AND ts>=date('now','-21 days')""", [aodp.server, item_id]).fetchall())
-            if hv:
-                ceilings.append(hv[len(hv) // 2] * 5)
-        finally:
-            _hcon.close()
-    out_sells = sorted(
-        (r.get("sell_price_min") or 0) for r in rows
-        if r["item_id"] == item_id and r["quality"] == 1 and (r.get("sell_price_min") or 0) > 0)
-    for i in range(len(out_sells) - 1, 0, -1):       # maior salto, de cima p/ baixo
-        if out_sells[i] > out_sells[i - 1] * 8:
-            ceilings.append(out_sells[i - 1] * 3)    # teto logo acima do real
-            break
-    sell_ceiling = min(ceilings) if ceilings else None
-    acq, bid = {}, {}
+    # O estúdio pega o MENOR custo de compra e a MAIOR venda entre cidades —
+    # exatamente o que ordens-isca exploram, dos dois lados. Defesa: uma BANDA
+    # de preço plausível por item (piso E teto) via craft.anchor_band — salto
+    # >8× entre cidades (pega âncora mesmo em maioria) + preço REAL negociado
+    # (history mediana ~21d) quando há. Construímos sobre os preços CRUS (sem
+    # zerar nada antes: o saneamento por z robusto erra quando a isca é maioria).
+    acq, bid, quotes = {}, {}, {}
     for r in rows:
         if r["quality"] != 1:
             continue
         key = (r["item_id"], r["city"])
         sp = r.get("sell_price_min") or 0
         bp = r.get("buy_price_max") or 0
-        if sp > 0 and (key not in acq or sp < acq[key]):
-            acq[key] = sp
+        if sp > 0:
+            if key not in acq or sp < acq[key]:
+                acq[key] = sp
+            quotes.setdefault(r["item_id"], []).append(sp)
         if bp > 0 and (key not in bid or bp > bid[key]):
             bid[key] = bp
+    hist_med = {}
+    _hcon = _cache_connection()
+    if _hcon is not None:
+        try:
+            for iid in ids:
+                hv = sorted(v[0] for v in _hcon.execute(
+                    """SELECT avg_price FROM history WHERE server=? AND item_id=?
+                       AND quality=1 AND time_scale=24 AND avg_price>0
+                       AND ts>=date('now','-21 days')""", [aodp.server, iid]).fetchall())
+                if hv:
+                    hist_med[iid] = hv[len(hv) // 2]
+        finally:
+            _hcon.close()
+    bands = {iid: craft_mod.anchor_band(quotes.get(iid, []), hist_med.get(iid))
+             for iid in ids}
     res = craft_mod.studio(
         item_id, recipe, lambda i, c: acq.get((i, c)),
         lambda i, c: bid.get((i, c)), premium=premium, sell_mode=sell_mode,
         focus=focus, spec_fce=spec_fce, focus_budget=focus_budget,
         daily_bonus=daily_bonus, station_fee=station_fee or fee,
         source_cities=src, sell_cities=sells, same_city=same_city,
-        sell_ceiling=sell_ceiling)
+        band_of=lambda i: bands.get(i, (None, None)))
     name = lambda i: (db.get(i) or {}).get("pt", i)
     for row in res:
         for s in row.get("sourcing", []):

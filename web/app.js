@@ -22,17 +22,28 @@ const state = {
 const $ = (id) => document.getElementById(id);
 
 // ============================================================ utilitários
+// normaliza o corpo de erro do FastAPI: detail pode ser string OU array de
+// validação (422) — sem isso a UI mostrava "erro: [object Object]"
+async function apiError(res) {
+  let msg = res.statusText;
+  try {
+    const d = (await res.json()).detail;
+    if (Array.isArray(d)) {
+      msg = d.map((x) => `${(x.loc || []).slice(1).join('.')}: ${x.msg}`).join('; ');
+    } else if (d) {
+      msg = d;
+    }
+  } catch (e) { /* corpo não-JSON */ }
+  return new Error(msg);
+}
+
 async function api(path, params = {}) {
   const usp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v !== null && v !== undefined && v !== '') usp.set(k, v);
   }
   const res = await fetch(path + (usp.toString() ? '?' + usp : ''));
-  if (!res.ok) {
-    let msg = res.statusText;
-    try { msg = (await res.json()).detail || msg; } catch (e) { /* corpo não-JSON */ }
-    throw new Error(msg);
-  }
+  if (!res.ok) throw await apiError(res);
   return res.json();
 }
 
@@ -42,11 +53,7 @@ async function apiSend(path, method = 'POST', params = {}) {
     if (v !== null && v !== undefined && v !== '') usp.set(k, v);
   }
   const res = await fetch(path + (usp.toString() ? '?' + usp : ''), { method });
-  if (!res.ok) {
-    let msg = res.statusText;
-    try { msg = (await res.json()).detail || msg; } catch (e) { /* corpo não-JSON */ }
-    throw new Error(msg);
-  }
+  if (!res.ok) throw await apiError(res);
   return res.json();
 }
 
@@ -324,8 +331,12 @@ function makeChips(containerId, options, { selected = [], multi = true, onChange
   const box = $(containerId);
   const on = new Set(selected.map(String));
   box.innerHTML = '';
-  const sync = () => box.querySelectorAll('.chip-opt').forEach((c, i) =>
-    c.classList.toggle('on', on.has(String(options[i].value))));
+  const sync = () => {
+    box.querySelectorAll('.chip-opt').forEach((c, i) =>
+      c.classList.toggle('on', on.has(String(options[i].value))));
+    const allChip = box.querySelector('.chip-all');
+    if (allChip) allChip.classList.toggle('on', on.size >= options.length);
+  };
   if (allToggle && multi) {
     const all = document.createElement('span');
     all.className = 'chip chip-all';

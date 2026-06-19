@@ -2,24 +2,44 @@
 """Extrai receitas de CRAFT (equipamento, comida, poções...) do dump.
 
 Gera data/recipes_craft.json: por item craftável presente no items_db,
-guarda os insumos (id de mercado + quantidade), o foco e a categoria de
-craft (@craftingcategory) — usada para achar a cidade-bônus em craft_data.
+guarda os insumos (id de mercado + quantidade), o foco, o lote (output) e a
+categoria de craft (@craftingcategory) — usada para achar a cidade-bônus.
+
+IMPORTANTE: cada nível de ENCANTO tem sua PRÓPRIA receita no dump
+(enchantments.enchantment[].craftingrequirements): adiciona um reagente de
+encanto (ALCHEMY_EXTRACT/FISHSAUCE/runas...) e tem foco/lote próprios. Ler só o
+craftingrequirements de topo subestimava custo e foco dos encantados.
 
 Complementa recipes_refining.json (recursos refinados). Rodar após
 build_items_db.py.  Uso:  python scripts/build_craft_recipes.py
 """
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 
 SKIP_KEYS = {"@xmlns:xsi", "@xsi:noNamespaceSchemaLocation", "shopcategories"}
+# famílias de recurso refinado: no dump aparecem como X_LEVELn (encantado) e o
+# id de mercado é X@n; reagentes de encanto (ALCHEMY_EXTRACT_LEVEL1 etc.) NÃO —
+# o próprio _LEVELn é o id de mercado.
+_REFINED = ("METALBAR", "PLANKS", "CLOTH", "LEATHER", "STONEBLOCK")
+_LEVEL_RE = re.compile(r"^(.+)_LEVEL([1-9])$")
 
 
 def market_id(uniquename: str, ench) -> str:
     e = int(ench or 0)
     return f"{uniquename}@{e}" if e > 0 else uniquename
+
+
+def input_market_id(uniquename: str) -> str:
+    """Id de mercado de um craftresource. Refinado X_LEVELn -> X@n; reagente
+    (ALCHEMY_EXTRACT_LEVEL1...) mantém o nome (é assim que vai pro mercado)."""
+    m = _LEVEL_RE.match(uniquename)
+    if m and any(m.group(1).endswith(r) for r in _REFINED):
+        return f"{m.group(1)}@{m.group(2)}"
+    return uniquename
 
 
 def iter_items(raw):
@@ -32,28 +52,42 @@ def iter_items(raw):
                 yield e
 
 
-def first_recipe(entry):
-    reqs = entry.get("craftingrequirements")
-    if isinstance(reqs, dict):
-        reqs = [reqs]
-    if not reqs:
+def parse_reqs(block):
+    """(inputs, focus, output) de um bloco craftingrequirements (base ou encanto).
+    Lê o craftresource COMPLETO — inclui o reagente de encanto quando presente."""
+    if isinstance(block, list):
+        block = block[0] if block else None
+    if not block:
         return None
-    r0 = reqs[0]
-    res = r0.get("craftresource")
+    res = block.get("craftresource")
     if isinstance(res, dict):
         res = [res]
     if not res:
         return None
-    inputs = [{"id": market_id(x["@uniquename"], x.get("@enchantmentlevel", "0")),
-               "count": int(x["@count"])}
+    inputs = [{"id": input_market_id(x["@uniquename"]), "count": int(x["@count"])}
               for x in res if "@uniquename" in x]
     if not inputs:
         return None
-    # @amountcrafted: quantos itens UM craft produz (poções/comida saem em lote
-    # de 5; equipamento sai 1). Sem isso, a margem de consumíveis ficava por-1.
-    output = int(float(r0.get("@amountcrafted", 1) or 1))
-    return {"inputs": inputs, "focus": int(float(r0.get("@craftingfocus", 0))),
+    output = int(float(block.get("@amountcrafted", 1) or 1))
+    return {"inputs": inputs,
+            "focus": int(float(block.get("@craftingfocus", 0))),
             "output": max(output, 1)}
+
+
+def enchant_recipes(entry):
+    """{nível_encanto: receita} a partir do bloco enchantments do item."""
+    block = entry.get("enchantments")
+    if not isinstance(block, dict):
+        return {}
+    el = block.get("enchantment")
+    el = el if isinstance(el, list) else ([el] if el else [])
+    out = {}
+    for x in el:
+        lvl = int(x.get("@enchantmentlevel", 0) or 0)
+        rec = parse_reqs(x.get("craftingrequirements"))
+        if rec and lvl:
+            out[lvl] = rec
+    return out
 
 
 def main():
@@ -69,20 +103,28 @@ def main():
     for e in iter_items(raw):
         base = e["@uniquename"]
         cat = e.get("@craftingcategory")
+        base_recipe = parse_reqs(e.get("craftingrequirements"))
+        if base_recipe is None:
+            continue
+        ench_map = enchant_recipes(e)
         for ench in range(0, 5):
             mid = market_id(base, ench)
             if mid not in db_ids or mid in refined:
                 continue
-            rec = first_recipe(e)
-            if rec is None:
-                break  # item sem receita; não tenta encantos
-            # insumos herdam o encanto do produto (refinados @N)
-            if ench > 0:
+            if ench == 0:
+                rec = dict(base_recipe)
+            elif ench in ench_map:
+                # receita REAL do encanto (com reagente + foco/lote certos)
+                rec = dict(ench_map[ench])
+            else:
+                # fallback heurístico: sobe os refinados-base para @ench
                 rec = {"inputs": [{"id": market_id(i["id"].split("@")[0], ench)
                                    if i["id"].split("@")[0] in refined_bases
                                    else i["id"],
-                                   "count": i["count"]} for i in rec["inputs"]],
-                       "focus": rec["focus"], "output": rec.get("output", 1)}
+                                   "count": i["count"]}
+                                  for i in base_recipe["inputs"]],
+                       "focus": base_recipe["focus"],
+                       "output": base_recipe["output"]}
             rec["category"] = cat
             recipes[mid] = rec
 

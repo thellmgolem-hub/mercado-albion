@@ -1103,26 +1103,29 @@ def cmd_craft(args, fmt):
     aodp = make_aodp()
     rows_raw = api_guard(lambda: aodp.get_prices(ids, config.ROYAL_CITIES,
                                                  max_age=args.max_age))
-    # menor venda q1 por (item, cidade)
-    price = {}
+    # menor venda q1 (ask) e maior compra q1 (bid) por (item, cidade)
+    price, bid = {}, {}
     for r in rows_raw:
         if r["quality"] != 1:
             continue
+        key = (r["item_id"], r["city"])
         sp = r["sell_price_min"] or 0
-        if sp > 0:
-            key = (r["item_id"], r["city"])
-            if key not in price or sp < price[key]:
-                price[key] = sp
+        bp = r.get("buy_price_max") or 0
+        if sp > 0 and (key not in price or sp < price[key]):
+            price[key] = sp
+        if bp > 0 and (key not in bid or bp > bid[key]):
+            bid[key] = bp
 
     def price_of(item_id, city):
         return price.get((item_id, city))
 
     res = craft.margins(it["id"], recipe, price_of, premium=args.premium,
-                        sell_mode=args.sell_mode, focus=args.focus, fee=args.fee)
+                        sell_mode=args.sell_mode, focus=args.focus, fee=args.fee,
+                        bid_of=lambda i, c: bid.get((i, c)))
     inputs_txt = " + ".join(
         f"{i['count']}x {(db.get(i['id']) or {}).get('pt', i['id'])}"
         for i in recipe["inputs"])
-    bonus = craft.bonus_city(recipe.get("category"))
+    bonus = craft.unified_bonus_city(it["id"], recipe.get("category"))
     info(f"Craft de {it['pt']} ({it['id']}) — receita: {inputs_txt} · foco "
          f"{recipe.get('focus')} · categoria {recipe.get('category')} "
          f"(cidade-bônus: {bonus or '—'}) · {'com' if args.premium else 'sem'} "
