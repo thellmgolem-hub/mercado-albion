@@ -1,10 +1,18 @@
+import os
+import sqlite3
+import threading
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from fastapi.testclient import TestClient
 
+# A suite legada testa a API economica sem precisar fabricar sessoes. Os
+# fluxos de autenticacao sao cobertos isoladamente abaixo.
+os.environ.setdefault("ALBION_AUTH_DISABLED", "1")
+
 import app
+from albion.auth import AuthError, AuthManager
 from albion import stats, survival
 from albion.client import AODP
 from albion.flips import buy_cost, compute_flips, confidence, sell_revenue
@@ -1528,6 +1536,155 @@ class CraftStudioTests(unittest.TestCase):
             lambda i, x: bid.get((i, x)), premium=True, sell_mode="order",
             source_cities=["Caerleon"], sell_cities=["Caerleon", "Black Market"])
         self.assertNotEqual(rows[0]["sell_city"], "Black Market")
+
+
+class AuthManagerTests(unittest.TestCase):
+    def setUp(self):
+        self.con = sqlite3.connect(":memory:", check_same_thread=False)
+        self.auth = AuthManager(self.con, threading.Lock())
+        self.admin = self.auth.bootstrap_admin("admin.local")
+
+    def tearDown(self):
+        self.con.close()
+
+    def test_bootstrap_hashes_password_and_closes_bootstrap(self):
+        row = self.con.execute(
+            "SELECT password_hash,password_salt,password_algo "
+            "FROM auth_accounts WHERE id=?", [self.admin["account_id"]]
+        ).fetchone()
+        self.assertNotIn(self.admin["temporary_password"], row)
+        self.assertTrue(row[2].startswith("scrypt$"))
+        with self.assertRaises(AuthError) as ctx:
+            self.auth.bootstrap_admin("outro.admin")
+        self.assertEqual(ctx.exception.code, "bootstrap_closed")
+
+    def test_failed_login_is_persisted_for_progressive_lockout(self):
+        with self.assertRaises(AuthError):
+            self.auth.login("admin.local", "senha definitivamente errada")
+        row = self.con.execute(
+            "SELECT failures FROM auth_login_throttle WHERE username_norm=?",
+            ["admin.local"]).fetchone()
+        self.assertEqual(row[0], 1)
+
+    def test_device_binding_session_and_password_rotation(self):
+        first = self.auth.login(
+            "admin.local", self.admin["temporary_password"],
+            device_label="PC de teste")
+        self.assertTrue(first["device_token"])
+        # sessão é validada COM o cookie de dispositivo casado (vínculo por req.)
+        self.assertEqual(
+            self.auth.authenticate(
+                first["session_token"], first["device_token"])["account_id"],
+            self.admin["account_id"])
+        # sessão sem o device cookie casado é rejeitada (não é bearer puro)
+        with self.assertRaises(AuthError) as ctxd:
+            self.auth.authenticate(first["session_token"])
+        self.assertEqual(ctxd.exception.code, "device_unrecognized")
+        with self.assertRaises(AuthError) as ctx:
+            self.auth.login("admin.local", self.admin["temporary_password"])
+        self.assertEqual(ctx.exception.code, "device_conflict")
+
+        new_password = "Frase segura local 2026!"
+        self.auth.change_password(
+            self.admin["account_id"], self.admin["temporary_password"],
+            new_password)
+        with self.assertRaises(AuthError):
+            self.auth.authenticate(first["session_token"])
+        second = self.auth.login(
+            "admin.local", new_password, first["device_token"])
+        self.assertFalse(second["account"]["must_change_password"])
+
+    def test_lock_never_blocks_correct_password(self):
+        # 5 senhas erradas trancam o throttle, mas a senha CORRETA ainda entra
+        # (senão um atacante tranca a conta da vítima — DoS pré-auth).
+        for _ in range(5):
+            with self.assertRaises(AuthError):
+                self.auth.login("admin.local", "senha errada qualquer")
+        res = self.auth.login("admin.local", self.admin["temporary_password"],
+                              device_label="pc")
+        self.assertEqual(res["account"]["id"], self.admin["account_id"])
+
+    def test_change_password_rejects_reuse(self):
+        with self.assertRaises(AuthError) as ctx:
+            self.auth.change_password(
+                self.admin["account_id"], self.admin["temporary_password"],
+                self.admin["temporary_password"])
+        self.assertEqual(ctx.exception.code, "password_reuse")
+
+    def test_weak_single_class_passphrase_rejected(self):
+        from albion.auth import validate_password
+        with self.assertRaises(AuthError):
+            validate_password("aaaaaaaaaaaaaaaa")        # 16 chars, 1 distinto
+        with self.assertRaises(AuthError):
+            validate_password("abcabcabcabcabca")        # poucos distintos
+        validate_password("uma frase longa e variada 2026")  # diversa -> ok
+
+    def test_admin_lifecycle_revokes_access_and_keeps_last_admin(self):
+        made = self.auth.create_account(
+            self.admin["account_id"], "membro.um", role="member",
+            profiles=["gatherer", "crafter"])
+        account = self.auth.get_account(made["account_id"])
+        self.assertEqual(account["profiles"], ["crafter", "gatherer"])
+        with self.assertRaises(AuthError) as ctx:
+            self.auth.update_account(999, self.admin["account_id"], active=False)
+        self.assertEqual(ctx.exception.code, "last_admin")
+        disabled = self.auth.update_account(
+            self.admin["account_id"], made["account_id"], active=False)
+        self.assertFalse(disabled["active"])
+
+    def test_reset_device_allows_a_new_binding(self):
+        first = self.auth.login(
+            "admin.local", self.admin["temporary_password"])
+        self.auth.reset_device(
+            self.admin["account_id"], self.admin["account_id"])
+        second = self.auth.login(
+            "admin.local", self.admin["temporary_password"],
+            device_label="PC novo")
+        self.assertNotEqual(first["device_token"], second["device_token"])
+
+    def test_http_login_csrf_forced_password_and_admin_api(self):
+        old_manager = app.auth_manager
+        old_required = app.config.AUTH_REQUIRED
+        app.auth_manager = self.auth
+        app.config.AUTH_REQUIRED = True
+        client = TestClient(app.app)
+        try:
+            self.assertEqual(client.get("/api/meta").status_code, 401)
+            login = client.post("/api/auth/login", json={
+                "username": "admin.local",
+                "password": self.admin["temporary_password"],
+                "device_label": "Navegador de teste",
+            })
+            self.assertEqual(login.status_code, 200)
+            me = client.get("/api/auth/me")
+            self.assertEqual(me.status_code, 200)
+            csrf = me.json()["csrf"]
+            self.assertEqual(client.get("/api/meta").status_code, 403)
+            changed = client.post(
+                "/api/auth/change-password",
+                headers={"X-CSRF-Token": csrf},
+                json={"current_password": self.admin["temporary_password"],
+                      "new_password": "Frase segura para HTTP 2026!"})
+            self.assertEqual(changed.status_code, 200)
+
+            login = client.post("/api/auth/login", json={
+                "username": "admin.local",
+                "password": "Frase segura para HTTP 2026!",
+            })
+            self.assertEqual(login.status_code, 200)
+            csrf = login.json()["csrf"]
+            self.assertEqual(client.get("/api/meta").status_code, 200)
+            no_csrf = client.post("/api/admin/accounts", json={
+                "username": "sem.csrf", "role": "viewer"})
+            self.assertEqual(no_csrf.status_code, 403)
+            created = client.post(
+                "/api/admin/accounts", headers={"X-CSRF-Token": csrf},
+                json={"username": "com.csrf", "role": "viewer"})
+            self.assertEqual(created.status_code, 200)
+            self.assertIn("temporary_password", created.json())
+        finally:
+            app.auth_manager = old_manager
+            app.config.AUTH_REQUIRED = old_required
 
 
 if __name__ == "__main__":

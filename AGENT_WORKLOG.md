@@ -942,3 +942,53 @@ PARTE 2 (lado da oferta — de onde os itens nascem):
 
 Pendência documentada: distribuição de recursos por bioma/zona exige join com
 dados de mundo/spawn (resourcedistpresets) — não entregue para não meia-fazer.
+
+## 2026-06-19 - Contas, login e controle de acesso seguro (Codex)
+
+Objetivo declarado: substituir o acesso local aberto/token único por contas
+pseudônimas administráveis, sem e-mail nem identidade real, com segurança
+adequada ao uso local atual e uma base migrável para hospedagem futura.
+
+Implementado:
+- `albion/auth.py`: esquema SQLite isolado (`auth_accounts`, perfis,
+  dispositivos, sessões, throttle e auditoria), migração idempotente e limpeza
+  de sessões expiradas no startup.
+- Senhas com `scrypt` (salt individual, N=32768, r=8, p=1); senha temporária
+  aleatória mostrada uma vez; troca obrigatória no primeiro acesso; hashes e
+  tokens são os únicos segredos persistidos.
+- Sessão HttpOnly/SameSite=Strict com validade absoluta de 7 dias e ociosa de
+  12 h; uma sessão ativa por conta; CSRF rotativo em toda escrita; revogação ao
+  trocar senha, papel, estado ou dispositivo.
+- Lockout progressivo após cinco falhas, inclusive para usuários inexistentes,
+  e comparação em tempo constante. Não registra IP, e-mail nem senha.
+- Vínculo revogável de um dispositivo por conta. É um token secreto de
+  navegador, não hardware fingerprint; reduz compartilhamento casual, mas não
+  promete resistir à cópia deliberada de cookies ou a malware.
+- Papéis: admin, chefe de guilda, tesoureiro, oficial econômico, membro,
+  somente leitura e externo. Perfis econômicos são múltiplos e independentes
+  do papel. Apenas admin gerencia contas; operadores podem alterar watchlist,
+  disparar coleta e regenerar ordens; leitura econômica exige sessão válida.
+- Proteções contra autodesativação do admin e remoção do último admin ativo.
+- Middleware protege `/api/*` e documentação OpenAPI, inclui CSP, anti-frame,
+  nosniff, política de referer/permissões e respostas de autenticação sem cache.
+- Endpoints `/api/auth/*` e `/api/admin/*`; exclusão é desativação reversível,
+  preservando auditoria. Senhas temporárias não reaparecem depois da resposta.
+- `manage_accounts.py`: bootstrap, criação, listagem, reset de senha/dispositivo,
+  ativação/desativação e mudança de papel para recuperação fora da interface.
+- Frontend: gate de login, troca obrigatória de senha, conta/logout e aba
+  administrativa para criar, classificar, desativar e recuperar contas.
+- `README.md` atualizado com bootstrap, LAN, HTTPS e limite honesto do vínculo
+  de dispositivo. Para hospedagem, usar `ALBION_AUTH_COOKIE_SECURE=1` sob HTTPS.
+
+Verificação:
+- `py_compile` de backend/CLI e `node --check web/app.js`: OK.
+- 5 testes novos de autenticação: OK (hash/bootstrap, sessão e dispositivo,
+  rotação de senha, último admin, fluxo HTTP, senha obrigatória, CSRF e API
+  administrativa).
+- Suíte completa: 90 testes executados, 89 OK; única falha reproduzida
+  isoladamente em `test_wiki_endpoint_shape` porque a fonte externa respondeu
+  502. Não pertence ao sistema de autenticação.
+
+Operação pendente nesta sessão: criar o primeiro admin no banco real, reiniciar
+o servidor e validar visualmente o login. A senha temporária deve ser entregue
+somente ao proprietário e trocada imediatamente.

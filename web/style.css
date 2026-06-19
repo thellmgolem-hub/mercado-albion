@@ -41,6 +41,95 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+body.auth-pending > header,
+body.auth-pending > nav,
+body.auth-pending > main,
+body.auth-pending > #toast,
+body.auth-pending > .glossary-fab,
+body.auth-pending > .glossary-modal { display: none !important; }
+
+.auth-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: #14110c;
+}
+body.authenticated .auth-gate { display: none; }
+.auth-card {
+  width: min(420px, 100%);
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--gold);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+}
+.auth-brand { color: var(--gold-bright); font-size: 1.08rem; font-weight: 750; }
+.auth-brand span {
+  margin-left: 5px; padding: 2px 6px; border-radius: 4px;
+  background: var(--gold); color: #1d1812; font-size: 0.7rem;
+}
+.auth-card h1 { margin: 20px 0 5px; font-size: 1.55rem; }
+.auth-card > p { margin: 0 0 20px; color: var(--muted); }
+.auth-card label, .password-form label {
+  display: grid; gap: 5px; margin: 12px 0; color: var(--muted); font-size: 0.84rem;
+}
+.auth-card input, .password-form input { width: 100%; }
+.auth-submit { width: 100%; margin-top: 7px; }
+.auth-error { min-height: 20px; color: var(--red); font-size: 0.83rem; }
+.auth-bootstrap {
+  margin-top: 14px; padding: 10px; border: 1px solid var(--border);
+  background: var(--bg2); color: var(--muted); font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+.auth-bootstrap code { display: block; margin-top: 6px; color: var(--gold-bright); }
+
+.account-button {
+  max-width: 190px; padding: 7px 10px; border: 1px solid var(--border);
+  border-radius: var(--r-sm); background: var(--panel2); color: var(--text);
+  cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.account-button:hover { border-color: var(--gold); }
+.account-modal { position: fixed; inset: 0; z-index: 260; display: none; }
+.account-modal.open { display: block; }
+.account-modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.68); }
+.account-modal-card {
+  position: relative; width: min(520px, calc(100vw - 24px));
+  max-height: calc(100vh - 32px); overflow: auto; margin: 16px auto;
+  padding: 18px; border: 1px solid var(--gold); border-radius: var(--r-md);
+  background: var(--panel); box-shadow: var(--shadow-md);
+}
+.account-modal-card h2, .password-form h3 { margin: 0; color: var(--gold-bright); }
+.account-summary {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+  padding: 10px; background: var(--bg2); border: 1px solid var(--border);
+}
+.account-summary span { display: block; color: var(--muted); font-size: .75rem; }
+.password-form { margin-top: 18px; }
+.password-form p { color: var(--muted); font-size: .78rem; }
+
+.account-create { align-items: end; }
+.account-create .field { min-width: 150px; }
+.account-profiles-field { flex: 1 1 100%; }
+.account-profile-grid { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.account-profile-grid label {
+  display: flex; align-items: center; gap: 5px; color: var(--text); font-size: .82rem;
+}
+.temporary-secret {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 12px 0; padding: 12px; background: #1d2b1a;
+  border: 1px solid var(--green); border-radius: var(--r-sm);
+}
+.temporary-secret[hidden] { display: none; }
+.temporary-secret div { display: grid; gap: 2px; }
+.temporary-secret span { color: var(--muted); font-size: .78rem; }
+.temporary-secret code { color: var(--gold-bright); font-size: 1rem; user-select: all; }
+.account-actions { display: flex; gap: 4px; flex-wrap: wrap; min-width: 210px; }
+.account-status-off { color: var(--red); }
+.account-role-select { min-width: 140px; }
+
 ::selection { background: var(--gold); color: #1d1812; }
 
 /* barras de rolagem no tema escuro (em vez do branco padrão) */
@@ -256,6 +345,25 @@ button.btn.secondary:hover { border-color: var(--gold); background: var(--panel)
 .chip.on { background: var(--gold); color: #1d1812; border-color: var(--gold); font-weight: 600; }
 .chip.on span { color: #1d1812 !important; }
 .chip-all { border-style: dashed; font-weight: 600; }
+
+/* chips que TROCAM a visão da tela (não acumulam como filtro): estilo de
+   segmented control, para o usuário perceber que há várias telas por sub-aba */
+#avView, #prodView, #demandView, #guildView, #logiView, #riscoView, #pvpView {
+  gap: 0;
+  width: fit-content;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+#avView .chip, #prodView .chip, #demandView .chip, #guildView .chip,
+#logiView .chip, #riscoView .chip, #pvpView .chip {
+  border: 0;
+  border-radius: 0;
+  border-right: 1px solid var(--border);
+}
+#avView .chip:last-child, #prodView .chip:last-child, #demandView .chip:last-child,
+#guildView .chip:last-child, #logiView .chip:last-child, #riscoView .chip:last-child,
+#pvpView .chip:last-child { border-right: 0; }
 
 .item-chip {
   display: inline-flex;

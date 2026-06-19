@@ -2,6 +2,10 @@
 
 // ============================================================ estado
 const state = {
+  auth: null,
+  csrf: null,
+  roles: {},
+  profilesCatalog: {},
   meta: null,
   premium: localStorage.getItem('premium') !== '0',
   favorites: JSON.parse(localStorage.getItem('favorites') || '[]'),
@@ -26,15 +30,21 @@ const $ = (id) => document.getElementById(id);
 // validação (422) — sem isso a UI mostrava "erro: [object Object]"
 async function apiError(res) {
   let msg = res.statusText;
+  let code = 'http_error';
   try {
-    const d = (await res.json()).detail;
+    const body = await res.json();
+    const d = body.detail;
+    code = body.code || code;
     if (Array.isArray(d)) {
       msg = d.map((x) => `${(x.loc || []).slice(1).join('.')}: ${x.msg}`).join('; ');
     } else if (d) {
       msg = d;
     }
   } catch (e) { /* corpo não-JSON */ }
-  return new Error(msg);
+  const error = new Error(msg);
+  error.status = res.status;
+  error.code = code;
+  return error;
 }
 
 async function api(path, params = {}) {
@@ -42,7 +52,9 @@ async function api(path, params = {}) {
   for (const [k, v] of Object.entries(params)) {
     if (v !== null && v !== undefined && v !== '') usp.set(k, v);
   }
-  const res = await fetch(path + (usp.toString() ? '?' + usp : ''));
+  const res = await fetch(path + (usp.toString() ? '?' + usp : ''), {
+    credentials: 'same-origin',
+  });
   if (!res.ok) throw await apiError(res);
   return res.json();
 }
@@ -52,7 +64,21 @@ async function apiSend(path, method = 'POST', params = {}) {
   for (const [k, v] of Object.entries(params)) {
     if (v !== null && v !== undefined && v !== '') usp.set(k, v);
   }
-  const res = await fetch(path + (usp.toString() ? '?' + usp : ''), { method });
+  const headers = state.csrf ? {'X-CSRF-Token': state.csrf} : {};
+  const res = await fetch(path + (usp.toString() ? '?' + usp : ''), {
+    method, headers, credentials: 'same-origin',
+  });
+  if (!res.ok) throw await apiError(res);
+  return res.json();
+}
+
+async function apiJson(path, method = 'POST', body = null, withCsrf = true) {
+  const headers = {'Content-Type': 'application/json'};
+  if (withCsrf && state.csrf) headers['X-CSRF-Token'] = state.csrf;
+  const res = await fetch(path, {
+    method, headers, credentials: 'same-origin',
+    body: body === null ? null : JSON.stringify(body),
+  });
   if (!res.ok) throw await apiError(res);
   return res.json();
 }
@@ -99,7 +125,15 @@ window.__iconFb = (img, id, q) => {
 
 const iconImg = (id, q = 0) =>
   `<img loading="lazy" src="${iconUrl(id, q)}" ` +
-  `onerror="__iconFb(this,'${esc(id)}',${q || 0})" alt="">`;
+  `data-icon-id="${esc(id)}" data-icon-q="${q || 0}" alt="">`;
+
+// Delegado para ser compatível com CSP sem liberar JavaScript inline.
+document.addEventListener('error', (ev) => {
+  const img = ev.target;
+  if (img instanceof HTMLImageElement && img.dataset.iconId) {
+    window.__iconFb(img, img.dataset.iconId, Number(img.dataset.iconQ || 0));
+  }
+}, true);
 
 function cityHtml(c) {
   const label = state.meta?.city_labels?.[c] || c;
@@ -128,6 +162,231 @@ function setGlossary(open) {
   if (!modal) return;
   modal.classList.toggle('open', open);
   modal.setAttribute('aria-hidden', open ? 'false' : 'true');
+}
+
+// ============================================================ contas e segurança
+const OPERATOR_ROLES = new Set(['admin', 'guild_leader', 'treasurer', 'economic_officer']);
+
+function setAccountModal(open, forced = false) {
+  state.forcePassword = forced || (state.forcePassword && open);
+  const modal = $('accountModal');
+  modal.classList.toggle('open', open);
+  modal.setAttribute('aria-hidden', open ? 'false' : 'true');
+  if (open) $('currentPassword').focus();
+}
+
+function accountLabel(account) {
+  return account.display_name || account.albion_nick || account.username;
+}
+
+function applyAuth(payload) {
+  state.auth = payload.account;
+  state.csrf = payload.csrf;
+  state.roles = payload.roles || {};
+  state.profilesCatalog = payload.profiles_catalog || {};
+  $('newRole').innerHTML = Object.entries(state.roles).map(([id, label]) =>
+    `<option value="${esc(id)}">${esc(label)}</option>`).join('');
+  $('newRole').value = 'member';
+  $('newProfiles').innerHTML = profileChecks();
+  $('accountOpen').hidden = false;
+  $('accountOpen').textContent = accountLabel(state.auth);
+  $('adminTabButton').hidden = state.auth.role !== 'admin';
+  const canOperate = OPERATOR_ROLES.has(state.auth.role);
+  for (const id of ['dashCollect', 'histWatch', 'ordersRefresh']) {
+    if ($(id)) $(id).hidden = !canOperate;
+  }
+  $('accountSummary').innerHTML = `<div class="account-summary">
+    <div><span>Usuário</span>${esc(state.auth.username)}</div>
+    <div><span>Papel</span>${esc(state.roles[state.auth.role] || state.auth.role)}</div>
+    <div><span>Nick Albion</span>${esc(state.auth.albion_nick || 'não informado')}</div>
+    <div><span>Dispositivo</span>${esc(state.auth.device?.label || 'a vincular')}</div>
+  </div>`;
+}
+
+function showLogin(message = '') {
+  document.body.classList.add('auth-pending');
+  document.body.classList.remove('authenticated');
+  $('loginError').textContent = message;
+  $('loginPassword').value = '';
+  setTimeout(() => $('loginUsername').focus(), 0);
+}
+
+function profileChecks(selected = [], prefix = 'profile') {
+  const have = new Set(selected);
+  return Object.entries(state.profilesCatalog).map(([id, label]) =>
+    `<label><input type="checkbox" name="${esc(prefix)}" value="${esc(id)}" ` +
+    `${have.has(id) ? 'checked' : ''}> ${esc(label)}</label>`).join('');
+}
+
+function showTemporarySecret(username, password) {
+  $('temporarySecretUser').textContent = `Conta: ${username}`;
+  $('temporarySecretValue').textContent = password;
+  $('temporarySecret').hidden = false;
+}
+
+function formatAccountDate(value) {
+  return value ? new Date(value * 1000).toLocaleString('pt-BR') : 'nunca';
+}
+
+async function loadAccounts() {
+  if (state.auth?.role !== 'admin') return;
+  $('accountsStatus').textContent = 'carregando contas…';
+  try {
+    const data = await api('/api/admin/accounts');
+    $('accountsStatus').textContent = `${data.accounts.length} conta(s)`;
+    $('accountsTable').innerHTML = `<table><thead><tr>
+      <th>Conta</th><th>Papel</th><th>Perfis</th><th>Dispositivo / último login</th><th>Ações</th>
+    </tr></thead><tbody>${data.accounts.map((a) => `<tr data-account-id="${a.id}">
+      <td><b>${esc(accountLabel(a))}</b><small>${esc(a.username)}${a.albion_nick ? ' · ' + esc(a.albion_nick) : ''}</small>
+        ${a.active ? '' : '<span class="account-status-off">desativada</span>'}
+        ${a.must_change_password ? '<small>senha temporária</small>' : ''}</td>
+      <td><select class="account-role-select" data-role>${Object.entries(state.roles).map(([id, label]) =>
+        `<option value="${esc(id)}" ${id === a.role ? 'selected' : ''}>${esc(label)}</option>`).join('')}</select></td>
+      <td><details class="account-profiles-edit"><summary>${a.profiles.length ? esc(a.profiles.map((p) => state.profilesCatalog[p] || p).join(', ')) : 'nenhum'}</summary>
+        <div class="account-profile-grid">${profileChecks(a.profiles, `profiles-${a.id}`)}</div>
+        <button type="button" class="mini-btn" data-account-action="save-profiles">Salvar perfis</button></details></td>
+      <td>${esc(a.device?.label || 'não vinculado')}<small>login: ${esc(formatAccountDate(a.last_login_at))}</small></td>
+      <td><div class="account-actions">
+        <button type="button" class="mini-btn" data-account-action="reset-password">Nova senha</button>
+        <button type="button" class="mini-btn" data-account-action="reset-device">Liberar dispositivo</button>
+        <button type="button" class="mini-btn" data-account-action="toggle-active">${a.active ? 'Desativar' : 'Reativar'}</button>
+      </div></td>
+    </tr>`).join('')}</tbody></table>`;
+    const audit = await api('/api/admin/audit', {limit: 100});
+    const actionLabels = {
+      bootstrap_admin: 'Administrador inicial', account_created: 'Conta criada',
+      account_updated: 'Conta alterada', password_reset: 'Senha redefinida',
+      password_changed: 'Senha alterada', device_reset: 'Dispositivo liberado',
+      device_conflict: 'Dispositivo recusado', login_success: 'Login',
+      login_failed: 'Login recusado', logout: 'Logout',
+    };
+    $('accountAuditTable').innerHTML = `<table><thead><tr><th>Quando</th><th>Evento</th><th>Autor</th><th>Conta</th></tr></thead><tbody>${audit.events.map((e) =>
+      `<tr><td>${esc(formatAccountDate(e.created_at))}</td><td>${esc(actionLabels[e.action] || e.action)}</td><td>${esc(e.actor || 'sistema')}</td><td>${esc(e.target || '—')}</td></tr>`
+    ).join('')}</tbody></table>`;
+  } catch (e) {
+    $('accountsStatus').textContent = `erro: ${e.message}`;
+  }
+}
+
+function setupAuthUi() {
+  $('loginForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    $('loginError').textContent = 'verificando…';
+    try {
+      await apiJson('/api/auth/login', 'POST', {
+        username: $('loginUsername').value,
+        password: $('loginPassword').value,
+        device_label: $('loginDevice').value || null,
+      }, false);
+      location.reload();
+    } catch (e) {
+      $('loginError').textContent = e.message;
+    }
+  });
+  $('accountOpen').addEventListener('click', () => setAccountModal(true));
+  document.querySelectorAll('[data-account-close]').forEach((el) =>
+    el.addEventListener('click', () => {
+      if (!state.forcePassword) setAccountModal(false);
+    }));
+  $('logoutButton').addEventListener('click', async () => {
+    try { await apiJson('/api/auth/logout', 'POST'); } finally { location.reload(); }
+  });
+  $('passwordForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    $('passwordError').textContent = '';
+    if ($('newPassword').value !== $('newPasswordConfirm').value) {
+      $('passwordError').textContent = 'As novas senhas não coincidem.';
+      return;
+    }
+    try {
+      await apiJson('/api/auth/change-password', 'POST', {
+        current_password: $('currentPassword').value,
+        new_password: $('newPassword').value,
+      });
+      alert('Senha alterada. Entre novamente com a nova senha.');
+      location.reload();
+    } catch (e) { $('passwordError').textContent = e.message; }
+  });
+  $('adminTabButton').addEventListener('click', loadAccounts);
+  $('adminReload').addEventListener('click', loadAccounts);
+  $('temporarySecretCopy').addEventListener('click', () =>
+    copyText($('temporarySecretValue').textContent));
+  $('temporarySecretClose').addEventListener('click', () => {
+    $('temporarySecretValue').textContent = '';
+    $('temporarySecret').hidden = true;
+  });
+  $('accountCreateForm').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    try {
+      const result = await apiJson('/api/admin/accounts', 'POST', {
+        username: $('newUsername').value,
+        display_name: $('newDisplayName').value || null,
+        albion_nick: $('newAlbionNick').value || null,
+        role: $('newRole').value,
+        profiles: [...$('newProfiles').querySelectorAll('input:checked')].map((x) => x.value),
+      });
+      showTemporarySecret(result.account.username, result.temporary_password);
+      ev.target.reset();
+      await loadAccounts();
+    } catch (e) { $('accountsStatus').textContent = `erro: ${e.message}`; }
+  });
+  $('accountsTable').addEventListener('change', async (ev) => {
+    if (!ev.target.matches('[data-role]')) return;
+    const row = ev.target.closest('[data-account-id]');
+    try {
+      await apiJson(`/api/admin/accounts/${row.dataset.accountId}`, 'PATCH', {role: ev.target.value});
+      await loadAccounts();
+    } catch (e) { toast(e.message); await loadAccounts(); }
+  });
+  $('accountsTable').addEventListener('click', async (ev) => {
+    const button = ev.target.closest('[data-account-action]');
+    if (!button) return;
+    const row = button.closest('[data-account-id]');
+    const id = row.dataset.accountId;
+    const action = button.dataset.accountAction;
+    try {
+      if (action === 'reset-password') {
+        const out = await apiJson(`/api/admin/accounts/${id}/reset-password`, 'POST');
+        showTemporarySecret(row.querySelector('small').textContent.split(' · ')[0], out.temporary_password);
+      } else if (action === 'reset-device') {
+        await apiJson(`/api/admin/accounts/${id}/reset-device`, 'POST');
+        toast('dispositivo liberado e sessões encerradas');
+      } else if (action === 'toggle-active') {
+        const inactive = row.querySelector('.account-status-off');
+        await apiJson(`/api/admin/accounts/${id}`, 'PATCH', {active: Boolean(inactive)});
+      } else if (action === 'save-profiles') {
+        const profiles = [...row.querySelectorAll('.account-profiles-edit input:checked')].map((x) => x.value);
+        await apiJson(`/api/admin/accounts/${id}`, 'PATCH', {profiles});
+        toast('perfis atualizados');
+      }
+      await loadAccounts();
+    } catch (e) { toast(e.message); }
+  });
+}
+
+async function bootAuth() {
+  setupAuthUi();
+  try {
+    const status = await api('/api/auth/bootstrap-status');
+    if (!status.ready) {
+      $('bootstrapHelp').hidden = false;
+      $('bootstrapHelp').innerHTML = `Primeiro acesso ainda não configurado. Execute no PowerShell:<code>${esc(status.command)}</code>`;
+      showLogin('O administrador inicial precisa ser criado localmente.');
+      return;
+    }
+    try {
+      const session = await api('/api/auth/me');
+      applyAuth(session);
+      document.body.classList.add('authenticated');
+      if (state.auth.must_change_password) {
+        setAccountModal(true, true);
+        $('passwordError').textContent = 'Troque a senha temporária para liberar a plataforma.';
+        return;
+      }
+      document.body.classList.remove('auth-pending');
+      init().catch((e) => showLogin(`Erro ao iniciar: ${e.message}`));
+    } catch (e) { showLogin(e.status === 401 ? '' : e.message); }
+  } catch (e) { showLogin(`Servidor indisponível: ${e.message}`); }
 }
 
 // ============================================================ componentes
@@ -494,7 +753,8 @@ function flipColumns(withVolume) {
       html: (o) => {
         const label = o.confidence_label || 'baixa';
         const cls = label.replace(/\s+/g, '-');
-        return `<span class="conf conf-${esc(cls)}" title="${esc(o.confidence_notes || '')}">${esc(label)}</span>`;
+        const labelPt = label === 'media' ? 'média' : label;   // acento consistente
+        return `<span class="conf conf-${esc(cls)}" title="${esc(o.confidence_notes || '')}">${esc(labelPt)}</span>`;
       },
     },
     {
@@ -588,7 +848,8 @@ function recommendationColumns() {
       html: (o) => {
         const label = o.confidence_label || 'baixa';
         const cls = label.replace(/\s+/g, '-');
-        return `<span class="conf conf-${esc(cls)}" title="${esc(o.confidence_notes || '')}">${esc(label)}</span>`;
+        const labelPt = label === 'media' ? 'média' : label;   // acento consistente
+        return `<span class="conf conf-${esc(cls)}" title="${esc(o.confidence_notes || '')}">${esc(labelPt)}</span>`;
       },
     },
     {
@@ -1101,11 +1362,16 @@ async function loadWiki() {
       if (wasOpen.size && wasOpen.has(dt.dataset.id)) dt.setAttribute('open', '');
     });
     const t = res.totals || {};
-    // por unidade (com RRR) vs matéria-prima bruta (lote, sem RRR) são bases
-    // diferentes — NÃO encadeadas como comparáveis (correção da revisão)
-    const perUnit = `por unid.: fazer ${t.best_unit != null ? fmt(t.best_unit) : '—'} · comprar pronto ${t.buy_unit != null ? fmt(t.buy_unit) : '—'}`;
+    // por unidade, fazer (make_unit, com RRR) vs comprar pronto (buy_unit) —
+    // mesma base; nomeia o vencedor. A matéria-prima bruta (lote, sem RRR) fica
+    // separada no status, NÃO encadeada aqui (bases diferentes).
+    const mk = t.make_unit != null ? fmt(t.make_unit) : '—';
+    const by = t.buy_unit != null ? fmt(t.buy_unit) : '—';
+    const cheaper = (t.make_unit != null && t.buy_unit != null)
+      ? (t.make_unit <= t.buy_unit ? 'fazer' : 'comprar') : null;
+    const perUnit = `por unid.: fazer ${mk} · comprar pronto ${by}${cheaper ? ` · melhor: <b>${cheaper}</b>` : ''}`;
     const incompleto = (t.unpriced && t.unpriced.length) ? ` · ⚠ ${fmt(t.unpriced.length)} sem cotação` : '';
-    $('wikiTreeMeta').textContent = `· ${perUnit}${incompleto}`;
+    $('wikiTreeMeta').innerHTML = `· ${perUnit}${incompleto}`;
 
     renderTable('wikiShopping', [
       { key: 'item', label: 'Recurso bruto', align: 'l', value: (o) => o.name_pt, html: (o) => `${iconImg(o.id, 0)} ${wikiLink(o.id, o.name_pt)}` },
@@ -2032,6 +2298,7 @@ async function loadAvRisco(view) {
 
 let pvpView = 'weapon';
 function winBadge(v) {
+  if (v == null || isNaN(v)) return '<span class="muted">—</span>';
   const cls = v >= 55 ? 'score-executar' : v >= 45 ? 'score-monitorar' : 'score-cautela';
   return `<span class="score ${cls}">${fmtDec(v, 1)}%</span>`;
 }
@@ -2165,7 +2432,6 @@ async function loadHeatmap() {
         const r = routes[b + '|' + s];
         if (!r) { html += '<td class="muted c">—</td>'; continue; }
         const alpha = (0.12 + 0.55 * r.total / max).toFixed(2);
-        const meta = state.meta;
         html += `<td class="c" style="background:rgba(212,168,67,${alpha})" ` +
           `title="${esc(r.top.name_pt)}: ${fmt(r.top.daily_realistic)}/dia · ${r.n} oportunidades">` +
           `<b>${fmtCompact(r.total)}</b><br><small class="muted">${r.n} itens</small></td>`;
@@ -2257,7 +2523,11 @@ async function loadSignals() {
       },
       {
         key: 'pratio', label: 'Δ preço 7d', align: 'c', value: (r) => r.preco_ratio,
-        html: (r) => `${fmtDec((r.preco_ratio - 1) * 100, 1)}%`,
+        html: (r) => {
+          if (r.preco_ratio == null) return '<span class="muted">—</span>';
+          const pct = (r.preco_ratio - 1) * 100;
+          return `<span class="${pct >= 0 ? 'profit-pos' : 'profit-neg'}">${pct >= 0 ? '+' : ''}${fmtDec(pct, 1)}%</span>`;
+        },
       },
       { key: 'preco', label: 'Preço', value: (r) => r.preco_recente, html: (r) => `<span class="silver">${fmt(r.preco_recente)}</span>` },
       { key: 'vol', label: 'Vol. mercado/dia', value: (r) => r.volume_dia, html: (r) => fmt(r.volume_dia) },
@@ -2586,7 +2856,4 @@ async function init() {
   setInterval(loadServiceOrders, 10 * 60 * 1000);
 }
 
-init().catch((e) => {
-  document.body.insertAdjacentHTML('afterbegin',
-    `<div style="background:#d96a4f;color:#fff;padding:10px 16px">Erro ao iniciar: ${esc(e.message)}</div>`);
-});
+bootAuth();

@@ -4,10 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260619-4">
+<link rel="stylesheet" href="style.css?v=20260619-auth3">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
-<body>
+<body class="auth-pending">
+
+<div class="auth-gate" id="authGate" aria-live="polite">
+  <form class="auth-card" id="loginForm">
+    <div class="auth-brand">Mercado Albion <span>AMÉRICAS</span></div>
+    <h1>Acesso da guilda</h1>
+    <p>Entre com o usuário pseudônimo criado pelo administrador.</p>
+    <label>Usuário<input id="loginUsername" autocomplete="username" required minlength="3" maxlength="32"></label>
+    <label>Senha<input id="loginPassword" type="password" autocomplete="current-password" required maxlength="128"></label>
+    <label>Nome deste dispositivo<input id="loginDevice" autocomplete="off" maxlength="64" placeholder="ex.: PC principal"></label>
+    <div class="auth-error" id="loginError"></div>
+    <button class="btn auth-submit" type="submit">Entrar</button>
+    <div class="auth-bootstrap" id="bootstrapHelp" hidden></div>
+  </form>
+</div>
 
 <header>
   <div class="brand">Mercado Albion <span class="server">AMÉRICAS</span></div>
@@ -17,6 +31,7 @@
   <label class="premium-toggle" title="Com premium o imposto de venda é 4%; sem premium, 8%">
     <input type="checkbox" id="premiumToggle" checked> Premium (imposto 4%)
   </label>
+  <button class="account-button" id="accountOpen" type="button" title="Conta e segurança" hidden></button>
 </header>
 
 <nav class="tabs" id="tabs">
@@ -28,6 +43,7 @@
   <button data-tab="killboard">Killboard</button>
   <button data-tab="pvp">PvP</button>
   <button data-tab="avancado">Avançado</button>
+  <button data-tab="admin" id="adminTabButton" hidden>Contas</button>
 </nav>
 
 <main>
@@ -664,6 +680,8 @@
     </div>
     <div class="status" id="prodStatus"></div>
     <div class="table-wrap" id="prodTable"></div>
+    <p class="hint">Como agir: gaste foco no topo de <b>Prata/foco</b> (mais lucro por foco do dia).
+       Em <b>Refinar vs vender</b>, prêmio &gt; 0 significa que refinar o bruto paga mais que vendê-lo.</p>
   </div>
 
   <!-- av: Demanda -->
@@ -682,6 +700,9 @@
     </div>
     <div class="status" id="demandStatus"></div>
     <div class="table-wrap" id="demandTable"></div>
+    <p class="hint">Como agir: <b>cobertura &lt; 1</b> em Consumíveis = o mercado abastece menos do que
+       o servidor queima (preço pronto pra subir — estoque/craft). <b>Meta subindo</b> antecipa a compra
+       dos insumos da build antes do preço reagir.</p>
   </div>
 
   <!-- av: Guild -->
@@ -700,6 +721,8 @@
     </div>
     <div class="status" id="guildStatus"></div>
     <div class="table-wrap" id="guildTable"></div>
+    <p class="hint">Como agir: <b>Vigiar</b> prioriza o que a guild perde mais (ROI de coletar dados);
+       <b>Fazer vs comprar</b> diz se craftar internamente sai mais barato que comprar pronto.</p>
   </div>
 
   <!-- av: Logística -->
@@ -719,6 +742,9 @@
     </div>
     <div class="status" id="logiStatus"></div>
     <div class="table-wrap" id="logiTable"></div>
+    <p class="hint">Como agir: <b>prêmio %</b> alto = vale levar pro Mercado Negro / subir de qualidade.
+       O <b>mapa de reposição</b> ordena o que o servidor mais perde por lucro/kg — fila de abastecimento.
+       Resultado teórico: confira transporte e frescor.</p>
   </div>
 
   <!-- av: Risco -->
@@ -737,12 +763,62 @@
     </div>
     <div class="status" id="avRiscoStatus"></div>
     <div class="table-wrap" id="riscoTable"></div>
+    <p class="hint">Como agir: o <b>selo</b> (seguro/médio/especulativo) é calibrado aos tercis do mercado.
+       Em <b>Correlação</b>, pares "andam juntos" concentram risco; "hedge" (corr baixa/negativa) diversifica.
+       O perfil cobre os itens mais líquidos.</p>
   </div>
+</section>
+
+<!-- ============================ CONTAS ============================ -->
+<section class="tab" id="tab-admin">
+  <div class="section-head">
+    <div>
+      <h1>Contas e acesso</h1>
+      <div class="sub">Usuários pseudônimos, papéis, perfis econômicos e vínculo de dispositivo</div>
+    </div>
+    <button class="btn secondary" id="adminReload" type="button">Atualizar</button>
+  </div>
+  <form class="controls account-create" id="accountCreateForm">
+    <div class="field"><label>Usuário</label><input id="newUsername" required minlength="3" maxlength="32" placeholder="nick.interno"></div>
+    <div class="field"><label>Nome exibido</label><input id="newDisplayName" maxlength="80"></div>
+    <div class="field"><label>Nick no Albion</label><input id="newAlbionNick" maxlength="80"></div>
+    <div class="field"><label>Papel</label><select id="newRole"></select></div>
+    <div class="field account-profiles-field"><label>Perfis econômicos</label><div class="account-profile-grid" id="newProfiles"></div></div>
+    <button class="btn" type="submit">Criar conta</button>
+  </form>
+  <div class="temporary-secret" id="temporarySecret" hidden>
+    <div><b>Senha temporária, exibida uma única vez</b><span id="temporarySecretUser"></span></div>
+    <code id="temporarySecretValue"></code>
+    <button class="mini-btn" id="temporarySecretCopy" type="button">Copiar</button>
+    <button class="mini-btn" id="temporarySecretClose" type="button">Ocultar</button>
+  </div>
+  <div class="status" id="accountsStatus"></div>
+  <div class="table-wrap" id="accountsTable"></div>
+  <details class="rec-filters account-audit">
+    <summary>Auditoria de segurança</summary>
+    <div class="table-wrap" id="accountAuditTable"></div>
+  </details>
 </section>
 
 </main>
 
 <div id="toast"></div>
+<div class="account-modal" id="accountModal" aria-hidden="true">
+  <div class="account-modal-backdrop" data-account-close></div>
+  <div class="account-modal-card" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+    <div class="glossary-head"><h2 id="accountModalTitle">Conta e segurança</h2><button class="mini-btn" data-account-close type="button">Fechar</button></div>
+    <div id="accountSummary"></div>
+    <form id="passwordForm" class="password-form">
+      <h3>Trocar senha</h3>
+      <label>Senha atual<input id="currentPassword" type="password" autocomplete="current-password" required maxlength="128"></label>
+      <label>Nova senha<input id="newPassword" type="password" autocomplete="new-password" required minlength="12" maxlength="128"></label>
+      <label>Repita a nova senha<input id="newPasswordConfirm" type="password" autocomplete="new-password" required maxlength="128"></label>
+      <p>Use 12+ caracteres e três tipos de caractere, ou uma frase-senha de 16+ caracteres.</p>
+      <div class="auth-error" id="passwordError"></div>
+      <div class="field-row"><button class="btn" type="submit">Alterar senha</button><button class="btn secondary" id="logoutButton" type="button">Sair</button></div>
+    </form>
+  </div>
+</div>
 <button class="glossary-fab" id="glossaryOpen" type="button" title="Glossário econômico">?</button>
 <div class="glossary-modal" id="glossaryModal" aria-hidden="true">
   <div class="glossary-backdrop" id="glossaryCloseBackdrop"></div>
@@ -770,10 +846,23 @@
       <div><b>Livro de ordens</b><span>Lista de ordens de compra e venda por preço e quantidade.</span></div>
       <div><b>Profundidade</b><span>Quantidade disponível em cada nível de preço do livro.</span></div>
       <div><b>Conf.</b><span>Confiança do dado, hoje baseada principalmente no frescor das duas pontas.</span></div>
+      <div><b>RRR</b><span>Taxa de Retorno de Recursos no craft/refino: parte dos insumos volta ao craftar. Vem da estação + cidade-bônus + foco (15,2% base → 24,8% na cidade-bônus → 43,5% com foco). Reduz o custo efetivo dos materiais.</span></div>
+      <div><b>Foco</b><span>Recurso diário do crafter. Usá-lo eleva muito o RRR. A especialização (FCE) NÃO muda o RRR — só barateia o foco, deixando você craftar mais por dia.</span></div>
+      <div><b>FCE</b><span>Focus Cost Efficiency (especialização). Cada 10.000 corta o custo de foco pela metade. Não muda o rendimento por craft — muda quantos crafts cabem no foco do dia.</span></div>
+      <div><b>Cidade-bônus</b><span>Cidade com especialidade de produção daquela categoria (ex.: poção em Brecilien). Craftar/refinar lá dá RRR maior.</span></div>
+      <div><b>VaR (1d)</b><span>Value at Risk: perda diária esperada num cenário ruim (percentil 5 dos retornos). Quanto mais negativo, mais arriscado segurar o item.</span></div>
+      <div><b>Reversão à média</b><span>Tendência de um preço esticado voltar ao seu nível normal. Preço muito abaixo da média tende a subir; muito acima, a cair.</span></div>
+      <div><b>Regime</b><span>Mudança estrutural de patamar de preço (quebra de nível), diferente de uma oscilação normal — sinaliza que o "normal" mudou.</span></div>
+      <div><b>Âncora / ordem-isca</b><span>Ordem com preço absurdo (1 prata ou ~1 milhão) numa só cidade, para enganar quem pega o "melhor/maior" preço. A plataforma zera essas pontas antes de calcular.</span></div>
+      <div><b>Flip fantasma</b><span>Oportunidade que some antes de você executar, porque a ordem do topo já tinha evaporado. A Persistência mede esse risco.</span></div>
+      <div><b>Meia-vida do spread</b><span>Tempo até metade do spread (margem) atual desaparecer — quanto menor, mais rápido você precisa agir.</span></div>
+      <div><b>Lote (output)</b><span>Quantos itens 1 craft produz (poção = 5, comida = 10). A margem já conta o lote inteiro.</span></div>
+      <div><b>Escore composto</b><span>Score ajustado a risco: funde volatilidade, reversão à média e divergência de demanda ao score de lucro.</span></div>
+      <div><b>Mercado Negro</b><span>Só em Caerleon, só compra equipamento de combate (ordens do sistema). Venda instantânea ali não paga taxa de anúncio.</span></div>
     </div>
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260619-4"></script>
+<script src="app.js?v=20260619-auth3"></script>
 </body>
 </html>

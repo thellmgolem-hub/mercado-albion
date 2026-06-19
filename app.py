@@ -14,13 +14,16 @@ from pathlib import Path
 from urllib.parse import quote
 
 import httpx
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse, Response
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 from albion import config
 from albion import stats
 from albion import survival as survival_mod
+from albion.auth import (ADMIN_ROLES, OPERATOR_ROLES, PROFILES, ROLES,
+                         AuthError, AuthManager)
 from albion.client import AODP
 from albion.flips import age_minutes, compute_flips, where_to_sell
 from albion.items import ItemDB
@@ -31,22 +34,247 @@ HOST, PORT = "127.0.0.1", 8528
 app = FastAPI(title="Mercado Albion — Américas")
 db = ItemDB()
 aodp = AODP(server=config.DEFAULT_SERVER)
-
-
-if config.ACCESS_TOKEN:
-    @app.middleware("http")
-    async def _token_guard(request, call_next):
-        tok = config.ACCESS_TOKEN
-        ok = (request.cookies.get("albion_token") == tok
-              or request.query_params.get("token") == tok
-              or request.headers.get("x-token") == tok)
-        if not ok:
-            return Response("acesso negado — abra com ?token=SEU_TOKEN",
-                            status_code=401)
-        resp = await call_next(request)
-        resp.set_cookie("albion_token", tok, max_age=30 * 86400)
-        return resp
+auth_manager = AuthManager(aodp.db, aodp.db_lock)
 SAFE_ROYAL_CITIES = [c for c in config.ROYAL_CITIES if c != "Caerleon"]
+
+PUBLIC_AUTH_PATHS = {"/api/auth/login", "/api/auth/bootstrap-status"}
+PROTECTED_DOC_PATHS = {"/docs", "/redoc", "/openapi.json"}
+
+
+class LoginBody(BaseModel):
+    username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=128)
+    device_label: str | None = Field(default=None, max_length=64)
+
+
+class ChangePasswordBody(BaseModel):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
+
+
+class AccountCreateBody(BaseModel):
+    username: str = Field(min_length=3, max_length=32)
+    display_name: str | None = Field(default=None, max_length=80)
+    albion_nick: str | None = Field(default=None, max_length=80)
+    discord_nick: str | None = Field(default=None, max_length=80)
+    role: str = "member"
+    profiles: list[str] = Field(default_factory=list)
+
+
+class AccountUpdateBody(BaseModel):
+    display_name: str | None = Field(default=None, max_length=80)
+    albion_nick: str | None = Field(default=None, max_length=80)
+    discord_nick: str | None = Field(default=None, max_length=80)
+    role: str | None = None
+    active: bool | None = None
+    profiles: list[str] | None = None
+
+
+def _auth_json(error: AuthError):
+    return JSONResponse({"detail": error.message, "code": error.code},
+                        status_code=error.status,
+                        headers={"Cache-Control": "no-store"})
+
+
+def _cookie_secure(request: Request):
+    return config.AUTH_COOKIE_SECURE or request.url.scheme == "https"
+
+
+def _set_login_cookies(response, request, result):
+    secure = _cookie_secure(request)
+    response.set_cookie(
+        config.AUTH_SESSION_COOKIE, result["session_token"],
+        max_age=7 * 86400, httponly=True, secure=secure,
+        samesite="strict", path="/")
+    if result.get("device_token"):
+        response.set_cookie(
+            config.AUTH_DEVICE_COOKIE, result["device_token"],
+            max_age=90 * 86400, httponly=True, secure=secure,
+            samesite="strict", path="/")
+
+
+def _clear_auth_cookies(response):
+    response.delete_cookie(config.AUTH_SESSION_COOKIE, path="/")
+    # O dispositivo permanece no logout; e o vinculo de um PC, nao a sessao.
+
+
+def _require_role(request: Request, allowed):
+    if not config.AUTH_REQUIRED:
+        return {"id": 0, "username": "local", "role": "admin"}
+    account = getattr(request.state, "auth", {}).get("account")
+    if not account or account.get("role") not in allowed:
+        raise AuthError("Voce nao tem permissao para esta operacao.",
+                        "forbidden", 403)
+    return account
+
+
+@app.middleware("http")
+async def _auth_guard(request: Request, call_next):
+    path = request.url.path
+    protected = path.startswith("/api/") or path in PROTECTED_DOC_PATHS
+    public = path in PUBLIC_AUTH_PATHS
+    if config.AUTH_REQUIRED and protected and not public:
+        try:
+            if not auth_manager.has_admin():
+                raise AuthError(
+                    "Nenhum administrador configurado. Execute "
+                    "manage_accounts.py bootstrap.", "bootstrap_required", 503)
+            ctx = auth_manager.authenticate(
+                request.cookies.get(config.AUTH_SESSION_COOKIE),
+                request.cookies.get(config.AUTH_DEVICE_COOKIE))
+            request.state.auth = ctx
+            password_paths = {
+                "/api/auth/me", "/api/auth/logout",
+                "/api/auth/change-password",
+            }
+            if (ctx["account"]["must_change_password"]
+                    and path not in password_paths):
+                raise AuthError(
+                    "Troque a senha temporaria antes de usar a plataforma.",
+                    "password_change_required", 403)
+            if request.method not in ("GET", "HEAD", "OPTIONS"):
+                csrf = request.headers.get("x-csrf-token")
+                if not auth_manager.verify_csrf(ctx, csrf):
+                    raise AuthError("Token CSRF ausente ou invalido.",
+                                    "csrf_invalid", 403)
+        except AuthError as exc:
+            return _auth_json(exc)
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy",
+                                "camera=(), microphone=(), geolocation=()")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' https://render.albiononline.com data:; "
+        "connect-src 'self'; object-src 'none'; frame-ancestors 'none'; "
+        "base-uri 'self'")
+    return response
+
+
+@app.exception_handler(AuthError)
+async def _auth_exception_handler(_request, exc):
+    return _auth_json(exc)
+
+
+@app.get("/api/auth/bootstrap-status")
+def auth_bootstrap_status():
+    # NÃO expõe account_count a não-autenticados (era reconhecimento numa LAN);
+    # o frontend só usa ready + command.
+    return {"ready": auth_manager.has_admin(),
+            "command": ".\\.venv\\Scripts\\python.exe -B "
+                       "manage_accounts.py bootstrap --username admin"}
+
+
+@app.post("/api/auth/login")
+def auth_login(body: LoginBody, request: Request):
+    if not auth_manager.has_admin():
+        raise AuthError("Crie o primeiro administrador pela CLI.",
+                        "bootstrap_required", 503)
+    result = auth_manager.login(
+        body.username, body.password,
+        request.cookies.get(config.AUTH_DEVICE_COOKIE), body.device_label)
+    response = JSONResponse({
+        "account": result["account"], "csrf": result["csrf_token"],
+        "roles": ROLES, "profiles_catalog": PROFILES,
+    }, headers={"Cache-Control": "no-store"})
+    _set_login_cookies(response, request, result)
+    return response
+
+
+@app.get("/api/auth/me")
+def auth_me(request: Request):
+    session_token = request.cookies.get(config.AUTH_SESSION_COOKIE)
+    csrf = auth_manager.rotate_csrf(session_token)
+    return JSONResponse({
+        "account": request.state.auth["account"], "csrf": csrf,
+        "roles": ROLES, "profiles_catalog": PROFILES,
+    }, headers={"Cache-Control": "no-store"})
+
+
+@app.post("/api/auth/logout")
+def auth_logout(request: Request):
+    account = request.state.auth["account"]
+    token = request.cookies.get(config.AUTH_SESSION_COOKIE)
+    auth_manager.logout(token, account["id"])
+    response = JSONResponse({"ok": True},
+                            headers={"Cache-Control": "no-store"})
+    _clear_auth_cookies(response)
+    return response
+
+
+@app.post("/api/auth/change-password")
+def auth_change_password(body: ChangePasswordBody, request: Request):
+    account = request.state.auth["account"]
+    auth_manager.change_password(
+        account["id"], body.current_password, body.new_password)
+    response = JSONResponse(
+        {"ok": True, "reauthenticate": True},
+        headers={"Cache-Control": "no-store"})
+    _clear_auth_cookies(response)
+    return response
+
+
+@app.get("/api/admin/accounts")
+def admin_accounts(request: Request):
+    _require_role(request, ADMIN_ROLES)
+    return {"accounts": auth_manager.list_accounts(),
+            "roles": ROLES, "profiles_catalog": PROFILES}
+
+
+@app.post("/api/admin/accounts")
+def admin_create_account(body: AccountCreateBody, request: Request):
+    actor = _require_role(request, ADMIN_ROLES)
+    created = auth_manager.create_account(
+        actor["id"], body.username, role=body.role,
+        profiles=body.profiles, display_name=body.display_name,
+        albion_nick=body.albion_nick, discord_nick=body.discord_nick)
+    # A senha temporaria so existe nesta resposta.
+    return {**created, "account": auth_manager.get_account(
+        created["account_id"])}
+
+
+@app.patch("/api/admin/accounts/{account_id}")
+def admin_update_account(account_id: int, body: AccountUpdateBody,
+                         request: Request):
+    actor = _require_role(request, ADMIN_ROLES)
+    supplied = getattr(body, "model_fields_set",
+                       getattr(body, "__fields_set__", set()))
+    kwargs = {}
+    for field in ("role", "active", "profiles", "display_name",
+                  "albion_nick", "discord_nick"):
+        if field in supplied:
+            kwargs[field] = getattr(body, field)
+    return {"account": auth_manager.update_account(
+        actor["id"], account_id, **kwargs)}
+
+
+@app.delete("/api/admin/accounts/{account_id}")
+def admin_disable_account(account_id: int, request: Request):
+    actor = _require_role(request, ADMIN_ROLES)
+    return {"account": auth_manager.update_account(
+        actor["id"], account_id, active=False)}
+
+
+@app.post("/api/admin/accounts/{account_id}/reset-password")
+def admin_reset_password(account_id: int, request: Request):
+    actor = _require_role(request, ADMIN_ROLES)
+    return auth_manager.reset_password(actor["id"], account_id)
+
+
+@app.post("/api/admin/accounts/{account_id}/reset-device")
+def admin_reset_device(account_id: int, request: Request):
+    actor = _require_role(request, ADMIN_ROLES)
+    auth_manager.reset_device(actor["id"], account_id)
+    return {"ok": True}
+
+
+@app.get("/api/admin/audit")
+def admin_audit(request: Request, limit: int = Query(200, ge=1, le=1000)):
+    _require_role(request, ADMIN_ROLES)
+    return {"events": auth_manager.audit_log(limit)}
 
 
 def _csv(value: str | None) -> list[str] | None:
@@ -951,23 +1179,27 @@ def watchlist():
 
 
 @app.post("/api/watchlist/{item_id}")
-def watchlist_add(item_id: str):
+def watchlist_add(item_id: str, request: Request):
+    _require_role(request, OPERATOR_ROLES)
     iid = _resolve_items([item_id])[0]
     aodp.watch_add([iid])
     return {"ok": True, "item_id": iid, "count": len(aodp.watch_list())}
 
 
 @app.delete("/api/watchlist/{item_id}")
-def watchlist_remove(item_id: str):
+def watchlist_remove(item_id: str, request: Request):
+    _require_role(request, OPERATOR_ROLES)
     aodp.watch_remove([item_id])
     return {"ok": True, "count": len(aodp.watch_list())}
 
 
 @app.post("/api/collect")
-def collect(days: int = Query(30, le=180), cities: str | None = None,
+def collect(request: Request, days: int = Query(30, le=180),
+            cities: str | None = None,
             max_items: int = Query(config.COLLECT_MAX_ITEMS,
                                    le=config.COLLECT_MAX_ITEMS)):
     """Coleta preços + histórico de toda a watchlist (alimenta o Item Lab)."""
+    _require_role(request, OPERATOR_ROLES)
     city_list = _csv(cities) or config.CITIES
     result = _api_guard(lambda: aodp.collect(
         cities=city_list, days=days, max_items=max_items, source="manual"))
@@ -1465,6 +1697,7 @@ def _start_auto_collect():
     gameinfo.ensure_assumptions(aodp)
     aodp.sync_static_items(db.items)
     gameinfo.seed_combat_tags(aodp)
+    auth_manager.cleanup()
     if config.AUTO_COLLECT_INTERVAL_MIN > 0:
         threading.Thread(target=_auto_collect_loop, daemon=True,
                          name="auto-collect").start()
@@ -1557,7 +1790,8 @@ def service_orders():
 
 
 @app.post("/api/service-orders/refresh")
-def service_orders_refresh():
+def service_orders_refresh(request: Request):
+    _require_role(request, OPERATOR_ROLES)
     generated = _generate_service_orders()
     payload = _service_orders_payload()
     payload["generated"] = generated
@@ -1632,6 +1866,15 @@ app.mount("/", StaticFiles(directory=ROOT / "web", html=True), name="web")
 if __name__ == "__main__":
     import uvicorn
     serve_host = "0.0.0.0" if config.SERVE_LAN else HOST
+    # Servir o login na LAN por HTTP puro expõe o cookie de sessão (sem Secure)
+    # a sniffing/replay. Avisa alto e exige opt-in consciente do risco.
+    if (config.SERVE_LAN and config.AUTH_REQUIRED
+            and not config.AUTH_COOKIE_SECURE):
+        print("\n" + "=" * 70 + "\n  AVISO DE SEGURANÇA: SERVE_LAN=1 sem HTTPS.\n"
+              "  O cookie de sessão trafega em TEXTO CLARO na rede local e pode\n"
+              "  ser capturado/reusado. Use um proxy reverso HTTPS e defina\n"
+              "  ALBION_AUTH_COOKIE_SECURE=1, OU mantenha só em 127.0.0.1.\n"
+              + "=" * 70 + "\n")
     threading.Timer(1.5, lambda: webbrowser.open(f"http://{HOST}:{PORT}")).start()
     print(f"Mercado Albion (Américas) — http://{HOST}:{PORT}"
           + (" (acessível pela rede local)" if config.SERVE_LAN else ""))

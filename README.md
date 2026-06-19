@@ -140,9 +140,26 @@ Além da tabela rápida `prices`, novas consultas de preço também alimentam
 
 ## Acesso pela rede local (guild)
 
-Em `albion/config.py`, defina `SERVE_LAN = True` para o servidor atender a rede
-local (`http://SEU_IP:8528`) e, opcionalmente, `ACCESS_TOKEN = "umasenha"` para
-exigir `?token=umasenha` na primeira visita (vira cookie por 30 dias).
+O app exige conta por padrão. Para criar o primeiro administrador:
+
+```powershell
+.\.venv\Scripts\python.exe -B manage_accounts.py bootstrap --username admin
+```
+
+A senha temporária aparece uma única vez e deve ser trocada no primeiro login.
+Depois, a aba **Contas** permite criar usuários pseudônimos, definir papel e
+perfis econômicos, desativar acesso e liberar a troca de dispositivo. Não são
+coletados e-mail, IP ou identidade real. A recuperação de emergência também
+fica disponível pela CLI (`manage_accounts.py --help`).
+
+Em `albion/config.py`, defina `SERVE_LAN = True` para atender a rede local em
+`http://SEU_IP:8528`. Em hospedagem HTTPS, configure
+`ALBION_AUTH_COOKIE_SECURE=1`; nunca exponha este servidor diretamente à
+internet sem HTTPS, proxy reverso, backups e limitação de tráfego.
+
+O vínculo de um dispositivo usa um cookie secreto revogável: desestimula o
+compartilhamento casual, mas não é impressão digital de hardware e não resiste
+a malware ou à cópia deliberada do perfil do navegador.
 
 ## Guia de análises econômicas
 

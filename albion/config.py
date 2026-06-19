@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Constantes do app: servidores, cidades, taxas e limites da API."""
+import os
 
 SERVERS = {
     "americas": "https://west.albion-online-data.com",
@@ -192,9 +193,14 @@ GAMEINFO_BATTLE_PAGES = 2
 AUTO_INTEL_INTERVAL_MIN = 10
 
 # Acesso pela rede local (oficiais da guild abrem http://SEU_IP:8528).
-# Defina ACCESS_TOKEN para exigir ?token=... na primeira visita (vira cookie).
 SERVE_LAN = False
-ACCESS_TOKEN = ""
+
+# Autenticacao local pseudonima. Ativa por padrao; a variavel de desativacao
+# existe apenas para a suite de testes e manutencao offline controlada.
+AUTH_REQUIRED = os.environ.get("ALBION_AUTH_DISABLED") != "1"
+AUTH_COOKIE_SECURE = os.environ.get("ALBION_AUTH_COOKIE_SECURE") == "1"
+AUTH_SESSION_COOKIE = "albion_session"
+AUTH_DEVICE_COOKIE = "albion_device"
 # Máx. de itens por rodada de coleta. 2.300 itens ≈ 92 requisições à API
 # (2 × itens/50), ~40 s por rodada — confortável dentro de 150/min e 300/5min.
 COLLECT_MAX_ITEMS = 2500
