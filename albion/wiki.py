@@ -14,43 +14,59 @@ from . import config, craft, production
 
 _DATA = Path(__file__).resolve().parent.parent / "data"
 
+def canonical_id(item_id):
+    """recipes_craft referencia refinado encantado como X@n, mas o DB/mercado/
+    busca usam X_LEVELn@n. Canoniza p/ o id REAL (navegável e precificável).
+    Equipamento acabado (X@n não-refinado) é id válido — fica intacto."""
+    base, _, e = item_id.partition("@")
+    if (e and e != "0" and "_LEVEL" not in base
+            and any(base.endswith(t) for t in craft._REFINED_FAMILY)):
+        return f"{base}_LEVEL{e}@{e}"
+    return item_id
+
+
 # ----------------------------------------------------------------- usado-em
 _USAGE = None
 
 
 def _usage_index():
-    """{insumo_id: set(produtos que o consomem)} sobre craft + refino. 1x."""
+    """{insumo_id canônico: set(produtos que o consomem)} craft + refino. 1x."""
     global _USAGE
     if _USAGE is None:
         idx = {}
         for fname in ("recipes_refining.json", "recipes_craft.json"):
             for out_id, recipe in (craft._load(fname) or {}).items():
                 for inp in recipe.get("inputs", []):
-                    idx.setdefault(inp["id"], set()).add(out_id)
+                    idx.setdefault(canonical_id(inp["id"]), set()).add(out_id)
         _USAGE = {k: sorted(v) for k, v in idx.items()}
     return _USAGE
 
 
-def used_in(item_id, name_of=None, limit=60):
-    """Produtos que CONSOMEM este item (índice reverso das receitas)."""
+def used_in(item_id, name_of=None, limit=60, tier_of=None):
+    """Produtos que CONSOMEM este item (índice reverso das receitas).
+    Devolve (linhas, total) — total real antes do corte, p/ a UI sinalizar."""
     name_of = name_of or (lambda i: i)
-    outs = _usage_index().get(item_id, [])
+    tier_of = tier_of or (lambda i: 0)
+    outs = _usage_index().get(canonical_id(item_id), [])
     rows = []
     for oid in outs:
         recipe = craft.recipe_for(oid) or {}
         cnt = next((i["count"] for i in recipe.get("inputs", [])
-                    if i["id"] == item_id), None)
+                    if canonical_id(i["id"]) == canonical_id(item_id)), None)
         rows.append({"item_id": oid, "name_pt": name_of(oid),
                      "count": cnt, "category": recipe.get("category")})
-    rows.sort(key=lambda r: r["item_id"])
-    return rows[:limit] if limit else rows
+    # ordena por relevância (categoria, tier, id) p/ o corte não apagar
+    # categorias inteiras do mesmo tier silenciosamente
+    rows.sort(key=lambda r: (r["category"] or "", tier_of(r["item_id"]) or 0,
+                             r["item_id"]))
+    total = len(rows)
+    return (rows[:limit] if limit else rows), total
 
 
 # ------------------------------------------------------- cadeia de produção
 def _chain_recipe(item_id):
-    """Receita p/ a cadeia. recipes_craft referencia refinado encantado como
-    X@n, mas recipes_refining indexa como X_LEVELn@n — tenta o alias p/ a
-    cadeia de barras/tábuas encantadas expandir até o bruto."""
+    """Receita p/ a cadeia (item_id já canônico): _prod_recipe direto, com
+    fallback ao alias por segurança."""
     recipe = production._prod_recipe(item_id)
     if recipe is None and "@" in item_id:
         base, e = item_id.split("@", 1)
@@ -59,10 +75,11 @@ def _chain_recipe(item_id):
 
 
 def chain_item_ids(item_id, max_depth=10):
-    """Todos os ids que aparecem na cadeia de produção (p/ buscar preços)."""
+    """Todos os ids (canônicos) que aparecem na cadeia (p/ buscar preços)."""
     ids = set()
 
     def walk(iid, depth, seen):
+        iid = canonical_id(iid)
         ids.add(iid)
         recipe = _chain_recipe(iid)
         if not recipe or depth >= max_depth or iid in seen:
@@ -76,6 +93,7 @@ def chain_item_ids(item_id, max_depth=10):
 
 def _node(item_id, price_of, name_of, tier_of, focus, depth, max_depth, seen):
     """Nó recursivo da árvore de produção (custos POR UNIDADE do item)."""
+    item_id = canonical_id(item_id)            # id real (navegável/precificável)
     recipe = _chain_recipe(item_id)
     buy = price_of(item_id)
     base = {
@@ -128,23 +146,26 @@ def production_tree(item_id, price_of, name_of, tier_of, *, focus=False,
     tree = _node(item_id, price_of, name_of, tier_of, focus, 0, max_depth,
                  frozenset())
 
+    item_id = canonical_id(item_id)
     root_recipe = _chain_recipe(item_id)
     output = (root_recipe or {}).get("output", 1) or 1
     target = qty if qty else output
     shopping = {}
 
-    def expand(iid, units, seen):
+    def expand(iid, units, depth, seen):
+        iid = canonical_id(iid)
         recipe = _chain_recipe(iid)
-        if not recipe or iid in seen:
+        if not recipe or depth >= max_depth or iid in seen:  # mesma folha de _node
             shopping[iid] = shopping.get(iid, 0.0) + units
             return
         crafts = units / (recipe.get("output", 1) or 1)
         for inp in recipe["inputs"]:
-            expand(inp["id"], inp["count"] * crafts, seen | {iid})
+            expand(inp["id"], inp["count"] * crafts, depth + 1, seen | {iid})
 
-    expand(item_id, target, frozenset())
+    expand(item_id, target, 0, frozenset())
     shop = []
     raw_cost = 0.0
+    unpriced = []
     for iid, units in sorted(shopping.items(), key=lambda kv: -kv[1]):
         p = price_of(iid)
         line = {"id": iid, "name_pt": name_of(iid), "tier": tier_of(iid),
@@ -152,11 +173,17 @@ def production_tree(item_id, price_of, name_of, tier_of, *, focus=False,
                 "subtotal": round(p * units) if p else None}
         if p:
             raw_cost += p * units
+        else:
+            unpriced.append(iid)
         shop.append(line)
+    # raw_cost por unidade do item final, base comparável a make/buy_unit
+    raw_cost_unit = round(raw_cost / target) if (raw_cost and target) else None
     return {
         "tree": tree, "shopping": shop, "target_qty": round(target, 1),
         "output": output,
         "raw_cost": round(raw_cost) if raw_cost else None,
+        "raw_cost_unit": raw_cost_unit,
+        "unpriced": unpriced,            # brutos sem cotação (lista incompleta)
         "make_unit": tree.get("make_unit"), "buy_unit": tree.get("buy_unit"),
         "best_unit": tree.get("best_unit"),
     }

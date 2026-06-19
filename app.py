@@ -64,6 +64,11 @@ def _resolve_items(ids: list[str]) -> list[str]:
     out, unknown = [], []
     for i in ids:
         it = db.get(i)
+        if not it and "@" in i and "_LEVEL" not in i:
+            # alias de refinado encantado X@n -> id real X_LEVELn@n
+            base, _, e = i.partition("@")
+            if e and e != "0":
+                it = db.get(f"{base}_LEVEL{e}@{e}")
         (out if it else unknown).append(it["id"] if it else i)
     if unknown:
         raise HTTPException(400, f"Itens desconhecidos: {', '.join(unknown[:10])}")
@@ -750,16 +755,6 @@ def _wiki_name(item_id):
     return f"{nm} (encanto {e})" if e and e != "0" else nm
 
 
-def _drops_for(item_id):
-    if "data" not in _supply_cache:
-        import json as _j
-        p = ROOT / "data" / "supply_data.json"
-        _supply_cache["data"] = (_j.loads(p.read_text(encoding="utf-8"))
-                                 if p.exists() else {})
-    supply = _supply_cache["data"]
-    return supply.get(item_id) or supply.get(item_id.split("@")[0]) or []
-
-
 @app.get("/api/wiki")
 def wiki_view(item: str, focus: bool = False,
               qty: float | None = Query(None, gt=0, le=100000),
@@ -790,21 +785,24 @@ def wiki_view(item: str, focus: bool = False,
     recipe = craft_mod.recipe_for(item_id)
     recipe_out = None
     if recipe:
+        def _inp(i):
+            cid = wk.canonical_id(i["id"])      # id real (navegável/precificável)
+            return {"id": cid, "count": i["count"], "name_pt": _wiki_name(cid),
+                    "tier": tier_of(cid), "buy": price_of(cid)}
         recipe_out = {
-            "inputs": [{"id": i["id"], "count": i["count"],
-                        "name_pt": _wiki_name(i["id"]), "tier": tier_of(i["id"]),
-                        "buy": price_of(i["id"])} for i in recipe["inputs"]],
+            "inputs": [_inp(i) for i in recipe["inputs"]],
             "focus": recipe.get("focus"), "output": recipe.get("output", 1),
             "category": recipe.get("category"),
             "bonus_city": craft_mod.unified_bonus_city(item_id, recipe.get("category")),
         }
+    used_rows, used_total = wk.used_in(item_id, _wiki_name, tier_of=tier_of)
     return {
         "details": wk.item_details(item_id, meta),
         "recipe": recipe_out,
-        "used_in": wk.used_in(item_id, _wiki_name),
-        "drops": _drops_for(item_id),
+        "used_in": used_rows, "used_in_total": used_total,
         "tree": tree["tree"], "shopping": tree["shopping"],
         "totals": {k: tree[k] for k in ("target_qty", "output", "raw_cost",
+                                        "raw_cost_unit", "unpriced",
                                         "make_unit", "buy_unit", "best_unit")},
     }
 

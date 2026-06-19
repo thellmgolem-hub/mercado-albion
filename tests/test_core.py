@@ -1299,8 +1299,18 @@ class WikiTests(unittest.TestCase):
 
     def test_used_in_inverts_recipes(self):
         # T4_ORE é insumo de T4_METALBAR (refino) -> aparece no índice reverso
-        outs = {r["item_id"] for r in self.wiki.used_in("T4_ORE", self.name)}
+        rows, total = self.wiki.used_in("T4_ORE", self.name)
+        outs = {r["item_id"] for r in rows}
         self.assertIn("T4_METALBAR", outs)
+        self.assertGreaterEqual(total, len(rows))
+
+    def test_canonical_id_normalizes_enchanted_refined(self):
+        # alias de craft X@n -> id real X_LEVELn@n (refinado encantado)
+        self.assertEqual(self.wiki.canonical_id("T4_METALBAR@1"), "T4_METALBAR_LEVEL1@1")
+        # equipamento encantado fica intacto (X@n é id real)
+        self.assertEqual(self.wiki.canonical_id("T4_2H_CLAYMORE@1"), "T4_2H_CLAYMORE@1")
+        # base sem encanto intacta
+        self.assertEqual(self.wiki.canonical_id("T4_METALBAR"), "T4_METALBAR")
 
     def test_chain_ids_reach_raw(self):
         ids = self.wiki.chain_item_ids("T4_METALBAR")

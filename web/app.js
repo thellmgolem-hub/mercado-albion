@@ -412,6 +412,7 @@ function renderTable(containerId, columns, rows, { sortKey = null, sortDir = -1,
       tr.addEventListener('click', (ev) => {
         if (ev.target.closest('.x-btn')) return;
         if (ev.target.closest('.hist-btn')) return;
+        if (ev.target.closest('.wiki-link')) return;   // navegação, não copia
         if (r._copy) copyText(r._copy);
       });
       const x = tr.querySelector('.x-btn');
@@ -912,7 +913,7 @@ function selectItem(it) {
   // sub-aba não-ativa não foi recarregada (evita misturar itens)
   ['precosTable', 'venderTable', 'craftTable', 'origemTable', 'riscoBody',
    'histLabSummary', 'histLabCards', 'wikiDetails', 'wikiRecipe', 'wikiUsedIn',
-   'wikiTree', 'wikiShopping'].forEach((id) => {
+   'wikiTree', 'wikiTreeMeta', 'wikiShopping'].forEach((id) => {
     const el = $(id); if (el) el.innerHTML = '';
   });
   if (priceChart) { priceChart.destroy(); priceChart = null; }
@@ -1019,19 +1020,25 @@ function treeNodeHtml(node, root = false) {
     ? ` <span class="muted">RRR ${fmtDec(node.rrr_pct, 0)}%${node.craft_city ? ' @ ' + esc(node.craft_city) : ''}</span>` : '';
   const head = `${iconImg(node.id, 0)} ${wikiLink(node.id, node.name_pt)}${cnt}${dec} ${price}${rrr}`;
   if (node.children && node.children.length) {
-    return `<details ${root ? 'open' : ''} class="chain-node"><summary>${head}</summary><ul>${
+    return `<details ${root ? 'open' : ''} class="chain-node" data-id="${esc(node.id)}"><summary>${head}</summary><ul>${
       node.children.map((c) => `<li>${treeNodeHtml(c)}</li>`).join('')}</ul></details>`;
   }
   return `<div class="chain-leaf">${head}${node.is_raw ? ' <span class="te-badge">bruto</span>' : ''}</div>`;
 }
 
 async function navigateToItem(id) {
+  // alias de refinado encantado X@n -> id real X_LEVELn@n (navegável/buscável)
+  const m = id.match(/^(.+)@([1-9]\d*)$/);
+  const cand = (m && !/_LEVEL\d/.test(m[1])) ? [id, `${m[1]}_LEVEL${m[2]}@${m[2]}`] : [id];
   try {
-    const r = await api('/api/search', { q: id });
-    const list = Array.isArray(r) ? r : (r.results || r.items || []);
-    const it = list.find((x) => x.id === id) || list[0];
-    if (it) { selectItem(it); showItemSub('cadeia'); }
-  } catch (e) { /* item não encontrado */ }
+    for (const q of cand) {
+      const r = await api('/api/search', { q });
+      const list = Array.isArray(r) ? r : (r.results || r.items || []);
+      const it = list.find((x) => x.id === q);   // só match EXATO (nada de list[0])
+      if (it) { selectItem(it); showItemSub('cadeia'); return; }
+    }
+    toast('item não encontrado: ' + id);
+  } catch (e) { /* ignora */ }
 }
 
 async function loadWiki() {
@@ -1040,10 +1047,15 @@ async function loadWiki() {
   const st = $('wikiStatus');
   st.className = 'status';
   st.textContent = 'montando a cadeia de produção…';
+  $('wikiTreeMeta').textContent = '';
+  // preserva quais nós da árvore o usuário tinha expandido (ajuste de foco/qtd)
+  const wasOpen = new Set([...document.querySelectorAll('#wikiTree details[open]')]
+    .map((dt) => dt.dataset.id));
   try {
     const res = await api('/api/wiki', {
       item: it.id, focus: $('wikiFocus').checked, qty: $('wikiQty').value || '',
     });
+    if (!state.item || state.item.id !== it.id) return;   // resposta obsoleta
     const d = res.details || {}, s = d.stats || {};
     const pill = (l, v) => (v == null || v === '') ? '' : `<div class="lab-pill"><b>${l}</b><span>${v}</span></div>`;
     $('wikiDetails').innerHTML = [
@@ -1069,25 +1081,36 @@ async function loadWiki() {
     }
 
     const u = res.used_in || [];
+    const extra = (res.used_in_total || u.length) - u.length;
     $('wikiUsedIn').innerHTML = u.length ? `<div class="wiki-chips">${
       u.map((x) => `<span class="wiki-ing">${iconImg(x.item_id, 0)} ${wikiLink(x.item_id, x.name_pt)}${x.count ? ` <span class="muted">×${fmt(x.count)}</span>` : ''}</span>`).join('')
-    }</div>` : '<div class="muted">não é insumo de nenhuma receita</div>';
+    }</div>${extra > 0 ? `<div class="muted" style="margin-top:6px">+${fmt(extra)} outros consumidores não exibidos</div>` : ''}` : '<div class="muted">não é insumo de nenhuma receita</div>';
 
+    // estado de expansão preservado: marca o nó raiz aberto + os que estavam abertos
     $('wikiTree').innerHTML = treeNodeHtml(res.tree, true);
+    document.querySelectorAll('#wikiTree details').forEach((dt) => {
+      if (wasOpen.size && wasOpen.has(dt.dataset.id)) dt.setAttribute('open', '');
+    });
     const t = res.totals || {};
-    $('wikiTreeMeta').textContent = `· fazer do bruto ≈ ${t.raw_cost != null ? fmt(t.raw_cost) : '—'} · comprar pronto ${t.buy_unit != null ? fmt(t.buy_unit) : '—'} · melhor ${t.best_unit != null ? fmt(t.best_unit) : '—'}`;
+    // por unidade (com RRR) vs matéria-prima bruta (lote, sem RRR) são bases
+    // diferentes — NÃO encadeadas como comparáveis (correção da revisão)
+    const perUnit = `por unid.: fazer ${t.best_unit != null ? fmt(t.best_unit) : '—'} · comprar pronto ${t.buy_unit != null ? fmt(t.buy_unit) : '—'}`;
+    const incompleto = (t.unpriced && t.unpriced.length) ? ` · ⚠ ${fmt(t.unpriced.length)} sem cotação` : '';
+    $('wikiTreeMeta').textContent = `· ${perUnit}${incompleto}`;
 
     renderTable('wikiShopping', [
       { key: 'item', label: 'Recurso bruto', align: 'l', value: (o) => o.name_pt, html: (o) => `${iconImg(o.id, 0)} ${wikiLink(o.id, o.name_pt)}` },
       { key: 't', label: 'Tier', align: 'c', value: (o) => o.tier, html: (o) => o.tier != null ? 'T' + o.tier : '—' },
       { key: 'u', label: 'Qtd', value: (o) => o.units, html: (o) => fmt(o.units) },
-      { key: 'p', label: 'Preço un', value: (o) => o.unit_price, html: (o) => o.unit_price != null ? `<span class="silver">${fmt(o.unit_price)}</span>` : '—' },
+      { key: 'p', label: 'Preço un', value: (o) => o.unit_price, html: (o) => o.unit_price != null ? `<span class="silver">${fmt(o.unit_price)}</span>` : '<span class="profit-neg">sem cotação</span>' },
       { key: 'sub', label: 'Subtotal', value: (o) => o.subtotal, html: (o) => o.subtotal != null ? `<span class="silver">${fmt(o.subtotal)}</span>` : '—' },
     ], res.shopping || [], { sortKey: 'sub' });
-    st.textContent = `${(res.shopping || []).length} recursos brutos na base da cadeia · matéria-prima ≈ ${t.raw_cost != null ? fmt(t.raw_cost) : '—'} prata`;
+    const rawTxt = t.raw_cost != null ? fmt(t.raw_cost) + ' prata' : '—';
+    st.textContent = `${(res.shopping || []).length} recursos brutos · matéria-prima p/ ${fmt(t.target_qty)} un. ≈ ${rawTxt}${t.unpriced && t.unpriced.length ? ` (parcial: ${fmt(t.unpriced.length)} sem cotação)` : ''} · sem desconto de RRR`;
   } catch (e) {
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
+    $('wikiTreeMeta').textContent = '';
   }
 }
 
