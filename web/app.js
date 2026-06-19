@@ -394,7 +394,7 @@ function renderTable(containerId, columns, rows, { sortKey = null, sortDir = -1,
       });
     }
     box.innerHTML = `<table><thead><tr>${
-      columns.map((c) => `<th class="${c.align || ''} ${c.key === sk ? 'sorted' : ''}" data-k="${c.key}">${
+      columns.map((c) => `<th class="${c.align || ''} ${c.key === sk ? 'sorted' : ''}" data-k="${c.key}"${c.title ? ` title="${esc(c.title)}"` : ''}>${
         esc(c.label)}${c.key === sk ? (sd < 0 ? ' ▼' : ' ▲') : ''}</th>`).join('')
     }</tr></thead><tbody>${
       sorted.map((r, i) => `<tr data-i="${i}" ${rowAttrs ? rowAttrs(r) : ''}>${
@@ -486,7 +486,7 @@ function flipColumns(withVolume) {
     },
     {
       key: 'roi', label: 'ROI %', value: (o) => o.roi_pct,
-      html: (o) => `${o.roi_pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`,
+      html: (o) => o.roi_pct == null ? '—' : `${o.roi_pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`,
     },
     {
       key: 'conf', label: 'Conf.', align: 'c',
@@ -562,7 +562,7 @@ function recommendationColumns() {
     },
     {
       key: 'roi', label: 'ROI %', value: (o) => o.roi_pct,
-      html: (o) => `${o.roi_pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`,
+      html: (o) => o.roi_pct == null ? '—' : `${o.roi_pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`,
     },
     {
       key: 'liq', label: 'Liq./dia', value: (o) => o.liquidity_day,
@@ -645,13 +645,21 @@ $('premiumToggle').addEventListener('change', (e) => {
   state.premium = e.target.checked;
   localStorage.setItem('premium', state.premium ? '1' : '0');
   premiumLabel();
-  // o imposto entra no líquido: invalida o cache das sub-abas do Item para
-  // não mostrar valor com o imposto antigo, e recarrega a sub-aba ativa
+  // o imposto entra no LÍQUIDO de quase tudo: invalida caches e recarrega o que
+  // está à vista (Item, Avançado, recomendações e mapa de rotas do Início)
   state.itemLoadedFor = {};
+  state.avSubLoaded = {};
   if (state.item && document.getElementById('tab-item').classList.contains('active')) {
     loadItemSub(activeItemSub(), true);
   }
-  toast(`imposto de venda: ${state.premium ? '4%' : '8%'} — recalcule as abas abertas`);
+  if (document.getElementById('tab-avancado').classList.contains('active')) {
+    const a = document.querySelector('#avSubtabs button.active');
+    if (a) showAvSub(a.dataset.av);
+  }
+  // Início (recomendações + mapa de rotas) usa o imposto no líquido — sempre presente
+  loadDashboardRecommendations();
+  loadHeatmap();
+  toast(`imposto de venda: ${state.premium ? '4%' : '8%'} — análises recalculadas`);
 });
 
 // ============================================================ favoritos
@@ -793,6 +801,7 @@ function discoveryParams() {
     ench: $('discEnch').value,
     qualities: $('discQuality').value,
     premium: state.premium,
+    fused: $('dashFused') ? $('dashFused').checked : false,
     min_daily_volume: $('discMinVolume').value || 0,
     min_active_days: $('discMinActiveDays').value || 0,
     max_age_buy: $('discMaxAgeBuy').value,
@@ -1989,9 +1998,9 @@ async function loadAvLogi(view) {
 let avRiscoView = 'profile';
 async function loadAvRisco(view) {
   if (view) avRiscoView = view;
-  const st = $('riscoStatus');
+  const st = $('avRiscoStatus');
   st.className = 'status';
-  st.textContent = avRiscoView === 'profile' ? 'calculando risco (bootstrap)…' : 'calculando correlação…';
+  st.textContent = avRiscoView === 'profile' ? 'calculando risco (bootstrap, alguns segundos)…' : 'calculando correlação…';
   try {
     const res = await api('/api/risk', { view: avRiscoView, days: 120, limit: 60 });
     const rows = res.rows || [];
@@ -2124,6 +2133,7 @@ function fmtCompact(n) {
 
 async function loadHeatmap() {
   const st = $('heatStatus');
+  st.className = 'status';
   try {
     const res = await api('/api/recommendations', {
       premium: state.premium, limit: 200, min_daily_volume: 5,
@@ -2165,12 +2175,14 @@ async function loadHeatmap() {
     $('heatTable').innerHTML = html + '</tbody></table>';
     st.textContent = `${opps.length} oportunidades agregadas em ${Object.keys(routes).length} rotas (passe o mouse para ver o item líder)`;
   } catch (e) {
-    st.textContent = '';
+    st.className = 'status err';
+    st.textContent = 'erro ao carregar (tente atualizar): ' + e.message;
   }
 }
 
 async function loadIntel() {
   const st = $('intelStatus');
+  st.className = 'status';
   try {
     const res = await api('/api/intel/top', {
       days: $('intelDays').value,
@@ -2208,12 +2220,14 @@ async function loadIntel() {
     const n = res.status?.kill_events ?? 0;
     st.textContent = `${fmt(n)} kills no banco · janela: ${(j.de || '?').slice(0, 16).replace('T', ' ')} → ${(j.ate || '?').slice(0, 16).replace('T', ' ')} UTC · killboard é amostra pública, valor sem ajuste de trash`;
   } catch (e) {
-    st.textContent = '';
+    st.className = 'status err';
+    st.textContent = 'erro ao carregar (tente atualizar): ' + e.message;
   }
 }
 
 async function loadSignals() {
   const st = $('sigStatus');
+  st.className = 'status';
   try {
     const res = await api('/api/intel/signals', { limit: 12 });
     const sigs = res.signals || [];
@@ -2252,12 +2266,14 @@ async function loadSignals() {
       { sortKey: 'dratio' });
     st.textContent = `${sigs.length} sinais (${res.demand_days} dias de destruição no banco) — verifique volume e frescor antes de agir`;
   } catch (e) {
-    st.textContent = '';
+    st.className = 'status err';
+    st.textContent = 'erro ao carregar (tente atualizar): ' + e.message;
   }
 }
 
 async function loadRisk() {
   const st = $('riskStatus');
+  st.className = 'status';
   try {
     const res = await api('/api/intel/risk', { days: 1 });
     const cls = res.classificacao || {};
@@ -2283,7 +2299,8 @@ async function loadRisk() {
     ];
     renderTable('riskTable', cols, zvz, { sortKey: 'fama' });
   } catch (e) {
-    st.textContent = '';
+    st.className = 'status err';
+    st.textContent = 'erro ao carregar (tente atualizar): ' + e.message;
   }
 }
 
