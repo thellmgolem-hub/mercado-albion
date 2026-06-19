@@ -1366,14 +1366,6 @@ class ApiUiTests(unittest.TestCase):
             self.assertEqual(r.json().get('view'), view)
             self.assertIsInstance(r.json().get('rows'), list)
 
-    def test_demand_endpoint_views(self):
-        # hub Avançado/Demanda: burn/quality/meta todos 200 com rows
-        for view in ('burn', 'quality', 'meta'):
-            r = self.c.get('/api/demand', params={'view': view, 'days': 7, 'limit': 3})
-            self.assertEqual(r.status_code, 200, view)
-            self.assertEqual(r.json().get('view'), view)
-            self.assertIsInstance(r.json().get('rows'), list)
-
     def test_guild_endpoint_views(self):
         # hub Avançado/Guild: watch/makeorbuy devolvem rows; kit devolve series
         for view in ('watch', 'makeorbuy'):

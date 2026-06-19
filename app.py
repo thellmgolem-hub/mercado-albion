@@ -21,7 +21,6 @@ from pydantic import BaseModel, Field
 
 from albion import config
 from albion import stats
-from albion import survival as survival_mod
 from albion.auth import (ADMIN_ROLES, OPERATOR_ROLES, PROFILES, ROLES,
                          AuthError, AuthManager)
 from albion.client import AODP
@@ -432,57 +431,6 @@ def _cache_connection():
     con = sqlite3.connect(f"{db_path.resolve().as_uri()}?mode=ro", uri=True)
     con.row_factory = sqlite3.Row
     return con
-
-
-def _generate_service_orders():
-    """Gera missoes simples a partir dos sinais ja materializados no cache."""
-    from albion import gameinfo
-    from albion import orders as orders_mod
-
-    recs = recommendations(
-        qualities="1", premium=True, buy_mode="instant", sell_mode="order",
-        min_profit=0, min_roi=None, max_age_buy=720, max_age_sell=720,
-        min_daily_volume=20, min_active_days=2, history_days=7,
-        capture_rate=config.CAPTURE_RATE, same_city=False,
-        exclude_outliers=True, limit=12)
-    rec_opps = recs.get("opportunities", [])
-
-    with aodp.db_lock:
-        sigs = gameinfo.demand_price_divergence(
-            aodp.db, aodp.server, min_units_day=10, limit=8)
-        cls_recent = gameinfo.classification_summary(
-            aodp.db, aodp.server, days=2 / 24)
-        cls_day = gameinfo.classification_summary(
-            aodp.db, aodp.server, days=1)
-        generated = []
-        generated.extend(orders_mod.trader_orders(rec_opps, limit=4))
-        generated.extend(orders_mod.crafter_orders(sigs, limit=4))
-        generated.extend(orders_mod.gatherer_sell_orders(
-            aodp.db, aodp.server, limit=4))
-        generated.extend(orders_mod.refiner_orders(
-            aodp.db, aodp.server, limit=4))
-        generated.extend(orders_mod.risk_warnings(cls_recent, cls_day))
-
-    count = orders_mod.persist(aodp, generated)
-    return count
-
-
-def _service_orders_payload():
-    from albion import orders as orders_mod
-
-    with aodp.db_lock:
-        rows = orders_mod.list_open(aodp.db, aodp.server)
-    for r in rows:
-        meta = db.get(r.get("item_id")) if r.get("item_id") else None
-        if meta:
-            r["name_pt"] = meta.get("pt", r["item_id"])
-            r["tier"] = meta.get("tier", 0)
-            r["ench"] = meta.get("ench", 0)
-        else:
-            r["name_pt"] = r.get("item_id") or ""
-            r["tier"] = 0
-            r["ench"] = 0
-    return {"orders": rows, "count": len(rows)}
 
 
 def _placeholders(vals):
@@ -1167,81 +1115,6 @@ def gold(count: int = Query(24, le=720)):
 
 # ---------------------------------------------------------------- watchlist
 
-@app.get("/api/watchlist")
-def watchlist():
-    items = []
-    for w in aodp.watch_list():
-        it = db.get(w["item_id"]) or {}
-        items.append({"item_id": w["item_id"],
-                      "name_pt": it.get("pt", w["item_id"]),
-                      "tier": it.get("tier", 0), "ench": it.get("ench", 0)})
-    return {"items": items, "count": len(items)}
-
-
-@app.post("/api/watchlist/{item_id}")
-def watchlist_add(item_id: str, request: Request):
-    _require_role(request, OPERATOR_ROLES)
-    iid = _resolve_items([item_id])[0]
-    aodp.watch_add([iid])
-    return {"ok": True, "item_id": iid, "count": len(aodp.watch_list())}
-
-
-@app.delete("/api/watchlist/{item_id}")
-def watchlist_remove(item_id: str, request: Request):
-    _require_role(request, OPERATOR_ROLES)
-    aodp.watch_remove([item_id])
-    return {"ok": True, "count": len(aodp.watch_list())}
-
-
-@app.post("/api/collect")
-def collect(request: Request, days: int = Query(30, le=180),
-            cities: str | None = None,
-            max_items: int = Query(config.COLLECT_MAX_ITEMS,
-                                   le=config.COLLECT_MAX_ITEMS)):
-    """Coleta preços + histórico de toda a watchlist (alimenta o Item Lab)."""
-    _require_role(request, OPERATOR_ROLES)
-    city_list = _csv(cities) or config.CITIES
-    result = _api_guard(lambda: aodp.collect(
-        cities=city_list, days=days, max_items=max_items, source="manual"))
-    return result
-
-
-@app.get("/api/backtest")
-def backtest(premium: bool = True, min_profit: float = Query(500, ge=0),
-             max_runs: int = Query(24, le=500)):
-    """Backtest de sinal sobre as rodadas de coleta acumuladas.
-
-    Custo ~0,8 s por par de rodadas (reconstrói o mercado por rodada). O
-    default 24 responde em ~18 s; aumente max_runs para análises mais fundas.
-    """
-    from albion import backtest as backtest_mod
-    con = _cache_connection()
-    if con is None:
-        return {"runs_total": 0, "run_pairs_used": 0, "overall": {"n": 0}}
-    try:
-        metas = {i["id"]: i for i in db.items}
-        return backtest_mod.signal_backtest(
-            con, aodp.server, metas, premium=premium,
-            min_profit=min_profit, max_runs=max_runs)
-    finally:
-        con.close()
-
-
-@app.get("/api/survival")
-def order_survival(item: str | None = None, city: str | None = None,
-                   quality: int | None = Query(None, ge=1, le=5)):
-    """Persistência das ordens do topo do livro, medida nos snapshots próprios."""
-    con = _cache_connection()
-    if con is None:
-        return {"sides": {}, "snapshot_pairs": 0}
-    try:
-        item_id = _resolve_items([item])[0] if item else None
-        return survival_mod.persistence(
-            con, aodp.server, item_id=item_id, city=city, quality=quality)
-    finally:
-        con.close()
-
-
 @app.get("/api/micro")
 def micro(view: str = "spread", premium: bool = True,
           min_volume: float = Query(0, ge=0), capital: float | None = None,
@@ -1270,28 +1143,6 @@ def micro(view: str = "spread", premium: bool = True,
         for r in rows:
             r["name_pt"] = name(r["item_id"])
         return {"view": "spread", "rows": rows}
-    finally:
-        con.close()
-
-
-@app.get("/api/pvp")
-def pvp_meta(view: str = "weapon", days: float = Query(7, ge=0.25, le=30),
-             min_fights: int = Query(20, ge=1), limit: int = Query(40, ge=1, le=200)):
-    """PvP: meta de builds com taxa de vitória (killboard). view=weapon|builds|overview."""
-    from albion import pvp
-    con = _cache_connection()
-    if con is None:
-        return {"view": view, "rows": []}
-    try:
-        if view == "overview":
-            return {"view": "overview", **pvp.overview(con, aodp.server, days=days)}
-        if view == "builds":
-            return {"view": "builds",
-                    **pvp.build_meta(con, aodp.server, days=days,
-                                     min_fights=min_fights, limit=limit)}
-        return {"view": "weapon",
-                **pvp.weapon_meta(con, aodp.server, days=days,
-                                  min_fights=min_fights, limit=limit)}
     finally:
         con.close()
 
@@ -1360,44 +1211,6 @@ def prod_view(view: str = "focus", premium: bool = True,
             r["name_pt"] = name(r["item_id"])
             r["tipo"] = "refino" if r["is_refining"] else "craft"
         return {"view": "focus", "rows": rows}
-    finally:
-        con.close()
-
-
-@app.get("/api/demand")
-def demand_view(view: str = "burn", days: float = Query(7, ge=0.25, le=30),
-                recent: float = Query(2, ge=0.25, le=14),
-                limit: int = Query(40, ge=1, le=200)):
-    """Demanda (killboard) p/ o hub: consumíveis, qualidade destruída, meta."""
-    from albion import demand as dm
-    con = _cache_connection()
-    if con is None:
-        return {"view": view, "rows": []}
-    try:
-        name = lambda i: (db.get(i) or {}).get("pt", i)
-        if view == "meta":
-            rows = dm.meta_shift(con, aodp.server, days=days, recent=recent,
-                                 limit=limit)
-            return {"view": "meta", "rows": rows}
-        q1, allq = _price_lookups(con)
-        if view == "quality":
-            pq = {}
-            for (item, _c, q), p in allq.items():
-                pq[(item, q)] = min(pq.get((item, q), p), p)
-            rows = dm.destroyed_quality(con, aodp.server, days=days,
-                                        price_q=lambda i, q: pq.get((i, q)),
-                                        limit=limit)
-            for r in rows:
-                r["name_pt"] = name(r["item_id"])
-            return {"view": "quality", "rows": rows}
-        price_item = _cheapest_by_item(q1)
-        vol = _market_volume(con, days=days)
-        rows = dm.consumable_burn(con, aodp.server, days=days,
-                                  price_of=price_item.get, vol_of=vol.get,
-                                  limit=limit)
-        for r in rows:
-            r["name_pt"] = name(r["item_id"])
-        return {"view": "burn", "rows": rows}
     finally:
         con.close()
 
@@ -1630,174 +1443,6 @@ def item_signals(item: str, days: int = Query(180, ge=30, le=400)):
 
 
 # ------------------------------------------------------- coleta automática
-def _auto_collect_loop():
-    """Cadência dupla: killboard (intel) mais frequente que o mercado."""
-    tick = 60 * max(1, min(config.AUTO_INTEL_INTERVAL_MIN,
-                           config.AUTO_COLLECT_INTERVAL_MIN))
-    last_market = 0.0
-    last_signal_log = 0.0
-    last_gold = 0.0
-    last_prune = time.time()  # não poda logo no boot; espera o intervalo
-    while True:
-        time.sleep(tick)
-        try:
-            from albion import gameinfo
-            gameinfo.ingest_events(aodp)
-            gameinfo.ingest_battles(aodp)
-            gameinfo.aggregate_demand_daily(aodp)
-            # snapshot horário dos sinais -> demand_signal_log (backtest)
-            if time.time() - last_signal_log >= 3600:
-                with aodp.db_lock:
-                    sigs = gameinfo.demand_price_divergence(
-                        aodp.db, aodp.server)
-                if sigs:
-                    gameinfo.log_signals(aodp, sigs)
-                last_signal_log = time.time()
-        except Exception:
-            pass  # registrado em public_data_runs quando possível
-        try:
-            if (time.time() - last_market
-                    >= config.AUTO_COLLECT_INTERVAL_MIN * 60
-                    and aodp.watch_list()):
-                aodp.collect(source="auto")
-                last_market = time.time()
-                # ordens acompanham a cadência do mercado (insumo principal);
-                # regenerar a cada tick só inflaria service_orders
-                _generate_service_orders()
-        except Exception:
-            pass  # registrado em collection_runs pelo collect()
-        try:
-            # B7: 1x/dia estende a janela do ouro (a AODP serve N pontos por
-            # count) p/ ~30 d+ — fator macro para risco/previsão
-            if time.time() - last_gold >= 24 * 3600:
-                aodp.get_gold(count=1000)
-                last_gold = time.time()
-        except Exception:
-            pass
-        try:
-            # poda diária: agrega snapshots brutos antigos e limita a tabela
-            # (sem VACUUM para não segurar o lock; o espaço é reclamado pelo
-            # `analyze.py prune` manual). Causa-raiz da lentidão se não rodar.
-            if (config.AUTO_PRUNE_INTERVAL_H > 0 and
-                    time.time() - last_prune >= config.AUTO_PRUNE_INTERVAL_H * 3600):
-                aodp.snapshot_prune(vacuum=False)
-                # mantém as estatísticas do planejador frescas (sem isto o
-                # planner ignora os índices e as consultas de PvP/meta sobre
-                # kill_event_equipment caem de ~0,5 s para ~15 s)
-                with aodp.db_lock:
-                    aodp.db.execute("PRAGMA optimize")
-                last_prune = time.time()
-        except Exception:
-            pass
-
-
-@app.on_event("startup")
-def _start_auto_collect():
-    from albion import gameinfo
-    gameinfo.ensure_assumptions(aodp)
-    aodp.sync_static_items(db.items)
-    gameinfo.seed_combat_tags(aodp)
-    auth_manager.cleanup()
-    if config.AUTO_COLLECT_INTERVAL_MIN > 0:
-        threading.Thread(target=_auto_collect_loop, daemon=True,
-                         name="auto-collect").start()
-
-
-@app.get("/api/intel/risk")
-def intel_risk(days: float = Query(1, gt=0, le=30)):
-    """Risco estrutural: classes de morte, vítimas econômicas e ZvZ."""
-    from albion import gameinfo
-    con = _cache_connection()
-    if con is None:
-        return {}
-    try:
-        return {
-            **gameinfo.risk_summary(con, aodp.server, days=days),
-            "classificacao": gameinfo.classification_summary(
-                con, aodp.server, days=days),
-        }
-    finally:
-        con.close()
-
-
-@app.get("/api/intel/validate")
-def intel_validate():
-    from albion import gameinfo
-    con = _cache_connection()
-    if con is None:
-        return {"horizons": []}
-    try:
-        return {"horizons": [
-            gameinfo.validate_signals(con, aodp.server, horizon_days=h)
-            for h in (1, 3)]}
-    finally:
-        con.close()
-
-
-@app.get("/api/intel/signals")
-def intel_signals(limit: int = Query(20, le=100),
-                  min_units: float = Query(10, ge=0)):
-    """Divergência demanda × preço: destruição subindo, preço atrasado."""
-    from albion import gameinfo
-    con = _cache_connection()
-    if con is None:
-        return {"signals": [], "demand_days": 0}
-    try:
-        sigs = gameinfo.demand_price_divergence(
-            con, aodp.server, min_units_day=min_units, limit=limit)
-        days = con.execute(
-            "SELECT COUNT(DISTINCT day) FROM item_demand_daily WHERE server=?",
-            [aodp.server]).fetchone()[0]
-    finally:
-        con.close()
-    for s in sigs:
-        meta = db.get(s["item_id"]) or {}
-        s["name_pt"] = meta.get("pt", s["item_id"])
-        s["tier"] = meta.get("tier", 0)
-        s["ench"] = meta.get("ench", 0)
-    return {"signals": sigs, "demand_days": days}
-
-
-@app.get("/api/intel/top")
-def intel_top(days: float = Query(1, gt=0, le=30), role: str = "victim",
-              inventory: bool = False, limit: int = Query(20, le=100)):
-    """Índice de destruição: itens mais perdidos/usados em kills recentes."""
-    from albion import gameinfo
-    if role not in ("victim", "killer"):
-        raise HTTPException(400, "role deve ser victim ou killer")
-    con = _cache_connection()
-    if con is None:
-        return {"items": [], "status": {}}
-    try:
-        top = gameinfo.destruction_top(
-            con, aodp.server, days=days, role=role,
-            include_inventory=inventory, limit=limit)
-        status = gameinfo.intel_status(con, aodp.server)
-    finally:
-        con.close()
-    for t in top:
-        meta = db.get(t["item_id"]) or {}
-        t["name_pt"] = meta.get("pt", t["item_id"])
-        t["tier"] = meta.get("tier", 0)
-        t["ench"] = meta.get("ench", 0)
-    return {"items": top, "status": status}
-
-
-@app.get("/api/service-orders")
-def service_orders():
-    """Ordens de serviço abertas (somente leitura — gerar é no POST refresh)."""
-    return _service_orders_payload()
-
-
-@app.post("/api/service-orders/refresh")
-def service_orders_refresh(request: Request):
-    _require_role(request, OPERATOR_ROLES)
-    generated = _generate_service_orders()
-    payload = _service_orders_payload()
-    payload["generated"] = generated
-    return payload
-
-
 # ---------------------------------------------------------------- ícones
 # O serviço de render (render.albiononline.com) bloqueia clientes com TLS do
 # OpenSSL (curl/httpx) via Cloudflare; navegadores reais passam. Este proxy é
