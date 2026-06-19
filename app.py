@@ -719,7 +719,7 @@ def craft_margin(item: str, premium: bool = True, sell_mode: str = "order",
         "item": {"id": item_id, "name_pt": meta.get("pt", item_id),
                  "tier": meta.get("tier", 0), "ench": meta.get("ench", 0)},
         "category": recipe.get("category"),
-        "bonus_city": craft_mod.bonus_city(recipe.get("category")),
+        "bonus_city": craft_mod.unified_bonus_city(item_id, recipe.get("category")),
         "focus": recipe.get("focus"), "spec_fce": spec_fce,
         "focus_budget": focus_budget, "same_city": same_city,
         "inputs": [{"id": i["id"], "count": i["count"], "name_pt": name(i["id"])}

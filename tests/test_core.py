@@ -1421,6 +1421,15 @@ class CraftStudioTests(unittest.TestCase):
                            by_city["Thetford"]["rrr_pct"])
         self.assertTrue(by_city["Brecilien"]["is_bonus_city"])
 
+    def test_refined_resource_uses_refining_specialty(self):
+        # refinado (planks=wood) deve pegar a especialidade +40% na cidade-bônus,
+        # não cair no craft_rrr só-estação (15,2% em toda cidade)
+        c = self.craft
+        self.assertEqual(c.unified_bonus_city("T4_PLANKS", None), "Fort Sterling")
+        bonus = c.unified_rrr("T4_PLANKS", None, "Fort Sterling", False)
+        base = c.unified_rrr("T4_PLANKS", None, "Thetford", False)
+        self.assertGreater(bonus, base + 0.15)   # +40% de especialidade vira ~+21pp
+
     def test_sell_ceiling_drops_anchor(self):
         # uma cidade cota âncora (1e6); o teto força usar a venda real
         acq = {("A", "Caerleon"): 100, ("B", "Caerleon"): 50,

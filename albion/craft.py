@@ -48,6 +48,42 @@ def craft_rrr(category, city, focus=False, extra=0.0):
     return 1 - 1 / (1 + s)
 
 
+_REFINED_FAMILY = {"METALBAR": "ore", "PLANKS": "wood", "CLOTH": "fiber",
+                   "LEATHER": "hide", "STONEBLOCK": "rock"}
+
+
+def _refining_family(item_id):
+    """Família de refino do material refinado (T4_PLANKS -> 'wood') ou None."""
+    base = (item_id or "").split("@")[0]
+    for token, fam in _REFINED_FAMILY.items():
+        if base.endswith(token):
+            return fam
+    return None
+
+
+def unified_rrr(item_id, category, city, focus=False, extra=0.0):
+    """RRR que conhece TANTO a especialidade de refino (família, +40% na cidade
+    certa) QUANTO o bônus de categoria de craft. Para refinados, craft_rrr sozinho
+    ignorava o +40% e dava 15,2% em toda cidade — aqui sai 36,7% na cidade-bônus."""
+    fam = _refining_family(item_id)
+    if fam:
+        cd = craft_data()
+        ref = (cd.get("refining") or {}).get(fam) or {}
+        station = ref.get("station_bonus", cd.get("station_refining_bonus", 0.18))
+        specialty = ref.get("specialty_bonus", 0.40) if city == ref.get("city") else 0.0
+        s = station + specialty + (cd.get("focus_bonus_sum", 0.59) if focus else 0.0) + extra
+        return 1 - 1 / (1 + s)
+    return craft_rrr(category, city, focus, extra)
+
+
+def unified_bonus_city(item_id, category):
+    """Cidade-bônus do item: família de refino ou categoria de craft."""
+    fam = _refining_family(item_id)
+    if fam:
+        return ((craft_data().get("refining") or {}).get(fam) or {}).get("city")
+    return bonus_city(category)
+
+
 def focus_cost(base_focus, spec_fce=0):
     """Custo de foco EFETIVO por craft dado o Focus Cost Efficiency (spec).
 
@@ -130,7 +166,7 @@ def studio(item_id, recipe, acquire_of, bid_of, *, premium=True,
     out_qty = recipe.get("output", 1) or 1   # 1 craft rende N (poção/comida = 5/10)
     source_cities = list(source_cities or (list(config.ROYAL_CITIES) + ["Brecilien"]))
     sell_cities = list(sell_cities or config.CITIES)
-    bcity = bonus_city(cat)
+    bcity = unified_bonus_city(item_id, cat)   # conhece refino E craft
     foc_eff = focus_cost(base_foc, spec_fce) if focus else 0.0
 
     def best_acquire(inp_id):
@@ -179,7 +215,7 @@ def studio(item_id, recipe, acquire_of, bid_of, *, premium=True,
                              "buy_city": bc, "unit_price": round(p)})
         if not ok:
             continue
-        rrr = craft_rrr(cat, craft_city, focus, extra=daily_bonus)
+        rrr = unified_rrr(item_id, cat, craft_city, focus, extra=daily_bonus)
         eff = cost * (1 - rrr) + station_fee
         if same_city:
             net, ref = sell_net_at(craft_city)
