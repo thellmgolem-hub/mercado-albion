@@ -888,6 +888,10 @@ document.querySelectorAll('#tabs button').forEach((b) => {
       state.islandLoaded = true;
       showIslandSub('laborers');
     }
+    if (b.dataset.tab === 'linhaProducao' && !state.prodLineLoaded) {
+      state.prodLineLoaded = true;
+      initProdLine();
+    }
     // o gráfico do ouro precisa do canvas VISÍVEL para dimensionar — carrega
     // ao abrir a aba (não no init, quando a aba está oculta)
     if (b.dataset.tab === 'moedas' && !state.moedasLoaded) {
@@ -920,6 +924,9 @@ $('premiumToggle').addEventListener('change', (e) => {
     if (a) showAvSub(a.dataset.av);
   }
   loadDashboardRecommendations();
+  if (state.prodLine && document.getElementById('tab-linhaProducao').classList.contains('active')) {
+    prodRecompute();
+  }
   toast(`imposto de venda: ${state.premium ? '4%' : '8%'} — análises recalculadas`);
 });
 
@@ -2375,6 +2382,468 @@ async function loadStatus() {
   } catch (e) {
     $('cacheStatus').textContent = '';
   }
+}
+
+// ====================================================== Linha de Produção
+// Editor visual de nós: escolhe-se 1+ produtos finais, a árvore de receita
+// (BOM) vem do servidor (/api/prodchain) já com RRR por cidade + preços; a
+// propagação de quantidade, o make-or-buy por nó e os custos rodam aqui (ao
+// vivo). Espelha albion/prodchain.solve()/make_or_buy() — mesma matemática.
+const PL_NW = 188, PL_NH = 96;          // tamanho aprox. do nó (âncora de aresta)
+
+function prodInitState() {
+  return { roots: [], targets: {}, graph: { nodes: {}, cities: [] }, ns: {},
+           qtyDefault: 100, stationFee: 0, specFce: 0, focusPrice: 0,
+           savedId: null, savedName: '', calc: null, verdict: {} };
+}
+function plNodes() { return (state.prodLine.graph || {}).nodes || {}; }
+function plCities() { return state.prodLine.graph.cities || []; }
+function cityLabel(c) { return (state.meta && state.meta.city_labels && state.meta.city_labels[c]) || c; }
+function plNodeCity(it) {
+  const n = plNodes()[it] || {}, s = state.prodLine.ns[it] || {};
+  return s.city || n.bonus_city || n.buy_city || plCities()[0] || 'Caerleon';
+}
+function plIsBuy(it) {
+  const n = plNodes()[it];
+  if (!n || n.is_raw || !n.recipe) return true;
+  return (state.prodLine.ns[it] || {}).mode === 'buy';
+}
+function plRrr(it) {
+  const n = plNodes()[it];
+  if (!n || n.is_raw || !n.recipe) return 0;
+  const band = (n.rrr_by_city || {})[plNodeCity(it)] || {};
+  return ((state.prodLine.ns[it] || {}).focus ? band.f : band.nf) || 0;
+}
+function plFocusEff(base) { return (base || 0) * Math.pow(0.5, (state.prodLine.specFce || 0) / 10000); }
+function plSellNet(node) {
+  if (!node || !node.sell_gross) return null;
+  const tax = state.premium ? 0.04 : 0.08;
+  return node.sell_gross * (1 - tax - 0.025);   // ordem de venda: imposto + anúncio
+}
+function prodDefaultState(it) {
+  const n = plNodes()[it] || {};
+  const city = n.bonus_city || n.buy_city || (n.rrr_by_city && Object.keys(n.rrr_by_city)[0]) || plCities()[0] || 'Caerleon';
+  return { mode: (n.is_raw || !n.recipe) ? 'buy' : 'make', focus: false, city };
+}
+
+function prodPropagate() {                       // espelha solve(): Kahn + ceil
+  const nodes = plNodes(), pl = state.prodLine;
+  const demand = {}, crafts = {}, indeg = {};
+  for (const it in nodes) indeg[it] = 0;
+  for (const it in nodes) {
+    if (plIsBuy(it)) continue;
+    for (const inp of nodes[it].recipe) indeg[inp.id] = (indeg[inp.id] || 0) + 1;
+  }
+  for (const r of pl.roots) demand[r] = (demand[r] || 0) + (pl.targets[r] || 0);
+  const ready = [];
+  for (const it in nodes) if ((indeg[it] || 0) === 0) ready.push(it);
+  const seen = new Set();
+  while (ready.length) {
+    const it = ready.shift();
+    if (seen.has(it)) continue;
+    seen.add(it);
+    const n = nodes[it];
+    if (!plIsBuy(it) && (demand[it] || 0) > 0) {
+      const b = Math.ceil(demand[it] / (n.output || 1));
+      crafts[it] = b;
+      const rrr = plRrr(it);
+      for (const inp of n.recipe) demand[inp.id] = (demand[inp.id] || 0) + b * inp.count * (1 - rrr);
+    }
+    if (!plIsBuy(it)) for (const inp of (n.recipe || [])) {
+      indeg[inp.id] -= 1;
+      if (indeg[inp.id] === 0) ready.push(inp.id);
+    }
+  }
+  return { demand, crafts };
+}
+
+function prodComputeCosts(prop) {
+  const nodes = plNodes(), pl = state.prodLine, { demand, crafts } = prop;
+  const shopping = {}; let focusPoints = 0, stationTotal = 0;
+  for (const it in nodes) {
+    const q = demand[it] || 0;
+    if (q <= 0) continue;
+    if (plIsBuy(it)) {
+      const qty = Math.ceil(q), c = plNodeCity(it);
+      const unit = (nodes[it].buy_by_city || {})[c] ?? nodes[it].buy_price ?? null;
+      shopping[it] = { qty, unit, cost: unit != null ? qty * unit : null,
+                       city: nodes[it].is_raw ? (nodes[it].buy_city || c) : c,
+                       priced: unit != null };
+    } else {
+      const b = crafts[it] || 0;
+      stationTotal += b * pl.stationFee;
+      if ((pl.ns[it] || {}).focus) focusPoints += b * plFocusEff(nodes[it].focus_base);
+    }
+  }
+  let buyCost = 0; const missing = [];
+  for (const it in shopping) { if (shopping[it].cost) buyCost += shopping[it].cost; else missing.push(it); }
+  const focusSilver = focusPoints * pl.focusPrice;
+  let revenue = 0, totalTarget = 0;
+  for (const r of pl.roots) {
+    const t = pl.targets[r] || 0; totalTarget += t;
+    const net = plSellNet(nodes[r]);
+    if (net) revenue += net * t;
+  }
+  const profit = revenue - buyCost - stationTotal - focusSilver;
+  return { shopping, buyCost, stationTotal, focusPoints, focusSilver, revenue,
+           profit, perUnit: totalTarget ? profit / totalTarget : 0,
+           roi: buyCost ? 100 * profit / buyCost : null, missing, demand, crafts };
+}
+
+function prodMakeOrBuy() {                        // veredito intrínseco por nó
+  const nodes = plNodes(), pl = state.prodLine, memo = {}, verdict = {};
+  function unit(it) {
+    if (it in memo) return memo[it];
+    memo[it] = null;
+    const n = nodes[it], c = plNodeCity(it);
+    const buy = (n.buy_by_city || {})[c] ?? n.buy_price ?? null;
+    if (n.is_raw || !n.recipe) { memo[it] = buy; return buy; }
+    const rrr = plRrr(it); let inp = 0, ok = true;
+    for (const i of n.recipe) { const uc = unit(i.id); if (uc == null) { ok = false; break; } inp += uc * i.count; }
+    let make = null;
+    if (ok) {
+      const foc = (pl.ns[it] || {}).focus ? plFocusEff(n.focus_base) * pl.focusPrice : 0;
+      make = (inp * (1 - rrr) + pl.stationFee + foc) / (n.output || 1);
+    }
+    verdict[it] = {
+      make_unit: make != null ? Math.round(make) : null,
+      buy_unit: buy != null ? Math.round(buy) : null,
+      verdict: (make != null && (buy == null || make < buy)) ? 'make' : (buy != null ? 'buy' : null),
+      savings: (make != null && buy != null) ? Math.round(Math.abs(buy - make)) : null,
+    };
+    const opts = [buy, make].filter((x) => x != null);
+    memo[it] = opts.length ? Math.min(...opts) : null;
+    return memo[it];
+  }
+  for (const it in nodes) unit(it);
+  return verdict;
+}
+
+function prodLayout() {
+  const nodes = plNodes(), ns = state.prodLine.ns, depth = {};
+  const visit = (it, d, seen) => {
+    if (depth[it] === undefined || d > depth[it]) depth[it] = d;
+    const n = nodes[it];
+    if (!n || !n.recipe || seen.has(it)) return;
+    const s2 = new Set(seen); s2.add(it);
+    for (const inp of n.recipe) visit(inp.id, d + 1, s2);
+  };
+  for (const r of state.prodLine.roots) visit(r, 0, new Set());
+  const maxD = Math.max(0, ...Object.values(depth));
+  const byLayer = {};
+  for (const it in depth) (byLayer[depth[it]] ||= []).push(it);
+  const COLW = 224, ROWH = 116, PADX = 16, PADY = 14;
+  for (const d in byLayer) {
+    byLayer[d].sort();
+    byLayer[d].forEach((it, i) => {
+      const s = ns[it] || (ns[it] = prodDefaultState(it));
+      if (s.x === undefined || s.x === null) {
+        s.x = PADX + (maxD - d) * COLW;     // bruto à esquerda, final à direita
+        s.y = PADY + i * ROWH;
+      }
+    });
+  }
+}
+
+async function prodFetchGraph() {
+  const pl = state.prodLine;
+  if (!pl.roots.length) { pl.graph = { nodes: {}, cities: [] }; pl.calc = null; prodRender(); prodRenderTotals(null); prodRenderShopping(null); return; }
+  $('plStatus').className = 'status'; $('plStatus').textContent = 'montando cadeia…';
+  try {
+    const g = await api('/api/prodchain', { item: pl.roots.join(','), premium: state.premium });
+    pl.graph = g;
+    for (const it in g.nodes) if (!pl.ns[it]) pl.ns[it] = prodDefaultState(it);
+    for (const it of Object.keys(pl.ns)) if (!g.nodes[it]) delete pl.ns[it];
+    for (const r of pl.roots) if (pl.targets[r] == null) pl.targets[r] = pl.qtyDefault;
+    for (const r of Object.keys(pl.targets)) if (!pl.roots.includes(r)) delete pl.targets[r];
+    prodLayout();
+    prodRecompute();
+    $('plStatus').textContent = pl.calc && pl.calc.missing.length
+      ? `${Object.keys(g.nodes).length} etapas · ${pl.calc.missing.length} sem cotação`
+      : `${Object.keys(g.nodes).length} etapas na cadeia`;
+  } catch (e) { $('plStatus').className = 'status err'; $('plStatus').textContent = 'erro: ' + e.message; }
+}
+
+function prodRecompute() {
+  const prop = prodPropagate();
+  state.prodLine.calc = prodComputeCosts(prop);
+  state.prodLine.verdict = prodMakeOrBuy();
+  prodRender();
+  prodRenderTotals(state.prodLine.calc);
+  prodRenderShopping(state.prodLine.calc);
+}
+
+function prodNodeHtml(it, demand, crafts) {
+  const pl = state.prodLine, n = pl.graph.nodes[it], s = pl.ns[it] || {};
+  const isRoot = pl.roots.includes(it), buy = plIsBuy(it), active = demand > 0;
+  const calc = pl.calc || {}, verdict = (pl.verdict || {})[it];
+  const te = `T${n.tier || '?'}${n.enchant ? '.' + n.enchant : ''}`;
+  const qtyHtml = isRoot
+    ? `<input class="pl-target" type="number" min="1" value="${pl.targets[it] || pl.qtyDefault}" data-id="${esc(it)}" title="quantidade final desejada">`
+    : `<span class="pl-x">×${fmt(Math.ceil(demand))}</span>`;
+  const citySel = `<select class="pl-city" data-id="${esc(it)}" title="cidade da etapa">${
+    plCities().map((c) => `<option value="${esc(c)}" ${c === plNodeCity(it) ? 'selected' : ''}>${esc(cityLabel(c))}</option>`).join('')}</select>`;
+  let ctrl;
+  if (!n.is_raw && n.recipe) {
+    ctrl = `<div class="pl-toggles">
+      <button class="pl-tg ${buy ? '' : 'on'}" data-act="make" data-id="${esc(it)}">Fabricar</button>
+      <button class="pl-tg ${buy ? 'on' : ''}" data-act="buy" data-id="${esc(it)}">Comprar</button>
+      <button class="pl-tg ${s.focus ? 'on focus' : ''}" data-act="focus" data-id="${esc(it)}" ${buy ? 'disabled' : ''} title="usar foco nesta etapa">Foco</button>
+    </div>${citySel}`;
+  } else {
+    ctrl = citySel;
+  }
+  let costLine;
+  if (buy) {
+    const sh = (calc.shopping || {})[it];
+    costLine = sh ? (sh.priced ? `<span class="silver">${fmt(sh.cost)}</span> p/ comprar` : '<span class="muted">sem cotação</span>') : '';
+  } else {
+    costLine = `RRR ${fmtDec(plRrr(it) * 100, 0)}%${crafts ? ` · ${fmt(crafts)} crafts` : ''}`;
+  }
+  let badge = '';
+  if (verdict && verdict.verdict) {
+    const txt = verdict.verdict === 'make' ? 'fabricar' : 'comprar';
+    const tip = (verdict.verdict === 'make' ? 'fabricar é mais barato' : 'comprar é mais barato') +
+      (verdict.savings != null ? ` · economia ${fmt(verdict.savings)}/un` : '');
+    badge = `<span class="pl-badge ${verdict.verdict}" title="${esc(tip)}">${txt}${verdict.savings != null ? ' ' + fmt(verdict.savings) : ''}</span>`;
+  }
+  return `<div class="pl-node ${buy ? 'mode-buy' : 'mode-make'} ${isRoot ? 'is-root' : ''} ${active ? '' : 'inactive'}" style="left:${s.x || 0}px;top:${s.y || 0}px" data-id="${esc(it)}">
+    <div class="pl-node-head" data-drag="1">${iconImg(it)}<div class="pl-nm">${esc(n.name_pt || it)}<span class="pl-te">${te}</span></div>${isRoot ? `<button class="pl-rm" data-rm="${esc(it)}" title="remover produto final">×</button>` : ''}</div>
+    <div class="pl-node-qty">${qtyHtml}${badge}</div>
+    <div class="pl-node-cost">${costLine}</div>
+    <div class="pl-node-ctrl">${ctrl}</div>
+  </div>`;
+}
+
+function prodRender() {
+  const pl = state.prodLine, nodes = pl.graph.nodes || {}, ns = pl.ns;
+  const nodesEl = $('plNodes'), edgesEl = $('plEdges');
+  if (!nodesEl) return;
+  let maxX = 0, maxY = 0;
+  for (const it in nodes) { const s = ns[it] || {}; maxX = Math.max(maxX, (s.x || 0) + PL_NW); maxY = Math.max(maxY, (s.y || 0) + PL_NH); }
+  const W = Math.max(maxX + 30, 640), H = Math.max(maxY + 30, 320);
+  edgesEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  edgesEl.style.width = nodesEl.style.width = W + 'px';
+  edgesEl.style.height = nodesEl.style.height = H + 'px';
+  const calc = pl.calc || { demand: {}, crafts: {} };
+  if (!Object.keys(nodes).length) {
+    nodesEl.innerHTML = '<div class="pl-empty">Busque um produto final acima para montar a cadeia. Ex.: <b>espada 4.1</b>, <b>poção de cura</b>, <b>bolsa T6</b>.</div>';
+    edgesEl.innerHTML = '';
+    return;
+  }
+  nodesEl.innerHTML = Object.keys(nodes).map((it) => prodNodeHtml(it, calc.demand[it] || 0, calc.crafts[it] || 0)).join('');
+  nodesEl.querySelectorAll('.pl-node').forEach((el) => prodWireNode(el));
+  prodRenderEdges();
+}
+
+function prodRenderEdges() {
+  const nodes = plNodes(), ns = state.prodLine.ns, svg = $('plEdges');
+  if (!svg) return;
+  let out = '';
+  for (const it in nodes) {
+    const n = nodes[it];
+    if (!n.recipe || plIsBuy(it)) continue;            // só ramos que fabricam
+    const ps = ns[it]; if (!ps) continue;
+    const px = (ps.x || 0), py = (ps.y || 0) + PL_NH / 2;
+    for (const inp of n.recipe) {
+      const cs = ns[inp.id]; if (!cs) continue;
+      const cx = (cs.x || 0) + PL_NW, cy = (cs.y || 0) + PL_NH / 2;
+      const mx = (px + cx) / 2;
+      out += `<path class="pl-edge" d="M ${cx} ${cy} C ${mx} ${cy} ${mx} ${py} ${px} ${py}"/>`;
+      out += `<text class="pl-edge-lbl" x="${(cx + px) / 2}" y="${(cy + py) / 2 - 3}">${inp.count}×</text>`;
+    }
+  }
+  svg.innerHTML = out;
+}
+
+function prodWireNode(el) {
+  const id = el.dataset.id;
+  el.querySelectorAll('.pl-tg').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const s = state.prodLine.ns[id] || (state.prodLine.ns[id] = prodDefaultState(id));
+    const act = b.dataset.act;
+    if (act === 'make') s.mode = 'make';
+    else if (act === 'buy') s.mode = 'buy';
+    else if (act === 'focus' && s.mode !== 'buy') s.focus = !s.focus;
+    prodRecompute();
+  }));
+  const sel = el.querySelector('.pl-city');
+  if (sel) sel.addEventListener('change', (e) => {
+    (state.prodLine.ns[id] || (state.prodLine.ns[id] = prodDefaultState(id))).city = e.target.value;
+    prodRecompute();
+  });
+  const tgt = el.querySelector('.pl-target');
+  if (tgt) tgt.addEventListener('change', (e) => {
+    state.prodLine.targets[id] = Math.max(1, +e.target.value || 1);
+    prodRecompute();
+  });
+  const rm = el.querySelector('.pl-rm');
+  if (rm) rm.addEventListener('click', (e) => { e.stopPropagation(); removeProdRoot(rm.dataset.rm); });
+  const head = el.querySelector('[data-drag]');
+  if (head) head.addEventListener('mousedown', (e) => prodStartDrag(e, el, id));
+}
+
+function prodStartDrag(e, el, id) {
+  if (e.target.closest('button, select, input')) return;
+  e.preventDefault();
+  const s = state.prodLine.ns[id]; if (!s) return;
+  const sx = e.clientX, sy = e.clientY, ox = s.x || 0, oy = s.y || 0;
+  el.classList.add('dragging');
+  const move = (ev) => {
+    s.x = Math.max(0, ox + (ev.clientX - sx));
+    s.y = Math.max(0, oy + (ev.clientY - sy));
+    el.style.left = s.x + 'px'; el.style.top = s.y + 'px';
+    prodRenderEdges();
+  };
+  const up = () => {
+    el.classList.remove('dragging');
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', up);
+  };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', up);
+}
+
+function prodRenderTotals(calc) {
+  const el = $('plSide'); if (!el) return;
+  if (!calc || !state.prodLine.roots.length) {
+    el.innerHTML = '<div class="pl-card muted">Adicione um produto final para ver custo, lucro e ROI da cadeia.</div>';
+    return;
+  }
+  el.innerHTML = `<div class="pl-card">
+    <h3>Resultado da cadeia</h3>
+    <div class="pl-tot"><span>Receita (venda)</span><b class="silver">${fmt(calc.revenue)}</b></div>
+    <div class="pl-tot"><span>Custo de compra</span><b class="silver">${fmt(calc.buyCost)}</b></div>
+    ${calc.stationTotal ? `<div class="pl-tot"><span>Taxa de estação</span><b>${fmt(calc.stationTotal)}</b></div>` : ''}
+    <div class="pl-tot"><span>Foco necessário</span><b>${fmt(calc.focusPoints)} pts</b></div>
+    ${calc.focusSilver ? `<div class="pl-tot"><span>Foco (prata)</span><b>${fmt(calc.focusSilver)}</b></div>` : ''}
+    <div class="pl-tot total ${calc.profit >= 0 ? 'pos' : 'neg'}"><span>Lucro líquido</span><b class="silver">${fmt(calc.profit)}</b></div>
+    <div class="pl-tot"><span>Lucro / unidade</span><b>${fmt(calc.perUnit)}</b></div>
+    <div class="pl-tot"><span>ROI</span><b>${calc.roi == null ? '—' : fmtPct(calc.roi)}</b></div>
+    ${calc.missing.length ? `<div class="pl-warn">${calc.missing.length} item(ns) sem cotação de compra — não entram no custo. Marque-os como Fabricar.</div>` : ''}
+    <div class="pl-note">Foco é um recurso à parte (pontos). Defina “Prata/foco” na barra p/ cobrá-lo no lucro.</div>
+  </div>`;
+}
+
+function prodRenderShopping(calc) {
+  const wrap = $('plShopping'); if (!wrap) return;
+  if (!calc || !Object.keys(calc.shopping).length) { wrap.innerHTML = ''; return; }
+  const rows = Object.entries(calc.shopping).map(([id, s]) => ({
+    id, name: (plNodes()[id] || {}).name_pt || id, qty: s.qty, unit: s.unit,
+    cost: s.cost, city: s.city, priced: s.priced,
+  })).sort((a, b) => (b.cost || 0) - (a.cost || 0));
+  wrap.innerHTML = `<h3 class="pl-sh-title">Lista de compras (${rows.length} itens — recursos brutos + comprados prontos)</h3><div class="table-wrap" id="plShopTable"></div>`;
+  renderTable('plShopTable', [
+    { key: 'it', label: 'Item', align: 'l', value: (o) => o.name, html: (o) => `<div class="cell-item">${iconImg(o.id)}<div class="nm">${esc(o.name)}</div></div>` },
+    { key: 'qty', label: 'Quantidade', value: (o) => o.qty, html: (o) => fmt(o.qty) },
+    { key: 'city', label: 'Comprar em', align: 'l', value: (o) => o.city || '', html: (o) => o.city ? cityHtml(o.city) : '—' },
+    { key: 'unit', label: 'Preço un', value: (o) => o.unit || 0, html: (o) => o.priced ? fmt(o.unit) : '<span class="muted">sem cotação</span>' },
+    { key: 'cost', label: 'Custo', value: (o) => o.cost || 0, html: (o) => o.priced ? `<span class="silver">${fmt(o.cost)}</span>` : '—' },
+  ], rows, { sortKey: 'cost' });
+}
+
+function addProdRoot(id) {
+  const pl = state.prodLine;
+  if (pl.roots.includes(id)) { toast('esse produto já está na cadeia'); return; }
+  if (pl.roots.length >= 12) { toast('máximo de 12 produtos finais'); return; }
+  pl.roots.push(id); pl.targets[id] = pl.qtyDefault;
+  prodFetchGraph();
+}
+function removeProdRoot(id) {
+  const pl = state.prodLine;
+  pl.roots = pl.roots.filter((r) => r !== id);
+  delete pl.targets[id];
+  prodFetchGraph();
+}
+
+async function prodSaveChain() {
+  const pl = state.prodLine;
+  if (!pl.roots.length) { toast('monte uma cadeia antes de salvar'); return; }
+  const name = ($('plName').value || '').trim() || 'Cadeia sem nome';
+  const payload = { v: 1, roots: pl.roots, targets: pl.targets,
+    qtyDefault: pl.qtyDefault, stationFee: pl.stationFee, specFce: pl.specFce,
+    focusPrice: pl.focusPrice, ns: pl.ns };
+  try {
+    const r = await apiJson('/api/prodchain/chains', 'POST', { name, payload, id: pl.savedId || null });
+    pl.savedId = r.id; pl.savedName = name;
+    toast('cadeia salva na conta'); prodLoadList();
+  } catch (e) { toast('erro ao salvar: ' + e.message); }
+}
+async function prodLoadList() {
+  const sel = $('plSavedSel'); if (!sel) return;
+  try {
+    const r = await api('/api/prodchain/chains');
+    sel.innerHTML = '<option value="">— abrir cadeia salva —</option>' +
+      (r.chains || []).map((c) => `<option value="${c.id}" ${c.id === state.prodLine.savedId ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+  } catch (e) { /* sem login/sem acesso: ignora silenciosamente */ }
+}
+async function prodLoadChain(id) {
+  try {
+    const r = await api(`/api/prodchain/chains/${id}`);
+    const p = r.chain.payload || {}, pl = state.prodLine;
+    pl.roots = p.roots || []; pl.targets = p.targets || {};
+    pl.qtyDefault = p.qtyDefault || 100; pl.stationFee = p.stationFee || 0;
+    pl.specFce = p.specFce || 0; pl.focusPrice = p.focusPrice || 0;
+    pl.ns = p.ns || {}; pl.savedId = r.chain.id; pl.savedName = r.chain.name;
+    if ($('plName')) $('plName').value = r.chain.name;
+    if ($('plStation')) $('plStation').value = pl.stationFee;
+    if ($('plSpec')) $('plSpec').value = pl.specFce;
+    if ($('plFocusPrice')) $('plFocusPrice').value = pl.focusPrice;
+    if ($('plQty')) $('plQty').value = pl.qtyDefault;
+    await prodFetchGraph();
+  } catch (e) { toast('erro ao abrir: ' + e.message); }
+}
+async function prodDeleteSelected() {
+  const id = +($('plSavedSel').value || 0);
+  if (!id) { toast('selecione uma cadeia salva para excluir'); return; }
+  try {
+    await apiJson(`/api/prodchain/chains/${id}`, 'DELETE');
+    if (state.prodLine.savedId === id) state.prodLine.savedId = null;
+    toast('cadeia excluída'); prodLoadList();
+  } catch (e) { toast('erro ao excluir: ' + e.message); }
+}
+function prodClear() {
+  state.prodLine = prodInitState();
+  prodToolbar(); prodRender(); prodRenderTotals(null); prodRenderShopping(null);
+  $('plStatus').textContent = ''; prodLoadList();
+}
+
+function prodToolbar() {
+  const el = $('plToolbar'); if (!el) return;
+  const pl = state.prodLine;
+  el.innerHTML = `
+    <div class="pl-tb-row"><div class="pl-picker" id="plPicker"></div></div>
+    <div class="pl-tb-row pl-params">
+      <label>Qtd padrão<input type="number" id="plQty" min="1" value="${pl.qtyDefault}"></label>
+      <label title="Prata por craft (taxa de uso da estação)">Taxa estação<input type="number" id="plStation" min="0" step="10" value="${pl.stationFee}"></label>
+      <label title="Focus Cost Efficiency do crafter: cada 10.000 corta o foco pela metade">Spec (FCE)<input type="number" id="plSpec" min="0" step="1000" value="${pl.specFce}"></label>
+      <label title="Prata por ponto de foco (0 = não cobra o foco no lucro)">Prata/foco<input type="number" id="plFocusPrice" min="0" step="0.1" value="${pl.focusPrice}"></label>
+    </div>
+    <div class="pl-tb-row pl-save">
+      <input type="text" id="plName" placeholder="nome da cadeia" maxlength="80" value="${esc(pl.savedName || '')}">
+      <button class="btn" id="plSaveBtn">Salvar na conta</button>
+      <select id="plSavedSel"><option value="">— abrir cadeia salva —</option></select>
+      <button class="btn secondary" id="plDelBtn">Excluir</button>
+      <button class="btn secondary" id="plClearBtn">Limpar</button>
+    </div>`;
+  makeItemPicker('plPicker', (it) => addProdRoot(it.id), 'buscar produto final… ex.: espada 4.1, poção, bolsa t6');
+  $('plQty').addEventListener('change', (e) => { state.prodLine.qtyDefault = Math.max(1, +e.target.value || 1); });
+  for (const [id, key] of [['plStation', 'stationFee'], ['plSpec', 'specFce'], ['plFocusPrice', 'focusPrice']]) {
+    $(id).addEventListener('change', (e) => { state.prodLine[key] = Math.max(0, +e.target.value || 0); prodRecompute(); });
+  }
+  $('plSaveBtn').addEventListener('click', prodSaveChain);
+  $('plDelBtn').addEventListener('click', prodDeleteSelected);
+  $('plClearBtn').addEventListener('click', prodClear);
+  $('plSavedSel').addEventListener('change', (e) => { if (e.target.value) prodLoadChain(+e.target.value); });
+}
+
+function initProdLine() {
+  if (!state.prodLine) state.prodLine = prodInitState();
+  prodToolbar();
+  prodRender();
+  prodRenderTotals(null);
+  prodRenderShopping(null);
+  prodLoadList();
 }
 
 // ============================================================ init

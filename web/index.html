@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260620-ilha2">
+<link rel="stylesheet" href="style.css?v=20260620-linhaprod2">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body class="auth-pending">
@@ -42,6 +42,7 @@
   <button data-tab="scanner">Scanner</button>
   <button data-tab="avancado">Avançado</button>
   <button data-tab="ilha">Ilha</button>
+  <button data-tab="linhaProducao">Linha de Produção</button>
   <button data-tab="admin" id="adminTabButton" hidden>Contas</button>
 </nav>
 
@@ -715,6 +716,31 @@
   </div>
 </section>
 
+<!-- ===================== LINHA DE PRODUÇÃO ====================== -->
+<section class="tab" id="tab-linhaProducao">
+  <div class="section-head">
+    <div>
+      <h1>Linha de Produção</h1>
+      <div class="sub">Monte a cadeia da guild: escolha os <b>produtos finais</b>, fixe a
+        quantidade e a árvore se completa até o recurso bruto — com <b>fabricar/comprar</b> e
+        <b>foco</b> por etapa, lista de compras e lucro.</div>
+    </div>
+  </div>
+  <div id="plToolbar" class="pl-toolbar"></div>
+  <div id="plStatus" class="status"></div>
+  <div id="plWrap" class="pl-wrap">
+    <div id="plCanvas" class="pl-canvas">
+      <svg id="plEdges" class="pl-edges"></svg>
+      <div id="plNodes" class="pl-nodes"></div>
+    </div>
+    <aside id="plSide" class="pl-side"></aside>
+  </div>
+  <div id="plShopping" class="pl-shopping"></div>
+  <p class="hint">Dica: clique num bloco para <b>Fabricar/Comprar</b> e ligar o <b>foco</b>; ao
+    comprar, a árvore para ali e usa o preço de mercado. Arraste os blocos para organizar.
+    Preços saneados de ordens-isca; foco é um recurso à parte (só vira prata se você der um preço/ponto).</p>
+</section>
+
 <!-- ============================ CONTAS ============================ -->
 <section class="tab" id="tab-admin">
   <div class="section-head">
@@ -809,6 +835,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260620-ilha2"></script>
+<script src="app.js?v=20260620-linhaprod2"></script>
 </body>
 </html>

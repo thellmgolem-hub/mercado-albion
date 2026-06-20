@@ -73,6 +73,8 @@ def main() -> int:
         ("/api/island", {"view": "laborers", "limit": 3}),
         ("/api/island", {"view": "crops", "limit": 3}),
         ("/api/island", {"view": "animals", "limit": 3}),
+        ("/api/prodchain", {"item": "T4_BAG"}),
+        ("/api/prodchain/chains", {}),
         ("/api/item_signals", {"item": "T4_BAG"}),
     ]
     failures = []

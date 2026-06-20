@@ -1752,5 +1752,83 @@ class IslandTests(unittest.TestCase):
             self.assertIsInstance(r.json().get("rows"), list)
 
 
+class ProdChainTests(unittest.TestCase):
+    PRICES = {"T4_WOOD": 110, "T3_WOOD": 70, "T2_WOOD": 40, "T4_ORE": 120,
+              "T3_ORE": 75, "T2_ORE": 42, "T4_HIDE": 130, "T3_HIDE": 80,
+              "T2_HIDE": 45, "T4_METALBAR": 900, "T4_LEATHER": 950,
+              "T4_MAIN_SWORD": 9000, "T5_ORE": 260}
+
+    def _price_of(self, i, c):
+        return self.PRICES.get(i)
+
+    def _g(self, roots="T4_MAIN_SWORD"):
+        from albion import prodchain
+        return prodchain.build_graph(roots, self._price_of, premium=True)
+
+    def test_raw_high_tier_is_leaf(self):
+        # T5_ORE tem receita de transmutação (T4_ORE) mas é BRUTO -> folha
+        g = self._g("T5_ORE")
+        self.assertEqual(list(g["nodes"]), ["T5_ORE"])
+        self.assertTrue(g["nodes"]["T5_ORE"]["is_raw"])
+
+    def test_focus_cuts_raw_demand(self):
+        from albion import prodchain
+        g = self._g()
+        base = prodchain.solve(g, {"T4_MAIN_SWORD": 500})
+        craftables = [k for k, n in g["nodes"].items() if not n["is_raw"]]
+        foc = prodchain.solve(g, {"T4_MAIN_SWORD": 500},
+                              state={k: {"focus": True} for k in craftables})
+        # foco -> RRR maior -> menos minério a comprar; foco vira pontos (recurso)
+        self.assertLess(foc["shopping"]["T4_ORE"]["qty"],
+                        base["shopping"]["T4_ORE"]["qty"])
+        self.assertGreater(foc["focus_points"], 0)
+        self.assertEqual(foc["focus_cost"], 0)   # sem preço/ponto, não vira prata
+
+    def test_no_double_rrr_quantity(self):
+        from albion import prodchain
+        import math
+        g = self._g()
+        s = prodchain.solve(g, {"T4_MAIN_SWORD": 500})
+        sw = g["nodes"]["T4_MAIN_SWORD"]
+        rrr = sw["rrr_by_city"][sw["bonus_city"]]["nf"]   # RRR de QUEM consome a barra
+        # demanda de barra = 500 espadas x 16 x (1-RRR_espada), abatido só na qtd
+        self.assertAlmostEqual(s["nodes"]["T4_METALBAR"]["demand"],
+                               500 * 16 * (1 - rrr), delta=2)
+        self.assertEqual(s["nodes"]["T4_METALBAR"]["crafts"],
+                         math.ceil(s["nodes"]["T4_METALBAR"]["demand"]))
+        self.assertGreater(s["profit"], 0)
+
+    def test_make_or_buy_verdict(self):
+        from albion import prodchain
+        g = self._g()
+        v = prodchain.make_or_buy(g)
+        # barra a 900 no mercado vs refinar ~223 -> fabricar
+        self.assertEqual(v["T4_METALBAR"]["verdict"], "make")
+        self.assertLess(v["T4_METALBAR"]["make_unit"], v["T4_METALBAR"]["buy_unit"])
+
+    def test_buy_node_stops_expansion(self):
+        from albion import prodchain
+        g = self._g()
+        s = prodchain.solve(g, {"T4_MAIN_SWORD": 500},
+                            state={"T4_METALBAR": {"mode": "buy"}})
+        self.assertIn("T4_METALBAR", s["shopping"])   # compra a barra pronta
+        self.assertNotIn("T4_ORE", s["shopping"])     # logo não precisa de minério
+
+    def test_endpoints_graph_and_crud(self):
+        c = TestClient(app.app)
+        r = c.get("/api/prodchain", params={"item": "T4_MAIN_SWORD"})
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("T4_MAIN_SWORD", r.json().get("nodes", {}))
+        s = c.post("/api/prodchain/chains",
+                   json={"name": "QA chain",
+                         "payload": {"item": "T4_MAIN_SWORD", "qty": 10}})
+        self.assertEqual(s.status_code, 200)
+        cid = s.json()["id"]
+        g = c.get(f"/api/prodchain/chains/{cid}")
+        self.assertEqual(g.json()["chain"]["payload"]["qty"], 10)
+        self.assertTrue(c.delete(f"/api/prodchain/chains/{cid}").json()["ok"])
+        self.assertEqual(c.get(f"/api/prodchain/chains/{cid}").status_code, 404)
+
+
 if __name__ == "__main__":
     unittest.main()

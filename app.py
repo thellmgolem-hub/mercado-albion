@@ -37,6 +37,8 @@ app = FastAPI(title="Mercado Albion — Américas")
 db = ItemDB()
 aodp = AODP(server=config.DEFAULT_SERVER)
 auth_manager = AuthManager(aodp.db, aodp.db_lock)
+from albion import prodchain as _prodchain  # noqa: E402
+chain_store = _prodchain.ChainStore(aodp.db, aodp.db_lock)
 SAFE_ROYAL_CITIES = [c for c in config.ROYAL_CITIES if c != "Caerleon"]
 
 
@@ -1464,6 +1466,80 @@ def island_view(view: str = "laborers", premium: bool = True,
         return res
     finally:
         con.close()
+
+
+@app.get("/api/prodchain")
+def prodchain_graph(item: str, premium: bool = True, sell_mode: str = "order"):
+    """Grafo de receita (BOM) de 1+ produtos finais p/ a Linha de Produção.
+
+    `item` aceita vários ids separados por vírgula (cadeia com múltiplos alvos).
+    Devolve o grafo ESTÁTICO enriquecido (estrutura + RRR por cidade + preços
+    saneados); a propagação de quantidade/custo roda no cliente ao vivo."""
+    roots = [s.strip() for s in (item or "").split(",") if s.strip()][:12]
+    if not roots:
+        return {"roots": [], "nodes": {}, "cities": config.ROYAL_CITIES}
+    con = _cache_connection()
+    if con is None:
+        return {"roots": roots, "nodes": {}, "cities": config.ROYAL_CITIES}
+    try:
+        q1, _ = _price_lookups(con)
+        g = _prodchain.build_graph(
+            roots, lambda i, c: q1.get((i, c)),
+            premium=premium, sell_mode=sell_mode, cities=config.ROYAL_CITIES)
+        for iid, node in g["nodes"].items():
+            meta = db.get(iid) or {}
+            node["name_pt"] = meta.get("pt", iid)
+            node["tier"] = meta.get("tier")
+            node["enchant"] = meta.get("enchant", 0)
+        return g
+    finally:
+        con.close()
+
+
+class ChainSaveBody(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    payload: dict
+    id: int | None = None
+
+
+def _chain_owner(request: Request) -> int:
+    """id da conta logada (dona da cadeia). 0 = modo local sem auth."""
+    if not config.AUTH_REQUIRED:
+        return 0
+    acct = (getattr(request.state, "auth", {}) or {}).get("account") or {}
+    return int(acct.get("id", 0) or 0)
+
+
+@app.get("/api/prodchain/chains")
+def prodchain_chains_list(request: Request):
+    return {"chains": chain_store.list(_chain_owner(request))}
+
+
+@app.post("/api/prodchain/chains")
+def prodchain_chains_save(body: ChainSaveBody, request: Request):
+    try:
+        cid = chain_store.save(_chain_owner(request), body.name,
+                               body.payload, body.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except KeyError:
+        raise HTTPException(status_code=404, detail="cadeia não encontrada")
+    return {"id": cid, "ok": True}
+
+
+@app.get("/api/prodchain/chains/{cid}")
+def prodchain_chains_get(cid: int, request: Request):
+    ch = chain_store.get(_chain_owner(request), cid)
+    if not ch:
+        raise HTTPException(status_code=404, detail="cadeia não encontrada")
+    return {"chain": ch}
+
+
+@app.delete("/api/prodchain/chains/{cid}")
+def prodchain_chains_delete(cid: int, request: Request):
+    if not chain_store.delete(_chain_owner(request), cid):
+        raise HTTPException(status_code=404, detail="cadeia não encontrada")
+    return {"ok": True}
 
 
 def _clean_prows(con):

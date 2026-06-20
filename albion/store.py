@@ -332,6 +332,16 @@ CREATE TABLE IF NOT EXISTS public_ingest_checkpoints (
   server TEXT, source TEXT, cursor_value INTEGER, last_success_at REAL,
   PRIMARY KEY (server, source)
 );
+CREATE TABLE IF NOT EXISTS production_chains (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  owner_user_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  updated_at REAL NOT NULL,
+  UNIQUE(owner_user_id, name)
+);
+CREATE INDEX IF NOT EXISTS idx_production_chains_owner
+  ON production_chains (owner_user_id);
 """
 
 # Postgres: mesmos campos, tipos nativos. SERIAL para positions.id.
@@ -383,6 +393,16 @@ CREATE TABLE IF NOT EXISTS public_ingest_checkpoints (
   server TEXT, source TEXT, cursor_value BIGINT, last_success_at DOUBLE PRECISION,
   PRIMARY KEY (server, source)
 );
+CREATE TABLE IF NOT EXISTS production_chains (
+  id SERIAL PRIMARY KEY,
+  owner_user_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  updated_at DOUBLE PRECISION NOT NULL,
+  UNIQUE(owner_user_id, name)
+);
+CREATE INDEX IF NOT EXISTS idx_production_chains_owner
+  ON production_chains (owner_user_id);
 """
 
 

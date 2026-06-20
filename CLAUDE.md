@@ -108,6 +108,17 @@ rotulada como estimativa e fora do ranking (ordena pelo lucro firme sem foco).
 TRABALHADORES — margem do diário vazio→cheio; só famílias de COLETA
 (WOOD/ORE/HIDE/FIBER/STONE→ROCK) entregam recurso bruto, fabricantes/pesca = None.
 
+Linha de Produção (aba web + albion/prodchain.py; /api/prodchain): editor visual de
+nós (grafo DAG) da cadeia da guild. Escolhe-se 1+ produtos finais, a árvore de
+receita (recipe_for, recursiva) se expande até o BRUTO (production.is_raw_resource
+trava bruto como folha — NÃO desce na transmutação T5_ORE→T4_ORE), e a quantidade
+propaga do alvo p/ trás. RRR abate a QUANTIDADE de insumo (não o custo — senão
+dupla contagem); foco por nó é um recurso à parte (pontos; só vira prata com
+"prata/foco"); make-or-buy por nó (comprar poda a árvore ali). O servidor entrega o
+grafo estático (RRR por cidade + preços saneados); a propagação/custo roda no
+cliente ao vivo, espelhando prodchain.solve()/make_or_buy(). Cadeias salvas POR
+CONTA (prodchain.ChainStore, tabela production_chains dual; /api/prodchain/chains).
+
 ## Fatos que não mudam (verificados jun/2026)
 
 - Taxas: imposto de venda 4% premium / 8% sem; taxa de anúncio 2,5% em ordens
