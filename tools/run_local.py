@@ -9,14 +9,20 @@ Ideal para explorar a plataforma sozinho. NÃO use em rede/produção: a nuvem
 (Render) sempre roda com auth ligada.
 """
 import os
+import sys
+from pathlib import Path
+
+# garante a RAIZ do projeto no sys.path (rodando de tools/ ou da raiz) e liga o
+# modo sem-login ANTES de importar o app (config lê o env no import).
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 os.environ.setdefault("ALBION_AUTH_DISABLED", "1")
 
-import threading
-import webbrowser
+import threading  # noqa: E402
+import webbrowser  # noqa: E402
 
-import uvicorn
+import uvicorn  # noqa: E402
 
-from app import app, HOST, PORT  # noqa: E402  (env tem de vir antes do import)
+from app import app, HOST, PORT  # noqa: E402
 
 if __name__ == "__main__":
     threading.Timer(1.2, lambda: webbrowser.open(f"http://{HOST}:{PORT}")).start()
