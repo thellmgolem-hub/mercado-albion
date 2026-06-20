@@ -3,6 +3,7 @@
 
 Rodar:  python app.py        (abre o navegador em http://127.0.0.1:8528)
 """
+import os
 import re
 import sqlite3
 import subprocess
@@ -21,6 +22,7 @@ from pydantic import BaseModel, Field
 
 from albion import config
 from albion import stats
+from albion import store
 from albion.auth import (ADMIN_ROLES, OPERATOR_ROLES, PROFILES, ROLES,
                          AuthError, AuthManager)
 from albion.client import AODP
@@ -36,7 +38,9 @@ aodp = AODP(server=config.DEFAULT_SERVER)
 auth_manager = AuthManager(aodp.db, aodp.db_lock)
 SAFE_ROYAL_CITIES = [c for c in config.ROYAL_CITIES if c != "Caerleon"]
 
-PUBLIC_AUTH_PATHS = {"/api/auth/login", "/api/auth/bootstrap-status"}
+# /api/sweep é tocado por cron externo (sem sessão) — protegido por token próprio
+PUBLIC_AUTH_PATHS = {"/api/auth/login", "/api/auth/bootstrap-status",
+                     "/api/sweep"}
 PROTECTED_DOC_PATHS = {"/docs", "/redoc", "/openapi.json"}
 
 
@@ -343,40 +347,92 @@ def meta():
 
 @app.get("/api/status")
 def status():
-    """Resumo local do cache para diagnostico rapido da plataforma."""
-    db_path = ROOT / "data" / "cache.db"
+    """Resumo do cache para diagnostico rapido (SQLite local ou Postgres)."""
+    # Tabelas com carimbo de tempo em epoch (fetched_at) e a 'gold' (ts texto).
+    epoch_tables = ["prices", "history", "fetch_log"]
     tables = {}
-    if db_path.exists():
-        con = sqlite3.connect(f"{db_path.resolve().as_uri()}?mode=ro", uri=True)
+    con = _cache_connection()
+    cache_exists = con is not None
+    if con is not None:
         try:
-            existing = {
-                r[0] for r in con.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table'")
-            }
-            specs = {
-                "prices": "MAX(datetime(fetched_at,'unixepoch'))",
-                "price_snapshots": "MAX(datetime(fetched_at,'unixepoch'))",
-                "history": "MAX(datetime(fetched_at,'unixepoch'))",
-                "fetch_log": "MAX(datetime(fetched_at,'unixepoch'))",
-                "gold": "MAX(ts)",
-                "watchlist": "MAX(datetime(added_at,'unixepoch'))",
-                "collection_runs": "MAX(datetime(started_at,'unixepoch'))",
-            }
-            for name, latest_expr in specs.items():
-                if name not in existing:
+            for name in epoch_tables:
+                try:
+                    row = con.execute(
+                        f"SELECT COUNT(*), MAX(fetched_at) FROM {name}"
+                    ).fetchone()
+                except Exception:
                     tables[name] = {"rows": 0, "latest": None}
                     continue
-                row = con.execute(
-                    f"SELECT COUNT(*), {latest_expr} FROM {name}").fetchone()
-                tables[name] = {"rows": row[0], "latest": row[1]}
+                latest = row[1]
+                if latest:  # epoch -> ISO UTC
+                    latest = datetime.utcfromtimestamp(
+                        float(latest)).strftime("%Y-%m-%d %H:%M:%S")
+                tables[name] = {"rows": row[0] or 0, "latest": latest}
+            try:
+                row = con.execute("SELECT COUNT(*), MAX(ts) FROM gold").fetchone()
+                tables["gold"] = {"rows": row[0] or 0, "latest": row[1]}
+            except Exception:
+                tables["gold"] = {"rows": 0, "latest": None}
         finally:
             con.close()
+    db_path = ROOT / "data" / "cache.db"
+    size = db_path.stat().st_size if (store.backend() == "sqlite"
+                                      and db_path.exists()) else 0
     return {
         "server": aodp.server,
+        "backend": store.backend(),
         "item_count": len(db.items),
-        "cache_exists": db_path.exists(),
-        "cache_size_bytes": db_path.stat().st_size if db_path.exists() else 0,
+        "cache_exists": cache_exists,
+        "cache_size_bytes": size,
         "tables": tables,
+    }
+
+
+def _market_universe():
+    """Universo de varredura: itens COM mercado relevante, ordem estável.
+
+    Exclui categorias sem negociação (vanity/mobília/outros) e tier 0. A ordem
+    por id é determinística — o cursor do sweep é um offset nesta lista.
+    """
+    skip = config.SWEEP_SKIP_CATEGORIES
+    return sorted(
+        it["id"] for it in db.items
+        if it.get("cat") not in skip and (it.get("tier") or 0) >= 1)
+
+
+@app.get("/api/sweep")
+@app.post("/api/sweep")
+def sweep(token: str = "",
+          count: int = Query(config.SWEEP_ITEMS_PER_TICK, ge=10, le=400)):
+    """Um TOQUE do sweep fatiado (tocado por cron a cada minuto).
+
+    Avança um cursor pelo universo de mercado, busca a fatia (preços sempre
+    frescos + histórico se velho) e grava no store. Em ~3 h varre tudo e recicla.
+    Protegido por ALBION_SWEEP_TOKEN (se definido).
+    """
+    if config.SWEEP_TOKEN and token != config.SWEEP_TOKEN:
+        raise HTTPException(403, "token de sweep invalido")
+    universe = _market_universe()
+    n = len(universe)
+    if not n:
+        return {"ok": False, "note": "universo vazio"}
+    st = aodp.sweep_state()
+    start = st["cursor"] % n
+    slice_ids = universe[start:start + count]
+    cycle = st["cycle"]
+    new_cursor = start + len(slice_ids)
+    if new_cursor >= n:          # fim do universo -> reinicia e conta o ciclo
+        new_cursor, cycle = 0, cycle + 1
+    pr = _api_guard(lambda: aodp.get_prices(slice_ids, max_age=0))
+    hi = _api_guard(lambda: aodp.get_history(
+        slice_ids, time_scale=24, days=config.SWEEP_HISTORY_DAYS,
+        max_age=config.SWEEP_HISTORY_TTL))
+    aodp.sweep_save(new_cursor, cycle, len(slice_ids))
+    return {
+        "ok": True, "universe": n, "from_cursor": start,
+        "took": len(slice_ids), "next_cursor": new_cursor, "cycle": cycle,
+        "price_rows": len(pr), "history_series": len(hi),
+        "progress_pct": round(100 * new_cursor / n, 1) if new_cursor else 100.0,
     }
 
 
@@ -425,12 +481,8 @@ def _city_scope(cities, buy_cities, sell_cities):
 
 
 def _cache_connection():
-    db_path = ROOT / "data" / "cache.db"
-    if not db_path.exists():
-        return None
-    con = sqlite3.connect(f"{db_path.resolve().as_uri()}?mode=ro", uri=True)
-    con.row_factory = sqlite3.Row
-    return con
+    """Conexão somente-leitura ao cache: SQLite local ou Postgres (prod)."""
+    return store.connect(readonly=True)
 
 
 def _placeholders(vals):
@@ -475,17 +527,14 @@ def _cached_price_rows(con, city_list, qualities, cat=None, sub=None,
 
 
 def _cache_coverage(con):
-    tables = {
-        r[0] for r in con.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'")
-    }
-
     def one(table):
-        if table not in tables:
+        # tabela pode não existir (ex.: price_snapshots não migra ao Postgres)
+        try:
+            row = con.execute(
+                f"SELECT COUNT(DISTINCT item_id) FROM {table}").fetchone()
+            return (row[0] if row else 0) or 0
+        except Exception:
             return 0
-        query = f"SELECT COUNT(DISTINCT item_id) FROM {table}"
-        row = con.execute(query).fetchone()
-        return row[0] if row else 0
     return {
         "catalog_items": len(db.items),
         "price_items": one("prices"),
@@ -870,7 +919,8 @@ def craft_margin(item: str, premium: bool = True, sell_mode: str = "order",
                 hv = sorted(v[0] for v in _hcon.execute(
                     """SELECT avg_price FROM history WHERE server=? AND item_id=?
                        AND quality=1 AND time_scale=24 AND avg_price>0
-                       AND ts>=date('now','-21 days')""", [aodp.server, iid]).fetchall())
+                       AND ts>=?""",
+                    [aodp.server, iid, store.cutoff_iso(21)]).fetchall())
                 if hv:
                     hist_med[iid] = hv[len(hv) // 2]
         finally:
@@ -1151,8 +1201,9 @@ def _price_lookups(con, max_age_days=3):
     """(q1, allq) das linhas de prices saneadas (sem âncora) e frescas — base
     das análises do hub Avançado. Espelha analyze.py _clean_price_lookups."""
     from albion.microstructure import clean_price_rows
-    cutoff = con.execute("SELECT strftime('%Y-%m-%dT%H:%M:%S','now', ?)",
-                         [f"-{int(max_age_days)} days"]).fetchone()[0]
+    # corte ISO calculado em Python (portável SQLite/Postgres)
+    cutoff = (datetime.utcnow()
+              - timedelta(days=int(max_age_days))).strftime("%Y-%m-%dT%H:%M:%S")
     rows = clean_price_rows(
         [dict(r) for r in con.execute(
             "SELECT * FROM prices WHERE server=?", [aodp.server]).fetchall()])
@@ -1177,11 +1228,11 @@ def _cheapest_by_item(q1):
 
 
 def _market_volume(con, days=7):
-    return {i: n for i, n in con.execute(
+    return {r[0]: r[1] for r in con.execute(
         """SELECT item_id, SUM(item_count)*1.0/COUNT(DISTINCT substr(ts,1,10))
            FROM history WHERE server=? AND time_scale=24 AND quality=1
-             AND item_count>0 AND ts>=date('now', ?) GROUP BY item_id""",
-        [aodp.server, f"-{int(days)} days"]).fetchall()}
+             AND item_count>0 AND ts>=? GROUP BY item_id""",
+        [aodp.server, store.cutoff_iso(days)]).fetchall()}
 
 
 @app.get("/api/prod")
@@ -1218,37 +1269,11 @@ def prod_view(view: str = "focus", premium: bool = True,
 @app.get("/api/guild")
 def guild_view(view: str = "watch", days: float = Query(7, ge=0.25, le=30),
                premium: bool = True, limit: int = Query(40, ge=1, le=200)):
-    """Guild p/ o hub: ROI de coleta, cesta de regear, make-or-buy."""
-    from albion import guild as gd
-    con = _cache_connection()
-    if con is None:
-        return {"view": view, "rows": []}
-    try:
-        name = lambda i: (db.get(i) or {}).get("pt", i)
-        if view == "kit":
-            res = gd.soldier_kit_index(con, aodp.server, days=days)
-            res["basket"] = [{"item_id": i, "name_pt": name(i), "weight": w}
-                             for i, w in res.get("basket", [])]
-            res["view"] = "kit"
-            return res
-        q1, _ = _price_lookups(con)
-        if view == "makeorbuy":
-            rows = gd.make_or_buy(con, aodp.server,
-                                  price_of=lambda i, c: q1.get((i, c)),
-                                  days=days, premium=premium, limit=limit)
-            for r in rows:
-                r["name_pt"] = name(r["item_id"])
-            return {"view": "makeorbuy", "rows": rows}
-        price_item = _cheapest_by_item(q1)
-        res = gd.watchlist_roi(con, aodp.server, price_of=price_item.get,
-                               days=days, limit=limit)
-        for r in res.get("add", []):
-            r["name_pt"] = name(r["item_id"])
-        res["view"] = "watch"
-        res["rows"] = res.pop("add", [])
-        return res
-    finally:
-        con.close()
+    """Guild (ROI de coleta, cesta de regear, make-or-buy) DEPENDE de killboard
+    (item_demand_daily / kill_event_*). O piloto gratuito não acumula killboard
+    — não cabe no Postgres free — então este hub fica indisponível por ora."""
+    return {"view": view, "rows": [], "unavailable": True,
+            "note": "Requer dados de killboard, não coletados no piloto."}
 
 
 def _clean_prows(con):
@@ -1268,8 +1293,8 @@ def _history_daily_rows(con, item_ids=None, cities=None, days=120,
     """(item, city, dia, avg_price[, item_count]) do history q1 — espelha
     analyze.py _history_daily, sobre a conexão somente-leitura do servidor."""
     where = ["server=?", "time_scale=24", "quality=1", "avg_price>0",
-             "ts >= date('now', ?)"]
-    params = [aodp.server, f"-{int(days)} days"]
+             "ts >= ?"]
+    params = [aodp.server, store.cutoff_iso(days)]
     if item_ids:
         where.append(f"item_id IN ({_placeholders(item_ids)})")
         params += list(item_ids)
@@ -1301,11 +1326,18 @@ def logi_view(view: str = "bm", premium: bool = True,
             for r in rows:
                 r["quals"] = ",".join(map(str, r.get("qualities", [])))
         elif view == "restock":
-            demand = con.execute(
-                """SELECT item_id, SUM(victim_units) AS u FROM item_demand_daily
-                   WHERE server=? AND day >= date('now', ?)
-                   GROUP BY item_id HAVING u>0 ORDER BY u DESC LIMIT 400""",
-                [aodp.server, f"-{int(days)} days"]).fetchall()
+            # restock cruza killboard (item_demand_daily), ausente no piloto —
+            # degrada para vazio em vez de quebrar.
+            try:
+                demand = con.execute(
+                    """SELECT item_id, SUM(victim_units) AS u
+                       FROM item_demand_daily
+                       WHERE server=? AND day >= ?
+                       GROUP BY item_id HAVING SUM(victim_units)>0
+                       ORDER BY u DESC LIMIT 400""",
+                    [aodp.server, store.cutoff_iso(days)]).fetchall()
+            except Exception:
+                demand = []
             rows = logi.restock_map(demand, prows, metas, premium=premium,
                                     limit=limit) if demand else []
         else:  # bm
@@ -1418,9 +1450,9 @@ def item_signals(item: str, days: int = Query(180, ge=30, le=400)):
         rows = con.execute(
             """SELECT city, substr(ts,1,10) AS day, avg_price FROM history
                WHERE server=? AND time_scale=24 AND quality=1 AND avg_price>0
-                 AND ts >= date('now', ?) AND item_id=?
+                 AND ts >= ? AND item_id=?
                ORDER BY city, day""",
-            [aodp.server, f"-{int(days)} days", iid]).fetchall()
+            [aodp.server, store.cutoff_iso(days), iid]).fetchall()
     finally:
         con.close()
     by_city = {}

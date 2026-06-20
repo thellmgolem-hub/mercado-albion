@@ -11,6 +11,7 @@ from urllib.parse import quote
 import httpx
 
 from . import config
+from . import store
 
 DATA = Path(__file__).resolve().parent.parent / "data"
 
@@ -18,6 +19,13 @@ PRICE_FIELDS = [
     "sell_price_min", "sell_price_min_date", "sell_price_max", "sell_price_max_date",
     "buy_price_min", "buy_price_min_date", "buy_price_max", "buy_price_max_date",
 ]
+
+# Ordem das colunas das tabelas vivas (para store.upsert)
+PRICE_COLUMNS = ["server", "item_id", "city", "quality", *PRICE_FIELDS, "fetched_at"]
+PRICE_PK = ["server", "item_id", "city", "quality"]
+HISTORY_COLUMNS = ["server", "item_id", "city", "quality", "time_scale", "ts",
+                   "item_count", "avg_price", "fetched_at"]
+HISTORY_PK = ["server", "item_id", "city", "quality", "time_scale", "ts"]
 
 
 class Throttle:
@@ -55,8 +63,9 @@ class AODP:
         self.base = config.SERVERS[server]
         self.http = httpx.Client(timeout=40, headers={"User-Agent": config.USER_AGENT})
         self.throttle = Throttle()
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(str(db_path), check_same_thread=False)
+        # Camada dual: SQLite local (db_path) ou Postgres (env DATABASE_URL).
+        # Em prod (nuvem) o db_path é ignorado em favor do Postgres.
+        self.db = store.connect(path=db_path)
         self.db_lock = threading.Lock()
         self._init_db()
 
@@ -64,11 +73,13 @@ class AODP:
 
     def _init_db(self):
         with self.db_lock:
-            # WAL + busy_timeout: servidor e CLI compartilham o mesmo arquivo
-            # de cache em processos diferentes — sem isso há 'database is locked'
-            self.db.execute("PRAGMA journal_mode=WAL")
-            self.db.execute("PRAGMA busy_timeout=5000")
-            self.db.execute("PRAGMA synchronous=NORMAL")
+            # Postgres (prod): só as tabelas vivas do piloto (store.init_schema).
+            if self.db.backend != "sqlite":
+                store.init_schema(self.db)
+                return
+            # SQLite local: schema COMPLETO (inclui tabelas legadas ainda usadas
+            # pela suíte de testes e por análises locais). As pragmas de WAL já
+            # foram aplicadas em store.connect().
             self.db.executescript("""
             CREATE TABLE IF NOT EXISTS prices (
               server TEXT, item_id TEXT, city TEXT, quality INTEGER,
@@ -224,6 +235,10 @@ class AODP:
               samples INTEGER,
               PRIMARY KEY (server, item_id, city, quality, day)
             );
+            CREATE TABLE IF NOT EXISTS sweep_state (
+              server TEXT PRIMARY KEY, cursor INTEGER, cycle INTEGER,
+              updated_at REAL, last_items INTEGER
+            );
             """)
             self.db.commit()
 
@@ -243,10 +258,10 @@ class AODP:
 
     def _mark_fetched(self, kind: str, keys: list[str], when: float):
         with self.db_lock:
-            self.db.executemany(
-                "INSERT OR REPLACE INTO fetch_log (server, kind, key, fetched_at)"
-                " VALUES (?,?,?,?)",
-                [(self.server, kind, k, when) for k in keys])
+            store.upsert(self.db, "fetch_log",
+                        ["server", "kind", "key", "fetched_at"],
+                        [(self.server, kind, k, when) for k in keys],
+                        ["server", "kind", "key"])
             self.db.commit()
 
     # ---------------------------------------------------------------- HTTP
@@ -318,25 +333,23 @@ class AODP:
                     params={"locations": loc_param})
                 fetched = time.time()
                 valid_rows = [r for r in rows if r.get("city") not in (None, "0")]
+                price_tuples = [
+                    (self.server, r["item_id"], r["city"], r["quality"],
+                     r["sell_price_min"], r["sell_price_min_date"],
+                     r["sell_price_max"], r["sell_price_max_date"],
+                     r["buy_price_min"], r["buy_price_min_date"],
+                     r["buy_price_max"], r["buy_price_max_date"], fetched)
+                    for r in valid_rows]
                 with self.db_lock:
-                    self.db.executemany(
-                        "INSERT OR REPLACE INTO prices VALUES "
-                        "(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                        [(self.server, r["item_id"], r["city"], r["quality"],
-                          r["sell_price_min"], r["sell_price_min_date"],
-                          r["sell_price_max"], r["sell_price_max_date"],
-                          r["buy_price_min"], r["buy_price_min_date"],
-                          r["buy_price_max"], r["buy_price_max_date"], fetched)
-                         for r in valid_rows])
-                    self.db.executemany(
-                        "INSERT OR IGNORE INTO price_snapshots VALUES "
-                        "(?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                        [(self.server, r["item_id"], r["city"], r["quality"],
-                          r["sell_price_min"], r["sell_price_min_date"],
-                          r["sell_price_max"], r["sell_price_max_date"],
-                          r["buy_price_min"], r["buy_price_min_date"],
-                          r["buy_price_max"], r["buy_price_max_date"], fetched)
-                         for r in valid_rows])
+                    store.upsert(self.db, "prices", PRICE_COLUMNS,
+                                 price_tuples, PRICE_PK)
+                    # price_snapshots (série intradiária) é legado local: só
+                    # alimenta análises de curto prazo no SQLite. O piloto na
+                    # nuvem não acumula snapshots finos.
+                    if self.db.backend == "sqlite":
+                        self.db.executemany(
+                            "INSERT OR IGNORE INTO price_snapshots VALUES "
+                            "(?,?,?,?,?,?,?,?,?,?,?,?,?)", price_tuples)
                     self.db.commit()
                 self._mark_fetched(
                     "prices", [f"{i}|{c}" for i in chunk for c in cities], fetched)
@@ -399,17 +412,15 @@ class AODP:
                     params={"locations": loc_param, "time-scale": time_scale,
                             "date": fetch_from, "end_date": date_to})
                 fetched = time.time()
+                hist_tuples = [
+                    (self.server, s["item_id"], s["location"], s["quality"],
+                     time_scale, p["timestamp"], p["item_count"],
+                     p["avg_price"], fetched)
+                    for s in series if s.get("location") not in (None, "0")
+                    for p in s.get("data", [])]
                 with self.db_lock:
-                    for s in series:
-                        if s.get("location") in (None, "0"):
-                            continue
-                        self.db.executemany(
-                            "INSERT OR REPLACE INTO history VALUES "
-                            "(?,?,?,?,?,?,?,?,?)",
-                            [(self.server, s["item_id"], s["location"],
-                              s["quality"], time_scale, p["timestamp"],
-                              p["item_count"], p["avg_price"], fetched)
-                             for p in s.get("data", [])])
+                    store.upsert(self.db, "history", HISTORY_COLUMNS,
+                                 hist_tuples, HISTORY_PK)
                     self.db.commit()
                 self._mark_fetched(
                     "history",
@@ -448,11 +459,10 @@ class AODP:
                 [self.server]).fetchone()[0]
         if time.time() - ages.get("gold", 0) > max_age or cached < count:
             rows = self._get("/api/v2/stats/gold.json", params={"count": count})
-            fetched = time.time()
             with self.db_lock:
-                self.db.executemany(
-                    "INSERT OR REPLACE INTO gold VALUES (?,?,?)",
-                    [(self.server, r["timestamp"], r["price"]) for r in rows])
+                store.upsert(self.db, "gold", ["server", "ts", "price"],
+                             [(self.server, r["timestamp"], r["price"])
+                              for r in rows], ["server", "ts"])
                 self.db.commit()
             self._mark_fetched("gold", ["gold"], fetched)
         with self.db_lock:
@@ -591,14 +601,22 @@ class AODP:
 
     def pos_add(self, item_id, qty, buy_price, buy_city=None, quality=1,
                 note=None) -> int:
+        cols = ("server,item_id,quality,qty,buy_price,buy_city,opened_at,note")
+        vals = (self.server, item_id, quality, qty, buy_price, buy_city,
+                time.time(), note)
         with self.db_lock:
+            if self.db.backend == "sqlite":
+                cur = self.db.execute(
+                    f"INSERT INTO positions ({cols}) VALUES (?,?,?,?,?,?,?,?)",
+                    vals)
+                self.db.commit()
+                return cur.lastrowid
+            # Postgres: id é SERIAL — recupera via RETURNING.
             cur = self.db.execute(
-                "INSERT INTO positions (server,item_id,quality,qty,buy_price,"
-                "buy_city,opened_at,note) VALUES (?,?,?,?,?,?,?,?)",
-                (self.server, item_id, quality, qty, buy_price, buy_city,
-                 time.time(), note))
+                f"INSERT INTO positions ({cols}) VALUES (?,?,?,?,?,?,?,?)"
+                " RETURNING id", vals)
             self.db.commit()
-            return cur.lastrowid
+            return cur.fetchone()[0]
 
     def pos_close(self, pos_id, sell_price, sell_city=None) -> bool:
         with self.db_lock:
@@ -628,6 +646,27 @@ class AODP:
         cols = ["id", "item_id", "quality", "qty", "buy_price", "buy_city",
                 "opened_at", "sell_price", "sell_city", "closed_at", "note"]
         return [dict(zip(cols, r)) for r in rows]
+
+    # ---------------------------------------------------------------- sweep
+    def sweep_state(self) -> dict:
+        """Cursor do sweep fatiado (offset no universo, ciclo, último lote)."""
+        with self.db_lock:
+            row = self.db.execute(
+                "SELECT cursor, cycle, last_items, updated_at FROM sweep_state"
+                " WHERE server=?", [self.server]).fetchone()
+        if not row:
+            return {"cursor": 0, "cycle": 0, "last_items": 0, "updated_at": None}
+        return {"cursor": row[0] or 0, "cycle": row[1] or 0,
+                "last_items": row[2] or 0, "updated_at": row[3]}
+
+    def sweep_save(self, cursor: int, cycle: int, last_items: int) -> None:
+        with self.db_lock:
+            store.upsert(
+                self.db, "sweep_state",
+                ["server", "cursor", "cycle", "updated_at", "last_items"],
+                [(self.server, cursor, cycle, time.time(), last_items)],
+                ["server"])
+            self.db.commit()
 
     # ---------------------------------------------------------------- retenção
 

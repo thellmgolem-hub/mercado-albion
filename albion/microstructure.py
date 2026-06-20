@@ -18,6 +18,7 @@ persistência (survival) mede o tempo de fila em separado.
 import time
 
 from . import config
+from . import store
 
 SALES = {True: config.SALES_TAX_PREMIUM, False: config.SALES_TAX_NO_PREMIUM}
 
@@ -42,11 +43,11 @@ def _daily_liquidity(con, server, pairs, days=7):
         f"""SELECT item_id, city, substr(ts,1,10) AS dia, SUM(item_count) AS n
             FROM history
             WHERE server=? AND time_scale=24 AND quality=1 AND item_count>0
-              AND ts >= date('now', ?)
+              AND ts >= ?
               AND item_id IN ({_placeholders(len(items))})
               AND city IN ({_placeholders(len(cities))})
             GROUP BY item_id, city, dia""",
-        [server, f"-{int(days)} days", *items, *cities]).fetchall()
+        [server, store.cutoff_iso(days), *items, *cities]).fetchall()
     by_pair = {}
     for item, city, _dia, n in rows:
         by_pair.setdefault((item, city), []).append(n)
@@ -271,12 +272,18 @@ def trap_signals(con, server, cities=None, item_ids=None, qualities=None,
     if check_ghost:
         # 3º sinal por-ordem: a ordem do topo (sell) persistiu da coleta
         # anterior? Só p/ os já flagrados (poucos) — consulta indexada.
+        # price_snapshots é legado local: ausente no piloto Postgres, então o
+        # sinal de persistência degrada para "?" em vez de quebrar.
         for r in out:
-            snaps = con.execute(
-                """SELECT sell_price_min FROM price_snapshots
-                   WHERE server=? AND item_id=? AND city=? AND quality=?
-                   ORDER BY fetched_at DESC LIMIT 2""",
-                [server, r["item_id"], r["city"], r["quality"]]).fetchall()
+            try:
+                snaps = con.execute(
+                    """SELECT sell_price_min FROM price_snapshots
+                       WHERE server=? AND item_id=? AND city=? AND quality=?
+                       ORDER BY fetched_at DESC LIMIT 2""",
+                    [server, r["item_id"], r["city"], r["quality"]]).fetchall()
+            except Exception:
+                r["persist"] = "?"
+                continue
             if len(snaps) >= 2:
                 persisted = snaps[0][0] == snaps[1][0] and snaps[0][0]
                 r["persist"] = "persistido" if persisted else "novo"
@@ -357,6 +364,10 @@ def hourly_spread(con, server, item_id, city, quality=1, premium=True, days=7):
     """
     t = SALES[bool(premium)]
     f = config.SETUP_FEE
+    # price_snapshots (série intradiária) é legado SQLite: o piloto Postgres não
+    # acumula snapshots finos, então esta sub-visão sai vazia em vez de quebrar.
+    if store.backend() != "sqlite":
+        return []
     rows = con.execute(
         """SELECT strftime('%H', datetime(fetched_at,'unixepoch')) AS h,
                   sell_price_min, buy_price_max

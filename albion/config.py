@@ -206,3 +206,15 @@ AUTH_DEVICE_COOKIE = "albion_device"
 COLLECT_MAX_ITEMS = 2500
 
 USER_AGENT = "albion-market-local/1.0 (app local de consulta de mercado)"
+
+# --- Sweep fatiado (piloto na nuvem) -------------------------------------
+# O sweep varre o mercado INTEIRO em fatias, tocado por um cron a cada minuto.
+# Preços sempre frescos; histórico só refeito se mais velho que SWEEP_HISTORY_TTL
+# (muda devagar — refazer a cada ciclo seria desperdício de requisições).
+SWEEP_ITEMS_PER_TICK = 100        # itens por toque (~2 chunks de preço/histórico)
+SWEEP_HISTORY_TTL = 6 * 3600      # refaz histórico do item no máx. de 6 em 6 h
+SWEEP_HISTORY_DAYS = 90           # janela canônica de histórico (escala 24h)
+# Categorias sem mercado relevante — fora do universo de varredura
+SWEEP_SKIP_CATEGORIES = {"other", "vanity", "furniture"}
+# Token exigido no /api/sweep (defina em prod; vazio = liberado p/ dev local)
+SWEEP_TOKEN = os.environ.get("ALBION_SWEEP_TOKEN", "")

@@ -1367,15 +1367,13 @@ class ApiUiTests(unittest.TestCase):
             self.assertIsInstance(r.json().get('rows'), list)
 
     def test_guild_endpoint_views(self):
-        # hub Avançado/Guild: watch/makeorbuy devolvem rows; kit devolve series
-        for view in ('watch', 'makeorbuy'):
+        # Guild depende de killboard (cortado no piloto gratuito): cada view
+        # responde 200 com rows=[] e unavailable=True, sem quebrar.
+        for view in ('watch', 'makeorbuy', 'kit'):
             r = self.c.get('/api/guild', params={'view': view, 'days': 7, 'limit': 3})
             self.assertEqual(r.status_code, 200, view)
-            self.assertEqual(r.json().get('view'), view)
             self.assertIsInstance(r.json().get('rows'), list)
-        rk = self.c.get('/api/guild', params={'view': 'kit', 'days': 7})
-        self.assertEqual(rk.status_code, 200)
-        self.assertIsInstance(rk.json().get('series'), list)
+            self.assertTrue(r.json().get('unavailable'))
 
     def test_logi_endpoint_views(self):
         # hub Avançado/Logística: bm/ladder/restock todos 200 com rows
@@ -1384,6 +1382,19 @@ class ApiUiTests(unittest.TestCase):
             self.assertEqual(r.status_code, 200, view)
             self.assertEqual(r.json().get('view'), view)
             self.assertIsInstance(r.json().get('rows'), list)
+
+    def test_sweep_universe_and_token_gate(self):
+        # universo de varredura não-vazio e em ordem estável (cursor = offset)
+        uni = app._market_universe()
+        self.assertGreater(len(uni), 1000)
+        self.assertEqual(uni, sorted(uni))
+        # com token configurado, requisição com token errado -> 403 (não busca API)
+        app.config.SWEEP_TOKEN = "segredo"
+        try:
+            r = self.c.get('/api/sweep', params={'token': 'errado', 'count': 10})
+            self.assertEqual(r.status_code, 403)
+        finally:
+            app.config.SWEEP_TOKEN = ""
 
     def test_risk_endpoint_views(self):
         # hub Avançado/Risco: profile e corr respondem 200 com rows; o perfil
