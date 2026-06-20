@@ -13,6 +13,7 @@ data/*
 !data/recipes_refining.json
 !data/supply_data.json
 !data/farm_data.json
+!data/island_data.json
 backups/
 *.log
 .claude/settings.local.json

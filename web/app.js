@@ -884,6 +884,10 @@ document.querySelectorAll('#tabs button').forEach((b) => {
       state.avSubLoaded = { micro: true };
       loadAvancado();
     }
+    if (b.dataset.tab === 'ilha' && !state.islandLoaded) {
+      state.islandLoaded = true;
+      showIslandSub('laborers');
+    }
     // o gráfico do ouro precisa do canvas VISÍVEL para dimensionar — carrega
     // ao abrir a aba (não no init, quando a aba está oculta)
     if (b.dataset.tab === 'moedas' && !state.moedasLoaded) {
@@ -2288,6 +2292,70 @@ async function loadAvDemanda(view) {
 }
 
 
+function showIslandSub(view) {
+  document.querySelectorAll('#islandSubtabs button').forEach((b) =>
+    b.classList.toggle('active', b.dataset.isl === view));
+  document.querySelectorAll('#tab-ilha .subtab').forEach((s) =>
+    s.classList.toggle('active', s.id === 'isl-' + view));
+  state.islSubLoaded = state.islSubLoaded || {};
+  if (state.islSubLoaded[view]) return;
+  state.islSubLoaded[view] = true;
+  loadIsland(view);
+}
+
+const islItemCell = (id, pt) => `<div class="cell-item">${iconImg(id)}<div class="nm">${esc(pt || id)}</div></div>`;
+
+async function loadIsland(view) {
+  const map = {
+    laborers: { st: 'islLaborStatus', tbl: 'islLaborTable' },
+    crops: { st: 'islCropStatus', tbl: 'islCropTable' },
+    animals: { st: 'islAnimalStatus', tbl: 'islAnimalTable' },
+  };
+  const m = map[view];
+  const st = $(m.st);
+  st.className = 'status';
+  st.textContent = 'calculando…';
+  try {
+    const res = await api('/api/island', { view, premium: state.premium, limit: 80 });
+    const rows = res.rows || [];
+    if (view === 'crops') {
+      renderTable(m.tbl, [
+        { key: 'crop', label: 'Cultura', align: 'l', value: (o) => o.crop_pt, html: (o) => islItemCell(o.crop, o.crop_pt) },
+        { key: 'buy', label: 'Semente em', align: 'l', value: (o) => o.buy_city, html: (o) => cityHtml(o.buy_city) },
+        { key: 'sp', label: 'Semente', value: (o) => o.seed_price, html: (o) => fmt(o.seed_price) },
+        { key: 'sell', label: 'Vender em', align: 'l', value: (o) => o.sell_city, html: (o) => cityHtml(o.sell_city) },
+        { key: 'pdn', label: 'Lucro/dia s/foco', value: (o) => o.per_day_no_focus, html: (o) => fmt(o.per_day_no_focus) },
+        { key: 'pdf', label: 'Lucro/dia c/foco', value: (o) => o.per_day_focus, html: (o) => `<span class="silver profit-pos">${fmt(o.per_day_focus)}</span>` },
+        { key: 'fg', label: 'Ganho do foco', value: (o) => o.focus_gain, html: (o) => fmt(o.focus_gain) },
+        { key: 'wc', label: 'Capital/canteiro', value: (o) => o.working_capital, html: (o) => fmt(o.working_capital) },
+      ], rows, { sortKey: 'pdf' });
+    } else if (view === 'animals') {
+      renderTable(m.tbl, [
+        { key: 'animal', label: 'Animal', align: 'l', value: (o) => o.grown_pt, html: (o) => islItemCell(o.grown, o.grown_pt) },
+        { key: 'buy', label: 'Cria em', align: 'l', value: (o) => o.buy_city, html: (o) => cityHtml(o.buy_city) },
+        { key: 'bp', label: 'Cria', value: (o) => o.baby_price, html: (o) => fmt(o.baby_price) },
+        { key: 'feed', label: 'Ração', value: (o) => o.feed_cost, html: (o) => fmt(o.feed_cost) },
+        { key: 'sell', label: 'Vender em', align: 'l', value: (o) => o.sell_city, html: (o) => cityHtml(o.sell_city) },
+        { key: 'pdn', label: 'Lucro/dia s/foco', value: (o) => o.per_day_no_focus, html: (o) => fmt(o.per_day_no_focus) },
+        { key: 'pdf', label: 'Lucro/dia c/foco', value: (o) => o.per_day_focus, html: (o) => `<span class="silver profit-pos">${fmt(o.per_day_focus)}</span>` },
+        { key: 'wc', label: 'Capital/animal', value: (o) => o.working_capital, html: (o) => fmt(o.working_capital) },
+      ], rows, { sortKey: 'pdf' });
+    } else {
+      renderTable(m.tbl, [
+        { key: 'fam', label: 'Diário', align: 'l', value: (o) => o.empty_pt, html: (o) => islItemCell(o.empty, o.empty_pt) },
+        { key: 'buy', label: 'Vazio em', align: 'l', value: (o) => o.buy_city, html: (o) => cityHtml(o.buy_city) },
+        { key: 'ep', label: 'Vazio', value: (o) => o.empty_price, html: (o) => fmt(o.empty_price) },
+        { key: 'sell', label: 'Cheio em', align: 'l', value: (o) => o.sell_city, html: (o) => cityHtml(o.sell_city) },
+        { key: 'fp', label: 'Cheio líq', value: (o) => o.full_net, html: (o) => fmt(o.full_net) },
+        { key: 'margin', label: 'Margem (fama)', value: (o) => o.margin, html: (o) => `<span class="silver profit-pos">${fmt(o.margin)}</span>` },
+        { key: 'res', label: 'Entrega', align: 'l', value: (o) => o.resource_pt, html: (o) => esc(o.resource_pt) },
+        { key: 'rs', label: 'Vender entrega', align: 'l', value: (o) => o.resource_sell_city || '', html: (o) => o.resource_sell_city ? cityHtml(o.resource_sell_city) : '—' },
+      ], rows, { sortKey: 'margin' });
+    }
+    st.textContent = rows.length ? `${rows.length} itens` : 'sem preços de ilha no cache ainda (a coleta cobre conforme roda)';
+  } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
+}
+
 async function loadStatus() {
   try {
     const s = await api('/api/status');
@@ -2398,6 +2466,8 @@ async function init() {
     }));
   document.querySelectorAll('#avSubtabs button').forEach((b) =>
     b.addEventListener('click', () => showAvSub(b.dataset.av)));
+  document.querySelectorAll('#islandSubtabs button').forEach((b) =>
+    b.addEventListener('click', () => showIslandSub(b.dataset.isl)));
   [['#prodView', loadAvProd], ['#guildView', loadAvGuild],
    ['#logiView', loadAvLogi], ['#demandaView', loadAvDemanda],
    ['#riscoView', loadAvRisco]]

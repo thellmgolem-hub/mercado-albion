@@ -1427,6 +1427,45 @@ def demand_view(view: str = "burn", days: float = Query(7, ge=0.25, le=45),
         con.close()
 
 
+@app.get("/api/island")
+def island_view(view: str = "laborers", premium: bool = True,
+                sell_mode: str = "order", limit: int = Query(80, ge=1, le=300)):
+    """Administração de ILHA: trabalhadores (diários), agricultura, pecuária.
+
+    Lê data/island_data.json (mecânicas do dump) cruzado com os preços q1
+    saneados por cidade. Cada linha traz onde COMPRAR insumos, onde VENDER, lucro
+    com/sem foco e capital de giro. Vazio até a coleta cobrir os itens de ilha."""
+    from albion import island as isl
+    con = _cache_connection()
+    if con is None:
+        return {"view": view, "rows": []}
+    try:
+        name = lambda i: (db.get(i) or {}).get("pt", i)
+        q1, _ = _price_lookups(con)
+        if view == "crops":
+            res = isl.crop_economy(q1, premium=premium, sell_mode=sell_mode,
+                                   limit=limit)
+            for r in res.get("rows", []):
+                r["seed_pt"] = name(r["seed"])
+                r["crop_pt"] = name(r["crop"])
+        elif view == "animals":
+            res = isl.animal_economy(q1, premium=premium, sell_mode=sell_mode,
+                                     limit=limit)
+            for r in res.get("rows", []):
+                r["baby_pt"] = name(r["baby"])
+                r["grown_pt"] = name(r["grown"])
+        else:  # laborers
+            res = isl.laborer_economy(q1, premium=premium, sell_mode=sell_mode,
+                                      limit=limit)
+            for r in res.get("rows", []):
+                r["empty_pt"] = name(r["empty"])
+                r["resource_pt"] = name(r["resource"])
+        res["view"] = view
+        return res
+    finally:
+        con.close()
+
+
 def _clean_prows(con):
     """Linhas de prices saneadas (sem âncora) no formato dos rows da API —
     base das análises de logística (carga, escada de qualidade, BM, reposição)."""

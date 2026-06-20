@@ -1691,5 +1691,52 @@ class AuthManagerTests(unittest.TestCase):
             app.config.AUTH_REQUIRED = old_required
 
 
+class IslandTests(unittest.TestCase):
+    def _prices(self):
+        from albion import config
+        p = {}
+        for it, pr in [("T1_FARM_CARROT_SEED", 200), ("T1_CARROT", 120),
+                       ("T3_FARM_OX_BABY", 1500), ("T3_FARM_OX_GROWN", 9000),
+                       ("T4_JOURNAL_WOOD_EMPTY", 300),
+                       ("T4_JOURNAL_WOOD_FULL", 4200), ("T4_WOOD", 250)]:
+            for c in config.CITIES:
+                p[(it, c)] = pr
+        return p
+
+    def test_crop_focus_doubles_yield(self):
+        from albion import island
+        r = island.crop_economy(self._prices(), premium=True)
+        row = next(x for x in r["rows"] if x["crop"] == "T1_CARROT")
+        # cenoura: bônus de foco 2x -> rendimento dobra e lucro c/ foco é maior
+        self.assertAlmostEqual(row["yield_focus"], row["yield_no_focus"] * 2, delta=0.1)
+        self.assertGreater(row["profit_focus"], row["profit_no_focus"])
+        self.assertEqual(row["focus_gain"],
+                         row["profit_focus"] - row["profit_no_focus"])
+
+    def test_animal_feed_is_counted(self):
+        from albion import island
+        r = island.animal_economy(self._prices(), premium=True)
+        row = next(x for x in r["rows"] if x["baby"] == "T3_FARM_OX_BABY")
+        # ração contabilizada (>0, vinda do produto agrícola) e foco a reduz
+        self.assertGreater(row["feed_cost"], 0)
+        self.assertLess(row["feed_focus"], row["feed_cost"])
+        self.assertEqual(r["feed_source"], "T1_CARROT")
+
+    def test_laborer_margin_is_full_minus_empty(self):
+        from albion import island
+        r = island.laborer_economy(self._prices(), premium=True)
+        row = next(x for x in r["rows"] if x["empty"] == "T4_JOURNAL_WOOD_EMPTY")
+        self.assertEqual(row["margin"], row["full_net"] - row["empty_price"])
+        self.assertEqual(row["resource"], "T4_WOOD")
+
+    def test_island_endpoint_views(self):
+        c = TestClient(app.app)
+        for view in ("laborers", "crops", "animals"):
+            r = c.get("/api/island", params={"view": view})
+            self.assertEqual(r.status_code, 200, view)
+            self.assertEqual(r.json().get("view"), view)
+            self.assertIsInstance(r.json().get("rows"), list)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260620-freshrank">
+<link rel="stylesheet" href="style.css?v=20260620-ilha">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body class="auth-pending">
@@ -41,6 +41,7 @@
   <button data-tab="flips">Flips</button>
   <button data-tab="scanner">Scanner</button>
   <button data-tab="avancado">Avançado</button>
+  <button data-tab="ilha">Ilha</button>
   <button data-tab="admin" id="adminTabButton" hidden>Contas</button>
 </nav>
 
@@ -665,6 +666,55 @@
   </div>
 </section>
 
+<!-- ============================ ILHA ============================ -->
+<section class="tab" id="tab-ilha">
+  <nav class="subtabs" id="islandSubtabs">
+    <button data-isl="laborers" class="active">Trabalhadores</button>
+    <button data-isl="crops">Agricultura</button>
+    <button data-isl="animals">Pecuária</button>
+  </nav>
+
+  <!-- ilha: Trabalhadores -->
+  <div class="subtab active" id="isl-laborers">
+    <div class="section-head"><div>
+      <h1>Trabalhadores — diários</h1>
+      <div class="sub">Margem do diário (comprar <b>vazio</b> → vender <b>cheio</b>) = o que o
+        mercado paga pela sua fama, comparado em <b>todas as cidades</b>. Mostra também o recurso
+        que o trabalhador daquela linha entrega e onde vendê-lo melhor.</div>
+    </div></div>
+    <div class="status" id="islLaborStatus"></div>
+    <div class="table-wrap" id="islLaborTable"></div>
+    <p class="hint">Como agir: <b>margem</b> alta = vale encher e vender o diário cheio naquela cidade.
+       Encher o diário é fama (coleta), não custa prata — a margem é o "salário" dela.</p>
+  </div>
+
+  <!-- ilha: Agricultura -->
+  <div class="subtab" id="isl-crops">
+    <div class="section-head"><div>
+      <h1>Agricultura — canteiros</h1>
+      <div class="sub">Semente (melhor cidade p/ comprar) → colheita (melhor cidade p/ vender), com e
+        <b>sem foco</b>. Mostra lucro/dia, quanto o foco rende a mais, e o <b>capital de giro</b> por canteiro.</div>
+    </div></div>
+    <div class="status" id="islCropStatus"></div>
+    <div class="table-wrap" id="islCropTable"></div>
+    <p class="hint">Como agir: <b>com foco</b> a colheita rende ~2× (custa foco/ciclo). Compare
+       <b>lucro/dia c/ foco</b> vs <b>sem</b> e o <b>ganho do foco</b> p/ decidir se vale gastar o foco ali.</p>
+  </div>
+
+  <!-- ilha: Pecuária -->
+  <div class="subtab" id="isl-animals">
+    <div class="section-head"><div>
+      <h1>Pecuária — pasto</h1>
+      <div class="sub">Cria (melhor cidade p/ comprar) + <b>ração</b> real → adulto + prole (melhor cidade
+        p/ vender). Com e sem foco (foco reduz a ração), lucro/dia e capital de giro por animal.</div>
+    </div></div>
+    <div class="status" id="islAnimalStatus"></div>
+    <div class="table-wrap" id="islAnimalTable"></div>
+    <p class="hint">Como agir: a <b>ração</b> sai do produto agrícola mais barato por nutrição; a <b>prole</b>
+       é cria extra que entra na receita. Foco no pasto reduz a ração necessária.</p>
+  </div>
+</section>
+
 <!-- ============================ CONTAS ============================ -->
 <section class="tab" id="tab-admin">
   <div class="section-head">
@@ -759,6 +809,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260620-freshrank"></script>
+<script src="app.js?v=20260620-ilha"></script>
 </body>
 </html>

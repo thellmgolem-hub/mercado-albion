@@ -1,0 +1,1568 @@
+{
+ "crops": {
+  "T1_FARM_CARROT_SEED": {
+   "crop": "T1_CARROT",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 2.0,
+   "seed_regrow_chance": 0.0,
+   "seed_regrow_amount": 1.0,
+   "tier": 1
+  },
+  "T2_FARM_BEAN_SEED": {
+   "crop": "T2_BEAN",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 1.3333,
+   "seed_regrow_chance": 0.3333,
+   "seed_regrow_amount": 1.0,
+   "tier": 2
+  },
+  "T3_FARM_WHEAT_SEED": {
+   "crop": "T3_WHEAT",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.8,
+   "seed_regrow_chance": 0.6,
+   "seed_regrow_amount": 1.0,
+   "tier": 3
+  },
+  "T4_FARM_TURNIP_SEED": {
+   "crop": "T4_TURNIP",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.5333,
+   "seed_regrow_chance": 0.7333,
+   "seed_regrow_amount": 1.0,
+   "tier": 4
+  },
+  "T5_FARM_CABBAGE_SEED": {
+   "crop": "T5_CABBAGE",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.4,
+   "seed_regrow_chance": 0.8,
+   "seed_regrow_amount": 1.0,
+   "tier": 5
+  },
+  "T6_FARM_POTATO_SEED": {
+   "crop": "T6_POTATO",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.2667,
+   "seed_regrow_chance": 0.8667,
+   "seed_regrow_amount": 1.0,
+   "tier": 6
+  },
+  "T7_FARM_CORN_SEED": {
+   "crop": "T7_CORN",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.1778,
+   "seed_regrow_chance": 0.9111,
+   "seed_regrow_amount": 1.0,
+   "tier": 7
+  },
+  "T8_FARM_PUMPKIN_SEED": {
+   "crop": "T8_PUMPKIN",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.1333,
+   "seed_regrow_chance": 0.9333,
+   "seed_regrow_amount": 1.0,
+   "tier": 8
+  },
+  "T2_FARM_AGARIC_SEED": {
+   "crop": "T2_AGARIC",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 1.3333,
+   "seed_regrow_chance": 0.3333,
+   "seed_regrow_amount": 1.0,
+   "tier": 2
+  },
+  "T3_FARM_COMFREY_SEED": {
+   "crop": "T3_COMFREY",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.8,
+   "seed_regrow_chance": 0.6,
+   "seed_regrow_amount": 1.0,
+   "tier": 3
+  },
+  "T4_FARM_BURDOCK_SEED": {
+   "crop": "T4_BURDOCK",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.5333,
+   "seed_regrow_chance": 0.7333,
+   "seed_regrow_amount": 1.0,
+   "tier": 4
+  },
+  "T5_FARM_TEASEL_SEED": {
+   "crop": "T5_TEASEL",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.4,
+   "seed_regrow_chance": 0.8,
+   "seed_regrow_amount": 1.0,
+   "tier": 5
+  },
+  "T6_FARM_FOXGLOVE_SEED": {
+   "crop": "T6_FOXGLOVE",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.2667,
+   "seed_regrow_chance": 0.8667,
+   "seed_regrow_amount": 1.0,
+   "tier": 6
+  },
+  "T7_FARM_MULLEIN_SEED": {
+   "crop": "T7_MULLEIN",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.1778,
+   "seed_regrow_chance": 0.9111,
+   "seed_regrow_amount": 1.0,
+   "tier": 7
+  },
+  "T8_FARM_YARROW_SEED": {
+   "crop": "T8_YARROW",
+   "crop_yield": 4.5,
+   "byproduct": "T1_WORM",
+   "focus_cost": 1000.0,
+   "cycle_s": 79200.0,
+   "focus_bonus": 0.1333,
+   "seed_regrow_chance": 0.9333,
+   "seed_regrow_amount": 1.0,
+   "tier": 8
+  }
+ },
+ "animals": {
+  "T3_FARM_OX_BABY": {
+   "grown": "T3_FARM_OX_GROWN",
+   "growtime_s": 158400.0,
+   "offspring_chance": 0.84,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 480.0,
+   "seconds_per_nutrition": 330.0,
+   "tier": 3
+  },
+  "T4_FARM_OX_BABY": {
+   "grown": "T4_FARM_OX_GROWN",
+   "growtime_s": 331200.0,
+   "offspring_chance": 0.7867,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 768.0,
+   "seconds_per_nutrition": 230.0,
+   "tier": 4
+  },
+  "T5_FARM_OX_BABY": {
+   "grown": "T5_FARM_OX_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.7867,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T6_FARM_OX_BABY": {
+   "grown": "T6_FARM_OX_GROWN",
+   "growtime_s": 676800.0,
+   "offspring_chance": 0.8104,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 3312.0,
+   "seconds_per_nutrition": 52.22,
+   "tier": 6
+  },
+  "T7_FARM_OX_BABY": {
+   "grown": "T7_FARM_OX_GROWN",
+   "growtime_s": 849600.0,
+   "offspring_chance": 0.842,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 7920.0,
+   "seconds_per_nutrition": 21.85,
+   "tier": 7
+  },
+  "T8_FARM_OX_BABY": {
+   "grown": "T8_FARM_OX_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.8736,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T3_FARM_HORSE_BABY": {
+   "grown": "T3_FARM_HORSE_GROWN",
+   "growtime_s": 158400.0,
+   "offspring_chance": 0.84,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 480.0,
+   "seconds_per_nutrition": 330.0,
+   "tier": 3
+  },
+  "T4_FARM_HORSE_BABY": {
+   "grown": "T4_FARM_HORSE_GROWN",
+   "growtime_s": 331200.0,
+   "offspring_chance": 0.7867,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 768.0,
+   "seconds_per_nutrition": 230.0,
+   "tier": 4
+  },
+  "T5_FARM_HORSE_BABY": {
+   "grown": "T5_FARM_HORSE_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.7867,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T6_FARM_HORSE_BABY": {
+   "grown": "T6_FARM_HORSE_GROWN",
+   "growtime_s": 676800.0,
+   "offspring_chance": 0.8104,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 3312.0,
+   "seconds_per_nutrition": 52.22,
+   "tier": 6
+  },
+  "T7_FARM_HORSE_BABY": {
+   "grown": "T7_FARM_HORSE_GROWN",
+   "growtime_s": 849600.0,
+   "offspring_chance": 0.842,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 7920.0,
+   "seconds_per_nutrition": 21.85,
+   "tier": 7
+  },
+  "T8_FARM_HORSE_BABY": {
+   "grown": "T8_FARM_HORSE_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.8736,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T6_FARM_DIREWOLF_BABY": {
+   "grown": "T6_FARM_DIREWOLF_GROWN",
+   "growtime_s": 676800.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 3312.0,
+   "seconds_per_nutrition": 52.22,
+   "tier": 6
+  },
+  "T7_FARM_DIREBOAR_BABY": {
+   "grown": "T7_FARM_DIREBOAR_GROWN",
+   "growtime_s": 849600.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 7920.0,
+   "seconds_per_nutrition": 21.85,
+   "tier": 7
+  },
+  "T8_FARM_DIREBEAR_BABY": {
+   "grown": "T8_FARM_DIREBEAR_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T7_FARM_SWAMPDRAGON_BABY": {
+   "grown": "T7_FARM_SWAMPDRAGON_GROWN",
+   "growtime_s": 849600.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 7920.0,
+   "seconds_per_nutrition": 21.85,
+   "tier": 7
+  },
+  "T8_FARM_MAMMOTH_BABY": {
+   "grown": "T8_FARM_MAMMOTH_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T5_FARM_COUGAR_BABY": {
+   "grown": "T5_FARM_COUGAR_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T8_FARM_DIREWOLF_BABY": {
+   "grown": "T8_FARM_DIREWOLF_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T4_FARM_GIANTSTAG_BABY": {
+   "grown": "T4_FARM_GIANTSTAG_GROWN",
+   "growtime_s": 331200.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 768.0,
+   "seconds_per_nutrition": 230.0,
+   "tier": 4
+  },
+  "T6_FARM_GIANTSTAG_BABY": {
+   "grown": "T6_FARM_GIANTSTAG_GROWN",
+   "growtime_s": 676800.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 3312.0,
+   "seconds_per_nutrition": 52.22,
+   "tier": 6
+  },
+  "T6_FARM_GIANTSTAG_MOOSE_BABY": {
+   "grown": "T6_FARM_GIANTSTAG_MOOSE_GROWN",
+   "growtime_s": 676800.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 3312.0,
+   "seconds_per_nutrition": 52.22,
+   "tier": 6
+  },
+  "T8_FARM_RABBIT_EASTER_BABY": {
+   "grown": "T8_FARM_RABBIT_EASTER_GROWN",
+   "growtime_s": 158400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "chocolate",
+   "nutrition_max": 500.0,
+   "seconds_per_nutrition": 316.8,
+   "tier": 8
+  },
+  "T8_FARM_RABBIT_EASTER_BABY_DARK": {
+   "grown": "T8_FARM_RABBIT_EASTER_GROWN_DARK",
+   "growtime_s": 158400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.03,
+   "tier": 8
+  },
+  "T5_FARM_MOABIRD_FW_BRIDGEWATCH_BABY": {
+   "grown": "T5_FARM_MOABIRD_FW_BRIDGEWATCH_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T5_FARM_DIREBEAR_FW_FORTSTERLING_BABY": {
+   "grown": "T5_FARM_DIREBEAR_FW_FORTSTERLING_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T5_FARM_DIREBOAR_FW_LYMHURST_BABY": {
+   "grown": "T5_FARM_DIREBOAR_FW_LYMHURST_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T5_FARM_RAM_FW_MARTLOCK_BABY": {
+   "grown": "T5_FARM_RAM_FW_MARTLOCK_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T5_FARM_SWAMPDRAGON_FW_THETFORD_BABY": {
+   "grown": "T5_FARM_SWAMPDRAGON_FW_THETFORD_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T5_FARM_GREYWOLF_FW_CAERLEON_BABY": {
+   "grown": "T5_FARM_GREYWOLF_FW_CAERLEON_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T5_FARM_OWL_FW_BRECILIEN_BABY": {
+   "grown": "T5_FARM_OWL_FW_BRECILIEN_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T5_FARM_SPIDER_HELL_BABY": {
+   "grown": "T5_FARM_SPIDER_HELL_GROWN",
+   "growtime_s": 504000.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 1488.0,
+   "seconds_per_nutrition": 116.67,
+   "tier": 5
+  },
+  "T8_FARM_MOABIRD_FW_BRIDGEWATCH_BABY": {
+   "grown": "T8_FARM_MOABIRD_FW_BRIDGEWATCH_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T8_FARM_DIREBEAR_FW_FORTSTERLING_BABY": {
+   "grown": "T8_FARM_DIREBEAR_FW_FORTSTERLING_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T8_FARM_DIREBOAR_FW_LYMHURST_BABY": {
+   "grown": "T8_FARM_DIREBOAR_FW_LYMHURST_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T8_FARM_RAM_FW_MARTLOCK_BABY": {
+   "grown": "T8_FARM_RAM_FW_MARTLOCK_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T8_FARM_SWAMPDRAGON_FW_THETFORD_BABY": {
+   "grown": "T8_FARM_SWAMPDRAGON_FW_THETFORD_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T8_FARM_GREYWOLF_FW_CAERLEON_BABY": {
+   "grown": "T8_FARM_GREYWOLF_FW_CAERLEON_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T8_FARM_OWL_FW_BRECILIEN_BABY": {
+   "grown": "T8_FARM_OWL_FW_BRECILIEN_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T8_FARM_SPIDER_HELL_BABY": {
+   "grown": "T8_FARM_SPIDER_HELL_GROWN",
+   "growtime_s": 1022400.0,
+   "offspring_chance": 0.0,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "meat",
+   "nutrition_max": 19728.0,
+   "seconds_per_nutrition": 8.77,
+   "tier": 8
+  },
+  "T3_FARM_CHICKEN_BABY": {
+   "grown": "T3_FARM_CHICKEN_GROWN",
+   "growtime_s": 158400.0,
+   "offspring_chance": 0.6,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 864.0,
+   "seconds_per_nutrition": 183.34,
+   "tier": 3
+  },
+  "T4_FARM_GOAT_BABY": {
+   "grown": "T4_FARM_GOAT_GROWN",
+   "growtime_s": 158400.0,
+   "offspring_chance": 0.7333,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 864.0,
+   "seconds_per_nutrition": 183.34,
+   "tier": 4
+  },
+  "T5_FARM_GOOSE_BABY": {
+   "grown": "T5_FARM_GOOSE_GROWN",
+   "growtime_s": 158400.0,
+   "offspring_chance": 0.8,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 864.0,
+   "seconds_per_nutrition": 183.34,
+   "tier": 5
+  },
+  "T6_FARM_SHEEP_BABY": {
+   "grown": "T6_FARM_SHEEP_GROWN",
+   "growtime_s": 158400.0,
+   "offspring_chance": 0.8667,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 864.0,
+   "seconds_per_nutrition": 183.34,
+   "tier": 6
+  },
+  "T7_FARM_PIG_BABY": {
+   "grown": "T7_FARM_PIG_GROWN",
+   "growtime_s": 158400.0,
+   "offspring_chance": 0.9111,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 864.0,
+   "seconds_per_nutrition": 183.34,
+   "tier": 7
+  },
+  "T8_FARM_COW_BABY": {
+   "grown": "T8_FARM_COW_GROWN",
+   "growtime_s": 158400.0,
+   "offspring_chance": 0.9333,
+   "offspring_amount": 1.0,
+   "focus_cost": 1000.0,
+   "food_category": "plants",
+   "nutrition_max": 864.0,
+   "seconds_per_nutrition": 183.34,
+   "tier": 8
+  }
+ },
+ "food": {
+  "T1_CARROT": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T2_BEAN": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T3_WHEAT": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T4_TURNIP": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T5_CABBAGE": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T6_POTATO": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T7_CORN": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T8_PUMPKIN": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T2_AGARIC": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T3_COMFREY": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T4_BURDOCK": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T5_TEASEL": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T6_FOXGLOVE": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T7_MULLEIN": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T8_YARROW": {
+   "nutrition": 48.0,
+   "category": "plants"
+  },
+  "T3_MEAT": {
+   "nutrition": 52.0,
+   "category": "meat"
+  },
+  "T4_MEAT": {
+   "nutrition": 52.0,
+   "category": "meat"
+  },
+  "T5_MEAT": {
+   "nutrition": 52.0,
+   "category": "meat"
+  },
+  "T6_MEAT": {
+   "nutrition": 52.0,
+   "category": "meat"
+  },
+  "T7_MEAT": {
+   "nutrition": 52.0,
+   "category": "meat"
+  },
+  "T8_MEAT": {
+   "nutrition": 52.0,
+   "category": "meat"
+  },
+  "UNIQUE_CONSUMABLE_EVENT_EASTER_2020_CHOCOLATE": {
+   "nutrition": 1.0,
+   "category": "chocolate"
+  }
+ },
+ "laborers": {
+  "T3_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": "TROPHY"
+  },
+  "T6_JOURNAL_HUNTER_EMPTY": {
+   "full": "T6_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 6,
+   "resource_family": "HUNTER"
+  },
+  "T3_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": "TROPHY"
+  },
+  "T8_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T8_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 8,
+   "resource_family": "WARRIOR"
+  },
+  "T6_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T6_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 6,
+   "resource_family": "MERCENARY"
+  },
+  "T7_JOURNAL_ORE_EMPTY": {
+   "full": "T7_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 7,
+   "resource_family": "ORE"
+  },
+  "T8_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T8_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 8,
+   "resource_family": "MERCENARY"
+  },
+  "T2_JOURNAL_HIDE_EMPTY": {
+   "full": "T2_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 2,
+   "resource_family": "HIDE"
+  },
+  "T6_JOURNAL_MAGE_EMPTY": {
+   "full": "T6_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 6,
+   "resource_family": "MAGE"
+  },
+  "T7_JOURNAL_HIDE_EMPTY": {
+   "full": "T7_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 7,
+   "resource_family": "HIDE"
+  },
+  "T5_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": "TROPHY"
+  },
+  "T2_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T2_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 2,
+   "resource_family": "WARRIOR"
+  },
+  "T2_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": "TROPHY"
+  },
+  "T3_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": "TROPHY"
+  },
+  "T7_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": "TROPHY"
+  },
+  "T4_JOURNAL_ORE_EMPTY": {
+   "full": "T4_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 4,
+   "resource_family": "ORE"
+  },
+  "T4_JOURNAL_MAGE_EMPTY": {
+   "full": "T4_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 4,
+   "resource_family": "MAGE"
+  },
+  "T4_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T4_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 4,
+   "resource_family": "WARRIOR"
+  },
+  "T5_JOURNAL_HUNTER_EMPTY": {
+   "full": "T5_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 5,
+   "resource_family": "HUNTER"
+  },
+  "T2_JOURNAL_FISHING_EMPTY": {
+   "full": "T2_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 2,
+   "resource_family": "FISHING"
+  },
+  "T3_JOURNAL_FIBER_EMPTY": {
+   "full": "T3_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 3,
+   "resource_family": "FIBER"
+  },
+  "T5_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T5_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 5,
+   "resource_family": "WARRIOR"
+  },
+  "T5_JOURNAL_MAGE_EMPTY": {
+   "full": "T5_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 5,
+   "resource_family": "MAGE"
+  },
+  "T4_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T4_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 4,
+   "resource_family": "MERCENARY"
+  },
+  "T6_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": "TROPHY"
+  },
+  "T6_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": "TROPHY"
+  },
+  "T3_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": "TROPHY"
+  },
+  "T5_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": "TROPHY"
+  },
+  "T7_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": "TROPHY"
+  },
+  "T3_JOURNAL_WOOD_EMPTY": {
+   "full": "T3_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 3,
+   "resource_family": "WOOD"
+  },
+  "T4_JOURNAL_WOOD_EMPTY": {
+   "full": "T4_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 4,
+   "resource_family": "WOOD"
+  },
+  "T2_JOURNAL_FIBER_EMPTY": {
+   "full": "T2_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 2,
+   "resource_family": "FIBER"
+  },
+  "T3_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T3_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 3,
+   "resource_family": "TOOLMAKER"
+  },
+  "T3_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": "TROPHY"
+  },
+  "T8_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": "TROPHY"
+  },
+  "T3_JOURNAL_MAGE_EMPTY": {
+   "full": "T3_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 3,
+   "resource_family": "MAGE"
+  },
+  "T7_JOURNAL_WOOD_EMPTY": {
+   "full": "T7_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 7,
+   "resource_family": "WOOD"
+  },
+  "T7_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": "TROPHY"
+  },
+  "T4_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": "TROPHY"
+  },
+  "T6_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T6_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 6,
+   "resource_family": "TOOLMAKER"
+  },
+  "T3_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": "TROPHY"
+  },
+  "T5_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": "TROPHY"
+  },
+  "T4_JOURNAL_HUNTER_EMPTY": {
+   "full": "T4_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 4,
+   "resource_family": "HUNTER"
+  },
+  "T4_JOURNAL_FISHING_EMPTY": {
+   "full": "T4_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 4,
+   "resource_family": "FISHING"
+  },
+  "T8_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": "TROPHY"
+  },
+  "T3_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": "TROPHY"
+  },
+  "T5_JOURNAL_FIBER_EMPTY": {
+   "full": "T5_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 5,
+   "resource_family": "FIBER"
+  },
+  "T2_JOURNAL_ORE_EMPTY": {
+   "full": "T2_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 2,
+   "resource_family": "ORE"
+  },
+  "T5_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": "TROPHY"
+  },
+  "T5_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T5_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 5,
+   "resource_family": "TOOLMAKER"
+  },
+  "T2_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T2_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 2,
+   "resource_family": "TOOLMAKER"
+  },
+  "T5_JOURNAL_HIDE_EMPTY": {
+   "full": "T5_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 5,
+   "resource_family": "HIDE"
+  },
+  "T5_JOURNAL_ORE_EMPTY": {
+   "full": "T5_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 5,
+   "resource_family": "ORE"
+  },
+  "T5_JOURNAL_WOOD_EMPTY": {
+   "full": "T5_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 5,
+   "resource_family": "WOOD"
+  },
+  "T6_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": "TROPHY"
+  },
+  "T4_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": "TROPHY"
+  },
+  "T6_JOURNAL_FIBER_EMPTY": {
+   "full": "T6_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 6,
+   "resource_family": "FIBER"
+  },
+  "T6_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": "TROPHY"
+  },
+  "T3_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": "TROPHY"
+  },
+  "T7_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": "TROPHY"
+  },
+  "T8_JOURNAL_ORE_EMPTY": {
+   "full": "T8_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 8,
+   "resource_family": "ORE"
+  },
+  "T2_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": "TROPHY"
+  },
+  "T2_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": "TROPHY"
+  },
+  "T2_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": "TROPHY"
+  },
+  "T4_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T4_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 4,
+   "resource_family": "TOOLMAKER"
+  },
+  "T2_JOURNAL_MAGE_EMPTY": {
+   "full": "T2_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 2,
+   "resource_family": "MAGE"
+  },
+  "T7_JOURNAL_HUNTER_EMPTY": {
+   "full": "T7_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 7,
+   "resource_family": "HUNTER"
+  },
+  "T4_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": "TROPHY"
+  },
+  "T3_JOURNAL_FISHING_EMPTY": {
+   "full": "T3_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 3,
+   "resource_family": "FISHING"
+  },
+  "T2_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T2_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 2,
+   "resource_family": "MERCENARY"
+  },
+  "T2_JOURNAL_HUNTER_EMPTY": {
+   "full": "T2_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 2,
+   "resource_family": "HUNTER"
+  },
+  "T7_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": "TROPHY"
+  },
+  "T4_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": "TROPHY"
+  },
+  "T8_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T8_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 8,
+   "resource_family": "TOOLMAKER"
+  },
+  "T7_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T7_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 7,
+   "resource_family": "MERCENARY"
+  },
+  "T6_JOURNAL_FISHING_EMPTY": {
+   "full": "T6_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 6,
+   "resource_family": "FISHING"
+  },
+  "T7_JOURNAL_MAGE_EMPTY": {
+   "full": "T7_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 7,
+   "resource_family": "MAGE"
+  },
+  "T5_JOURNAL_STONE_EMPTY": {
+   "full": "T5_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 5,
+   "resource_family": "STONE"
+  },
+  "T5_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": "TROPHY"
+  },
+  "T6_JOURNAL_ORE_EMPTY": {
+   "full": "T6_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 6,
+   "resource_family": "ORE"
+  },
+  "T4_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": "TROPHY"
+  },
+  "T5_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": "TROPHY"
+  },
+  "T7_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": "TROPHY"
+  },
+  "T4_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": "TROPHY"
+  },
+  "T7_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T7_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 7,
+   "resource_family": "TOOLMAKER"
+  },
+  "T6_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T6_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 6,
+   "resource_family": "WARRIOR"
+  },
+  "T2_JOURNAL_STONE_EMPTY": {
+   "full": "T2_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 2,
+   "resource_family": "STONE"
+  },
+  "T8_JOURNAL_FISHING_EMPTY": {
+   "full": "T8_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 8,
+   "resource_family": "FISHING"
+  },
+  "T8_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": "TROPHY"
+  },
+  "T5_JOURNAL_FISHING_EMPTY": {
+   "full": "T5_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 5,
+   "resource_family": "FISHING"
+  },
+  "T6_JOURNAL_STONE_EMPTY": {
+   "full": "T6_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 6,
+   "resource_family": "STONE"
+  },
+  "T8_JOURNAL_MAGE_EMPTY": {
+   "full": "T8_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 8,
+   "resource_family": "MAGE"
+  },
+  "T3_JOURNAL_HIDE_EMPTY": {
+   "full": "T3_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 3,
+   "resource_family": "HIDE"
+  },
+  "T3_JOURNAL_HUNTER_EMPTY": {
+   "full": "T3_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 3,
+   "resource_family": "HUNTER"
+  },
+  "T7_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": "TROPHY"
+  },
+  "T8_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": "TROPHY"
+  },
+  "T6_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": "TROPHY"
+  },
+  "T2_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": "TROPHY"
+  },
+  "T7_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T7_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 7,
+   "resource_family": "WARRIOR"
+  },
+  "T7_JOURNAL_FISHING_EMPTY": {
+   "full": "T7_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 7,
+   "resource_family": "FISHING"
+  },
+  "T4_JOURNAL_FIBER_EMPTY": {
+   "full": "T4_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 4,
+   "resource_family": "FIBER"
+  },
+  "T4_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": "TROPHY"
+  },
+  "T2_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": "TROPHY"
+  },
+  "T5_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": "TROPHY"
+  },
+  "T7_JOURNAL_FIBER_EMPTY": {
+   "full": "T7_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 7,
+   "resource_family": "FIBER"
+  },
+  "T7_JOURNAL_STONE_EMPTY": {
+   "full": "T7_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 7,
+   "resource_family": "STONE"
+  },
+  "T3_JOURNAL_ORE_EMPTY": {
+   "full": "T3_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 3,
+   "resource_family": "ORE"
+  },
+  "T8_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": "TROPHY"
+  },
+  "T8_JOURNAL_HIDE_EMPTY": {
+   "full": "T8_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 8,
+   "resource_family": "HIDE"
+  },
+  "T2_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": "TROPHY"
+  },
+  "T3_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T3_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 3,
+   "resource_family": "MERCENARY"
+  },
+  "T5_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T5_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 5,
+   "resource_family": "MERCENARY"
+  },
+  "T5_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": "TROPHY"
+  },
+  "T3_JOURNAL_STONE_EMPTY": {
+   "full": "T3_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 3,
+   "resource_family": "STONE"
+  },
+  "T3_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T3_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 3,
+   "resource_family": "WARRIOR"
+  },
+  "T8_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": "TROPHY"
+  },
+  "T6_JOURNAL_HIDE_EMPTY": {
+   "full": "T6_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 6,
+   "resource_family": "HIDE"
+  },
+  "T8_JOURNAL_FIBER_EMPTY": {
+   "full": "T8_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 8,
+   "resource_family": "FIBER"
+  },
+  "T2_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": "TROPHY"
+  },
+  "T6_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": "TROPHY"
+  },
+  "T4_JOURNAL_STONE_EMPTY": {
+   "full": "T4_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 4,
+   "resource_family": "STONE"
+  },
+  "T8_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": "TROPHY"
+  },
+  "T4_JOURNAL_HIDE_EMPTY": {
+   "full": "T4_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 4,
+   "resource_family": "HIDE"
+  },
+  "T7_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": "TROPHY"
+  },
+  "T6_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": "TROPHY"
+  },
+  "T8_JOURNAL_HUNTER_EMPTY": {
+   "full": "T8_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 8,
+   "resource_family": "HUNTER"
+  },
+  "T8_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": "TROPHY"
+  },
+  "T6_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": "TROPHY"
+  },
+  "T8_JOURNAL_WOOD_EMPTY": {
+   "full": "T8_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 8,
+   "resource_family": "WOOD"
+  },
+  "T6_JOURNAL_WOOD_EMPTY": {
+   "full": "T6_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 6,
+   "resource_family": "WOOD"
+  },
+  "T4_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": "TROPHY"
+  },
+  "T8_JOURNAL_STONE_EMPTY": {
+   "full": "T8_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 8,
+   "resource_family": "STONE"
+  },
+  "T2_JOURNAL_WOOD_EMPTY": {
+   "full": "T2_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 2,
+   "resource_family": "WOOD"
+  }
+ },
+ "_fonte": "items.json + loot.json + items_db.json — ao-bin-dumps"
+}
