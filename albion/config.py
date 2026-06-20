@@ -219,8 +219,9 @@ SWEEP_HISTORY_DAYS = 90           # janela canônica de histórico (escala 24h)
 # labourers, mobília, mapas) — por isso filtramos por SUBcategoria-lixo, não pela
 # categoria inteira, para não deixar de fora ~700 itens com mercado real.
 SWEEP_SKIP_CATEGORIES = {"vanity"}
-# Subcategorias claramente sem mercado (quest/loot/lixo): 0 preço na AODP.
-SWEEP_SKIP_SUBS = {"lootitem", "questitems", "trash", "killtrophy",
-                   "guilds", "hardcoreexpeditions"}
+# Subcategorias claramente sem mercado (quest/loot/expedição vinculada). NÃO
+# inclui 'guilds' (martelos de cerco/estandartes SÃO craftáveis/vendáveis) nem
+# 'killtrophy' (mobília, mesma família vendável das outras 311 de mobília).
+SWEEP_SKIP_SUBS = {"lootitem", "questitems", "trash", "hardcoreexpeditions"}
 # Token exigido no /api/sweep (defina em prod; vazio = liberado p/ dev local)
 SWEEP_TOKEN = os.environ.get("ALBION_SWEEP_TOKEN", "")

@@ -6,6 +6,12 @@
       "runtimeExecutable": ".venv\\Scripts\\python.exe",
       "runtimeArgs": ["-m", "uvicorn", "app:app", "--host", "127.0.0.1", "--port", "8528", "--log-level", "warning"],
       "port": 8528
+    },
+    {
+      "name": "mercado-albion-dev",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-c", "import os; os.environ['ALBION_AUTH_DISABLED']='1'; import uvicorn; from app import app; uvicorn.run(app, host='127.0.0.1', port=8528, log_level='warning')"],
+      "port": 8528
     }
   ]
 }

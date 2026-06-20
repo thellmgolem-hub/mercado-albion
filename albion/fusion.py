@@ -69,12 +69,16 @@ def enrich(con, server, opps, history_days=120):
             ORDER BY item_id, city, day""",
         [server, store.cutoff_iso(history_days), *ids]).fetchall()
     div_set = set()
-    try:
-        from . import gameinfo
-        for s in gameinfo.demand_price_divergence(con, server):
-            div_set.add(s.get("item_id"))
-    except Exception:
-        pass
+    # o bônus de divergência depende do killboard (item_demand_daily) + funções
+    # de data SQLite — só existe no SQLite local. No Postgres fica inativo (sem
+    # erro): guarda explícita em vez de depender de exceção engolida.
+    if store.backend() == "sqlite":
+        try:
+            from . import gameinfo
+            for s in gameinfo.demand_price_divergence(con, server):
+                div_set.add(s.get("item_id"))
+        except Exception:
+            pass
     by_ic = {}
     for item, city, _day, price in rows:
         by_ic.setdefault((item, city), []).append(price)

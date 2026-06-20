@@ -3,6 +3,7 @@
 
 Rodar:  python app.py        (abre o navegador em http://127.0.0.1:8528)
 """
+import hmac
 import os
 import re
 import sqlite3
@@ -442,7 +443,12 @@ def sweep(token: str = "",
     frescos + histórico se velho) e grava no store. Em ~3 h varre tudo e recicla.
     Protegido por ALBION_SWEEP_TOKEN (se definido).
     """
-    if config.SWEEP_TOKEN and token != config.SWEEP_TOKEN:
+    # fail-CLOSED em prod: um endpoint que escreve no banco e busca na API
+    # externa NÃO pode ficar aberto. Sem token num backend de servidor (Postgres),
+    # recusa. Em dev local (SQLite, 127.0.0.1) segue liberado por conveniência.
+    if store.backend() != "sqlite" and not config.SWEEP_TOKEN:
+        raise HTTPException(503, "sweep desabilitado: defina ALBION_SWEEP_TOKEN")
+    if config.SWEEP_TOKEN and not hmac.compare_digest(token, config.SWEEP_TOKEN):
         raise HTTPException(403, "token de sweep invalido")
     universe = _market_universe()
     n = len(universe)
