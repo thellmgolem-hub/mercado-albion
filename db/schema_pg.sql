@@ -49,6 +49,19 @@ CREATE TABLE IF NOT EXISTS sweep_state (
   updated_at DOUBLE PRECISION, last_items INTEGER
 );
 
+-- Killboard MAGRO: agregado diário de destruição (alimenta Guild + Logística
+-- restock). Só o agregado cabe no free; o firehose cru não.
+CREATE TABLE IF NOT EXISTS kill_demand_daily (
+  server TEXT, day TEXT, item_id TEXT, slot TEXT, quality INTEGER,
+  victim_units BIGINT, victim_events BIGINT,
+  PRIMARY KEY (server, day, item_id, slot, quality)
+);
+CREATE INDEX IF NOT EXISTS idx_kill_demand_day ON kill_demand_daily (server, day);
+CREATE TABLE IF NOT EXISTS public_ingest_checkpoints (
+  server TEXT, source TEXT, cursor_value BIGINT, last_success_at DOUBLE PRECISION,
+  PRIMARY KEY (server, source)
+);
+
 -- ===== Autenticação (espelha albion/auth.py _AUTH_SCHEMA_PG) ============
 CREATE TABLE IF NOT EXISTS auth_accounts (
   id SERIAL PRIMARY KEY,

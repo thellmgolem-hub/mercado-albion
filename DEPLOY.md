@@ -44,6 +44,13 @@ acordado). Nada de cartão. Tempo: ~30–45 min.
    - **Schedule**: a cada **1 minuto**.
 3. Salve e **ative**. Pronto: a cada minuto ele busca 100 itens e mantém o app
    acordado. Em ~1,5–2 h varre os ~10.400 itens e recicla, sozinho.
+4. **(Opcional, recomendado) Segundo cronjob — killboard.** Crie outro cronjob:
+   - **URL**: `https://SUA-URL.onrender.com/api/intel-sweep?token=SEU_TOKEN`
+   - **Schedule**: a cada **10 minutos**.
+   Esse alimenta o agregado de destruição (kill_demand_daily) que liga o hub
+   **Guild** (fazer-vs-comprar, regear, ranking de destruição) e o **mapa de
+   reposição** da Logística. Sem ele, essas telas ficam vazias (o resto funciona
+   normal).
 
 ## Conferir se está vivo
 - `https://SUA-URL.onrender.com/api/status` mostra `backend: postgres` e as
@@ -56,5 +63,8 @@ acordado). Nada de cartão. Tempo: ~30–45 min.
   isso; se o cron parar por dias, "despause" o projeto no painel do Supabase.
 - **Ícones**: o proxy de ícone é Windows-only; na nuvem o navegador busca os
   ícones direto do CDN do Albion (fallback do frontend) — funciona normal.
-- **Killboard** (PvP/Demanda/Guild) fica fora do piloto free (não cabe nos
-  500 MB). Pode voltar parcialmente depois (ver nota no fim).
+- **Killboard**: o piloto guarda só o **agregado diário** de destruição
+  (kill_demand_daily, ~MB), então **Guild** (fazer-vs-comprar, regear, ranking)
+  e o **mapa de reposição** da Logística funcionam (via o 2º cron). O que NÃO
+  volta é o que precisa do evento cru: **PvP puro** (meta de armas, win-rate) —
+  limite estrutural, não de espaço.

@@ -255,18 +255,25 @@ def ingest_demand_lean(aodp, client: GameinfoClient | None = None,
         ok, error = 0, repr(e)[:500]
     rows_out = [(aodp.server, day, item_id, slot, qual, u, ev)
                 for (day, item_id, slot, qual), (u, ev) in agg.items()]
-    if rows_out:
+    # agregado + AVANÇO do checkpoint na MESMA transação: se o processo cair
+    # entre os dois, a próxima rodada NÃO re-soma os mesmos eventos (sem inflação).
+    if rows_out or newest > known_max:
         with aodp.db_lock:
-            store.upsert_add(
-                aodp.db, "kill_demand_daily",
-                ["server", "day", "item_id", "slot", "quality",
-                 "victim_units", "victim_events"],
-                rows_out,
-                ["server", "day", "item_id", "slot", "quality"],
-                ["victim_units", "victim_events"])
+            if rows_out:
+                store.upsert_add(
+                    aodp.db, "kill_demand_daily",
+                    ["server", "day", "item_id", "slot", "quality",
+                     "victim_units", "victim_events"],
+                    rows_out,
+                    ["server", "day", "item_id", "slot", "quality"],
+                    ["victim_units", "victim_events"])
+            if newest > known_max:
+                store.upsert(
+                    aodp.db, "public_ingest_checkpoints",
+                    ["server", "source", "cursor_value", "last_success_at"],
+                    [(aodp.server, "demand_lean", newest, time.time())],
+                    ["server", "source"])
             aodp.db.commit()
-    if newest > known_max:
-        _save_checkpoint(aodp, "demand_lean", newest)
     saturated = bool(ok and not caught_up and newest > known_max)
     return {"source": "demand_lean", "pages": pages, "seen": seen,
             "keys": len(agg), "newest": newest, "ok": ok, "error": error,
