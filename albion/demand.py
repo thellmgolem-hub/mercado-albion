@@ -45,7 +45,8 @@ def _exposure_days(con, server, days):
     return max(hours / 24.0, 1 / 24.0)   # piso de 1h p/ não dividir por zero
 
 
-def consumable_burn(con, server, days=7, price_of=None, vol_of=None, limit=40):
+def consumable_burn(con, server, days=7, price_of=None, vol_of=None,
+                    premium=True, limit=40):
     """Queima de consumíveis (poções/comida) por dia vs oferta do mercado.
 
     Soma as unidades destruídas por item (slot Potion/Food) na janela, converte
@@ -75,8 +76,9 @@ def consumable_burn(con, server, days=7, price_of=None, vol_of=None, limit=40):
             "per_day": round(per_day, 1),
             "market_vol_day": round(market_vol, 1) if market_vol else None,
             "coverage": round(coverage, 2) if coverage is not None else None,
-            "silver_per_day": round(per_day * sell_revenue(price, "order", True))
-            if price else None,
+            "silver_per_day":
+                round(per_day * sell_revenue(price, "order", premium))
+                if price else None,
             "undersupplied": coverage is not None and coverage < 1,
         })
     out.sort(key=lambda r: -(r["silver_per_day"] or r["per_day"]))
@@ -110,14 +112,15 @@ def destroyed_quality(con, server, days=7, price_q=None, limit=40):
         p1 = price_q(item, 1)
         if not p1:
             continue
-        # E[prêmio] = Σ share_q × (preço_q/preço_q1)
+        # E[prêmio] = Σ share_q × (preço_q/preço_q1). RENORMALIZA sobre as
+        # qualidades COM preço — senão as shares somam < 1 e o índice viesa para
+        # baixo (podendo cair abaixo de 1, impossível para um prêmio ancorado em q1).
+        priced = {q: pq for q in qd if (pq := price_q(item, q))}
+        denom = sum(qd[q] for q in priced) or 1
         ev_premium, hi_share = 0.0, 0.0
-        for q, units in qd.items():
-            pq = price_q(item, q)
-            if not pq:
-                continue
-            share = units / total
-            ev_premium += share * (pq / p1)
+        for q in priced:
+            share = qd[q] / denom
+            ev_premium += share * (priced[q] / p1)
             if q >= 4:
                 hi_share += share
         out.append({

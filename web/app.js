@@ -2199,7 +2199,7 @@ async function loadAvLogi(view) {
         { key: 'sell', label: 'Vender em', align: 'l', value: (o) => o.sell_city, html: (o) => cityHtml(o.sell_city) },
         { key: 'profit', label: 'Lucro', value: (o) => o.profit, html: (o) => fmt(o.profit) },
         { key: 'ppk', label: 'Lucro/kg', value: (o) => o.profit_per_kg == null ? 0 : o.profit_per_kg, html: (o) => o.profit_per_kg == null ? '—' : fmtDec(o.profit_per_kg, 1) },
-      ], rows, { sortKey: 'score' });
+      ], rows, { sortKey: 'profit' });
     } else {
       renderTable('logiTable', [
         { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },

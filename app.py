@@ -1418,8 +1418,8 @@ def demand_view(view: str = "burn", days: float = Query(7, ge=0.25, le=45),
             price_item = _cheapest_by_item(q1)
             vol = _market_volume(con, days=7)
             rows = dm.consumable_burn(con, aodp.server, days=days,
-                                      price_of=price_item.get,
-                                      vol_of=vol.get, limit=limit)
+                                      price_of=price_item.get, vol_of=vol.get,
+                                      premium=premium, limit=limit)
         for r in rows:
             r["name_pt"] = name(r["item_id"])
         return {"view": view, "rows": rows}

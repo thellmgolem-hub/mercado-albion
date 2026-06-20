@@ -200,6 +200,20 @@ def ingest_demand_lean(aodp, client: GameinfoClient | None = None,
     Funciona em SQLite e Postgres (store.upsert_add soma no conflito).
     """
     from . import store
+    # No SQLite local com eventos crus presentes, kill_demand_daily é
+    # reconstruído por materialize_kill_demand_daily (REPLACE) via `intel
+    # collect` — somar (upsert_add) por cima inflaria a contagem. Aborta com
+    # no-op; o caminho magro (SUM) é exclusivo do Postgres (sem tabelas cruas).
+    if getattr(aodp.db, "backend", "sqlite") == "sqlite":
+        try:
+            has_raw = aodp.db.execute(
+                "SELECT 1 FROM kill_event_equipment LIMIT 1").fetchone()
+        except Exception:
+            has_raw = None
+        if has_raw:
+            return {"source": "demand_lean", "ok": 1, "pages": 0, "seen": 0,
+                    "keys": 0, "skipped": "sqlite com eventos crus "
+                    "(use `intel collect` p/ materializar)"}
     client = client or GameinfoClient(aodp.server)
     started = time.time()
     known_max = _checkpoint(aodp, "demand_lean")
