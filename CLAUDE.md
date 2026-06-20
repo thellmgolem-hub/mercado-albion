@@ -3,6 +3,30 @@
 App local de consulta de preços e flips do Albion Online (servidor das Américas),
 dados do Albion Online Data Project (AODP). Interface PT-BR + CLI de análise.
 
+## Piloto na nuvem (branch pilot-sem-coleta) — IMPORTANTE p/ contexto
+
+O app ganhou um modo de PILOTO gratuito (Render + Supabase, sem cartão; guia em
+DEPLOY.md). Mudanças estruturais em relação ao app local:
+- **Camada de dados dual** (albion/store.py): SQLite local OU Postgres na nuvem
+  (escolhido pela env DATABASE_URL). Regra de ouro: NADA de funções de data do
+  SQL (date('now'), strftime, datetime) — use store.cutoff_iso e compare `ts`
+  (texto ISO) com `>=`. Escritas com conflito via store.upsert/upsert_ignore/
+  upsert_add (este SOMA, p/ agregados). store.Row imita sqlite3.Row.
+- **Coleta = sweep fatiado por cron** (não mais coletor sempre-ligado): /api/sweep
+  varre TODO o mercado (~10.4k itens, _market_universe, cursor em sweep_state) e
+  /api/intel-sweep agrega o killboard. Ambos protegidos por ALBION_SWEEP_TOKEN
+  (fail-closed em prod), isentos de auth, tocados por cron-job.org.
+- **Killboard MAGRO**: não guarda o firehose cru no piloto — só o agregado diário
+  kill_demand_daily (server,day,item_id,slot,quality→victim_units). Alimenta
+  Guild (make_or_buy/watch/kit) e Logística restock e Demanda (burn/quality).
+  PvP puro (correlação intra-evento) fica fora. As análises de killboard somam
+  victim_units com `slot != 'Inventory'` (só gear equipado, não carga).
+- **Auth** portado p/ Postgres (SERIAL/RETURNING; _read encerra transações de
+  leitura). Bootstrap por env ALBION_BOOTSTRAP_ADMIN (mostra a senha no log).
+- Validador do dialeto Postgres: tools/check_pg.py (rodar com DATABASE_URL).
+- Módulos pvp/backtest/survival/orders permanecem no repo mas estão FORA do
+  piloto (não rodam na nuvem); CLI/testes ainda os exercitam no SQLite local.
+
 ## Para fazer análises mercadológicas (pedido comum do usuário)
 
 Use a CLI — ela cuida de cache, throttle e taxas:
