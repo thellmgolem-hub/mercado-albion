@@ -74,17 +74,20 @@ _maybe_bootstrap_admin()
 
 # ---- Coleta automática LOCAL (só SQLite). Na nuvem (Postgres) quem coleta é o
 # cron /api/sweep — aqui religamos o "abre → atualiza sozinho" para o uso local.
-_AUTOCOLLECT_CATS = ["bags", "capes", "mounts", "consumables", "gathering",
-                     "head", "shoes", "offhands", "weapons", "armors"]
+_AUTOCOLLECT_CATS = ["weapons", "armors", "head", "shoes", "offhands", "capes",
+                     "bags", "mounts", "consumables", "gathering", "crafting"]
 _autocollect_started = False
 
 
-def _default_watch_seed(per_cat=80, total=500):
-    """Itens líquidos p/ semear a watchlist no cold start (cache vazio)."""
+def _default_watch_seed(per_cat=400, total=2000):
+    """Cesta ampla de itens negociáveis p/ a watchlist (T3+, encantos 0-3):
+    armas/armaduras/acessórios + consumíveis + recursos brutos e refinados.
+    Limitada a `total` (e o collect ainda respeita COLLECT_MAX_ITEMS)."""
     ids, seen = [], set()
     for cat in _AUTOCOLLECT_CATS:
         try:
-            rows = db.filter(cat=cat, tier_min=3, ench_list=[0, 1], limit=per_cat)
+            rows = db.filter(cat=cat, tier_min=3, ench_list=[0, 1, 2, 3],
+                             limit=per_cat)
         except Exception:
             rows = []
         for it in rows:
@@ -114,12 +117,15 @@ def _start_auto_collector():
 
     def loop():
         try:
-            if not aodp.watch_list():
-                seed = _default_watch_seed()
-                if seed:
-                    aodp.watch_add(seed)
-                    print(f"[auto-collect] watchlist semeada: {len(seed)} itens "
-                          "líquidos (1ª vez).", flush=True)
+            # COMPLETA a watchlist com a cesta padrão (idempotente: só adiciona o
+            # que falta) — aplica a cesta ampla mesmo se já houver itens.
+            seed = _default_watch_seed()
+            existing = {w["item_id"] for w in aodp.watch_list()}
+            novos = [i for i in seed if i not in existing]
+            if novos:
+                aodp.watch_add(novos)
+                print(f"[auto-collect] watchlist: +{len(novos)} itens "
+                      f"(total {len(existing) + len(novos)}).", flush=True)
         except Exception as e:
             print("[auto-collect] seed falhou:", repr(e)[:200], flush=True)
         time.sleep(4)   # deixa o servidor subir antes de bater na API
