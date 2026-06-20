@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260619-pilot1">
+<link rel="stylesheet" href="style.css?v=20260620-killboard">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body class="auth-pending">
@@ -537,6 +537,7 @@
     <button data-av="prod">Produção</button>
     <button data-av="guild">Guild</button>
     <button data-av="logi">Logística</button>
+    <button data-av="demanda">Demanda</button>
     <button data-av="risco">Risco</button>
   </nav>
 
@@ -591,6 +592,7 @@
       </div>
       <div class="field-row chips" id="guildView">
         <button class="chip on" data-view="makeorbuy">Fazer vs comprar</button>
+        <button class="chip" data-view="watch">Ranking de destruição</button>
       </div>
     </div>
     <div class="status" id="guildStatus"></div>
@@ -617,6 +619,26 @@
     <div class="table-wrap" id="logiTable"></div>
     <p class="hint">Como agir: <b>prêmio %</b> alto = vale levar pro Mercado Negro / subir de qualidade.
        Resultado teórico: confira transporte e frescor.</p>
+  </div>
+
+  <!-- av: Demanda -->
+  <div class="subtab" id="av-demanda">
+    <div class="section-head">
+      <div>
+        <h1>Demanda do killboard</h1>
+        <div class="sub">O que o servidor queima/perde de verdade: poções e comida destruídas por
+          dia vs oferta do mercado, e a qualidade do gear destruído — sinal de demanda antes de o
+          preço reagir. Vem do agregado de destruição (kill_demand_daily).</div>
+      </div>
+      <div class="field-row chips" id="demandaView">
+        <button class="chip on" data-view="burn">Giro de consumíveis</button>
+        <button class="chip" data-view="quality">Qualidade destruída</button>
+      </div>
+    </div>
+    <div class="status" id="demandaStatus"></div>
+    <div class="table-wrap" id="demandaTable"></div>
+    <p class="hint">Como agir: <b>cobertura &lt; 1</b> = consumível subabastecido (preço pode subir).
+       Killboard é amostra curta — pese pelo tamanho da amostra.</p>
   </div>
 
   <!-- av: Risco -->
@@ -735,6 +757,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260619-pilot1"></script>
+<script src="app.js?v=20260620-killboard"></script>
 </body>
 </html>

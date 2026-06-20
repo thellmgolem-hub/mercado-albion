@@ -255,9 +255,11 @@ def ingest_demand_lean(aodp, client: GameinfoClient | None = None,
         ok, error = 0, repr(e)[:500]
     rows_out = [(aodp.server, day, item_id, slot, qual, u, ev)
                 for (day, item_id, slot, qual), (u, ev) in agg.items()]
-    # agregado + AVANÇO do checkpoint na MESMA transação: se o processo cair
-    # entre os dois, a próxima rodada NÃO re-soma os mesmos eventos (sem inflação).
-    if rows_out or newest > known_max:
+    # SÓ grava se a paginação completou (ok=1): em falha no meio, descarta o
+    # parcial e NÃO avança o checkpoint — a próxima rodada reprocessa do mesmo
+    # ponto, sem lacuna permanente e sem dupla contagem. Agregado + checkpoint
+    # na MESMA transação (atômico contra queda entre os dois).
+    if ok and (rows_out or newest > known_max):
         with aodp.db_lock:
             if rows_out:
                 store.upsert_add(
@@ -278,6 +280,33 @@ def ingest_demand_lean(aodp, client: GameinfoClient | None = None,
     return {"source": "demand_lean", "pages": pages, "seen": seen,
             "keys": len(agg), "newest": newest, "ok": ok, "error": error,
             "saturated": saturated}
+
+
+def materialize_kill_demand_daily(aodp) -> int:
+    """Reconstrói kill_demand_daily a partir de kill_event_equipment (CLI local).
+
+    Rebuild COMPLETO e idempotente (REPLACE) sobre os eventos crus já ingeridos
+    pela CLI (`intel collect`). No servidor magro/Postgres a mesma tabela é
+    alimentada incrementalmente por ingest_demand_lean — assim Guild/Logística
+    funcionam tanto no SQLite local quanto na nuvem. Só SQLite (usa as tabelas
+    cruas, que não existem no piloto Postgres)."""
+    if getattr(aodp.db, "backend", "sqlite") != "sqlite":
+        return 0
+    with aodp.db_lock:
+        rows = aodp.db.execute(
+            """SELECT e.server, substr(k.ts,1,10) AS day, e.item_id, e.slot,
+                      e.quality, SUM(e.count) AS units,
+                      COUNT(DISTINCT e.event_id) AS evs
+               FROM kill_event_equipment e JOIN kill_events k
+                 ON k.server=e.server AND k.event_id=e.event_id
+               WHERE e.role='victim' AND e.server=?
+               GROUP BY e.server, day, e.item_id, e.slot, e.quality""",
+            [aodp.server]).fetchall()
+        aodp.db.executemany(
+            "INSERT OR REPLACE INTO kill_demand_daily VALUES (?,?,?,?,?,?,?)",
+            [tuple(r) for r in rows])
+        aodp.db.commit()
+    return len(rows)
 
 
 def ingest_battles(aodp, client: GameinfoClient | None = None,

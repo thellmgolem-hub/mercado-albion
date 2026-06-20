@@ -2090,7 +2090,8 @@ function showAvSub(av) {
   if (state.avSubLoaded[av]) return;
   state.avSubLoaded[av] = true;
   ({ micro: loadAvancado, prod: loadAvProd,
-     guild: loadAvGuild, logi: loadAvLogi, risco: loadAvRisco }[av]
+     guild: loadAvGuild, logi: loadAvLogi, demanda: loadAvDemanda,
+     risco: loadAvRisco }[av]
     || (() => {}))();
 }
 
@@ -2136,17 +2137,28 @@ async function loadAvGuild(view) {
   st.className = 'status';
   st.textContent = 'calculando…';
   try {
-    const res = await api('/api/guild', { view: 'makeorbuy', days: 7, premium: state.premium, limit: 50 });
+    const res = await api('/api/guild', { view: avGuildView, days: 7, premium: state.premium, limit: 50 });
     const rows = res.rows || [];
-    renderTable('guildTable', [
-      { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
-      { key: 'dem', label: 'Demanda', value: (o) => o.demand_units, html: (o) => fmt(o.demand_units) },
-      { key: 'make', label: 'Fazer', value: (o) => o.internal_cost, html: (o) => fmt(o.internal_cost) },
-      { key: 'buy', label: 'Comprar', value: (o) => o.market_price, html: (o) => fmt(o.market_price) },
-      { key: 'save', label: 'Economia %', value: (o) => o.save_pct == null ? 0 : o.save_pct, html: (o) => fmtDec(o.save_pct, 1) + '%' },
-      { key: 'v', label: 'Veredito', align: 'l', value: (o) => o.verdict, html: (o) => esc(o.verdict) },
-    ], rows, { sortKey: 'save' });
-    st.textContent = `${rows.length} itens (fazer vs comprar)`;
+    if (avGuildView === 'watch') {
+      renderTable('guildTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'dest', label: 'Destruídos', value: (o) => o.destroyed, html: (o) => fmt(o.destroyed) },
+        { key: 'ad', label: 'Dias ativos', value: (o) => o.active_days, html: (o) => fmt(o.active_days) },
+        { key: 'price', label: 'Preço', value: (o) => o.price, html: (o) => o.price == null ? '—' : fmt(o.price) },
+        { key: 'score', label: 'Score', value: (o) => o.score, html: (o) => fmt(o.score) },
+      ], rows, { sortKey: 'score' });
+      st.textContent = rows.length ? `${rows.length} itens (ranking de destruição)` : 'sem dados de killboard ainda (rode o intel-sweep)';
+    } else {
+      renderTable('guildTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'dem', label: 'Demanda', value: (o) => o.demand_units, html: (o) => fmt(o.demand_units) },
+        { key: 'make', label: 'Fazer', value: (o) => o.internal_cost, html: (o) => fmt(o.internal_cost) },
+        { key: 'buy', label: 'Comprar', value: (o) => o.market_price, html: (o) => fmt(o.market_price) },
+        { key: 'save', label: 'Economia %', value: (o) => o.save_pct == null ? 0 : o.save_pct, html: (o) => fmtDec(o.save_pct, 1) + '%' },
+        { key: 'v', label: 'Veredito', align: 'l', value: (o) => o.verdict, html: (o) => esc(o.verdict) },
+      ], rows, { sortKey: 'save' });
+      st.textContent = rows.length ? `${rows.length} itens (fazer vs comprar)` : 'sem dados de killboard ainda (rode o intel-sweep)';
+    }
   } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
 }
 
@@ -2215,6 +2227,37 @@ async function loadAvRisco(view) {
       ], rows, { sortKey: 'shr' });
     }
     st.textContent = rows.length ? `${rows.length} ${avRiscoView === 'corr' ? 'pares' : 'itens líquidos'}` : 'sem série suficiente no cache';
+  } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
+}
+
+let avDemandaView = 'burn';
+async function loadAvDemanda(view) {
+  if (view) avDemandaView = view;
+  const st = $('demandaStatus');
+  st.className = 'status';
+  st.textContent = 'calculando…';
+  try {
+    const res = await api('/api/demand', { view: avDemandaView, days: 7, premium: state.premium, limit: 50 });
+    const rows = res.rows || [];
+    if (avDemandaView === 'quality') {
+      renderTable('demandaTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'dest', label: 'Destruídos', value: (o) => o.destroyed, html: (o) => fmt(o.destroyed) },
+        { key: 'q4', label: 'Share q4+ %', value: (o) => o.share_q4plus_pct, html: (o) => fmtDec(o.share_q4plus_pct, 1) + '%' },
+        { key: 'ev', label: 'E[prêmio qual.]', value: (o) => o.ev_quality_premium, html: (o) => fmtDec(o.ev_quality_premium, 2) },
+        { key: 'dom', label: 'Q dominante', value: (o) => o.dominant_q, html: (o) => 'q' + o.dominant_q },
+      ], rows, { sortKey: 'ev' });
+    } else {
+      renderTable('demandaTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'burn', label: 'Queimados', value: (o) => o.burned_units, html: (o) => fmt(o.burned_units) },
+        { key: 'pd', label: 'Por dia', value: (o) => o.per_day, html: (o) => fmtDec(o.per_day, 1) },
+        { key: 'mv', label: 'Vol mercado/dia', value: (o) => o.market_vol_day, html: (o) => o.market_vol_day == null ? '—' : fmtDec(o.market_vol_day, 1) },
+        { key: 'cov', label: 'Cobertura', value: (o) => o.coverage == null ? 9e9 : o.coverage, html: (o) => o.coverage == null ? '—' : fmtDec(o.coverage, 2) },
+        { key: 'spd', label: 'Prata/dia', value: (o) => o.silver_per_day, html: (o) => o.silver_per_day == null ? '—' : fmt(o.silver_per_day) },
+      ], rows, { sortKey: 'spd' });
+    }
+    st.textContent = rows.length ? `${rows.length} itens (${avDemandaView})` : 'sem dados de killboard ainda (rode o intel-sweep)';
   } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
 }
 
@@ -2330,7 +2373,8 @@ async function init() {
   document.querySelectorAll('#avSubtabs button').forEach((b) =>
     b.addEventListener('click', () => showAvSub(b.dataset.av)));
   [['#prodView', loadAvProd], ['#guildView', loadAvGuild],
-   ['#logiView', loadAvLogi], ['#riscoView', loadAvRisco]]
+   ['#logiView', loadAvLogi], ['#demandaView', loadAvDemanda],
+   ['#riscoView', loadAvRisco]]
     .forEach(([sel, loader]) =>
       document.querySelectorAll(sel + ' .chip').forEach((b) =>
         b.addEventListener('click', () => {

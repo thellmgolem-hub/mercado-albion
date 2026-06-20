@@ -12,6 +12,7 @@ tamanho da amostra para o usuário pesar.
 import re
 
 from . import config
+from . import store
 from .flips import sell_revenue
 
 _TIER_PREFIX = re.compile(r"^T\d+_")
@@ -54,17 +55,17 @@ def consumable_burn(con, server, days=7, price_of=None, vol_of=None, limit=40):
     price_of(item)->preço q1; vol_of(item)->volume diário de mercado.
     """
     rows = con.execute(
-        """SELECT e.item_id, SUM(e.count) AS units, COUNT(DISTINCT e.event_id) AS evs
-           FROM kill_event_equipment e JOIN kill_events k
-             ON k.server=e.server AND k.event_id=e.event_id
-           WHERE e.server=? AND e.role='victim' AND e.slot IN ('Potion','Food')
-             AND k.ts >= datetime('now', ?)
-           GROUP BY e.item_id HAVING units>0""",
-        [server, f"-{days} days"]).fetchall()
-    exp_days = _exposure_days(con, server, days)   # normaliza por exposição
+        """SELECT item_id, SUM(victim_units) AS units,
+                  COUNT(DISTINCT day) AS active_days
+           FROM kill_demand_daily
+           WHERE server=? AND slot IN ('Potion','Food') AND day >= ?
+           GROUP BY item_id HAVING SUM(victim_units)>0""",
+        [server, store.cutoff_iso(days)]).fetchall()
     out = []
-    for item, units, _evs in rows:
-        per_day = units / exp_days
+    for item, units, active_days in rows:
+        # agregado é diário: normaliza por DIAS ativos (não por horas de
+        # exposição — o killboard magro não guarda a granularidade horária).
+        per_day = units / max(active_days, 1)
         price = price_of(item) if price_of else None
         market_vol = vol_of(item) if vol_of else None
         coverage = (market_vol / per_day) if (market_vol and per_day) else None
@@ -91,15 +92,13 @@ def destroyed_quality(con, server, days=7, price_q=None, limit=40):
     price_q(item, q)->preço de venda q.
     """
     rows = con.execute(
-        """SELECT item_id, quality, SUM(count) AS units
-           FROM kill_event_equipment
-           WHERE server=? AND role='victim'
+        """SELECT item_id, quality, SUM(victim_units) AS units
+           FROM kill_demand_daily
+           WHERE server=? AND day >= ?
              AND slot IN ('MainHand','OffHand','Head','Armor','Shoes','Cape')
              AND quality>0
-             AND event_id IN (SELECT event_id FROM kill_events
-                              WHERE server=? AND ts >= datetime('now', ?))
            GROUP BY item_id, quality""",
-        [server, server, f"-{days} days"]).fetchall()
+        [server, store.cutoff_iso(days)]).fetchall()
     by_item = {}
     for item, q, units in rows:
         by_item.setdefault(item, {})[q] = units

@@ -1202,25 +1202,20 @@ class DemandGuildTests(unittest.TestCase):
         self.assertEqual(dm.item_family("T4_2H_BOW_KEEPER@4", base_only=False),
                          "2H_BOW_KEEPER")
 
-    def test_consumable_burn_normalizes_by_exposure(self):
+    def test_consumable_burn_per_active_day(self):
+        # killboard MAGRO (kill_demand_daily): normaliza por DIAS ativos
         from datetime import datetime, timezone, timedelta
         from albion import demand as dm
-        now = datetime.now(timezone.utc)
-        # 2 kills em 2 HORAS distintas (não 2 dias) -> exposição = 2h
-        rows = [(now - timedelta(hours=2), 1, 30),
-                (now - timedelta(hours=3), 2, 18)]
+        today = datetime.now(timezone.utc)
+        d1 = (today - timedelta(days=1)).strftime("%Y-%m-%d")
+        d2 = today.strftime("%Y-%m-%d")
         with TemporaryDirectory() as tmp:
             client = AODP(db_path=Path(tmp) / "cache.db")
             try:
-                for ts_dt, eid, units in rows:
-                    ts = ts_dt.strftime("%Y-%m-%dT%H:%M:%S")
-                    client.db.execute(
-                        "INSERT INTO kill_events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                        ("americas", eid, ts, 0, "kill", "OPEN", None, 0, 4, 1,
-                         "k", "v", 0))
-                    client.db.execute(
-                        "INSERT INTO kill_event_equipment VALUES (?,?,?,?,?,?,?)",
-                        ("americas", eid, "victim", "Potion", "T8_POT", units, 1))
+                client.db.executemany(
+                    "INSERT INTO kill_demand_daily VALUES (?,?,?,?,?,?,?)",
+                    [("americas", d1, "T8_POT", "Potion", 1, 30, 5),
+                     ("americas", d2, "T8_POT", "Potion", 1, 18, 3)])
                 client.db.commit()
                 res = dm.consumable_burn(
                     client.db, "americas", days=7,
@@ -1229,9 +1224,9 @@ class DemandGuildTests(unittest.TestCase):
                 client.db.close()
         r = next(x for x in res if x["item_id"] == "T8_POT")
         self.assertEqual(r["burned_units"], 48)
-        # exposição = 2h = 2/24 dia; per_day = 48 / (2/24) = 576 (não 48/7)
-        self.assertAlmostEqual(r["per_day"], 576.0, delta=1)
-        self.assertTrue(r["undersupplied"])                    # 5 << 576
+        # 2 dias ativos -> per_day = 48/2 = 24
+        self.assertAlmostEqual(r["per_day"], 24.0, delta=0.1)
+        self.assertTrue(r["undersupplied"])                    # vol 5 << 24
 
     def test_watchlist_roi_ranks_destruction(self):
         # ranking de destruição sobre kill_demand_daily (killboard magro):

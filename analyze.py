@@ -1324,6 +1324,8 @@ def cmd_intel(args, fmt):
             results.append(gameinfo.ingest_battles(aodp))
         n = gameinfo.aggregate_demand_daily(aodp)
         info(f"item_demand_daily reagregado: {n} linhas (últimos 3 dias).")
+        km = gameinfo.materialize_kill_demand_daily(aodp)
+        info(f"kill_demand_daily reconstruído: {km} linhas (Guild/Logística).")
         emit(results, [("source", "Fonte"), ("pages", "Páginas"),
                        ("seen", "Vistos"), ("inserted", "Novos"),
                        ("ok", "OK"), ("error", "Erro")], fmt)
@@ -2050,10 +2052,10 @@ def cmd_guild(args, fmt):
                                    limit=args.limit)
             for r in res["add"]:
                 r["item"] = name(r["item_id"])
-            info(f"Prioridade de coleta ({args.days}d): itens MUITO destruídos que "
-                 f"NÃO estão na watchlist ({res['watched_count']} já vigiados). "
-                 "Adicione com `watch add`.")
-            emit(res["add"], [("item", "Item (ADD à watchlist)"),
+            info(f"Ranking de destruição do servidor ({args.days}d): o que mais "
+                 "é perdido em PvP, ponderado por preço e dias ativos. Vale "
+                 "produzir/estocar os do topo.")
+            emit(res["add"], [("item", "Item"),
                  ("destroyed", "Destruídos"), ("active_days", "Dias ativos"),
                  ("price", "Preço"), ("score", "Score")], fmt)
         elif args.acao == "kit":

@@ -419,6 +419,20 @@ def status():
     }
 
 
+_INTEL_LOCK = threading.Lock()
+
+
+def _check_sweep_token(token: str):
+    """Gate dos endpoints de sweep: fail-closed em prod sem token; comparação em
+    tempo constante por BYTES (str não-ASCII em compare_digest levantaria 500)."""
+    if store.backend() != "sqlite" and not config.SWEEP_TOKEN:
+        raise HTTPException(503, "sweep desabilitado: defina ALBION_SWEEP_TOKEN")
+    if config.SWEEP_TOKEN and not hmac.compare_digest(
+            token.encode("utf-8", "ignore"),
+            config.SWEEP_TOKEN.encode("utf-8")):
+        raise HTTPException(403, "token de sweep invalido")
+
+
 def _market_universe():
     """Universo de varredura: TODO item negociável, ordem estável.
 
@@ -444,13 +458,7 @@ def sweep(token: str = "",
     frescos + histórico se velho) e grava no store. Em ~3 h varre tudo e recicla.
     Protegido por ALBION_SWEEP_TOKEN (se definido).
     """
-    # fail-CLOSED em prod: um endpoint que escreve no banco e busca na API
-    # externa NÃO pode ficar aberto. Sem token num backend de servidor (Postgres),
-    # recusa. Em dev local (SQLite, 127.0.0.1) segue liberado por conveniência.
-    if store.backend() != "sqlite" and not config.SWEEP_TOKEN:
-        raise HTTPException(503, "sweep desabilitado: defina ALBION_SWEEP_TOKEN")
-    if config.SWEEP_TOKEN and not hmac.compare_digest(token, config.SWEEP_TOKEN):
-        raise HTTPException(403, "token de sweep invalido")
+    _check_sweep_token(token)
     universe = _market_universe()
     n = len(universe)
     if not n:
@@ -486,22 +494,33 @@ def intel_sweep(token: str = ""):
     (fazer-vs-comprar, regear, ranking de destruição) e Logística (reposição).
     """
     from albion import gameinfo
-    if store.backend() != "sqlite" and not config.SWEEP_TOKEN:
-        raise HTTPException(503, "intel-sweep desabilitado: defina ALBION_SWEEP_TOKEN")
-    if config.SWEEP_TOKEN and not hmac.compare_digest(token, config.SWEEP_TOKEN):
-        raise HTTPException(403, "token de sweep invalido")
-    res = _api_guard(lambda: gameinfo.ingest_demand_lean(aodp))
-    # poda: mantém só a janela de retenção (limita o tamanho no Postgres free)
-    cutoff = store.cutoff_iso(config.KILL_DEMAND_RETENTION_DAYS)
+    _check_sweep_token(token)
+    # serializa a ingestão: dois toques concorrentes leriam o mesmo checkpoint e
+    # contariam a demanda em DOBRO. Se já está rodando, devolve sem reprocessar.
+    if not _INTEL_LOCK.acquire(blocking=False):
+        return {"ok": True, "skipped": "ja em execucao"}
     try:
-        with aodp.db_lock:
-            aodp.db.execute(
-                "DELETE FROM kill_demand_daily WHERE server=? AND day < ?",
-                [aodp.server, cutoff])
-            aodp.db.commit()
-    except Exception:
-        pass
-    return res
+        res = _api_guard(lambda: gameinfo.ingest_demand_lean(aodp))
+        # poda best-effort: rollback defensivo se o DELETE falhar — não pode
+        # deixar a conexão gravável compartilhada em transação abortada (PG).
+        cutoff = store.cutoff_iso(config.KILL_DEMAND_RETENTION_DAYS)
+        try:
+            with aodp.db_lock:
+                aodp.db.execute(
+                    "DELETE FROM kill_demand_daily WHERE server=? AND day < ?",
+                    [aodp.server, cutoff])
+                aodp.db.commit()
+        except Exception:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+        if res and res.get("saturated"):
+            print("[intel-sweep] SATURADO: burst > paginas; possivel gap de "
+                  "eventos perdidos nesta rodada.", flush=True)
+        return res
+    finally:
+        _INTEL_LOCK.release()
 
 
 @app.get("/api/search")
@@ -1373,6 +1392,41 @@ def guild_view(view: str = "watch", days: float = Query(7, ge=0.25, le=30),
         con.close()
 
 
+@app.get("/api/demand")
+def demand_view(view: str = "burn", days: float = Query(7, ge=0.25, le=45),
+                premium: bool = True, limit: int = Query(40, ge=1, le=200)):
+    """Demanda do killboard MAGRO (kill_demand_daily): giro de consumíveis
+    (poções/comida queimadas/dia vs oferta) e qualidade do gear destruído.
+    Sai vazio até o /api/intel-sweep acumular dados."""
+    from albion import demand as dm
+    con = _cache_connection()
+    if con is None:
+        return {"view": view, "rows": []}
+    try:
+        name = lambda i: (db.get(i) or {}).get("pt", i)
+        q1, allq = _price_lookups(con)
+        if view == "quality":
+            priceq = {}
+            for (i, _c, qq), p in allq.items():
+                k = (i, qq)
+                if k not in priceq or p < priceq[k]:
+                    priceq[k] = p
+            rows = dm.destroyed_quality(con, aodp.server, days=days,
+                                        price_q=lambda i, q: priceq.get((i, q)),
+                                        limit=limit)
+        else:  # burn
+            price_item = _cheapest_by_item(q1)
+            vol = _market_volume(con, days=7)
+            rows = dm.consumable_burn(con, aodp.server, days=days,
+                                      price_of=price_item.get,
+                                      vol_of=vol.get, limit=limit)
+        for r in rows:
+            r["name_pt"] = name(r["item_id"])
+        return {"view": view, "rows": rows}
+    finally:
+        con.close()
+
+
 def _clean_prows(con):
     """Linhas de prices saneadas (sem âncora) no formato dos rows da API —
     base das análises de logística (carga, escada de qualidade, BM, reposição)."""
@@ -1423,13 +1477,14 @@ def logi_view(view: str = "bm", premium: bool = True,
             for r in rows:
                 r["quals"] = ",".join(map(str, r.get("qualities", [])))
         elif view == "restock":
-            # restock cruza killboard (item_demand_daily), ausente no piloto —
-            # degrada para vazio em vez de quebrar.
+            # restock cruza killboard (kill_demand_daily, agregado magro) —
+            # vazio até o /api/intel-sweep acumular; degrada sem quebrar.
             try:
+                # slot != 'Inventory': só gear equipado destruído (não carga)
                 demand = con.execute(
                     """SELECT item_id, SUM(victim_units) AS u
                        FROM kill_demand_daily
-                       WHERE server=? AND day >= ?
+                       WHERE server=? AND day >= ? AND slot != 'Inventory'
                        GROUP BY item_id HAVING SUM(victim_units)>0
                        ORDER BY u DESC LIMIT 400""",
                     [aodp.server, store.cutoff_iso(days)]).fetchall()

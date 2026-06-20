@@ -23,7 +23,7 @@ def watchlist_roi(con, server, price_of=None, days=7, limit=40):
         """SELECT item_id, SUM(victim_units) AS units,
                   COUNT(DISTINCT day) AS active_days
            FROM kill_demand_daily
-           WHERE server=? AND day >= ?
+           WHERE server=? AND day >= ? AND slot != 'Inventory'
            GROUP BY item_id HAVING SUM(victim_units)>0""",
         [server, store.cutoff_iso(days)]).fetchall()
     add = []
@@ -88,15 +88,18 @@ def make_or_buy(con, server, price_of, days=7, premium=True, focus=False,
                 cities=None, limit=40):
     """Banda de preço de transferência interna (fazer) vs mercado (comprar).
 
-    Para cada item que a guild consome (item_demand_daily) e é craftável: custo
+    Para cada item que a guild consome (kill_demand_daily) e é craftável: custo
     interno = Σ insumos × (1-RRR) + venda evitada; custo de mercado = menor
     venda. A banda [interno, mercado] é a faixa de preço justo do contrato; o
     tamanho do contrato vem da demanda/dia.
     """
     cities = cities or config.ROYAL_CITIES
+    # slot != 'Inventory': conta só gear EQUIPADO destruído (regear), não a
+    # carga transportada (runas/almas/stacks) — senão a demanda infla.
     demand = dict(con.execute(
         """SELECT item_id, SUM(victim_units) FROM kill_demand_daily
-           WHERE server=? AND day >= ? GROUP BY item_id""",
+           WHERE server=? AND day >= ? AND slot != 'Inventory'
+           GROUP BY item_id""",
         [server, store.cutoff_iso(days)]).fetchall())
     out = []
     for item, units in demand.items():
