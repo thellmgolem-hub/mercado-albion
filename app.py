@@ -222,6 +222,15 @@ def auth_login(body: LoginBody, request: Request):
 
 @app.get("/api/auth/me")
 def auth_me(request: Request):
+    # modo LOCAL (auth desligada): devolve um admin local para o frontend não
+    # travar na tela de login. A nuvem sempre roda com AUTH_REQUIRED=True.
+    if not config.AUTH_REQUIRED:
+        return JSONResponse({
+            "account": {"id": 0, "username": "local", "role": "admin",
+                        "active": 1, "must_change_password": False,
+                        "profile": None, "device_label": "local"},
+            "csrf": "", "roles": ROLES, "profiles_catalog": PROFILES,
+        }, headers={"Cache-Control": "no-store"})
     session_token = request.cookies.get(config.AUTH_SESSION_COOKIE)
     csrf = auth_manager.rotate_csrf(session_token)
     return JSONResponse({

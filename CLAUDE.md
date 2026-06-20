@@ -140,6 +140,10 @@ o front avisa) e missing_prices (insumo sem cotação de compra).
 ## Rodar / desenvolver
 
 - Servidor: `python app.py` (porta 8528, abre o navegador) ou preview `mercado-albion`.
+  Para testar SEM login na própria máquina: `python tools/run_local.py` (liga
+  ALBION_AUTH_DISABLED=1) ou o preview `mercado-albion-dev`. Nesse modo /api/auth/me
+  devolve um admin "local" p/ o frontend não travar na tela de acesso. A nuvem
+  sempre roda com auth ligada.
 - Itens novos após patch: `python scripts/build_items_db.py --refresh`,
   depois `build_recipes.py`, `build_craft_recipes.py`, `build_craft_data.py`,
   `build_supply_data.py` (refino/craft/oferta).

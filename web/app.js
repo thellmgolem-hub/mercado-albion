@@ -2553,7 +2553,11 @@ function prodLayout() {
 
 async function prodFetchGraph() {
   const pl = state.prodLine;
-  if (!pl.roots.length) { pl.graph = { nodes: {}, cities: [] }; pl.calc = null; prodRender(); prodRenderTotals(null); prodRenderShopping(null); return; }
+  if (!pl.roots.length) {
+    pl.graph = { nodes: {}, cities: [], sell_mode: 'order' }; pl.calc = null;
+    prodRenderProducts(); prodRenderResult(null); prodRenderShopping(null);
+    prodRenderChainView(); $('plStatus').textContent = ''; return;
+  }
   $('plStatus').className = 'status'; $('plStatus').textContent = 'montando cadeia…';
   try {
     const g = await api('/api/prodchain', { item: pl.roots.join(','), premium: state.premium });
@@ -2563,10 +2567,9 @@ async function prodFetchGraph() {
     for (const r of pl.roots) if (pl.targets[r] == null) pl.targets[r] = pl.qtyDefault;
     for (const r of Object.keys(pl.targets)) if (!pl.roots.includes(r)) delete pl.targets[r];
     prodLayout();
+    prodRenderProducts();
     prodRecompute();
-    $('plStatus').textContent = pl.calc && pl.calc.missing.length
-      ? `${Object.keys(g.nodes).length} etapas · ${pl.calc.missing.length} sem cotação`
-      : `${Object.keys(g.nodes).length} etapas na cadeia`;
+    $('plStatus').textContent = '';
   } catch (e) { $('plStatus').className = 'status err'; $('plStatus').textContent = 'erro: ' + e.message; }
 }
 
@@ -2574,9 +2577,9 @@ function prodRecompute() {
   const prop = prodPropagate();
   state.prodLine.calc = prodComputeCosts(prop);
   state.prodLine.verdict = prodMakeOrBuy();
-  prodRender();
-  prodRenderTotals(state.prodLine.calc);
+  prodRenderResult(state.prodLine.calc);
   prodRenderShopping(state.prodLine.calc);
+  prodRenderChainView();
 }
 
 function prodNodeHtml(it, demand, crafts) {
@@ -2710,26 +2713,120 @@ function prodStartDrag(e, el, id) {
   document.addEventListener('mouseup', up);
 }
 
-function prodRenderTotals(calc) {
-  const el = $('plSide'); if (!el) return;
-  if (!calc || !state.prodLine.roots.length) {
-    el.innerHTML = '<div class="pl-card muted">Adicione um produto final para ver custo, lucro e ROI da cadeia.</div>';
+// chips de produto final (PASSO 1) — onde se digita a QUANTIDADE
+function prodRenderProducts() {
+  const el = $('plProducts'); if (!el) return;
+  const pl = state.prodLine;
+  if (!pl.roots.length) {
+    el.innerHTML = '<div class="pl-empty-hint">↑ Busque um produto acima (ex.: <b>espada</b>, <b>poção de cura</b>, <b>bolsa</b>) e ele aparece aqui com o campo de quantidade.</div>';
     return;
   }
-  el.innerHTML = `<div class="pl-card">
-    <h3>Resultado da cadeia</h3>
-    <div class="pl-tot"><span>Receita (venda)</span><b class="silver">${fmt(calc.revenue)}</b></div>
-    <div class="pl-tot"><span>Custo de compra</span><b class="silver">${fmt(calc.buyCost)}</b></div>
-    ${calc.stationTotal ? `<div class="pl-tot"><span>Taxa de estação</span><b>${fmt(calc.stationTotal)}</b></div>` : ''}
-    <div class="pl-tot"><span>Foco necessário</span><b>${fmt(calc.focusPoints)} pts</b></div>
-    ${calc.focusSilver ? `<div class="pl-tot"><span>Foco (prata)</span><b>${fmt(calc.focusSilver)}</b></div>` : ''}
-    <div class="pl-tot total ${calc.profit >= 0 ? 'pos' : 'neg'}"><span>Lucro líquido</span><b class="silver">${fmt(calc.profit)}</b></div>
-    <div class="pl-tot"><span>Lucro / unidade</span><b>${fmt(calc.perUnit)}</b></div>
-    <div class="pl-tot"><span>ROI</span><b>${calc.roi == null ? '—' : fmtPct(calc.roi)}</b></div>
-    ${(calc.missingSell && calc.missingSell.length) ? `<div class="pl-warn">⚠ ${calc.missingSell.length} produto(s) final(is) sem cotação de venda — receita 0 e lucro subestimado. Não há preço de mercado no cache (ainda).</div>` : ''}
-    ${calc.missing.length ? `<div class="pl-warn">${calc.missing.length} item(ns) sem cotação de compra — não entram no custo. Marque-os como Fabricar.</div>` : ''}
-    <div class="pl-note">Foco é um recurso à parte (pontos). Defina “Prata/foco” na barra p/ cobrá-lo no lucro.</div>
-  </div>`;
+  el.innerHTML = pl.roots.map((id) => {
+    const n = pl.graph.nodes[id] || {};
+    const te = `T${n.tier || '?'}${n.enchant ? '.' + n.enchant : ''}`;
+    return `<div class="pl-prod" data-id="${esc(id)}">
+      ${iconImg(id)}
+      <div class="pl-prod-nm">${esc(n.name_pt || id)}<span>${te}</span></div>
+      <label class="pl-prod-qtylbl">fazer <input type="number" class="pl-prod-qty" min="1" value="${pl.targets[id] || 100}" data-id="${esc(id)}"> un.</label>
+      <button class="pl-prod-rm" data-rm="${esc(id)}" title="remover produto">×</button>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.pl-prod-qty').forEach((inp) => inp.addEventListener('change', (e) => {
+    state.prodLine.targets[e.target.dataset.id] = Math.max(1, +e.target.value || 1);
+    prodRecompute();
+  }));
+  el.querySelectorAll('.pl-prod-rm').forEach((b) =>
+    b.addEventListener('click', () => removeProdRoot(b.dataset.rm)));
+}
+
+// cartões de resultado (lucro/ROI/custo…) no topo, bem visível
+function prodRenderResult(calc) {
+  const el = $('plResult'); if (!el) return;
+  if (!calc || !state.prodLine.roots.length) { el.innerHTML = ''; return; }
+  const card = (v, k, cls = '') => `<div class="pl-statcard ${cls}"><div class="pl-stat-v">${v}</div><div class="pl-stat-k">${k}</div></div>`;
+  let warns = '';
+  if (calc.missingSell && calc.missingSell.length)
+    warns += `<div class="pl-warn">⚠ ${calc.missingSell.length} produto(s) final(is) sem preço de venda no cache — receita 0 e lucro subestimado (falta dado de mercado).</div>`;
+  if (calc.missing.length)
+    warns += `<div class="pl-warn">${calc.missing.length} insumo(s) sem cotação de compra — não entram no custo. Marque-os como Fabricar na etapa.</div>`;
+  el.innerHTML = `<div class="pl-cards">
+    ${card(`<span class="silver">${fmt(calc.profit)}</span>`, 'Lucro líquido', 'big ' + (calc.profit >= 0 ? 'pos' : 'neg'))}
+    ${card(calc.roi == null ? '—' : fmtPct(calc.roi), 'ROI')}
+    ${card(`<span class="silver">${fmt(calc.revenue)}</span>`, 'Receita (venda)')}
+    ${card(`<span class="silver">${fmt(calc.buyCost)}</span>`, 'Custo de compra')}
+    ${card(`<span class="silver">${fmt(calc.perUnit)}</span>`, 'Lucro / unidade')}
+    ${card(`${fmt(calc.focusPoints)} pts`, 'Foco necessário')}
+  </div>${warns}`;
+}
+
+// PASSO 2, visão TABELA: cada etapa com fabricar/comprar/foco (mais fácil que arrastar)
+function prodRenderStepsList() {
+  const el = $('plListView'); if (!el) return;
+  const pl = state.prodLine, nodes = pl.graph.nodes || {}, calc = pl.calc || { demand: {}, crafts: {} };
+  const items = Object.keys(nodes).filter((it) => (calc.demand[it] || 0) > 0);
+  if (!items.length) { el.innerHTML = '<div class="pl-empty-hint">Escolha um produto para ver as etapas.</div>'; return; }
+  items.sort((a, b) => (nodes[b].tier || 0) - (nodes[a].tier || 0) || a.localeCompare(b));
+  const rows = items.map((it) => {
+    const n = nodes[it], buy = plIsBuy(it), dem = calc.demand[it] || 0;
+    const v = (pl.verdict || {})[it], isRoot = pl.roots.includes(it);
+    const te = `T${n.tier || '?'}${n.enchant ? '.' + n.enchant : ''}`;
+    let decision;
+    if (n.is_raw || !n.recipe) decision = '<span class="pl-tag-buy">comprar (bruto)</span>';
+    else decision = `<div class="pl-rowctrl">
+        <button class="pl-tg ${buy ? '' : 'on'}" data-act="make" data-id="${esc(it)}">Fabricar</button>
+        <button class="pl-tg ${buy ? 'on' : ''}" data-act="buy" data-id="${esc(it)}">Comprar</button>
+        <label class="pl-foco-chk" title="usar foco nesta etapa"><input type="checkbox" data-act="focus" data-id="${esc(it)}" ${(pl.ns[it] || {}).focus ? 'checked' : ''} ${buy ? 'disabled' : ''}> foco</label>
+      </div>`;
+    let rec = '';
+    if (v && v.verdict) rec = `<span class="pl-badge ${v.verdict}" title="recomendação">${v.verdict === 'make' ? 'fabricar' : 'comprar'}${v.savings != null ? ` +${fmt(v.savings)}/un` : ''}</span>`;
+    const sh = (calc.shopping || {})[it];
+    const cost = buy
+      ? (sh && sh.priced ? `<span class="silver">${fmt(sh.cost)}</span>` : '<span class="muted">sem cotação</span>')
+      : (calc.crafts[it] ? `<span class="muted">${fmt(calc.crafts[it])} crafts</span>` : '');
+    return `<tr class="${isRoot ? 'pl-row-root' : ''}">
+      <td class="l"><div class="cell-item">${iconImg(it)}<div class="nm">${esc(n.name_pt || it)} <span class="muted">${te}</span></div></div></td>
+      <td><b>×${fmt(Math.ceil(dem))}</b></td>
+      <td class="l">${decision}</td>
+      <td class="l">${rec}</td>
+      <td>${cost}</td></tr>`;
+  }).join('');
+  el.innerHTML = `<table class="pl-steps"><thead><tr>
+    <th class="l">Etapa</th><th>Precisa</th><th class="l">Fabricar ou comprar?</th>
+    <th class="l">Recomendado</th><th>Custo / crafts</th></tr></thead><tbody>${rows}</tbody></table>`;
+  el.querySelectorAll('.pl-tg').forEach((b) => b.addEventListener('click', () => {
+    const it = b.dataset.id, s = state.prodLine.ns[it] || (state.prodLine.ns[it] = prodDefaultState(it));
+    if (b.dataset.act === 'make') s.mode = 'make'; else if (b.dataset.act === 'buy') s.mode = 'buy';
+    prodRecompute();
+  }));
+  el.querySelectorAll('input[data-act="focus"]').forEach((c) => c.addEventListener('change', () => {
+    const it = c.dataset.id, s = state.prodLine.ns[it] || (state.prodLine.ns[it] = prodDefaultState(it));
+    if (s.mode !== 'buy') s.focus = c.checked;
+    prodRecompute();
+  }));
+}
+
+// alterna entre a TABELA (padrão, fácil) e o DIAGRAMA visual
+function prodRenderChainView() {
+  const pl = state.prodLine, listEl = $('plListView'), graphEl = $('plGraphView');
+  if (!listEl) return;
+  if (pl.view === 'graph') {
+    listEl.hidden = true; if (graphEl) graphEl.hidden = false;
+    prodRender();
+  } else {
+    if (graphEl) graphEl.hidden = true; listEl.hidden = false;
+    prodRenderStepsList();
+  }
+}
+
+function prodSetAllFocus(on) {
+  const pl = state.prodLine;
+  for (const it in pl.graph.nodes) {
+    const n = pl.graph.nodes[it];
+    if (n.is_raw || !n.recipe) continue;
+    const s = pl.ns[it] || (pl.ns[it] = prodDefaultState(it));
+    if (s.mode !== 'buy') s.focus = on;
+  }
+  prodRecompute();
 }
 
 function prodRenderShopping(calc) {
@@ -2815,46 +2912,51 @@ async function prodDeleteSelected() {
   } catch (e) { toast('erro ao excluir: ' + e.message); }
 }
 function prodClear() {
+  const view = state.prodLine ? state.prodLine.view : 'list';
   state.prodLine = prodInitState();
-  prodToolbar(); prodRender(); prodRenderTotals(null); prodRenderShopping(null);
-  $('plStatus').textContent = ''; prodLoadList();
+  state.prodLine.view = view || 'list';
+  if ($('plName')) $('plName').value = '';
+  if ($('plStation')) $('plStation').value = 0;
+  if ($('plSpec')) $('plSpec').value = 0;
+  if ($('plFocusPrice')) $('plFocusPrice').value = 0;
+  prodRenderProducts(); prodRenderResult(null); prodRenderShopping(null);
+  prodRenderChainView(); $('plStatus').textContent = ''; prodLoadList();
 }
 
-function prodToolbar() {
-  const el = $('plToolbar'); if (!el) return;
+// liga os controles estáticos (HTML já está no index.html)
+function prodWireControls() {
   const pl = state.prodLine;
-  el.innerHTML = `
-    <div class="pl-tb-row"><div class="pl-picker" id="plPicker"></div></div>
-    <div class="pl-tb-row pl-params">
-      <label>Qtd padrão<input type="number" id="plQty" min="1" value="${pl.qtyDefault}"></label>
-      <label title="Prata por craft (taxa de uso da estação)">Taxa estação<input type="number" id="plStation" min="0" step="10" value="${pl.stationFee}"></label>
-      <label title="Focus Cost Efficiency do crafter: cada 10.000 corta o foco pela metade">Spec (FCE)<input type="number" id="plSpec" min="0" step="1000" value="${pl.specFce}"></label>
-      <label title="Prata por ponto de foco (0 = não cobra o foco no lucro)">Prata/foco<input type="number" id="plFocusPrice" min="0" step="0.1" value="${pl.focusPrice}"></label>
-    </div>
-    <div class="pl-tb-row pl-save">
-      <input type="text" id="plName" placeholder="nome da cadeia" maxlength="80" value="${esc(pl.savedName || '')}">
-      <button class="btn" id="plSaveBtn">Salvar na conta</button>
-      <select id="plSavedSel"><option value="">— abrir cadeia salva —</option></select>
-      <button class="btn secondary" id="plDelBtn">Excluir</button>
-      <button class="btn secondary" id="plClearBtn">Limpar</button>
-    </div>`;
-  makeItemPicker('plPicker', (it) => addProdRoot(it.id), 'buscar produto final… ex.: espada 4.1, poção, bolsa t6');
-  $('plQty').addEventListener('change', (e) => { state.prodLine.qtyDefault = Math.max(1, +e.target.value || 1); });
+  makeItemPicker('plPicker', (it) => addProdRoot(it.id),
+                 'buscar produto… ex.: espada, poção de cura, bolsa');
   for (const [id, key] of [['plStation', 'stationFee'], ['plSpec', 'specFce'], ['plFocusPrice', 'focusPrice']]) {
-    $(id).addEventListener('change', (e) => { state.prodLine[key] = Math.max(0, +e.target.value || 0); prodRecompute(); });
+    const inp = $(id); if (!inp) continue;
+    inp.value = pl[key];
+    inp.addEventListener('change', (e) => { state.prodLine[key] = Math.max(0, +e.target.value || 0); prodRecompute(); });
   }
-  $('plSaveBtn').addEventListener('click', prodSaveChain);
-  $('plDelBtn').addEventListener('click', prodDeleteSelected);
-  $('plClearBtn').addEventListener('click', prodClear);
-  $('plSavedSel').addEventListener('change', (e) => { if (e.target.value) prodLoadChain(+e.target.value); });
+  const vt = $('plViewTabs');
+  if (vt) vt.querySelectorAll('.pl-vt').forEach((b) => b.addEventListener('click', () => {
+    vt.querySelectorAll('.pl-vt').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active');
+    state.prodLine.view = b.dataset.view;
+    prodRenderChainView();
+  }));
+  if ($('plAllFocus')) $('plAllFocus').addEventListener('click', () => prodSetAllFocus(true));
+  if ($('plNoFocus')) $('plNoFocus').addEventListener('click', () => prodSetAllFocus(false));
+  if ($('plSaveBtn')) $('plSaveBtn').addEventListener('click', prodSaveChain);
+  if ($('plDelBtn')) $('plDelBtn').addEventListener('click', prodDeleteSelected);
+  if ($('plClearBtn')) $('plClearBtn').addEventListener('click', prodClear);
+  if ($('plSavedSel')) $('plSavedSel').addEventListener('change', (e) => { if (e.target.value) prodLoadChain(+e.target.value); });
+  if ($('plName')) $('plName').value = pl.savedName || '';
 }
 
 function initProdLine() {
   if (!state.prodLine) state.prodLine = prodInitState();
-  prodToolbar();
-  prodRender();
-  prodRenderTotals(null);
+  state.prodLine.view = state.prodLine.view || 'list';
+  prodWireControls();
+  prodRenderProducts();
+  prodRenderResult(null);
   prodRenderShopping(null);
+  prodRenderChainView();
   prodLoadList();
 }
 

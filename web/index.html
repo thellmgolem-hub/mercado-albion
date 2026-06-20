@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260620-linhaprod4">
+<link rel="stylesheet" href="style.css?v=20260620-linhaprod5">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body class="auth-pending">
@@ -721,24 +721,68 @@
   <div class="section-head">
     <div>
       <h1>Linha de Produção</h1>
-      <div class="sub">Monte a cadeia da guild: escolha os <b>produtos finais</b>, fixe a
-        quantidade e a árvore se completa até o recurso bruto — com <b>fabricar/comprar</b> e
-        <b>foco</b> por etapa, lista de compras e lucro.</div>
+      <div class="sub">Diga o que a guild vai produzir e quanto — a cadeia inteira, os custos e a
+        <b>lista de compras</b> aparecem na hora.</div>
     </div>
   </div>
-  <div id="plToolbar" class="pl-toolbar"></div>
+
+  <!-- PASSO 1 — o que produzir -->
+  <div class="pl-step">
+    <div class="pl-step-head"><span class="pl-num">1</span> O que você quer produzir?</div>
+    <div class="pl-picker" id="plPicker"></div>
+    <div class="pl-products" id="plProducts"></div>
+  </div>
+
   <div id="plStatus" class="status"></div>
-  <div id="plWrap" class="pl-wrap">
-    <div id="plCanvas" class="pl-canvas">
-      <svg id="plEdges" class="pl-edges"></svg>
-      <div id="plNodes" class="pl-nodes"></div>
-    </div>
-    <aside id="plSide" class="pl-side"></aside>
-  </div>
+
+  <!-- RESULTADO + LISTA DE COMPRAS (aparecem quando há produto) -->
+  <div id="plResult"></div>
   <div id="plShopping" class="pl-shopping"></div>
-  <p class="hint">Dica: clique num bloco para <b>Fabricar/Comprar</b> e ligar o <b>foco</b>; ao
-    comprar, a árvore para ali e usa o preço de mercado. Arraste os blocos para organizar.
-    Preços saneados de ordens-isca; foco é um recurso à parte (só vira prata se você der um preço/ponto).</p>
+
+  <!-- PASSO 2 — ajustar a cadeia (recolhível) -->
+  <details class="pl-collapse" id="plChainDetails" open>
+    <summary><span class="pl-num">2</span> Ajustar a cadeia — fabricar/comprar e foco por etapa
+      <span class="pl-sum-hint">(opcional)</span></summary>
+    <div class="pl-chain-toolbar">
+      <div class="pl-viewtabs" id="plViewTabs">
+        <button class="pl-vt active" data-view="list">📋 Etapas</button>
+        <button class="pl-vt" data-view="graph">🗺️ Diagrama</button>
+      </div>
+      <div class="pl-bulk">
+        <button class="btn secondary" id="plAllFocus" title="liga o foco em todas as etapas">Foco em tudo</button>
+        <button class="btn secondary" id="plNoFocus" title="desliga o foco em todas">Sem foco</button>
+      </div>
+    </div>
+    <div id="plListView"></div>
+    <div id="plGraphView" hidden>
+      <div class="pl-canvas" id="plCanvas">
+        <svg id="plEdges" class="pl-edges"></svg>
+        <div id="plNodes" class="pl-nodes"></div>
+      </div>
+      <p class="hint">Arraste os blocos para organizar. Recurso bruto à esquerda, produto final à direita.</p>
+    </div>
+  </details>
+
+  <!-- OPÇÕES AVANÇADAS (recolhível, escondidas por padrão) -->
+  <details class="pl-collapse">
+    <summary>⚙️ Opções avançadas</summary>
+    <div class="pl-params">
+      <label title="Prata por craft (taxa de uso da estação)">Taxa de estação<input type="number" id="plStation" min="0" step="10" value="0"></label>
+      <label title="Focus Cost Efficiency: cada 10.000 corta o foco pela metade">Especialização (FCE)<input type="number" id="plSpec" min="0" step="1000" value="0"></label>
+      <label title="Prata por ponto de foco (0 = não cobra o foco no lucro)">Preço do foco<input type="number" id="plFocusPrice" min="0" step="0.1" value="0"></label>
+    </div>
+    <p class="hint">Mexa só se souber o que é. O foco vira custo em prata apenas se você der um preço por ponto;
+      caso contrário ele é mostrado só como recurso (pontos).</p>
+  </details>
+
+  <!-- SALVAR / ABRIR -->
+  <div class="pl-savebar">
+    <input type="text" id="plName" placeholder="nome da cadeia" maxlength="80">
+    <button class="btn" id="plSaveBtn">💾 Salvar na conta</button>
+    <select id="plSavedSel"><option value="">abrir cadeia salva…</option></select>
+    <button class="btn secondary" id="plDelBtn">Excluir</button>
+    <button class="btn secondary" id="plClearBtn">Limpar tudo</button>
+  </div>
 </section>
 
 <!-- ============================ CONTAS ============================ -->
@@ -835,6 +879,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260620-linhaprod4"></script>
+<script src="app.js?v=20260620-linhaprod5"></script>
 </body>
 </html>
