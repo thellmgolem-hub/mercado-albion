@@ -8,6 +8,7 @@ import os
 import re
 import sqlite3
 import subprocess
+import sys
 import threading
 import time
 import webbrowser
@@ -69,6 +70,78 @@ def _maybe_bootstrap_admin():
 
 
 _maybe_bootstrap_admin()
+
+
+# ---- Coleta automática LOCAL (só SQLite). Na nuvem (Postgres) quem coleta é o
+# cron /api/sweep — aqui religamos o "abre → atualiza sozinho" para o uso local.
+_AUTOCOLLECT_CATS = ["bags", "capes", "mounts", "consumables", "gathering",
+                     "head", "shoes", "offhands", "weapons", "armors"]
+_autocollect_started = False
+
+
+def _default_watch_seed(per_cat=80, total=500):
+    """Itens líquidos p/ semear a watchlist no cold start (cache vazio)."""
+    ids, seen = [], set()
+    for cat in _AUTOCOLLECT_CATS:
+        try:
+            rows = db.filter(cat=cat, tier_min=3, ench_list=[0, 1], limit=per_cat)
+        except Exception:
+            rows = []
+        for it in rows:
+            iid = it.get("id") if isinstance(it, dict) else it
+            if iid and iid not in seen:
+                seen.add(iid)
+                ids.append(iid)
+                if len(ids) >= total:
+                    return ids
+    return ids
+
+
+def _start_auto_collector():
+    """Liga o coletor local: semeia a watchlist no 1º uso e coleta preços+
+    histórico ao subir + a cada AUTO_COLLECT_INTERVAL_MIN (rate-limit cuidado no
+    client). Só roda no SQLite local e fora de testes."""
+    global _autocollect_started
+    if _autocollect_started or config.AUTO_COLLECT_INTERVAL_MIN <= 0:
+        return
+    if getattr(aodp.db, "backend", "sqlite") != "sqlite":
+        return  # nuvem: ingestão é pelo /api/sweep (cron)
+    if os.environ.get("ALBION_NO_AUTOCOLLECT") == "1":
+        return
+    if "unittest" in sys.modules or "pytest" in sys.modules:
+        return  # nunca bater na API durante a suíte
+    _autocollect_started = True
+
+    def loop():
+        try:
+            if not aodp.watch_list():
+                seed = _default_watch_seed()
+                if seed:
+                    aodp.watch_add(seed)
+                    print(f"[auto-collect] watchlist semeada: {len(seed)} itens "
+                          "líquidos (1ª vez).", flush=True)
+        except Exception as e:
+            print("[auto-collect] seed falhou:", repr(e)[:200], flush=True)
+        time.sleep(4)   # deixa o servidor subir antes de bater na API
+        while True:
+            try:
+                r = aodp.collect(source="auto")
+                print(f"[auto-collect] {r.get('items', 0)} itens · "
+                      f"{r.get('price_rows', 0)} preços · "
+                      f"{r.get('history_series', 0)} histórico.", flush=True)
+            except Exception as e:
+                print("[auto-collect] erro:", repr(e)[:200], flush=True)
+            time.sleep(max(60, config.AUTO_COLLECT_INTERVAL_MIN * 60))
+
+    threading.Thread(target=loop, daemon=True, name="auto-collect").start()
+    print("[auto-collect] coletor local ligado "
+          f"(a cada {config.AUTO_COLLECT_INTERVAL_MIN} min).", flush=True)
+
+
+@app.on_event("startup")
+def _on_startup():
+    _start_auto_collector()
+
 
 # /api/sweep e /api/intel-sweep são tocados por cron externo (sem sessão) —
 # protegidos por token próprio

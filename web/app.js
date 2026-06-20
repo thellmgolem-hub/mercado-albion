@@ -994,11 +994,11 @@ function renderRecommendationTable(tableId, statusId, rows, meta, emptyText) {
     const cov = meta?.coverage || {};
     const noHist = (cov.history_items || 0) === 0;
     const body = noHist
-      ? `<b>Sem histórico de mercado coletado ainda.</b><br>As recomendações precisam de
-         <b>volume e tendência</b> (não só o preço atual). Rode a coleta uma vez:
-         <br><code>python analyze.py collect --cat bags</code>&nbsp; (ou outra categoria),
-         depois clique em <b>Atualizar</b>. Na nuvem isso é automático.
-         <br><br>Enquanto isso, a aba <b>Flips</b> já funciona — ela usa só os preços atuais.`
+      ? `<b>Coletando dados de mercado…</b><br>A plataforma atualiza preços e
+         <b>histórico</b> automaticamente ao abrir (a 1ª coleta leva ~1–2 min pelo
+         limite da API do jogo). <b>Esta tela se atualiza sozinha</b> — ou clique
+         em <b>Atualizar</b>. Se demorar, rode <code>python analyze.py collect --cat bags</code>.
+         <br><br>Enquanto isso, a aba <b>Flips</b> já funciona — usa só os preços atuais.`
       : `<b>${esc(emptyText)}.</b><br>Tente afrouxar os filtros (volume/dia, idade dos dados,
          ROI) ou ampliar a categoria/tier.`;
     $(tableId).innerHTML = `<div class="empty-state"><div class="ico">📭</div><div>${body}</div></div>`;
@@ -1065,6 +1065,16 @@ async function loadDashboardRecommendations() {
     state.dashRecs = res.opportunities || [];
     renderRecommendationTable('dashRecsTable', 'dashRecsStatus', state.dashRecs, res,
       'sem recomendações com os filtros atuais');
+    // enquanto vazio por falta de histórico (coleta automática rodando), tenta
+    // de novo sozinho — a tela "se atualiza sozinha" como promete a mensagem.
+    clearTimeout(state.dashRetryTimer);
+    const noHist = (res.coverage?.history_items || 0) === 0;
+    if (!state.dashRecs.length && noHist && (state.dashRetries || 0) < 6) {
+      state.dashRetries = (state.dashRetries || 0) + 1;
+      state.dashRetryTimer = setTimeout(() => loadDashboardRecommendations(), 45000);
+    } else if (state.dashRecs.length) {
+      state.dashRetries = 0;
+    }
   } catch (e) {
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;

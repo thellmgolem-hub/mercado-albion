@@ -12,7 +12,11 @@ DEPLOY.md). Mudanças estruturais em relação ao app local:
   SQL (date('now'), strftime, datetime) — use store.cutoff_iso e compare `ts`
   (texto ISO) com `>=`. Escritas com conflito via store.upsert/upsert_ignore/
   upsert_add (este SOMA, p/ agregados). store.Row imita sqlite3.Row.
-- **Coleta = sweep fatiado por cron** (não mais coletor sempre-ligado): /api/sweep
+- **Coleta = sweep fatiado por cron** na NUVEM (não mais coletor sempre-ligado);
+  no LOCAL (SQLite) app.py._start_auto_collector religa um coletor em background
+  (startup event): semeia a watchlist com itens líquidos no 1º uso e coleta a cada
+  AUTO_COLLECT_INTERVAL_MIN, para "abrir → atualiza sozinho". Desligável com
+  ALBION_NO_AUTOCOLLECT=1; nunca roda em Postgres nem sob testes. /api/sweep
   varre TODO o mercado (~10.4k itens, _market_universe, cursor em sweep_state) e
   /api/intel-sweep agrega o killboard. Ambos protegidos por ALBION_SWEEP_TOKEN
   (fail-closed em prod), isentos de auth, tocados por cron-job.org.
