@@ -2418,7 +2418,10 @@ function plFocusEff(base) { return (base || 0) * Math.pow(0.5, (state.prodLine.s
 function plSellNet(node) {
   if (!node || !node.sell_gross) return null;
   const tax = state.premium ? 0.04 : 0.08;
-  return node.sell_gross * (1 - tax - 0.025);   // ordem de venda: imposto + anúncio
+  // espelha flips.sell_revenue: taxa de anúncio (2,5%) só em ORDEM de venda;
+  // venda instantânea (e Mercado Negro) não paga anúncio.
+  const setup = (state.prodLine.graph.sell_mode === 'instant') ? 0 : 0.025;
+  return node.sell_gross * (1 - tax - setup);
 }
 function prodDefaultState(it) {
   const n = plNodes()[it] || {};
