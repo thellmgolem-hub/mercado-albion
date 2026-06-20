@@ -988,6 +988,28 @@ function compositeBadge(v) {
 }
 
 function renderRecommendationTable(tableId, statusId, rows, meta, emptyText) {
+  // Estado vazio claro e ACIONÁVEL (em vez de tabela em branco). Distingue
+  // "sem histórico coletado" (causa mais comum) de "filtros apertados".
+  if (!rows.length) {
+    const cov = meta?.coverage || {};
+    const noHist = (cov.history_items || 0) === 0;
+    const body = noHist
+      ? `<b>Sem histórico de mercado coletado ainda.</b><br>As recomendações precisam de
+         <b>volume e tendência</b> (não só o preço atual). Rode a coleta uma vez:
+         <br><code>python analyze.py collect --cat bags</code>&nbsp; (ou outra categoria),
+         depois clique em <b>Atualizar</b>. Na nuvem isso é automático.
+         <br><br>Enquanto isso, a aba <b>Flips</b> já funciona — ela usa só os preços atuais.`
+      : `<b>${esc(emptyText)}.</b><br>Tente afrouxar os filtros (volume/dia, idade dos dados,
+         ROI) ou ampliar a categoria/tier.`;
+    $(tableId).innerHTML = `<div class="empty-state"><div class="ico">📭</div><div>${body}</div></div>`;
+    const cov2 = cov.price_items != null
+      ? ` · cobertura: ${fmt(cov.price_items)}/${fmt(cov.catalog_items)} com preço, ${fmt(cov.history_items)} com histórico`
+      : '';
+    const st0 = $(statusId);
+    st0.className = 'status';
+    st0.textContent = `0 recomendações${cov2}`;
+    return;
+  }
   const withCopy = rows.map((o) => ({ ...o, _copy: o.name_pt }));
   const fused = meta?.fused;
   let cols = recommendationColumns();
