@@ -2397,6 +2397,49 @@ def cmd_prod(args, fmt):
                            ("profit_per_day", "Lucro/dia canteiro")], fmt)
 
 
+def cmd_prodchain(args, fmt):
+    """Linha de produção: BOM auto do alvo até o bruto, custo e lista de compras."""
+    from albion import prodchain as pc
+    db_path = (DATA / "cache.db").resolve()
+    if not db_path.exists():
+        die("Cache não encontrado — rode `collect` antes.")
+    premium = not args.no_premium
+    db = ItemDB()
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid)
+    it = resolve_item(db, " ".join(args.item))
+    con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
+    try:
+        q1, _ = _load_cache_prices(con, config.DEFAULT_SERVER, qualities=(1,))
+    finally:
+        con.close()
+    g = pc.build_graph([it["id"]], lambda i, c: q1.get((i, c)),
+                       premium=premium, sell_mode=args.sell_mode)
+    if g["nodes"].get(it["id"], {}).get("is_raw"):
+        die(f"{it['id']} não é craftável (sem receita) — nada a montar.")
+    craftables = [k for k, n in g["nodes"].items() if not n["is_raw"]]
+    state = {k: {"focus": True} for k in craftables} if args.focus else {}
+    s = pc.solve(g, {it["id"]: args.qty}, state=state, spec_fce=args.spec,
+                 station_fee=args.fee, focus_price=args.focus_price)
+    if fmt == "json":
+        print(json.dumps(s, ensure_ascii=False, indent=2))
+        return
+    info(f"Cadeia de {args.qty}x {it['pt']} ({it['id']}) — "
+         f"{'com' if args.focus else 'sem'} foco · "
+         f"{'com' if premium else 'sem'} premium. Receita {s['revenue']} · "
+         f"compra {s['buy_cost']} · foco {s['focus_points']} pts · LUCRO "
+         f"{s['profit']} (ROI {s['roi_pct']}%). Lista de compras (bruto + comprados):")
+    rows = [{"item": name(iid), "qtd": sh["qty"],
+             "cidade": city_pt(sh["city"]) if sh["city"] else "—",
+             "preco_un": sh["unit"], "custo": sh["cost"]}
+            for iid, sh in sorted(s["shopping"].items(),
+                                  key=lambda kv: -(kv[1]["cost"] or 0))]
+    emit(rows, [("item", "Comprar"), ("qtd", "Qtd"), ("cidade", "Cidade"),
+                ("preco_un", "Preço un"), ("custo", "Custo")], fmt)
+    if s["missing_prices"]:
+        info(f"Sem cotação de compra: {len(s['missing_prices'])} item(ns) "
+             "(não entram no custo) — marque-os para fabricar.")
+
+
 def cmd_pvp(args, fmt):
     """PvP: meta de builds com taxa de vitória (killboard)."""
     from albion import pvp
@@ -2831,6 +2874,22 @@ def build_parser():
                    help="janela do percentil histórico (refine; padrão 120)")
     p.add_argument("--limit", type=int, default=40)
     p.set_defaults(func=cmd_prod)
+
+    p = sub.add_parser("prodchain", parents=[common],
+                       help="linha de produção: BOM auto do alvo até o bruto")
+    p.add_argument("item", nargs="+", help="produto final (nome ou id)")
+    p.add_argument("--qty", type=int, default=100, help="quantidade final (padrão 100)")
+    p.add_argument("--sell-mode", choices=("instant", "order"), default="order")
+    p.add_argument("--no-premium", action="store_true")
+    p.add_argument("--focus", action="store_true",
+                   help="usa foco em todas as etapas (RRR maior)")
+    p.add_argument("--spec", type=int, default=0,
+                   help="Focus Cost Efficiency do crafter (barateia o foco)")
+    p.add_argument("--fee", type=float, default=0.0,
+                   help="taxa de estação por craft (prata)")
+    p.add_argument("--focus-price", dest="focus_price", type=float, default=0.0,
+                   help="prata por ponto de foco (0 = não cobra foco no lucro)")
+    p.set_defaults(func=cmd_prodchain)
 
     p = sub.add_parser("pvp", parents=[common],
                        help="PvP: meta de builds com taxa de vitória (killboard)")

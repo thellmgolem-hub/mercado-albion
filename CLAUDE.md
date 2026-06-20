@@ -54,6 +54,7 @@ python analyze.py indexes --cat X --sub Y             # índice de preço da ces
 python analyze.py intel collect|top|status            # killboard: destruição/demanda
 python analyze.py micro spread|book|traps|capital|hours  # microestrutura/market-making
 python analyze.py prod focus|chain|refine|quality     # produção: foco/cadeia/refino/EV qualidade
+python analyze.py prodchain <item> [--qty N] [--focus] # linha de produção: BOM auto + lista de compras
 python analyze.py logi cargo|restock|ladder|bm        # logística: carga/reposição/qualidade/BM
 python analyze.py risk profile|size|corr              # risco: VaR/drawdown, sizing, correlação
 python analyze.py fc revert|pair|predict              # previsão: reversão, par trading, previsibilidade
