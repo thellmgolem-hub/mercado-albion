@@ -754,6 +754,12 @@ function flipColumns(withVolume) {
       },
     },
     {
+      key: 'flipscore', label: 'Prioridade', align: 'c',
+      value: (o) => o.flip_score ?? o.profit ?? 0,
+      html: (o) => o.flip_score == null ? '—' :
+        `<span class="silver profit-pos" title="lucro PONDERADO pela confiança (idade do dado): um lucro alto em dado velho cai aqui. É por esta coluna que a lista é ordenada.">${fmt(o.flip_score)}</span>`,
+    },
+    {
       key: 'ppk', label: 'Lucro/kg', value: (o) => o.profit_per_kg,
       html: (o) => o.profit_per_kg === null ? '—' : `<span class="silver">${fmt(o.profit_per_kg)}</span>`,
     },
@@ -1530,7 +1536,7 @@ async function runFlips() {
       same_city: $('flipsSameCity').checked,
     });
     const rows = prepFlipRows(opps);
-    renderTable('flipsTable', flipColumns(false), rows, { sortKey: 'profit' });
+    renderTable('flipsTable', flipColumns(false), rows, { sortKey: 'flipscore' });
     st.textContent = `${rows.length} oportunidades (lucro líquido, imposto ${state.premium ? '4%' : '8%'})`;
   } catch (e) {
     st.className = 'status err';
@@ -1572,7 +1578,7 @@ function updateScanStatus() {
 function renderScanResults() {
   state.scanRows = prepFlipRows(state.scanOpps);
   renderTable('scanTable', flipColumns($('scanVolume').checked), state.scanRows,
-    { sortKey: 'profit' });
+    { sortKey: 'flipscore' });
   updateScanStatus();
 }
 

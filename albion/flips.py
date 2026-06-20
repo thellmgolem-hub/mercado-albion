@@ -242,7 +242,14 @@ def compute_flips(price_rows, items_meta, premium=True, buy_mode="instant",
                     "bm_order_quality": s.get("bm_order_quality"),
                 })
 
-    opps.sort(key=lambda o: -o["profit"])
+    # FRESCOR no ranking (pedido do dono): ordena por lucro PONDERADO pela
+    # confiança (idade do dado mais velho da rota). Um "lucro" alto em dado de
+    # horas/dias atrás cai no ranking; um flip fresco e confiável sobe. O lucro
+    # bruto continua visível na coluna própria. confidence_score: 100=<30min,
+    # 75=<2h, 50=<6h, 25=<1dia, 10=mais velho.
+    for o in opps:
+        o["flip_score"] = round(o["profit"] * (o["confidence_score"] / 100), 1)
+    opps.sort(key=lambda o: (-o["flip_score"], -o["profit"]))
     return opps
 
 
