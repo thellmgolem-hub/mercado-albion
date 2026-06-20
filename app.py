@@ -1459,7 +1459,7 @@ def island_view(view: str = "laborers", premium: bool = True,
                                       limit=limit)
             for r in res.get("rows", []):
                 r["empty_pt"] = name(r["empty"])
-                r["resource_pt"] = name(r["resource"])
+                r["resource_pt"] = name(r["resource"]) if r.get("resource") else None
         res["view"] = view
         return res
     finally:

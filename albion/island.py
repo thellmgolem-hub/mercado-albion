@@ -6,15 +6,22 @@ data/island_data.json (mecânicas reais do dump: foco, ciclo, bônus, prole,
 ração/nutrição). Cada motor compara cidades para COMPRAR insumos e VENDER
 produtos, calcula lucro/dia e o capital de giro por unidade.
 
-Mecânica do jogo (verificada no items.json):
-- Agricultura: plantar semente custa @activefarmfocuscost de FOCO por ciclo; COM
-  foco a colheita rende @activefarmbonus× (ex.: cenoura 2×). Ciclo em
-  @activefarmcyclelengthseconds. A colheita às vezes devolve semente.
-- Pecuária: a cria vira adulto em @growtime; tem chance de PROLE (cria extra).
-  O animal CONSOME nutrição ao longo do crescimento (consumption.food); a ração
-  vem da categoria aceita ('plants' = culturas). Foco reduz a ração necessária.
+Mecânica do jogo (verificada no items.json + loot.json + wiki, jun/2026):
+- Agricultura: a colheita é FIXA (~4.5 por canteiro, igual p/ toda cultura; o
+  @activefarmbonus do crop é só 2*(1-rebrota), NÃO um multiplicador de colheita).
+  O FOCO não aumenta a colheita: ele GARANTE a volta da semente. Sem foco a
+  semente volta com seed_regrow_chance; com foco volta sempre. Logo o ganho do
+  foco = semente economizada = seed_cost*(1-rebrota). Ciclo em
+  @activefarmcyclelengthseconds.
+- Pecuária: a cria vira adulto em @growtime; tem chance de PROLE (cria extra,
+  vendida como bebê). O animal CONSOME nutrição ao longo do crescimento
+  (consumption.food, categoria 'plants' = culturas) — a ração NÃO é reduzida pelo
+  foco. O efeito do foco no pasto (via @activefarmbonus por animal) é modelado
+  como PROLE EXTRA esperada — é uma ESTIMATIVA; o ranking usa o número firme
+  (sem foco).
 - Trabalhadores: comprar diário VAZIO + encher de fama (esforço, sem custo de
-  prata) + vender CHEIO = o "salário" que o mercado paga pela fama.
+  prata) + vender CHEIO = o "salário" que o mercado paga pela fama. Só diários de
+  COLETA entregam recurso bruto; fabricantes/pesca não têm recurso (None).
 """
 from . import config
 from . import craft
@@ -81,28 +88,29 @@ def crop_economy(price_q1, premium=True, sell_mode="order", cities=None,
         if not buy or not sell or cyc_d <= 0:
             continue
         seed_cost = buy[1]
-        # semente devolvida reduz o custo efetivo
-        regrow = (info.get("seed_regrow_chance") or 0) * (info.get("seed_regrow_amount") or 0)
-        net_seed = max(seed_cost * (1 - regrow), 0)
         base_yield = info.get("crop_yield") or 0
-        bonus = info.get("focus_bonus") or 1.0
-        rev_base = base_yield * sell[1]
-        rev_focus = base_yield * bonus * sell[1]
-        profit_no = rev_base - net_seed
-        profit_focus = rev_focus - net_seed
+        rev = base_yield * sell[1]            # colheita fixa: foco NÃO a altera
+        # Foco = retorno garantido da semente. Sem foco a semente volta com a
+        # chance natural (rebrota); com foco volta sempre (custo de semente ~0).
+        regrow = min((info.get("seed_regrow_chance") or 0)
+                     * (info.get("seed_regrow_amount") or 1), 1.0)
+        net_seed_no = max(seed_cost * (1 - regrow), 0)   # sem foco: parte volta
+        net_seed_focus = 0.0                             # com foco: garantida
+        profit_no = rev - net_seed_no
+        profit_focus = rev - net_seed_focus
         rows.append({
             "seed": seed, "crop": crop,
             "buy_city": buy[0], "seed_price": round(seed_cost),
             "sell_city": sell[0], "crop_net": round(sell[1]),
             "cycle_days": round(cyc_d, 2),
-            "yield_no_focus": round(base_yield, 1),
-            "yield_focus": round(base_yield * bonus, 1),
+            "crop_yield": round(base_yield, 1),          # fixa (com/sem foco)
+            "seed_return_pct": round(regrow * 100),      # rebrota natural s/ foco
             "profit_no_focus": round(profit_no),
             "profit_focus": round(profit_focus),
             "per_day_no_focus": round(profit_no / cyc_d),
             "per_day_focus": round(profit_focus / cyc_d),
             "focus_cost": round(info.get("focus_cost") or 0),
-            "focus_gain": round(profit_focus - profit_no),   # extra prata pelo foco
+            "focus_gain": round(profit_focus - profit_no),   # semente economizada
             "working_capital": round(seed_cost),             # por canteiro/ciclo
             "tier": info.get("tier"),
         })
@@ -131,35 +139,38 @@ def animal_economy(price_q1, premium=True, sell_mode="order", cities=None,
         sell = _best_sell(price_q1, grown, cities, sell_mode, premium) if grown else None
         if not buy or not sell or gt_d <= 0:
             continue
-        # ração: nutrição total consumida no crescimento × prata/nutrição
+        # ração: nutrição total consumida no crescimento × prata/nutrição.
+        # NÃO é reduzida pelo foco (mito desfeito na auditoria).
         spnp = info.get("seconds_per_nutrition") or 0
         total_nut = (info.get("growtime_s") or 0) / spnp if spnp else 0
-        feed_no = (total_nut * spn[0]) if spn else 0
-        # foco no pasto reduz a ração necessária (bonus do dump)
-        bonus = 2.0  # focuscost padrao do pasto -> ~metade da racao (efeito de foco)
-        feed_focus = feed_no / bonus
-        # prole: cria extra (vendida como bebê)
-        yield_offspring = (info.get("offspring_chance") or 0) * (info.get("offspring_amount") or 0)
-        revenue = sell[1] + yield_offspring * buy[1]   # adulto + bebê(s) extra
-        profit_no = revenue - buy[1] - feed_no
-        profit_focus = revenue - buy[1] - feed_focus
+        feed = (total_nut * spn[0]) if spn else 0
+        # prole: cria extra, vendida como BEBÊ (preço de venda líquido do bebê)
+        baby_sell = _best_sell(price_q1, baby, cities, sell_mode, premium)
+        baby_net = baby_sell[1] if baby_sell else buy[1]
+        off_no = (info.get("offspring_chance") or 0) * (info.get("offspring_amount") or 0)
+        # foco no pasto: @activefarmbonus real por animal vira PROLE EXTRA esperada.
+        # É ESTIMATIVA — o ranking ordena pelo número firme (sem foco).
+        off_focus = off_no + (info.get("farm_bonus") or 0)
+        profit_no = sell[1] + off_no * baby_net - buy[1] - feed
+        profit_focus = sell[1] + off_focus * baby_net - buy[1] - feed
         rows.append({
             "baby": baby, "grown": grown,
             "buy_city": buy[0], "baby_price": round(buy[1]),
             "sell_city": sell[0], "grown_net": round(sell[1]),
             "grow_days": round(gt_d, 2),
-            "offspring": round(yield_offspring, 2),
-            "feed_cost": round(feed_no),
-            "feed_focus": round(feed_focus),
+            "offspring": round(off_no, 2),
+            "offspring_focus": round(off_focus, 2),       # estimativa c/ foco
+            "feed_cost": round(feed),
             "profit_no_focus": round(profit_no),
-            "profit_focus": round(profit_focus),
+            "profit_focus": round(profit_focus),          # estimativa
             "per_day_no_focus": round(profit_no / gt_d),
-            "per_day_focus": round(profit_focus / gt_d),
+            "per_day_focus": round(profit_focus / gt_d),  # estimativa
             "focus_gain": round(profit_focus - profit_no),
-            "working_capital": round(buy[1] + feed_no),    # cria + ração por ciclo
+            "focus_is_estimate": True,
+            "working_capital": round(buy[1] + feed),       # cria + ração por ciclo
             "tier": info.get("tier"),
         })
-    rows.sort(key=lambda r: -max(r["per_day_focus"], r["per_day_no_focus"]))
+    rows.sort(key=lambda r: -r["per_day_no_focus"])   # ordena pelo número firme
     return {"available": True, "rows": rows[:limit] if limit else rows,
             "priced": len(rows), "feed_source": spn[1] if spn else None}
 
@@ -186,8 +197,10 @@ def laborer_economy(price_q1, premium=True, sell_mode="order", cities=None,
         if not buy or not sell:
             continue
         margin = sell[1] - buy[1]
-        res = f"T{info['tier']}_{info['resource_family']}"
-        res_sell = _best_sell(price_q1, res, cities, sell_mode, premium)
+        # só diários de COLETA têm recurso bruto de id limpo; fabricantes/pesca = None
+        fam_res = info.get("resource_family")
+        res = f"T{info['tier']}_{fam_res}" if fam_res else None
+        res_sell = _best_sell(price_q1, res, cities, sell_mode, premium) if res else None
         rows.append({
             "empty": empty, "full": full,
             "family": info["family"], "tier": info["tier"],

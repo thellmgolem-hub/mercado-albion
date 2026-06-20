@@ -97,6 +97,17 @@ Killboard (gameinfo): schema real em docs/SCHEMA_GAMEINFO.md — Location vem
 nulo, offset máx 1000, ~50 eventos/min em pico; o servidor ingere a cada 10 min
 (AUTO_INTEL_INTERVAL_MIN). Plano completo: docs/PLANO_DADOS_PUBLICOS_ECONOMIA_AVANCADA.md.
 
+Ilha (aba web + albion/island.py, dados em data/island_data.json via
+scripts/build_island_data.py): 3 motores sobre price_q1. AGRICULTURA — a colheita
+é FIXA (~4.5, igual p/ toda cultura; o @activefarmbonus do crop é só 2*(1-rebrota),
+NÃO multiplicador). O FOCO não aumenta a colheita: GARANTE a volta da semente
+(sem foco ela volta com seed_regrow_chance), então ganho do foco = semente
+economizada. PECUÁRIA — ração (nutrição×prata/nutrição da planta mais barata) NÃO
+cai com foco; o foco vira PROLE EXTRA estimada (@activefarmbonus por animal),
+rotulada como estimativa e fora do ranking (ordena pelo lucro firme sem foco).
+TRABALHADORES — margem do diário vazio→cheio; só famílias de COLETA
+(WOOD/ORE/HIDE/FIBER/STONE→ROCK) entregam recurso bruto, fabricantes/pesca = None.
+
 ## Fatos que não mudam (verificados jun/2026)
 
 - Taxas: imposto de venda 4% premium / 8% sem; taxa de anúncio 2,5% em ordens

@@ -18,12 +18,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 
-# Famílias de diário -> recurso BRUTO que o trabalhador daquela linha entrega.
-# (a contagem exata da entrega fica no building def; aqui mapeamos a família para
-#  o recurso, suficiente para "onde vender o que o trabalhador produz".)
+# Famílias de diário de COLETA -> recurso BRUTO (id único por tier).
+# Só as famílias de coleta com recurso de id limpo entram aqui. As famílias de
+# FABRICAÇÃO (HUNTER/MAGE/MERCENARY/TOOLMAKER/WARRIOR) não entregam recurso bruto
+# e a PESCA não tem id único por tier (T*_FISH_FRESHWATER_...). Para essas, o
+# recurso fica None — o valor do diário é a margem vazio->cheio, não a entrega.
 JOURNAL_RESOURCE = {
     "WOOD": "WOOD", "ORE": "ORE", "HIDE": "HIDE", "FIBER": "FIBER",
-    "ROCK": "ROCK", "FISH": "FISH",
+    "STONE": "ROCK",
 }
 
 
@@ -103,7 +105,9 @@ def build_crops(items, loot):
             "byproduct": byproduct,
             "focus_cost": _f(o, "@activefarmfocuscost"),
             "cycle_s": _f(o, "@activefarmcyclelengthseconds"),
-            "focus_bonus": _f(o, "@activefarmbonus", 1.0),  # multiplicador c/ foco
+            # @activefarmbonus do crop é apenas 2*(1-rebrota) — NÃO é multiplicador
+            # de colheita (a colheita é fixa ~4.5). O foco GARANTE a volta da
+            # semente; modelamos isso por seed_regrow_chance, não por este campo.
             "seed_regrow_chance": _f(seed, "@chance"),
             "seed_regrow_amount": _f(seed, "@amount"),
             "tier": int(_f(o, "@tier")),
@@ -126,6 +130,9 @@ def build_animals(items):
             "growtime_s": _f(g, "@growtime"),
             "offspring_chance": _f(off, "@chance"),
             "offspring_amount": _f(off, "@amount"),
+            # @activefarmbonus por animal (0.06–0.8, decresce com tier): efeito
+            # do FOCO no pasto, modelado como prole extra esperada (estimativa).
+            "farm_bonus": _f(o, "@activefarmbonus"),
             "focus_cost": _f(o, "@activefarmfocuscost"),
             "food_category": accepted,                 # 'plants' / 'meat'
             "nutrition_max": _f(cons, "@nutritionmax"),
@@ -166,12 +173,19 @@ def build_laborers(item_ids):
             "full": full,
             "family": fam,
             "tier": tier,
-            "resource_family": JOURNAL_RESOURCE.get(fam, fam),
+            # None p/ fabricantes/pesca (não entregam recurso bruto de id limpo)
+            "resource_family": JOURNAL_RESOURCE.get(fam),
         }
     return out
 
 
 def main():
+    for fname in ("items_raw.json", "loot.json", "items_db.json"):
+        if not (DATA / fname).exists():
+            raise SystemExit(
+                f"Falta data/{fname}. Re-baixe os dumps do ao-bin-dumps:\n"
+                "  items_raw.json = master/items.json ; loot.json = master/loot.json\n"
+                "  (items_db.json vem de scripts/build_items_db.py)")
     raw = json.loads((DATA / "items_raw.json").read_text(encoding="utf-8"))
     loot = json.loads((DATA / "loot.json").read_text(encoding="utf-8"))
     db_ids = {i["id"] for i in

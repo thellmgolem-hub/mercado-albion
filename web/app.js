@@ -2323,6 +2323,7 @@ async function loadIsland(view) {
         { key: 'crop', label: 'Cultura', align: 'l', value: (o) => o.crop_pt, html: (o) => islItemCell(o.crop, o.crop_pt) },
         { key: 'buy', label: 'Semente em', align: 'l', value: (o) => o.buy_city, html: (o) => cityHtml(o.buy_city) },
         { key: 'sp', label: 'Semente', value: (o) => o.seed_price, html: (o) => fmt(o.seed_price) },
+        { key: 'yld', label: 'Colheita', value: (o) => o.crop_yield, html: (o) => fmt(o.crop_yield) },
         { key: 'sell', label: 'Vender em', align: 'l', value: (o) => o.sell_city, html: (o) => cityHtml(o.sell_city) },
         { key: 'pdn', label: 'Lucro/dia s/foco', value: (o) => o.per_day_no_focus, html: (o) => fmt(o.per_day_no_focus) },
         { key: 'pdf', label: 'Lucro/dia c/foco', value: (o) => o.per_day_focus, html: (o) => `<span class="silver profit-pos">${fmt(o.per_day_focus)}</span>` },
@@ -2336,10 +2337,10 @@ async function loadIsland(view) {
         { key: 'bp', label: 'Cria', value: (o) => o.baby_price, html: (o) => fmt(o.baby_price) },
         { key: 'feed', label: 'Ração', value: (o) => o.feed_cost, html: (o) => fmt(o.feed_cost) },
         { key: 'sell', label: 'Vender em', align: 'l', value: (o) => o.sell_city, html: (o) => cityHtml(o.sell_city) },
-        { key: 'pdn', label: 'Lucro/dia s/foco', value: (o) => o.per_day_no_focus, html: (o) => fmt(o.per_day_no_focus) },
-        { key: 'pdf', label: 'Lucro/dia c/foco', value: (o) => o.per_day_focus, html: (o) => `<span class="silver profit-pos">${fmt(o.per_day_focus)}</span>` },
+        { key: 'pdn', label: 'Lucro/dia s/foco', value: (o) => o.per_day_no_focus, html: (o) => `<span class="silver profit-pos">${fmt(o.per_day_no_focus)}</span>` },
+        { key: 'pdf', label: 'Lucro/dia c/foco (est.)', value: (o) => o.per_day_focus, html: (o) => fmt(o.per_day_focus) },
         { key: 'wc', label: 'Capital/animal', value: (o) => o.working_capital, html: (o) => fmt(o.working_capital) },
-      ], rows, { sortKey: 'pdf' });
+      ], rows, { sortKey: 'pdn' });
     } else {
       renderTable(m.tbl, [
         { key: 'fam', label: 'Diário', align: 'l', value: (o) => o.empty_pt, html: (o) => islItemCell(o.empty, o.empty_pt) },
@@ -2348,11 +2349,19 @@ async function loadIsland(view) {
         { key: 'sell', label: 'Cheio em', align: 'l', value: (o) => o.sell_city, html: (o) => cityHtml(o.sell_city) },
         { key: 'fp', label: 'Cheio líq', value: (o) => o.full_net, html: (o) => fmt(o.full_net) },
         { key: 'margin', label: 'Margem (fama)', value: (o) => o.margin, html: (o) => `<span class="silver profit-pos">${fmt(o.margin)}</span>` },
-        { key: 'res', label: 'Entrega', align: 'l', value: (o) => o.resource_pt, html: (o) => esc(o.resource_pt) },
+        { key: 'res', label: 'Entrega', align: 'l', value: (o) => o.resource_pt || '', html: (o) => o.resource_pt ? esc(o.resource_pt) : '—' },
         { key: 'rs', label: 'Vender entrega', align: 'l', value: (o) => o.resource_sell_city || '', html: (o) => o.resource_sell_city ? cityHtml(o.resource_sell_city) : '—' },
       ], rows, { sortKey: 'margin' });
     }
-    st.textContent = rows.length ? `${rows.length} itens` : 'sem preços de ilha no cache ainda (a coleta cobre conforme roda)';
+    if (!rows.length) {
+      st.textContent = 'sem preços de ilha no cache ainda (a coleta cobre conforme roda)';
+    } else if (view === 'crops') {
+      st.textContent = `${rows.length} culturas · colheita fixa; foco garante a volta da semente (ganho = semente economizada)`;
+    } else if (view === 'animals') {
+      st.textContent = `${rows.length} animais · ração não cai com foco; "c/foco" é estimativa (prole extra) — ranking pelo número firme s/ foco`;
+    } else {
+      st.textContent = `${rows.length} diários · entrega só p/ coletores (fabricante/pesca não entregam recurso bruto)`;
+    }
   } catch (e) { st.className = 'status err'; st.textContent = 'erro: ' + e.message; }
 }
 

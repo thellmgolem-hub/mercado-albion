@@ -1696,38 +1696,52 @@ class IslandTests(unittest.TestCase):
         from albion import config
         p = {}
         for it, pr in [("T1_FARM_CARROT_SEED", 200), ("T1_CARROT", 120),
+                       ("T3_FARM_WHEAT_SEED", 300), ("T3_WHEAT", 90),
                        ("T3_FARM_OX_BABY", 1500), ("T3_FARM_OX_GROWN", 9000),
                        ("T4_JOURNAL_WOOD_EMPTY", 300),
-                       ("T4_JOURNAL_WOOD_FULL", 4200), ("T4_WOOD", 250)]:
+                       ("T4_JOURNAL_WOOD_FULL", 4200), ("T4_WOOD", 250),
+                       ("T4_JOURNAL_MAGE_EMPTY", 300),
+                       ("T4_JOURNAL_MAGE_FULL", 4200)]:
             for c in config.CITIES:
                 p[(it, c)] = pr
         return p
 
-    def test_crop_focus_doubles_yield(self):
+    def test_crop_focus_returns_seed_never_hurts(self):
         from albion import island
         r = island.crop_economy(self._prices(), premium=True)
-        row = next(x for x in r["rows"] if x["crop"] == "T1_CARROT")
-        # cenoura: bônus de foco 2x -> rendimento dobra e lucro c/ foco é maior
-        self.assertAlmostEqual(row["yield_focus"], row["yield_no_focus"] * 2, delta=0.1)
-        self.assertGreater(row["profit_focus"], row["profit_no_focus"])
-        self.assertEqual(row["focus_gain"],
-                         row["profit_focus"] - row["profit_no_focus"])
+        # foco NÃO muda a colheita (fixa) e NUNCA reduz o lucro — nem em T3+,
+        # onde o modelo antigo (multiplicador) invertia o sinal.
+        for crop in ("T1_CARROT", "T3_WHEAT"):
+            row = next(x for x in r["rows"] if x["crop"] == crop)
+            self.assertGreater(row["crop_yield"], 0)
+            self.assertGreaterEqual(row["profit_focus"], row["profit_no_focus"])
+            self.assertEqual(row["focus_gain"],
+                             row["profit_focus"] - row["profit_no_focus"])
+        # cenoura (rebrota 0): foco economiza a SEMENTE inteira
+        carrot = next(x for x in r["rows"] if x["crop"] == "T1_CARROT")
+        self.assertEqual(carrot["focus_gain"], carrot["seed_price"])
 
-    def test_animal_feed_is_counted(self):
+    def test_animal_feed_counted_focus_is_estimate(self):
         from albion import island
         r = island.animal_economy(self._prices(), premium=True)
         row = next(x for x in r["rows"] if x["baby"] == "T3_FARM_OX_BABY")
-        # ração contabilizada (>0, vinda do produto agrícola) e foco a reduz
+        # ração contabilizada (>0, do produto agrícola) e NÃO reduzida por foco;
+        # o foco é uma estimativa (prole extra) que não pode piorar o lucro.
         self.assertGreater(row["feed_cost"], 0)
-        self.assertLess(row["feed_focus"], row["feed_cost"])
-        self.assertEqual(r["feed_source"], "T1_CARROT")
+        self.assertTrue(row["focus_is_estimate"])
+        self.assertGreaterEqual(row["per_day_focus"], row["per_day_no_focus"])
+        self.assertNotIn("feed_focus", row)
+        # ração = planta mais barata por nutrição entre as precificadas
+        self.assertIn(r["feed_source"], ("T1_CARROT", "T3_WHEAT"))
 
-    def test_laborer_margin_is_full_minus_empty(self):
+    def test_laborer_margin_and_resource_mapping(self):
         from albion import island
         r = island.laborer_economy(self._prices(), premium=True)
-        row = next(x for x in r["rows"] if x["empty"] == "T4_JOURNAL_WOOD_EMPTY")
-        self.assertEqual(row["margin"], row["full_net"] - row["empty_price"])
-        self.assertEqual(row["resource"], "T4_WOOD")
+        wood = next(x for x in r["rows"] if x["empty"] == "T4_JOURNAL_WOOD_EMPTY")
+        self.assertEqual(wood["margin"], wood["full_net"] - wood["empty_price"])
+        self.assertEqual(wood["resource"], "T4_WOOD")   # coletor entrega recurso
+        mage = next(x for x in r["rows"] if x["empty"] == "T4_JOURNAL_MAGE_EMPTY")
+        self.assertIsNone(mage["resource"])             # fabricante: sem recurso
 
     def test_island_endpoint_views(self):
         c = TestClient(app.app)
