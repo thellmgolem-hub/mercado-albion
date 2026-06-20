@@ -89,10 +89,12 @@ def _checkpoint(aodp, source):
 
 
 def _save_checkpoint(aodp, source, cursor):
+    from . import store
     with aodp.db_lock:
-        aodp.db.execute(
-            "INSERT OR REPLACE INTO public_ingest_checkpoints VALUES (?,?,?,?)",
-            [aodp.server, source, cursor, time.time()])
+        store.upsert(
+            aodp.db, "public_ingest_checkpoints",
+            ["server", "source", "cursor_value", "last_success_at"],
+            [(aodp.server, source, cursor, time.time())], ["server", "source"])
         aodp.db.commit()
 
 
@@ -184,6 +186,91 @@ def ingest_events(aodp, client: GameinfoClient | None = None,
     return {"source": "events", "pages": pages, "seen": seen,
             "inserted": inserted, "ok": ok, "error": error,
             "saturated": bool(saturated)}
+
+
+def ingest_demand_lean(aodp, client: GameinfoClient | None = None,
+                       max_pages: int = config.GAMEINFO_EVENT_PAGES) -> dict:
+    """Ingestão MAGRA do killboard (piloto na nuvem): agrega o equipamento das
+    VÍTIMAS em kill_demand_daily (server, day, item_id, slot, quality ->
+    victim_units, victim_events), SEM guardar eventos crus.
+
+    Cabe no Postgres gratuito porque guarda só o agregado diário (~milhares de
+    linhas/dia), não o firehose. Idempotente via checkpoint 'demand_lean': só
+    conta eventos com EventId > checkpoint, então cada evento entra uma vez.
+    Funciona em SQLite e Postgres (store.upsert_add soma no conflito).
+    """
+    from . import store
+    client = client or GameinfoClient(aodp.server)
+    started = time.time()
+    known_max = _checkpoint(aodp, "demand_lean")
+    seen = pages = 0
+    newest = known_max
+    caught_up = (known_max == 0)
+    agg = {}            # (day, item_id, slot, quality) -> [units, events]
+    ok, error = 1, None
+    try:
+        for page in range(max_pages):
+            offset = page * PAGE_SIZE
+            if offset > MAX_OFFSET:
+                break
+            events = client.events_page(offset)
+            if not events:
+                caught_up = True
+                break
+            pages += 1
+            seen += len(events)
+            page_min_id = None
+            for e in events:
+                eid = e.get("EventId")
+                if not eid:
+                    continue
+                page_min_id = eid if page_min_id is None else min(page_min_id, eid)
+                newest = max(newest, eid)
+                if eid <= known_max:
+                    continue
+                day = (e.get("TimeStamp") or "")[:10]
+                if not day:
+                    continue
+                victim = e.get("Victim") or {}
+                eq_rows = _equipment_rows(aodp.server, eid, "victim", victim,
+                                          with_inventory=True)
+                counted = set()  # +1 victim_event por chave por evento
+                for r in eq_rows:
+                    slot, item_id, cnt, qual = r[3], r[4], r[5], r[6]
+                    key = (day, item_id, slot, qual)
+                    cell = agg.get(key)
+                    if cell is None:
+                        agg[key] = [cnt, 1]
+                        counted.add(key)
+                    else:
+                        cell[0] += cnt
+                        if key not in counted:
+                            cell[1] += 1
+                            counted.add(key)
+            if page_min_id is not None and page_min_id <= known_max:
+                caught_up = True
+                break
+            time.sleep(1)  # cortesia: ~1 req/s
+    except Exception as e:
+        ok, error = 0, repr(e)[:500]
+    rows_out = [(aodp.server, day, item_id, slot, qual, u, ev)
+                for (day, item_id, slot, qual), (u, ev) in agg.items()]
+    if rows_out:
+        with aodp.db_lock:
+            store.upsert_add(
+                aodp.db, "kill_demand_daily",
+                ["server", "day", "item_id", "slot", "quality",
+                 "victim_units", "victim_events"],
+                rows_out,
+                ["server", "day", "item_id", "slot", "quality"],
+                ["victim_units", "victim_events"])
+            aodp.db.commit()
+    if newest > known_max:
+        _save_checkpoint(aodp, "demand_lean", newest)
+    saturated = bool(ok and not caught_up and newest > known_max)
+    return {"source": "demand_lean", "pages": pages, "seen": seen,
+            "keys": len(agg), "newest": newest, "ok": ok, "error": error,
+            "saturated": saturated}
 
 
 def ingest_battles(aodp, client: GameinfoClient | None = None,

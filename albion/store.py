@@ -245,6 +245,32 @@ def upsert_ignore(conn, table: str, columns: list[str], rows,
     conn.executemany(sql, rows)
 
 
+def upsert_add(conn, table: str, columns: list[str], rows,
+               conflict: list[str], add_cols: list[str]):
+    """INSERT que SOMA as colunas `add_cols` em conflito de chave.
+
+    Para agregados incrementais (ex.: killboard magro): cada rodada vê eventos
+    novos e ACUMULA a contagem do dia, em vez de sobrescrever. Os dois backends
+    suportam `ON CONFLICT(...) DO UPDATE SET col = tabela.col + excluded.col`.
+    """
+    rows = list(rows)
+    if not rows:
+        return
+    cols = ",".join(columns)
+    ph = _placeholders(len(columns))
+    on = ",".join(conflict)
+    # SQLite usa o nome real da tabela; Postgres idem (qualifica a coluna alvo).
+    sets = ",".join(f"{c}={table}.{c}+excluded.{c}" for c in add_cols)
+    if conn.backend == "sqlite":
+        sql = (f"INSERT INTO {table} ({cols}) VALUES ({ph}) "
+               f"ON CONFLICT({on}) DO UPDATE SET {sets}")
+    else:
+        sets_pg = ",".join(f"{c}={table}.{c}+EXCLUDED.{c}" for c in add_cols)
+        sql = (f"INSERT INTO {table} ({cols}) VALUES ({ph}) "
+               f"ON CONFLICT ({on}) DO UPDATE SET {sets_pg}")
+    conn.executemany(sql, rows)
+
+
 # ------------------------------------------------------------------ datas
 def cutoff_iso(days: float) -> str:
     """Corte ISO (UTC) para `ts >= ?` — substitui `date('now', '-N days')`.
@@ -295,6 +321,17 @@ CREATE TABLE IF NOT EXISTS sweep_state (
   server TEXT PRIMARY KEY, cursor INTEGER, cycle INTEGER,
   updated_at REAL, last_items INTEGER
 );
+CREATE TABLE IF NOT EXISTS kill_demand_daily (
+  server TEXT, day TEXT, item_id TEXT, slot TEXT, quality INTEGER,
+  victim_units INTEGER, victim_events INTEGER,
+  PRIMARY KEY (server, day, item_id, slot, quality)
+);
+CREATE INDEX IF NOT EXISTS idx_kill_demand_day
+  ON kill_demand_daily (server, day);
+CREATE TABLE IF NOT EXISTS public_ingest_checkpoints (
+  server TEXT, source TEXT, cursor_value INTEGER, last_success_at REAL,
+  PRIMARY KEY (server, source)
+);
 """
 
 # Postgres: mesmos campos, tipos nativos. SERIAL para positions.id.
@@ -334,6 +371,17 @@ CREATE TABLE IF NOT EXISTS positions (
 CREATE TABLE IF NOT EXISTS sweep_state (
   server TEXT PRIMARY KEY, cursor INTEGER, cycle INTEGER,
   updated_at DOUBLE PRECISION, last_items INTEGER
+);
+CREATE TABLE IF NOT EXISTS kill_demand_daily (
+  server TEXT, day TEXT, item_id TEXT, slot TEXT, quality INTEGER,
+  victim_units BIGINT, victim_events BIGINT,
+  PRIMARY KEY (server, day, item_id, slot, quality)
+);
+CREATE INDEX IF NOT EXISTS idx_kill_demand_day
+  ON kill_demand_daily (server, day);
+CREATE TABLE IF NOT EXISTS public_ingest_checkpoints (
+  server TEXT, source TEXT, cursor_value BIGINT, last_success_at DOUBLE PRECISION,
+  PRIMARY KEY (server, source)
 );
 """
 

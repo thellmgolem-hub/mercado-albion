@@ -223,5 +223,8 @@ SWEEP_SKIP_CATEGORIES = {"vanity"}
 # inclui 'guilds' (martelos de cerco/estandartes SÃO craftáveis/vendáveis) nem
 # 'killtrophy' (mobília, mesma família vendável das outras 311 de mobília).
 SWEEP_SKIP_SUBS = {"lootitem", "questitems", "trash", "hardcoreexpeditions"}
-# Token exigido no /api/sweep (defina em prod; vazio = liberado p/ dev local)
+# Token exigido no /api/sweep e /api/intel-sweep (defina em prod; vazio = dev)
 SWEEP_TOKEN = os.environ.get("ALBION_SWEEP_TOKEN", "")
+# Retenção do agregado de killboard magro (kill_demand_daily). 45 dias mantém
+# a tabela pequena (cabe no Postgres free) e cobre a janela das análises.
+KILL_DEMAND_RETENTION_DAYS = 45

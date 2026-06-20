@@ -1233,27 +1233,27 @@ class DemandGuildTests(unittest.TestCase):
         self.assertAlmostEqual(r["per_day"], 576.0, delta=1)
         self.assertTrue(r["undersupplied"])                    # 5 << 576
 
-    def test_watchlist_roi_add_vs_watched(self):
+    def test_watchlist_roi_ranks_destruction(self):
+        # ranking de destruição sobre kill_demand_daily (killboard magro):
+        # mais destruído ranqueia mais alto; sem conceito de watchlist no piloto
         from albion import guild as gd
         with TemporaryDirectory() as tmp:
             client = AODP(db_path=Path(tmp) / "cache.db")
             try:
                 client.db.executemany(
-                    "INSERT INTO item_demand_daily VALUES (?,?,?,?,?,?,?)",
-                    [("americas", "2026-06-15", "T6_BAG", 100, 1, 0, 0),
-                     ("americas", "2026-06-15", "T7_BAG", 50, 1, 0, 0)])
-                client.db.execute(
-                    "INSERT INTO watchlist VALUES (?,?,?)",
-                    ("americas", "T7_BAG", 0))
+                    "INSERT INTO kill_demand_daily VALUES (?,?,?,?,?,?,?)",
+                    [("americas", "2026-06-15", "T6_BAG", "Bag", 1, 100, 1),
+                     ("americas", "2026-06-15", "T7_BAG", "Bag", 1, 20, 1)])
                 client.db.commit()
                 res = gd.watchlist_roi(client.db, "americas",
                                        price_of=lambda i: 1000, days=3650)
             finally:
                 client.db.close()
-        add_ids = {r["item_id"] for r in res["add"]}
-        self.assertIn("T6_BAG", add_ids)        # destruído e fora da watchlist
-        self.assertNotIn("T7_BAG", add_ids)     # já vigiado
-        self.assertEqual(res["watched_count"], 1)
+        ranked = [r["item_id"] for r in res["add"]]
+        self.assertIn("T6_BAG", ranked)
+        self.assertIn("T7_BAG", ranked)
+        self.assertLess(ranked.index("T6_BAG"), ranked.index("T7_BAG"))
+        self.assertEqual(res["watched_count"], 0)
 
 
 class PvpTests(unittest.TestCase):
@@ -1369,13 +1369,17 @@ class ApiUiTests(unittest.TestCase):
             self.assertIsInstance(r.json().get('rows'), list)
 
     def test_guild_endpoint_views(self):
-        # Guild depende de killboard (cortado no piloto gratuito): cada view
-        # responde 200 com rows=[] e unavailable=True, sem quebrar.
-        for view in ('watch', 'makeorbuy', 'kit'):
+        # Guild revivido sobre kill_demand_daily (killboard magro): watch/
+        # makeorbuy devolvem rows, kit devolve series — listas mesmo com
+        # agregado vazio (sem quebrar).
+        for view in ('watch', 'makeorbuy'):
             r = self.c.get('/api/guild', params={'view': view, 'days': 7, 'limit': 3})
             self.assertEqual(r.status_code, 200, view)
+            self.assertEqual(r.json().get('view'), view)
             self.assertIsInstance(r.json().get('rows'), list)
-            self.assertTrue(r.json().get('unavailable'))
+        rk = self.c.get('/api/guild', params={'view': 'kit', 'days': 7})
+        self.assertEqual(rk.status_code, 200)
+        self.assertIsInstance(rk.json().get('series'), list)
 
     def test_logi_endpoint_views(self):
         # hub Avançado/Logística: bm/ladder/restock todos 200 com rows

@@ -239,6 +239,13 @@ class AODP:
               server TEXT PRIMARY KEY, cursor INTEGER, cycle INTEGER,
               updated_at REAL, last_items INTEGER
             );
+            CREATE TABLE IF NOT EXISTS kill_demand_daily (
+              server TEXT, day TEXT, item_id TEXT, slot TEXT, quality INTEGER,
+              victim_units INTEGER, victim_events INTEGER,
+              PRIMARY KEY (server, day, item_id, slot, quality)
+            );
+            CREATE INDEX IF NOT EXISTS idx_kill_demand_day
+              ON kill_demand_daily (server, day);
             """)
             self.db.commit()
 

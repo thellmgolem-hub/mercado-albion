@@ -68,9 +68,10 @@ def _maybe_bootstrap_admin():
 
 _maybe_bootstrap_admin()
 
-# /api/sweep é tocado por cron externo (sem sessão) — protegido por token próprio
+# /api/sweep e /api/intel-sweep são tocados por cron externo (sem sessão) —
+# protegidos por token próprio
 PUBLIC_AUTH_PATHS = {"/api/auth/login", "/api/auth/bootstrap-status",
-                     "/api/sweep"}
+                     "/api/sweep", "/api/intel-sweep"}
 PROTECTED_DOC_PATHS = {"/docs", "/redoc", "/openapi.json"}
 
 
@@ -473,6 +474,34 @@ def sweep(token: str = "",
         "progress_pct": round(100 * res["new_cursor"] / n, 1)
         if res["new_cursor"] else 100.0,
     }
+
+
+@app.get("/api/intel-sweep")
+@app.post("/api/intel-sweep")
+def intel_sweep(token: str = ""):
+    """Um toque do sweep de KILLBOARD magro (tocado por cron, ~10 em 10 min).
+
+    Pagina o gameinfo e agrega o equipamento das vítimas em kill_demand_daily
+    (sem eventos crus), depois poda dias além da retenção. Alimenta Guild
+    (fazer-vs-comprar, regear, ranking de destruição) e Logística (reposição).
+    """
+    from albion import gameinfo
+    if store.backend() != "sqlite" and not config.SWEEP_TOKEN:
+        raise HTTPException(503, "intel-sweep desabilitado: defina ALBION_SWEEP_TOKEN")
+    if config.SWEEP_TOKEN and not hmac.compare_digest(token, config.SWEEP_TOKEN):
+        raise HTTPException(403, "token de sweep invalido")
+    res = _api_guard(lambda: gameinfo.ingest_demand_lean(aodp))
+    # poda: mantém só a janela de retenção (limita o tamanho no Postgres free)
+    cutoff = store.cutoff_iso(config.KILL_DEMAND_RETENTION_DAYS)
+    try:
+        with aodp.db_lock:
+            aodp.db.execute(
+                "DELETE FROM kill_demand_daily WHERE server=? AND day < ?",
+                [aodp.server, cutoff])
+            aodp.db.commit()
+    except Exception:
+        pass
+    return res
 
 
 @app.get("/api/search")
@@ -1308,11 +1337,40 @@ def prod_view(view: str = "focus", premium: bool = True,
 @app.get("/api/guild")
 def guild_view(view: str = "watch", days: float = Query(7, ge=0.25, le=30),
                premium: bool = True, limit: int = Query(40, ge=1, le=200)):
-    """Guild (ROI de coleta, cesta de regear, make-or-buy) DEPENDE de killboard
-    (item_demand_daily / kill_event_*). O piloto gratuito não acumula killboard
-    — não cabe no Postgres free — então este hub fica indisponível por ora."""
-    return {"view": view, "rows": [], "unavailable": True,
-            "note": "Requer dados de killboard, não coletados no piloto."}
+    """Guild p/ o hub: ranking de destruição, cesta de regear, make-or-buy.
+
+    Lê o agregado kill_demand_daily (killboard MAGRO, alimentado por /api/sweep
+    com kind=intel). Sai vazio até o sweep de killboard acumular dados."""
+    from albion import guild as gd
+    con = _cache_connection()
+    if con is None:
+        return {"view": view, "rows": []}
+    try:
+        name = lambda i: (db.get(i) or {}).get("pt", i)
+        if view == "kit":
+            res = gd.soldier_kit_index(con, aodp.server, days=days)
+            res["basket"] = [{"item_id": i, "name_pt": name(i), "weight": w}
+                             for i, w in res.get("basket", [])]
+            res["view"] = "kit"
+            return res
+        q1, _ = _price_lookups(con)
+        if view == "makeorbuy":
+            rows = gd.make_or_buy(con, aodp.server,
+                                  price_of=lambda i, c: q1.get((i, c)),
+                                  days=days, premium=premium, limit=limit)
+            for r in rows:
+                r["name_pt"] = name(r["item_id"])
+            return {"view": "makeorbuy", "rows": rows}
+        price_item = _cheapest_by_item(q1)
+        res = gd.watchlist_roi(con, aodp.server, price_of=price_item.get,
+                               days=days, limit=limit)
+        for r in res.get("add", []):
+            r["name_pt"] = name(r["item_id"])
+        res["view"] = "watch"
+        res["rows"] = res.pop("add", [])
+        return res
+    finally:
+        con.close()
 
 
 def _clean_prows(con):
@@ -1370,7 +1428,7 @@ def logi_view(view: str = "bm", premium: bool = True,
             try:
                 demand = con.execute(
                     """SELECT item_id, SUM(victim_units) AS u
-                       FROM item_demand_daily
+                       FROM kill_demand_daily
                        WHERE server=? AND day >= ?
                        GROUP BY item_id HAVING SUM(victim_units)>0
                        ORDER BY u DESC LIMIT 400""",
