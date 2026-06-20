@@ -314,16 +314,32 @@ class AuthManager:
             "VALUES (?,?,?,?,?)",
             [actor_id, target_id, action, safe[:2000], time.time()])
 
-    def has_admin(self) -> bool:
+    @contextmanager
+    def _read(self):
+        """Leitura que ENCERRA a transação implícita ao sair. No Postgres
+        (conexão gravável, autocommit=False) um SELECT abre transação que
+        ficaria 'idle in transaction' até commit/rollback — aqui damos rollback
+        ao final (sem efeito, é só-leitura) para não reter o backend do pooler.
+        No SQLite, um SELECT puro não abre transação: rollback é no-op."""
         with self.lock:
-            row = self.con.execute(
+            try:
+                yield self.con
+            finally:
+                try:
+                    self.con.rollback()
+                except Exception:
+                    pass
+
+    def has_admin(self) -> bool:
+        with self._read() as con:
+            row = con.execute(
                 "SELECT 1 FROM auth_accounts WHERE role='admin' AND active=1 "
                 "LIMIT 1").fetchone()
         return bool(row)
 
     def account_count(self) -> int:
-        with self.lock:
-            return self.con.execute(
+        with self._read() as con:
+            return con.execute(
                 "SELECT COUNT(*) FROM auth_accounts").fetchone()[0]
 
     def _profiles(self, con, account_id):
@@ -417,17 +433,17 @@ class AuthManager:
                 "temporary_password": pwd}
 
     def list_accounts(self):
-        with self.lock:
-            rows = self.con.execute(
+        with self._read() as con:
+            rows = con.execute(
                 self._account_select() + " ORDER BY active DESC, username_norm"
             ).fetchall()
-            return [self._account_dict(self.con, r) for r in rows]
+            return [self._account_dict(con, r) for r in rows]
 
     def get_account(self, account_id):
-        with self.lock:
-            row = self.con.execute(
+        with self._read() as con:
+            row = con.execute(
                 self._account_select() + " WHERE id=?", [account_id]).fetchone()
-            return self._account_dict(self.con, row)
+            return self._account_dict(con, row)
 
     def update_account(self, actor_id, account_id, *, role=None, active=None,
                        profiles=None, display_name=None, albion_nick=None,
@@ -719,8 +735,8 @@ class AuthManager:
 
     def audit_log(self, limit=200):
         limit = max(1, min(int(limit), 1000))
-        with self.lock:
-            rows = self.con.execute("""
+        with self._read() as con:
+            rows = con.execute("""
                 SELECT l.id,l.created_at,l.action,l.actor_account_id,
                        aa.username,l.target_account_id,ta.username,l.details_json
                 FROM auth_audit l

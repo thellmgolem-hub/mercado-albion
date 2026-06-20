@@ -1,3 +1,6 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
 httpx>=0.27
+# Driver Postgres do piloto na nuvem (Supabase). Local/dev usa SQLite e não
+# precisa dele, mas em produção (DATABASE_URL setada) é obrigatório.
+psycopg[binary]>=3.1

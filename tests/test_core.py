@@ -359,9 +359,11 @@ class BacktestTests(unittest.TestCase):
                 client.db.commit()
                 metas = {"T5_BAG": {"pt": "Bolsa", "en": "Bag",
                                     "cat": "bags", "w": 1}}
-                # regressão: o endpoint usa row_factory=Row (não ordenável)
+                # regressão: o endpoint usa row_factory=Row (não ordenável).
+                # client.db agora é o wrapper store._SqliteConn; o row_factory
+                # vive na conexão crua (.raw), senão o guard vira no-op.
                 import sqlite3 as _sq
-                client.db.row_factory = _sq.Row
+                client.db.raw.row_factory = _sq.Row
                 res = bt.signal_backtest(client.db, "americas", metas,
                                          premium=True, min_profit=0)
             finally:

@@ -214,7 +214,13 @@ USER_AGENT = "albion-market-local/1.0 (app local de consulta de mercado)"
 SWEEP_ITEMS_PER_TICK = 100        # itens por toque (~2 chunks de preço/histórico)
 SWEEP_HISTORY_TTL = 6 * 3600      # refaz histórico do item no máx. de 6 em 6 h
 SWEEP_HISTORY_DAYS = 90           # janela canônica de histórico (escala 24h)
-# Categorias sem mercado relevante — fora do universo de varredura
-SWEEP_SKIP_CATEGORIES = {"other", "vanity", "furniture"}
+# Universo de varredura = TODO item negociável. 'vanity' são skins não-vendáveis
+# (0/696 com mercado). 'other' e 'furniture' contêm itens negociáveis (diários,
+# labourers, mobília, mapas) — por isso filtramos por SUBcategoria-lixo, não pela
+# categoria inteira, para não deixar de fora ~700 itens com mercado real.
+SWEEP_SKIP_CATEGORIES = {"vanity"}
+# Subcategorias claramente sem mercado (quest/loot/lixo): 0 preço na AODP.
+SWEEP_SKIP_SUBS = {"lootitem", "questitems", "trash", "killtrophy",
+                   "guilds", "hardcoreexpeditions"}
 # Token exigido no /api/sweep (defina em prod; vazio = liberado p/ dev local)
 SWEEP_TOKEN = os.environ.get("ALBION_SWEEP_TOKEN", "")

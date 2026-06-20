@@ -389,15 +389,18 @@ def status():
 
 
 def _market_universe():
-    """Universo de varredura: itens COM mercado relevante, ordem estável.
+    """Universo de varredura: TODO item negociável, ordem estável.
 
-    Exclui categorias sem negociação (vanity/mobília/outros) e tier 0. A ordem
-    por id é determinística — o cursor do sweep é um offset nesta lista.
+    Exclui só 'vanity' (skins não-vendáveis) e subcategorias-lixo (quest/loot),
+    além de tier 0. Inclui diários, labourers, mobília, mapas — tudo que tem
+    mercado na AODP. A ordem por id é determinística (o cursor é um offset aqui).
     """
-    skip = config.SWEEP_SKIP_CATEGORIES
+    skip_cat = config.SWEEP_SKIP_CATEGORIES
+    skip_sub = config.SWEEP_SKIP_SUBS
     return sorted(
         it["id"] for it in db.items
-        if it.get("cat") not in skip and (it.get("tier") or 0) >= 1)
+        if it.get("cat") not in skip_cat and it.get("sub") not in skip_sub
+        and (it.get("tier") or 0) >= 1)
 
 
 @app.get("/api/sweep")
@@ -416,23 +419,24 @@ def sweep(token: str = "",
     n = len(universe)
     if not n:
         return {"ok": False, "note": "universo vazio"}
-    st = aodp.sweep_state()
-    start = st["cursor"] % n
-    slice_ids = universe[start:start + count]
-    cycle = st["cycle"]
-    new_cursor = start + len(slice_ids)
-    if new_cursor >= n:          # fim do universo -> reinicia e conta o ciclo
-        new_cursor, cycle = 0, cycle + 1
+    # reserva ATÔMICA da fatia: avança o cursor antes de buscar, então dois
+    # ticks concorrentes do cron pegam trechos diferentes (sem duplicar trabalho)
+    res = aodp.sweep_reserve(n, count)
+    slice_ids = universe[res["start"]:res["start"] + res["take"]]
+    if not slice_ids:
+        return {"ok": True, "universe": n, "took": 0,
+                "next_cursor": res["new_cursor"], "cycle": res["cycle"]}
     pr = _api_guard(lambda: aodp.get_prices(slice_ids, max_age=0))
     hi = _api_guard(lambda: aodp.get_history(
         slice_ids, time_scale=24, days=config.SWEEP_HISTORY_DAYS,
         max_age=config.SWEEP_HISTORY_TTL))
-    aodp.sweep_save(new_cursor, cycle, len(slice_ids))
     return {
-        "ok": True, "universe": n, "from_cursor": start,
-        "took": len(slice_ids), "next_cursor": new_cursor, "cycle": cycle,
-        "price_rows": len(pr), "history_series": len(hi),
-        "progress_pct": round(100 * new_cursor / n, 1) if new_cursor else 100.0,
+        "ok": True, "universe": n, "from_cursor": res["start"],
+        "took": len(slice_ids), "next_cursor": res["new_cursor"],
+        "cycle": res["cycle"], "price_rows": len(pr),
+        "history_series": len(hi),
+        "progress_pct": round(100 * res["new_cursor"] / n, 1)
+        if res["new_cursor"] else 100.0,
     }
 
 

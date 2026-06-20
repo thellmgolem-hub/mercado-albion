@@ -55,17 +55,19 @@ def enrich(con, server, opps, history_days=120):
     reordena por composite_score. Compartilhado por CLI e API (somente leitura).
     """
     from . import risk, forecast as fc
+    from . import store
     ids = list({o["item_id"] for o in opps})
     if not ids:
         return opps
     ph = ",".join("?" * len(ids))
+    # corte ISO em Python (portável SQLite/Postgres) — NÃO date('now') do SQLite
     rows = con.execute(
         f"""SELECT item_id, city, substr(ts,1,10) AS day, avg_price
             FROM history WHERE server=? AND time_scale=24 AND quality=1
-              AND avg_price>0 AND ts >= date('now', ?)
+              AND avg_price>0 AND ts >= ?
               AND item_id IN ({ph})
             ORDER BY item_id, city, day""",
-        [server, f"-{int(history_days)} days", *ids]).fetchall()
+        [server, store.cutoff_iso(history_days), *ids]).fetchall()
     div_set = set()
     try:
         from . import gameinfo

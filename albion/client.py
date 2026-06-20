@@ -459,6 +459,7 @@ class AODP:
                 [self.server]).fetchone()[0]
         if time.time() - ages.get("gold", 0) > max_age or cached < count:
             rows = self._get("/api/v2/stats/gold.json", params={"count": count})
+            fetched = time.time()
             with self.db_lock:
                 store.upsert(self.db, "gold", ["server", "ts", "price"],
                              [(self.server, r["timestamp"], r["price"])
@@ -513,7 +514,13 @@ class AODP:
 
         Alimenta prices/price_snapshots/history e registra a rodada em
         collection_runs (auditoria da coleta de longo prazo).
+
+        Série fina (watchlist/snapshots/collection_runs) é exclusiva do SQLite
+        local — no piloto Postgres a ingestão é feita pelo /api/sweep.
         """
+        if getattr(self.db, "backend", "sqlite") != "sqlite":
+            return {"items": 0, "price_rows": 0, "history_series": 0,
+                    "source": source, "skipped": "backend nao-sqlite"}
         if item_ids is None:
             item_ids = [w["item_id"] for w in self.watch_list()]
         item_ids = item_ids[:max_items]
@@ -555,6 +562,8 @@ class AODP:
         Roda na coleta para o roll-up diário ficar sempre atual (a poda só
         cuidava dos dias > retenção). Idempotente: INSERT OR REPLACE pela PK do
         dia. Restringe aos item_ids coletados para limitar o custo."""
+        if getattr(self.db, "backend", "sqlite") != "sqlite":
+            return  # roll-up de série fina só existe no SQLite local
         # corta na MEIA-NOITE UTC (como snapshot_prune, SQL-4): um cutoff
         # deslizante por instante re-agregaria o dia de fronteira só com os
         # snapshots dentro da janela e o INSERT OR REPLACE sobrescreveria o
@@ -668,6 +677,38 @@ class AODP:
                 ["server"])
             self.db.commit()
 
+    def sweep_reserve(self, universe_size: int, count: int) -> dict:
+        """Reserva ATÔMICA da próxima fatia do sweep.
+
+        Sob um único lock: lê o cursor, calcula a fatia [start:start+take],
+        GRAVA o novo cursor e devolve os limites. Assim dois ticks concorrentes
+        recebem fatias DIFERENTES (sem trabalho duplicado) — corrige a corrida
+        do read-modify-write não-atômico. Se um tick reservar e a busca falhar,
+        a fatia só é recoberta no próximo ciclo (~horas), o que é aceitável.
+        """
+        if universe_size <= 0:
+            return {"start": 0, "take": 0, "cycle": 0, "new_cursor": 0}
+        with self.db_lock:
+            row = self.db.execute(
+                "SELECT cursor, cycle FROM sweep_state WHERE server=?",
+                [self.server]).fetchone()
+            cursor = (row[0] or 0) if row else 0
+            cycle = (row[1] or 0) if row else 0
+            start = cursor % universe_size
+            take = min(count, universe_size - start)
+            new_cursor = start + take
+            cycle_next = cycle
+            if new_cursor >= universe_size:   # fim do universo: recicla
+                new_cursor, cycle_next = 0, cycle + 1
+            store.upsert(
+                self.db, "sweep_state",
+                ["server", "cursor", "cycle", "updated_at", "last_items"],
+                [(self.server, new_cursor, cycle_next, time.time(), take)],
+                ["server"])
+            self.db.commit()
+            return {"start": start, "take": take, "cycle": cycle,
+                    "new_cursor": new_cursor}
+
     # ---------------------------------------------------------------- retenção
 
     def snapshot_prune(self, days: int = config.SNAPSHOT_RETENTION_DAYS,
@@ -681,6 +722,9 @@ class AODP:
         índice (server, fetched_at). vacuum=False pula o VACUUM (que segura o
         lock) — usado pela poda automática do servidor.
         """
+        if getattr(self.db, "backend", "sqlite") != "sqlite":
+            return {"aggregated_days": 0, "deleted_rows": 0,
+                    "skipped": "backend nao-sqlite"}
         cutoff = ((datetime.now(timezone.utc) - timedelta(days=days))
                   .replace(hour=0, minute=0, second=0, microsecond=0)
                   .timestamp())
