@@ -83,6 +83,24 @@ def main() -> int:
         if r.status_code >= 500:
             failures.append((path, params, r.status_code, r.text[:300]))
 
+    # 3) auth no Postgres: um login com credencial inválida exercita os
+    # caminhos PG mais delicados (ON CONFLICT do throttle, INSERT SERIAL de
+    # auditoria, commit-and-raise). Esperado: AuthError (não erro de dialeto).
+    try:
+        import threading
+        from albion.auth import AuthManager, AuthError
+        am = AuthManager(store.connect(), threading.Lock())
+        am.has_admin()  # leitura
+        try:
+            am.login("qa_inexistente", "senhaErrada123!")
+            print("  ✗ auth: login inválido NÃO levantou (inesperado)")
+            failures.append(("auth.login", {}, "no-raise", "deveria recusar"))
+        except AuthError:
+            print("  ✓ auth: schema + throttle/ON CONFLICT + audit OK")
+    except Exception as e:
+        print(f"  ✗ auth: ERRO de dialeto {type(e).__name__}: {repr(e)[:200]}")
+        failures.append(("auth", {}, "EXC", repr(e)[:300]))
+
     print("-" * 60)
     if failures:
         print(f"FALHOU: {len(failures)} endpoint(s) com erro de dialeto:")

@@ -171,6 +171,109 @@ def _clean_text(value, maximum=80):
     return value[:maximum] or None
 
 
+_AUTH_SCHEMA_SQLITE = """
+CREATE TABLE IF NOT EXISTS auth_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL,
+  username_norm TEXT NOT NULL UNIQUE,
+  display_name TEXT, albion_nick TEXT, discord_nick TEXT,
+  role TEXT NOT NULL,
+  password_hash TEXT NOT NULL, password_salt TEXT NOT NULL,
+  password_algo TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  must_change_password INTEGER NOT NULL DEFAULT 1,
+  session_version INTEGER NOT NULL DEFAULT 1,
+  created_at REAL NOT NULL, updated_at REAL NOT NULL,
+  last_login_at REAL, created_by INTEGER
+);
+CREATE TABLE IF NOT EXISTS auth_profiles (
+  account_id INTEGER NOT NULL, profile TEXT NOT NULL,
+  PRIMARY KEY (account_id, profile)
+);
+CREATE TABLE IF NOT EXISTS auth_devices (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  account_id INTEGER NOT NULL, token_hash TEXT NOT NULL,
+  label TEXT, approved_at REAL NOT NULL, last_seen_at REAL,
+  revoked_at REAL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_device_active_token
+  ON auth_devices (account_id, token_hash);
+CREATE INDEX IF NOT EXISTS idx_auth_device_account
+  ON auth_devices (account_id, revoked_at);
+CREATE TABLE IF NOT EXISTS auth_sessions (
+  token_hash TEXT PRIMARY KEY, account_id INTEGER NOT NULL,
+  csrf_hash TEXT NOT NULL, session_version INTEGER NOT NULL,
+  created_at REAL NOT NULL, expires_at REAL NOT NULL,
+  idle_expires_at REAL NOT NULL, last_seen_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auth_session_account
+  ON auth_sessions (account_id);
+CREATE TABLE IF NOT EXISTS auth_login_throttle (
+  username_norm TEXT PRIMARY KEY, failures INTEGER NOT NULL,
+  locked_until REAL NOT NULL, updated_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS auth_audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  actor_account_id INTEGER, target_account_id INTEGER,
+  action TEXT NOT NULL, details_json TEXT, created_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auth_audit_time
+  ON auth_audit (created_at DESC);
+"""
+
+# Mesmo esquema em Postgres: SERIAL no lugar de AUTOINCREMENT, REAL->DOUBLE
+# PRECISION. Executado statement-a-statement (PG não tem executescript).
+_AUTH_SCHEMA_PG = """
+CREATE TABLE IF NOT EXISTS auth_accounts (
+  id SERIAL PRIMARY KEY,
+  username TEXT NOT NULL,
+  username_norm TEXT NOT NULL UNIQUE,
+  display_name TEXT, albion_nick TEXT, discord_nick TEXT,
+  role TEXT NOT NULL,
+  password_hash TEXT NOT NULL, password_salt TEXT NOT NULL,
+  password_algo TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  must_change_password INTEGER NOT NULL DEFAULT 1,
+  session_version INTEGER NOT NULL DEFAULT 1,
+  created_at DOUBLE PRECISION NOT NULL, updated_at DOUBLE PRECISION NOT NULL,
+  last_login_at DOUBLE PRECISION, created_by INTEGER
+);
+CREATE TABLE IF NOT EXISTS auth_profiles (
+  account_id INTEGER NOT NULL, profile TEXT NOT NULL,
+  PRIMARY KEY (account_id, profile)
+);
+CREATE TABLE IF NOT EXISTS auth_devices (
+  id SERIAL PRIMARY KEY,
+  account_id INTEGER NOT NULL, token_hash TEXT NOT NULL,
+  label TEXT, approved_at DOUBLE PRECISION NOT NULL, last_seen_at DOUBLE PRECISION,
+  revoked_at DOUBLE PRECISION
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_device_active_token
+  ON auth_devices (account_id, token_hash);
+CREATE INDEX IF NOT EXISTS idx_auth_device_account
+  ON auth_devices (account_id, revoked_at);
+CREATE TABLE IF NOT EXISTS auth_sessions (
+  token_hash TEXT PRIMARY KEY, account_id INTEGER NOT NULL,
+  csrf_hash TEXT NOT NULL, session_version INTEGER NOT NULL,
+  created_at DOUBLE PRECISION NOT NULL, expires_at DOUBLE PRECISION NOT NULL,
+  idle_expires_at DOUBLE PRECISION NOT NULL, last_seen_at DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auth_session_account
+  ON auth_sessions (account_id);
+CREATE TABLE IF NOT EXISTS auth_login_throttle (
+  username_norm TEXT PRIMARY KEY, failures INTEGER NOT NULL,
+  locked_until DOUBLE PRECISION NOT NULL, updated_at DOUBLE PRECISION NOT NULL
+);
+CREATE TABLE IF NOT EXISTS auth_audit (
+  id SERIAL PRIMARY KEY,
+  actor_account_id INTEGER, target_account_id INTEGER,
+  action TEXT NOT NULL, details_json TEXT, created_at DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_auth_audit_time
+  ON auth_audit (created_at DESC);
+"""
+
+
 class AuthManager:
     def __init__(self, con, lock):
         self.con = con
@@ -189,55 +292,19 @@ class AuthManager:
 
     def _init_schema(self):
         with self._tx() as con:
-            con.executescript("""
-            CREATE TABLE IF NOT EXISTS auth_accounts (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              username TEXT NOT NULL,
-              username_norm TEXT NOT NULL UNIQUE,
-              display_name TEXT, albion_nick TEXT, discord_nick TEXT,
-              role TEXT NOT NULL,
-              password_hash TEXT NOT NULL, password_salt TEXT NOT NULL,
-              password_algo TEXT NOT NULL,
-              active INTEGER NOT NULL DEFAULT 1,
-              must_change_password INTEGER NOT NULL DEFAULT 1,
-              session_version INTEGER NOT NULL DEFAULT 1,
-              created_at REAL NOT NULL, updated_at REAL NOT NULL,
-              last_login_at REAL, created_by INTEGER
-            );
-            CREATE TABLE IF NOT EXISTS auth_profiles (
-              account_id INTEGER NOT NULL, profile TEXT NOT NULL,
-              PRIMARY KEY (account_id, profile)
-            );
-            CREATE TABLE IF NOT EXISTS auth_devices (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              account_id INTEGER NOT NULL, token_hash TEXT NOT NULL,
-              label TEXT, approved_at REAL NOT NULL, last_seen_at REAL,
-              revoked_at REAL
-            );
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_device_active_token
-              ON auth_devices (account_id, token_hash);
-            CREATE INDEX IF NOT EXISTS idx_auth_device_account
-              ON auth_devices (account_id, revoked_at);
-            CREATE TABLE IF NOT EXISTS auth_sessions (
-              token_hash TEXT PRIMARY KEY, account_id INTEGER NOT NULL,
-              csrf_hash TEXT NOT NULL, session_version INTEGER NOT NULL,
-              created_at REAL NOT NULL, expires_at REAL NOT NULL,
-              idle_expires_at REAL NOT NULL, last_seen_at REAL NOT NULL
-            );
-            CREATE INDEX IF NOT EXISTS idx_auth_session_account
-              ON auth_sessions (account_id);
-            CREATE TABLE IF NOT EXISTS auth_login_throttle (
-              username_norm TEXT PRIMARY KEY, failures INTEGER NOT NULL,
-              locked_until REAL NOT NULL, updated_at REAL NOT NULL
-            );
-            CREATE TABLE IF NOT EXISTS auth_audit (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              actor_account_id INTEGER, target_account_id INTEGER,
-              action TEXT NOT NULL, details_json TEXT, created_at REAL NOT NULL
-            );
-            CREATE INDEX IF NOT EXISTS idx_auth_audit_time
-              ON auth_audit (created_at DESC);
-            """)
+            if getattr(con, "backend", "sqlite") == "sqlite":
+                con.executescript(_AUTH_SCHEMA_SQLITE)
+            else:
+                for stmt in _AUTH_SCHEMA_PG.split(";"):
+                    if stmt.strip():
+                        con.execute(stmt)
+
+    @staticmethod
+    def _insert_id(con, sql, params):
+        """INSERT devolvendo o id gerado: lastrowid (SQLite) / RETURNING (PG)."""
+        if getattr(con, "backend", "sqlite") == "sqlite":
+            return con.execute(sql, params).lastrowid
+        return con.execute(sql + " RETURNING id", params).fetchone()[0]
 
     def _audit(self, con, action, actor_id=None, target_id=None, details=None):
         safe = json.dumps(details or {}, ensure_ascii=False, sort_keys=True)
@@ -297,14 +364,13 @@ class AuthManager:
             if con.execute("SELECT 1 FROM auth_accounts LIMIT 1").fetchone():
                 raise AuthError("Bootstrap bloqueado: ja existem contas.",
                                 "bootstrap_closed", 409)
-            cur = con.execute("""
+            account_id = self._insert_id(con, """
                 INSERT INTO auth_accounts
                   (username,username_norm,display_name,role,password_hash,
                    password_salt,password_algo,created_at,updated_at)
                 VALUES (?,?,?,?,?,?,?,?,?)
             """, [norm, norm, _clean_text(display_name) or "Administrador",
                    "admin", digest, salt, algo, now, now])
-            account_id = cur.lastrowid
             self._audit(con, "bootstrap_admin", account_id, account_id,
                         {"username": norm})
         return {"account_id": account_id, "username": norm,
@@ -326,7 +392,7 @@ class AuthManager:
         now = time.time()
         with self._tx() as con:
             try:
-                cur = con.execute("""
+                account_id = self._insert_id(con, """
                     INSERT INTO auth_accounts
                       (username,username_norm,display_name,albion_nick,
                        discord_nick,role,password_hash,password_salt,
@@ -336,11 +402,11 @@ class AuthManager:
                        _clean_text(albion_nick), _clean_text(discord_nick),
                        role, digest, salt, algo, now, now, actor_id])
             except Exception as exc:
-                if "UNIQUE" in str(exc).upper():
+                s = str(exc).upper()
+                if "UNIQUE" in s or "DUPLICATE KEY" in s:
                     raise AuthError("Esse usuario ja existe.",
                                     "username_exists", 409) from exc
                 raise
-            account_id = cur.lastrowid
             con.executemany(
                 "INSERT INTO auth_profiles (account_id,profile) VALUES (?,?)",
                 [(account_id, p) for p in profile_set])
@@ -528,14 +594,14 @@ class AuthManager:
             if not devices:
                 new_device_token = secrets.token_urlsafe(32)
                 supplied_hash = _token_hash(new_device_token)
-                cur = con.execute("""
+                device_id = self._insert_id(con, """
                     INSERT INTO auth_devices
                       (account_id,token_hash,label,approved_at,last_seen_at)
                     VALUES (?,?,?,?,?)
                 """, [account_id, supplied_hash,
                        _clean_text(device_label, 64) or "Dispositivo principal",
                        now, now])
-                matched = (cur.lastrowid, supplied_hash)
+                matched = (device_id, supplied_hash)
             else:
                 # ROTACIONA o token do dispositivo a cada login: um cookie
                 # albion_device capturado deixa de valer após o próximo login
