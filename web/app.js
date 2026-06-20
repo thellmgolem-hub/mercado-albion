@@ -2139,6 +2139,16 @@ async function loadAvGuild(view) {
   try {
     const res = await api('/api/guild', { view: avGuildView, days: 7, premium: state.premium, limit: 50 });
     const rows = res.rows || [];
+    if (avGuildView === 'kit') {
+      const basket = res.basket || [];
+      renderTable('guildTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'w', label: 'Peso na cesta', value: (o) => o.weight, html: (o) => fmtDec(100 * (o.weight || 0), 1) + '%' },
+      ], basket, { sortKey: 'w' });
+      const idx = (res.series && res.series.length) ? res.series[res.series.length - 1].index : null;
+      st.textContent = basket.length ? `cesta de regear: ${basket.length} itens · índice de custo atual ${idx == null ? '—' : idx}` : 'sem dados de killboard ainda (rode o intel-sweep)';
+      return;
+    }
     if (avGuildView === 'watch') {
       renderTable('guildTable', [
         { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
@@ -2180,6 +2190,16 @@ async function loadAvLogi(view) {
         { key: 'pct', label: 'Prêmio %', value: (o) => o.best_premium_pct, html: (o) => fmtDec(o.best_premium_pct, 1) + '%' },
         { key: 'abs', label: 'Prêmio prata', value: (o) => o.best_premium_abs, html: (o) => fmt(o.best_premium_abs) },
       ], rows, { sortKey: 'pct' });
+    } else if (avLogiView === 'restock') {
+      renderTable('logiTable', [
+        { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
+        { key: 'dem', label: 'Demanda', value: (o) => o.demand_units, html: (o) => fmt(o.demand_units) },
+        { key: 'buy', label: 'Comprar em', align: 'l', value: (o) => o.buy_city, html: (o) => cityHtml(o.buy_city) },
+        { key: 'bp', label: 'Custo', value: (o) => o.buy_price, html: (o) => fmt(o.buy_price) },
+        { key: 'sell', label: 'Vender em', align: 'l', value: (o) => o.sell_city, html: (o) => cityHtml(o.sell_city) },
+        { key: 'profit', label: 'Lucro', value: (o) => o.profit, html: (o) => fmt(o.profit) },
+        { key: 'ppk', label: 'Lucro/kg', value: (o) => o.profit_per_kg == null ? 0 : o.profit_per_kg, html: (o) => o.profit_per_kg == null ? '—' : fmtDec(o.profit_per_kg, 1) },
+      ], rows, { sortKey: 'score' });
     } else {
       renderTable('logiTable', [
         { key: 'item', label: 'Item', align: 'l', value: (o) => o.name_pt, html: avItemCell },
