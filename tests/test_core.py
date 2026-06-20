@@ -1750,6 +1750,27 @@ class IslandTests(unittest.TestCase):
             self.assertEqual(r.status_code, 200, view)
             self.assertEqual(r.json().get("view"), view)
             self.assertIsInstance(r.json().get("rows"), list)
+        # view inválida = 400 (não cai silenciosamente no default)
+        self.assertEqual(c.get("/api/island", params={"view": "xpto"}).status_code, 400)
+
+    def test_meat_animal_focus_no_phantom_offspring(self):
+        import json
+        from albion import island, config
+        d = json.load(open("data/island_data.json", encoding="utf-8"))
+        # animal SEM prole natural (mount/abate) mas com farm_bonus > 0
+        baby = next(b for b, i in d["animals"].items()
+                    if i["offspring_chance"] == 0 and (i.get("farm_bonus") or 0) > 0)
+        grown = d["animals"][baby]["grown"]
+        p = {}
+        for c in config.CITIES:
+            p[("T1_CARROT", c)] = 100
+            p[(baby, c)] = 5000
+            p[(grown, c)] = 30000
+        r = island.animal_economy(p, premium=True)
+        row = next(x for x in r["rows"] if x["baby"] == baby)
+        # sem prole natural, o foco NÃO inventa prole fantasma
+        self.assertEqual(row["offspring_focus"], 0)
+        self.assertEqual(row["per_day_focus"], row["per_day_no_focus"])
 
 
 class ProdChainTests(unittest.TestCase):
@@ -1828,6 +1849,33 @@ class ProdChainTests(unittest.TestCase):
         self.assertEqual(g.json()["chain"]["payload"]["qty"], 10)
         self.assertTrue(c.delete(f"/api/prodchain/chains/{cid}").json()["ok"])
         self.assertEqual(c.get(f"/api/prodchain/chains/{cid}").status_code, 404)
+
+    def test_missing_sell_reported(self):
+        from albion import prodchain
+        prices = dict(self.PRICES)
+        prices.pop("T4_MAIN_SWORD", None)        # tira o preço de VENDA da raiz
+        g = prodchain.build_graph("T4_MAIN_SWORD", lambda i, c: prices.get(i),
+                                  premium=True)
+        s = prodchain.solve(g, {"T4_MAIN_SWORD": 100})
+        self.assertEqual(s["revenue"], 0)
+        self.assertIn("T4_MAIN_SWORD", s["missing_sell"])
+
+    def test_empty_targets_safe(self):
+        from albion import prodchain
+        s = prodchain.solve(self._g(), {})        # sem alvos: não quebra, não mente
+        self.assertEqual(s["profit_per_unit"], 0)
+        self.assertEqual(s["revenue"], 0)
+
+    def test_multi_root_shares_intermediate(self):
+        from albion import prodchain
+        both = prodchain.build_graph(["T4_MAIN_SWORD", "T4_2H_HAMMER"],
+                                     self._price_of, premium=True)
+        self.assertIn("T4_METALBAR", both["nodes"])   # barra: nó único compartilhado
+        s2 = prodchain.solve(both, {"T4_MAIN_SWORD": 100, "T4_2H_HAMMER": 100})
+        s1 = prodchain.solve(self._g(), {"T4_MAIN_SWORD": 100})
+        # demanda da barra com 2 alvos > com 1 (soma dos ramos)
+        self.assertGreater(s2["nodes"]["T4_METALBAR"]["demand"],
+                           s1["nodes"]["T4_METALBAR"]["demand"])
 
 
 if __name__ == "__main__":

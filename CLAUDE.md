@@ -119,6 +119,11 @@ dupla contagem); foco por nó é um recurso à parte (pontos; só vira prata com
 grafo estático (RRR por cidade + preços saneados); a propagação/custo roda no
 cliente ao vivo, espelhando prodchain.solve()/make_or_buy(). Cadeias salvas POR
 CONTA (prodchain.ChainStore, tabela production_chains dual; /api/prodchain/chains).
+Limitações: venda das raízes usa só ROYAL_CITIES (Mercado Negro não entra — é
+venda-only de equip.; p/ confirmar preço de BM use /api/flips). Isolamento por
+conta só vale na nuvem (AUTH on); em modo local (auth off) owner=0 é
+single-user. solve() devolve missing_sell (produto final sem cotação → receita 0,
+o front avisa) e missing_prices (insumo sem cotação de compra).
 
 ## Fatos que não mudam (verificados jun/2026)
 

@@ -2392,8 +2392,8 @@ async function loadStatus() {
 const PL_NW = 188, PL_NH = 96;          // tamanho aprox. do nó (âncora de aresta)
 
 function prodInitState() {
-  return { roots: [], targets: {}, graph: { nodes: {}, cities: [] }, ns: {},
-           qtyDefault: 100, stationFee: 0, specFce: 0, focusPrice: 0,
+  return { roots: [], targets: {}, graph: { nodes: {}, cities: [], sell_mode: 'order' },
+           ns: {}, qtyDefault: 100, stationFee: 0, specFce: 0, focusPrice: 0,
            savedId: null, savedName: '', calc: null, verdict: {} };
 }
 function plNodes() { return (state.prodLine.graph || {}).nodes || {}; }
@@ -2482,15 +2482,18 @@ function prodComputeCosts(prop) {
   for (const it in shopping) { if (shopping[it].cost) buyCost += shopping[it].cost; else missing.push(it); }
   const focusSilver = focusPoints * pl.focusPrice;
   let revenue = 0, totalTarget = 0;
+  const missingSell = [];
   for (const r of pl.roots) {
     const t = pl.targets[r] || 0; totalTarget += t;
     const net = plSellNet(nodes[r]);
     if (net) revenue += net * t;
+    else missingSell.push(r);   // produto final sem cotação de venda
   }
   const profit = revenue - buyCost - stationTotal - focusSilver;
   return { shopping, buyCost, stationTotal, focusPoints, focusSilver, revenue,
            profit, perUnit: totalTarget ? profit / totalTarget : 0,
-           roi: buyCost ? 100 * profit / buyCost : null, missing, demand, crafts };
+           roi: buyCost ? 100 * profit / buyCost : null, missing, missingSell,
+           demand, crafts };
 }
 
 function prodMakeOrBuy() {                        // veredito intrínseco por nó
@@ -2723,6 +2726,7 @@ function prodRenderTotals(calc) {
     <div class="pl-tot total ${calc.profit >= 0 ? 'pos' : 'neg'}"><span>Lucro líquido</span><b class="silver">${fmt(calc.profit)}</b></div>
     <div class="pl-tot"><span>Lucro / unidade</span><b>${fmt(calc.perUnit)}</b></div>
     <div class="pl-tot"><span>ROI</span><b>${calc.roi == null ? '—' : fmtPct(calc.roi)}</b></div>
+    ${(calc.missingSell && calc.missingSell.length) ? `<div class="pl-warn">⚠ ${calc.missingSell.length} produto(s) final(is) sem cotação de venda — receita 0 e lucro subestimado. Não há preço de mercado no cache (ainda).</div>` : ''}
     ${calc.missing.length ? `<div class="pl-warn">${calc.missing.length} item(ns) sem cotação de compra — não entram no custo. Marque-os como Fabricar.</div>` : ''}
     <div class="pl-note">Foco é um recurso à parte (pontos). Defina “Prata/foco” na barra p/ cobrá-lo no lucro.</div>
   </div>`;
@@ -2784,7 +2788,12 @@ async function prodLoadChain(id) {
   try {
     const r = await api(`/api/prodchain/chains/${id}`);
     const p = r.chain.payload || {}, pl = state.prodLine;
-    pl.roots = p.roots || []; pl.targets = p.targets || {};
+    pl.roots = p.roots || [];
+    // valida targets carregados (payload pode estar adulterado): qty > 0 finita
+    pl.targets = {};
+    for (const [k, v] of Object.entries(p.targets || {})) {
+      const q = +v; if (q > 0 && isFinite(q)) pl.targets[k] = q;
+    }
     pl.qtyDefault = p.qtyDefault || 100; pl.stationFee = p.stationFee || 0;
     pl.specFce = p.specFce || 0; pl.focusPrice = p.focusPrice || 0;
     pl.ns = p.ns || {}; pl.savedId = r.chain.id; pl.savedName = r.chain.name;

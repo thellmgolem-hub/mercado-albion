@@ -111,6 +111,7 @@ def crop_economy(price_q1, premium=True, sell_mode="order", cities=None,
             "per_day_focus": round(profit_focus / cyc_d),
             "focus_cost": round(info.get("focus_cost") or 0),
             "focus_gain": round(profit_focus - profit_no),   # semente economizada
+            "focus_is_estimate": False,   # agricultura: ganho do foco é DETERMINÍSTICO
             "working_capital": round(seed_cost),             # por canteiro/ciclo
             "tier": info.get("tier"),
         })
@@ -149,8 +150,10 @@ def animal_economy(price_q1, premium=True, sell_mode="order", cities=None,
         baby_net = baby_sell[1] if baby_sell else buy[1]
         off_no = (info.get("offspring_chance") or 0) * (info.get("offspring_amount") or 0)
         # foco no pasto: @activefarmbonus real por animal vira PROLE EXTRA esperada.
-        # É ESTIMATIVA — o ranking ordena pelo número firme (sem foco).
-        off_focus = off_no + (info.get("farm_bonus") or 0)
+        # É ESTIMATIVA — o ranking ordena pelo número firme (sem foco). Só vale para
+        # animais que REPRODUZEM (off_no>0); mounts/abate (offspring_chance=0) não
+        # ganham prole fantasma com foco — o foco não tem efeito modelado neles.
+        off_focus = off_no + ((info.get("farm_bonus") or 0) if off_no > 0 else 0)
         profit_no = sell[1] + off_no * baby_net - buy[1] - feed
         profit_focus = sell[1] + off_focus * baby_net - buy[1] - feed
         rows.append({

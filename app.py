@@ -1437,6 +1437,12 @@ def island_view(view: str = "laborers", premium: bool = True,
     Lê data/island_data.json (mecânicas do dump) cruzado com os preços q1
     saneados por cidade. Cada linha traz onde COMPRAR insumos, onde VENDER, lucro
     com/sem foco e capital de giro. Vazio até a coleta cobrir os itens de ilha."""
+    if view not in ("laborers", "crops", "animals"):
+        raise HTTPException(status_code=400,
+                            detail="view deve ser laborers, crops ou animals")
+    if sell_mode not in ("instant", "order"):
+        raise HTTPException(status_code=400,
+                            detail="sell_mode deve ser instant ou order")
     from albion import island as isl
     con = _cache_connection()
     if con is None:
@@ -1475,6 +1481,9 @@ def prodchain_graph(item: str, premium: bool = True, sell_mode: str = "order"):
     `item` aceita vários ids separados por vírgula (cadeia com múltiplos alvos).
     Devolve o grafo ESTÁTICO enriquecido (estrutura + RRR por cidade + preços
     saneados); a propagação de quantidade/custo roda no cliente ao vivo."""
+    if sell_mode not in ("instant", "order"):
+        raise HTTPException(status_code=400,
+                            detail="sell_mode deve ser instant ou order")
     roots = [s.strip() for s in (item or "").split(",") if s.strip()][:12]
     if not roots:
         return {"roots": [], "nodes": {}, "cities": config.ROYAL_CITIES}

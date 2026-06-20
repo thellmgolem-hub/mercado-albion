@@ -2409,7 +2409,8 @@ def cmd_prodchain(args, fmt):
     it = resolve_item(db, " ".join(args.item))
     con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
     try:
-        q1, _ = _load_cache_prices(con, config.DEFAULT_SERVER, qualities=(1,))
+        # preços SANEADOS de âncoras (mesma base do /api/prodchain web)
+        q1, _ = _clean_price_lookups(con, config.DEFAULT_SERVER)
     finally:
         con.close()
     g = pc.build_graph([it["id"]], lambda i, c: q1.get((i, c)),

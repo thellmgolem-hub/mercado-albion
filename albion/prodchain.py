@@ -64,7 +64,8 @@ def build_graph(roots, price_of, *, premium=True, sell_mode="order",
       item, is_raw, buy_by_city {cidade: preço}, buy_city/buy_price (mais barato),
       e — se craftável — recipe [{id,count}], output, focus_base, category,
       bonus_city, rrr_by_city {cidade: {nf, f}}. Raízes ganham sell_city/
-      sell_gross (o cliente aplica o imposto conforme premium).
+      sell_gross/sell_net (líquido pré-calculado; o cliente recalcula conforme
+      premium a partir do gross, então o premium é reativo sem novo fetch).
     Cada item único é um nó (intermediários compartilhados somam demanda).
     """
     cities = list(cities or config.ROYAL_CITIES)
@@ -239,11 +240,14 @@ def solve(graph, targets, *, state=None, spec_fce=0, station_fee=0.0,
     missing = sorted(it for it, s in shopping.items() if not s["priced"])
     focus_silver = focus_points * focus_price
     revenue = 0.0
+    missing_sell = []          # produtos finais SEM cotação de venda (receita 0)
     for item, qty in targets.items():
         net = (nodes.get(item) or {}).get("sell_net")
         if net:
             revenue += net * qty
-    total_target = sum(targets.values()) or 1
+        else:
+            missing_sell.append(item)
+    total_target = sum(targets.values())
     profit = revenue - buy_cost - station_total - focus_silver
 
     out_nodes = {}
@@ -268,9 +272,10 @@ def solve(graph, targets, *, state=None, spec_fce=0, station_fee=0.0,
         "focus_cost": round(focus_silver),
         "revenue": round(revenue),
         "profit": round(profit),
-        "profit_per_unit": round(profit / total_target),
+        "profit_per_unit": round(profit / total_target) if total_target else 0,
         "roi_pct": round(100 * profit / buy_cost, 1) if buy_cost else None,
         "missing_prices": missing,
+        "missing_sell": missing_sell,
     }
 
 
