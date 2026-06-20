@@ -179,7 +179,10 @@ def connect(readonly: bool = False, path: str | Path | None = None):
         # readonly -> autocommit=True: cada SELECT é sua própria transação, então
         # uma query que falha (tabela legada ausente) NÃO envenena as seguintes.
         # Conexão gravável -> autocommit=False; quem escreve chama commit().
-        conn = psycopg.connect(database_url(), autocommit=readonly)
+        # prepare_threshold=None desliga prepared statements: obrigatório no
+        # pooler do Supabase em modo TRANSAÇÃO (porta 6543), que serverless usa.
+        conn = psycopg.connect(database_url(), autocommit=readonly,
+                               prepare_threshold=None)
         return _PgConn(conn)
 
     import sqlite3

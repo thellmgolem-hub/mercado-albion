@@ -1479,8 +1479,16 @@ def item_signals(item: str, days: int = Query(180, ge=30, le=400)):
 # O serviço de render (render.albiononline.com) bloqueia clientes com TLS do
 # OpenSSL (curl/httpx) via Cloudflare; navegadores reais passam. Este proxy é
 # o fallback do frontend: baixa via Schannel (PowerShell) e cacheia em disco.
+# Cache de ícones em disco. Na nuvem (Vercel) o diretório do projeto é
+# SOMENTE-LEITURA; cai para um diretório temporário gravável (efêmero por
+# instância — o cache se refaz, e o frontend tem fallback direto se faltar).
 ICONS_DIR = ROOT / "data" / "icons"
-ICONS_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    ICONS_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    import tempfile
+    ICONS_DIR = Path(tempfile.gettempdir()) / "albion_icons"
+    ICONS_DIR.mkdir(parents=True, exist_ok=True)
 _ICON_ID_RE = re.compile(r"^[A-Za-z0-9_@\-\.]+$")
 _icon_sem = threading.Semaphore(4)
 _BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
