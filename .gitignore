@@ -2,7 +2,17 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
-data/
+# data/ é ignorado por padrão (cache.db de ~4GB, dumps de build pesados),
+# MAS os arquivos que o app PRECISA em runtime são versionados (deploy na nuvem
+# clona o repo). Mantemos fora: cache.db*, items_formatted/raw-dumps, mobs, loot.
+data/*
+!data/items_db.json
+!data/items_raw.json
+!data/craft_data.json
+!data/recipes_craft.json
+!data/recipes_refining.json
+!data/supply_data.json
+!data/farm_data.json
 backups/
 *.log
 .claude/settings.local.json

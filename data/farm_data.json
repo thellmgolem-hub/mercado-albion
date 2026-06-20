@@ -1,0 +1,324 @@
+{
+ "T3_FARM_OX_BABY": {
+  "grown": "T3_FARM_OX_GROWN",
+  "growtime_s": 158400.0,
+  "offspring_chance": 0.84,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T4_FARM_OX_BABY": {
+  "grown": "T4_FARM_OX_GROWN",
+  "growtime_s": 331200.0,
+  "offspring_chance": 0.7867,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_OX_BABY": {
+  "grown": "T5_FARM_OX_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.7867,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T6_FARM_OX_BABY": {
+  "grown": "T6_FARM_OX_GROWN",
+  "growtime_s": 676800.0,
+  "offspring_chance": 0.8104,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T7_FARM_OX_BABY": {
+  "grown": "T7_FARM_OX_GROWN",
+  "growtime_s": 849600.0,
+  "offspring_chance": 0.842,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_OX_BABY": {
+  "grown": "T8_FARM_OX_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.8736,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T3_FARM_HORSE_BABY": {
+  "grown": "T3_FARM_HORSE_GROWN",
+  "growtime_s": 158400.0,
+  "offspring_chance": 0.84,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T4_FARM_HORSE_BABY": {
+  "grown": "T4_FARM_HORSE_GROWN",
+  "growtime_s": 331200.0,
+  "offspring_chance": 0.7867,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_HORSE_BABY": {
+  "grown": "T5_FARM_HORSE_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.7867,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T6_FARM_HORSE_BABY": {
+  "grown": "T6_FARM_HORSE_GROWN",
+  "growtime_s": 676800.0,
+  "offspring_chance": 0.8104,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T7_FARM_HORSE_BABY": {
+  "grown": "T7_FARM_HORSE_GROWN",
+  "growtime_s": 849600.0,
+  "offspring_chance": 0.842,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_HORSE_BABY": {
+  "grown": "T8_FARM_HORSE_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.8736,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T6_FARM_DIREWOLF_BABY": {
+  "grown": "T6_FARM_DIREWOLF_GROWN",
+  "growtime_s": 676800.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T7_FARM_DIREBOAR_BABY": {
+  "grown": "T7_FARM_DIREBOAR_GROWN",
+  "growtime_s": 849600.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_DIREBEAR_BABY": {
+  "grown": "T8_FARM_DIREBEAR_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T7_FARM_SWAMPDRAGON_BABY": {
+  "grown": "T7_FARM_SWAMPDRAGON_GROWN",
+  "growtime_s": 849600.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_MAMMOTH_BABY": {
+  "grown": "T8_FARM_MAMMOTH_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_COUGAR_BABY": {
+  "grown": "T5_FARM_COUGAR_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_DIREWOLF_BABY": {
+  "grown": "T8_FARM_DIREWOLF_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T4_FARM_GIANTSTAG_BABY": {
+  "grown": "T4_FARM_GIANTSTAG_GROWN",
+  "growtime_s": 331200.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T6_FARM_GIANTSTAG_BABY": {
+  "grown": "T6_FARM_GIANTSTAG_GROWN",
+  "growtime_s": 676800.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T6_FARM_GIANTSTAG_MOOSE_BABY": {
+  "grown": "T6_FARM_GIANTSTAG_MOOSE_GROWN",
+  "growtime_s": 676800.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_RABBIT_EASTER_BABY": {
+  "grown": "T8_FARM_RABBIT_EASTER_GROWN",
+  "growtime_s": 158400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_RABBIT_EASTER_BABY_DARK": {
+  "grown": "T8_FARM_RABBIT_EASTER_GROWN_DARK",
+  "growtime_s": 158400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_MOABIRD_FW_BRIDGEWATCH_BABY": {
+  "grown": "T5_FARM_MOABIRD_FW_BRIDGEWATCH_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_DIREBEAR_FW_FORTSTERLING_BABY": {
+  "grown": "T5_FARM_DIREBEAR_FW_FORTSTERLING_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_DIREBOAR_FW_LYMHURST_BABY": {
+  "grown": "T5_FARM_DIREBOAR_FW_LYMHURST_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_RAM_FW_MARTLOCK_BABY": {
+  "grown": "T5_FARM_RAM_FW_MARTLOCK_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_SWAMPDRAGON_FW_THETFORD_BABY": {
+  "grown": "T5_FARM_SWAMPDRAGON_FW_THETFORD_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_GREYWOLF_FW_CAERLEON_BABY": {
+  "grown": "T5_FARM_GREYWOLF_FW_CAERLEON_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_OWL_FW_BRECILIEN_BABY": {
+  "grown": "T5_FARM_OWL_FW_BRECILIEN_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_SPIDER_HELL_BABY": {
+  "grown": "T5_FARM_SPIDER_HELL_GROWN",
+  "growtime_s": 504000.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_MOABIRD_FW_BRIDGEWATCH_BABY": {
+  "grown": "T8_FARM_MOABIRD_FW_BRIDGEWATCH_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_DIREBEAR_FW_FORTSTERLING_BABY": {
+  "grown": "T8_FARM_DIREBEAR_FW_FORTSTERLING_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_DIREBOAR_FW_LYMHURST_BABY": {
+  "grown": "T8_FARM_DIREBOAR_FW_LYMHURST_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_RAM_FW_MARTLOCK_BABY": {
+  "grown": "T8_FARM_RAM_FW_MARTLOCK_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_SWAMPDRAGON_FW_THETFORD_BABY": {
+  "grown": "T8_FARM_SWAMPDRAGON_FW_THETFORD_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_GREYWOLF_FW_CAERLEON_BABY": {
+  "grown": "T8_FARM_GREYWOLF_FW_CAERLEON_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_OWL_FW_BRECILIEN_BABY": {
+  "grown": "T8_FARM_OWL_FW_BRECILIEN_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_SPIDER_HELL_BABY": {
+  "grown": "T8_FARM_SPIDER_HELL_GROWN",
+  "growtime_s": 1022400.0,
+  "offspring_chance": 0.0,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T3_FARM_CHICKEN_BABY": {
+  "grown": "T3_FARM_CHICKEN_GROWN",
+  "growtime_s": 158400.0,
+  "offspring_chance": 0.6,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T4_FARM_GOAT_BABY": {
+  "grown": "T4_FARM_GOAT_GROWN",
+  "growtime_s": 158400.0,
+  "offspring_chance": 0.7333,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T5_FARM_GOOSE_BABY": {
+  "grown": "T5_FARM_GOOSE_GROWN",
+  "growtime_s": 158400.0,
+  "offspring_chance": 0.8,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T6_FARM_SHEEP_BABY": {
+  "grown": "T6_FARM_SHEEP_GROWN",
+  "growtime_s": 158400.0,
+  "offspring_chance": 0.8667,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T7_FARM_PIG_BABY": {
+  "grown": "T7_FARM_PIG_GROWN",
+  "growtime_s": 158400.0,
+  "offspring_chance": 0.9111,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ },
+ "T8_FARM_COW_BABY": {
+  "grown": "T8_FARM_COW_GROWN",
+  "growtime_s": 158400.0,
+  "offspring_chance": 0.9333,
+  "offspring_amount": 1.0,
+  "feed_cost": 0
+ }
+}

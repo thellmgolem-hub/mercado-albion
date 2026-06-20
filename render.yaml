@@ -1,0 +1,29 @@
+# Blueprint do Render — deploy gratuito, sem cartão.
+# No painel: New > Blueprint > conecta este repositório (privado ok).
+# As variáveis marcadas "sync: false" você preenche manualmente no painel.
+services:
+  - type: web
+    name: mercado-albion
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      # Versão do Python (psycopg[binary] tem wheels para 3.12)
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      # String de conexão do Supabase — use o POOLER (porta 6543, modo
+      # Transaction). Cole no painel do Render (Environment).
+      - key: DATABASE_URL
+        sync: false
+      # Token do /api/sweep — o Render gera um valor aleatório; copie-o para a
+      # URL do cron (cron-job.org).
+      - key: ALBION_SWEEP_TOKEN
+        generateValue: true
+      # Render serve HTTPS: cookie de sessão precisa do flag Secure.
+      - key: ALBION_AUTH_COOKIE_SECURE
+        value: "1"
+      # Defina como o nome do admin (ex.: admin) só na PRIMEIRA subida: cria a
+      # conta e mostra a senha temporária no Log. Depois remova esta variável.
+      - key: ALBION_BOOTSTRAP_ADMIN
+        sync: false

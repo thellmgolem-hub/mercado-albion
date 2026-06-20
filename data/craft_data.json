@@ -1,0 +1,171 @@
+{
+ "station_refining_bonus": 0.18,
+ "focus_bonus_sum": 0.59,
+ "refining": {
+  "ore": {
+   "city": "Thetford",
+   "rrr_base_pct": 15.3,
+   "rrr_bonus_pct": 36.7,
+   "rrr_base_focus_pct": 43.5,
+   "rrr_bonus_focus_pct": 53.9,
+   "station_bonus": 0.18,
+   "specialty_bonus": 0.4
+  },
+  "fiber": {
+   "city": "Lymhurst",
+   "rrr_base_pct": 15.3,
+   "rrr_bonus_pct": 36.7,
+   "rrr_base_focus_pct": 43.5,
+   "rrr_bonus_focus_pct": 53.9,
+   "station_bonus": 0.18,
+   "specialty_bonus": 0.4
+  },
+  "rock": {
+   "city": "Bridgewatch",
+   "rrr_base_pct": 15.3,
+   "rrr_bonus_pct": 36.7,
+   "rrr_base_focus_pct": 43.5,
+   "rrr_bonus_focus_pct": 53.9,
+   "station_bonus": 0.18,
+   "specialty_bonus": 0.4
+  },
+  "hide": {
+   "city": "Martlock",
+   "rrr_base_pct": 15.3,
+   "rrr_bonus_pct": 36.7,
+   "rrr_base_focus_pct": 43.5,
+   "rrr_bonus_focus_pct": 53.9,
+   "station_bonus": 0.18,
+   "specialty_bonus": 0.4
+  },
+  "wood": {
+   "city": "Fort Sterling",
+   "rrr_base_pct": 15.3,
+   "rrr_bonus_pct": 36.7,
+   "rrr_base_focus_pct": 43.5,
+   "rrr_bonus_focus_pct": 53.9,
+   "station_bonus": 0.18,
+   "specialty_bonus": 0.4
+  }
+ },
+ "crafting": {
+  "meat_pig": {
+   "Thetford": 0.1
+  },
+  "mace": {
+   "Thetford": 0.15
+  },
+  "naturestaff": {
+   "Thetford": 0.15
+  },
+  "firestaff": {
+   "Thetford": 0.15
+  },
+  "leather_armor": {
+   "Thetford": 0.15
+  },
+  "cloth_helmet": {
+   "Thetford": 0.15
+  },
+  "meat_goose": {
+   "Lymhurst": 0.1
+  },
+  "sword": {
+   "Lymhurst": 0.15
+  },
+  "bow": {
+   "Lymhurst": 0.15
+  },
+  "arcanestaff": {
+   "Lymhurst": 0.15
+  },
+  "leather_helmet": {
+   "Lymhurst": 0.15
+  },
+  "leather_shoes": {
+   "Lymhurst": 0.15
+  },
+  "meat_goat": {
+   "Bridgewatch": 0.1
+  },
+  "crossbow": {
+   "Bridgewatch": 0.15
+  },
+  "dagger": {
+   "Bridgewatch": 0.15
+  },
+  "cursestaff": {
+   "Bridgewatch": 0.15
+  },
+  "plate_armor": {
+   "Bridgewatch": 0.15
+  },
+  "cloth_shoes": {
+   "Bridgewatch": 0.15
+  },
+  "meat_cow": {
+   "Martlock": 0.1
+  },
+  "axe": {
+   "Martlock": 0.15
+  },
+  "quarterstaff": {
+   "Martlock": 0.15
+  },
+  "froststaff": {
+   "Martlock": 0.15
+  },
+  "plate_shoes": {
+   "Martlock": 0.15
+  },
+  "offhand": {
+   "Martlock": 0.15
+  },
+  "meat_chicken": {
+   "Fort Sterling": 0.1
+  },
+  "meat_sheep": {
+   "Fort Sterling": 0.1
+  },
+  "hammer": {
+   "Fort Sterling": 0.15
+  },
+  "spear": {
+   "Fort Sterling": 0.15
+  },
+  "holystaff": {
+   "Fort Sterling": 0.15
+  },
+  "plate_helmet": {
+   "Fort Sterling": 0.15
+  },
+  "cloth_armor": {
+   "Fort Sterling": 0.15
+  },
+  "gatherergear": {
+   "Caerleon": 0.15
+  },
+  "tools": {
+   "Caerleon": 0.15
+  },
+  "food": {
+   "Caerleon": 0.15
+  },
+  "knuckles": {
+   "Caerleon": 0.15
+  },
+  "shapeshifterstaff": {
+   "Caerleon": 0.15
+  },
+  "cape": {
+   "Brecilien": 0.15
+  },
+  "bag": {
+   "Brecilien": 0.15
+  },
+  "potion": {
+   "Brecilien": 0.15
+  }
+ },
+ "_fonte": "craftingmodifiers.json + world.json (ao-bin-dumps)"
+}

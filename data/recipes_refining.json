@@ -1,0 +1,1477 @@
+{
+ "T2_CLOTH": {
+  "inputs": [
+   {
+    "id": "T2_FIBER",
+    "count": 1
+   }
+  ],
+  "focus": 18
+ },
+ "T2_LEATHER": {
+  "inputs": [
+   {
+    "id": "T2_HIDE",
+    "count": 1
+   }
+  ],
+  "focus": 18
+ },
+ "T2_METALBAR": {
+  "inputs": [
+   {
+    "id": "T2_ORE",
+    "count": 1
+   }
+  ],
+  "focus": 18
+ },
+ "T2_PLANKS": {
+  "inputs": [
+   {
+    "id": "T2_WOOD",
+    "count": 1
+   }
+  ],
+  "focus": 18
+ },
+ "T2_STONEBLOCK": {
+  "inputs": [
+   {
+    "id": "T2_ROCK",
+    "count": 1
+   }
+  ],
+  "focus": 18
+ },
+ "T3_CLOTH": {
+  "inputs": [
+   {
+    "id": "T3_FIBER",
+    "count": 2
+   },
+   {
+    "id": "T2_CLOTH",
+    "count": 1
+   }
+  ],
+  "focus": 31
+ },
+ "T3_LEATHER": {
+  "inputs": [
+   {
+    "id": "T3_HIDE",
+    "count": 2
+   },
+   {
+    "id": "T2_LEATHER",
+    "count": 1
+   }
+  ],
+  "focus": 31
+ },
+ "T3_METALBAR": {
+  "inputs": [
+   {
+    "id": "T3_ORE",
+    "count": 2
+   },
+   {
+    "id": "T2_METALBAR",
+    "count": 1
+   }
+  ],
+  "focus": 31
+ },
+ "T3_PLANKS": {
+  "inputs": [
+   {
+    "id": "T3_WOOD",
+    "count": 2
+   },
+   {
+    "id": "T2_PLANKS",
+    "count": 1
+   }
+  ],
+  "focus": 31
+ },
+ "T3_STONEBLOCK": {
+  "inputs": [
+   {
+    "id": "T3_ROCK",
+    "count": 2
+   },
+   {
+    "id": "T2_STONEBLOCK",
+    "count": 1
+   }
+  ],
+  "focus": 31
+ },
+ "T4_CLOTH": {
+  "inputs": [
+   {
+    "id": "T4_FIBER",
+    "count": 2
+   },
+   {
+    "id": "T3_CLOTH",
+    "count": 1
+   }
+  ],
+  "focus": 54
+ },
+ "T4_CLOTH_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T4_FIBER_LEVEL1@1",
+    "count": 2
+   },
+   {
+    "id": "T3_CLOTH",
+    "count": 1
+   }
+  ],
+  "focus": 94
+ },
+ "T4_CLOTH_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T4_FIBER_LEVEL2@2",
+    "count": 2
+   },
+   {
+    "id": "T3_CLOTH",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T4_CLOTH_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T4_FIBER_LEVEL3@3",
+    "count": 2
+   },
+   {
+    "id": "T3_CLOTH",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T4_CLOTH_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T4_FIBER_LEVEL4@4",
+    "count": 2
+   },
+   {
+    "id": "T3_CLOTH",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T4_LEATHER": {
+  "inputs": [
+   {
+    "id": "T4_HIDE",
+    "count": 2
+   },
+   {
+    "id": "T3_LEATHER",
+    "count": 1
+   }
+  ],
+  "focus": 54
+ },
+ "T4_LEATHER_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T4_HIDE_LEVEL1@1",
+    "count": 2
+   },
+   {
+    "id": "T3_LEATHER",
+    "count": 1
+   }
+  ],
+  "focus": 94
+ },
+ "T4_LEATHER_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T4_HIDE_LEVEL2@2",
+    "count": 2
+   },
+   {
+    "id": "T3_LEATHER",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T4_LEATHER_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T4_HIDE_LEVEL3@3",
+    "count": 2
+   },
+   {
+    "id": "T3_LEATHER",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T4_LEATHER_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T4_HIDE_LEVEL4@4",
+    "count": 2
+   },
+   {
+    "id": "T3_LEATHER",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T4_METALBAR": {
+  "inputs": [
+   {
+    "id": "T4_ORE",
+    "count": 2
+   },
+   {
+    "id": "T3_METALBAR",
+    "count": 1
+   }
+  ],
+  "focus": 54
+ },
+ "T4_METALBAR_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T4_ORE_LEVEL1@1",
+    "count": 2
+   },
+   {
+    "id": "T3_METALBAR",
+    "count": 1
+   }
+  ],
+  "focus": 94
+ },
+ "T4_METALBAR_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T4_ORE_LEVEL2@2",
+    "count": 2
+   },
+   {
+    "id": "T3_METALBAR",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T4_METALBAR_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T4_ORE_LEVEL3@3",
+    "count": 2
+   },
+   {
+    "id": "T3_METALBAR",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T4_METALBAR_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T4_ORE_LEVEL4@4",
+    "count": 2
+   },
+   {
+    "id": "T3_METALBAR",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T4_PLANKS": {
+  "inputs": [
+   {
+    "id": "T4_WOOD",
+    "count": 2
+   },
+   {
+    "id": "T3_PLANKS",
+    "count": 1
+   }
+  ],
+  "focus": 54
+ },
+ "T4_PLANKS_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T4_WOOD_LEVEL1@1",
+    "count": 2
+   },
+   {
+    "id": "T3_PLANKS",
+    "count": 1
+   }
+  ],
+  "focus": 94
+ },
+ "T4_PLANKS_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T4_WOOD_LEVEL2@2",
+    "count": 2
+   },
+   {
+    "id": "T3_PLANKS",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T4_PLANKS_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T4_WOOD_LEVEL3@3",
+    "count": 2
+   },
+   {
+    "id": "T3_PLANKS",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T4_PLANKS_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T4_WOOD_LEVEL4@4",
+    "count": 2
+   },
+   {
+    "id": "T3_PLANKS",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T4_STONEBLOCK": {
+  "inputs": [
+   {
+    "id": "T4_ROCK",
+    "count": 2
+   },
+   {
+    "id": "T3_STONEBLOCK",
+    "count": 1
+   }
+  ],
+  "focus": 54
+ },
+ "T5_CLOTH": {
+  "inputs": [
+   {
+    "id": "T5_FIBER",
+    "count": 3
+   },
+   {
+    "id": "T4_CLOTH",
+    "count": 1
+   }
+  ],
+  "focus": 94
+ },
+ "T5_CLOTH_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T5_FIBER_LEVEL1@1",
+    "count": 3
+   },
+   {
+    "id": "T4_CLOTH_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T5_CLOTH_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T5_FIBER_LEVEL2@2",
+    "count": 3
+   },
+   {
+    "id": "T4_CLOTH_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T5_CLOTH_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T5_FIBER_LEVEL3@3",
+    "count": 3
+   },
+   {
+    "id": "T4_CLOTH_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T5_CLOTH_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T5_FIBER_LEVEL4@4",
+    "count": 3
+   },
+   {
+    "id": "T4_CLOTH_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T5_LEATHER": {
+  "inputs": [
+   {
+    "id": "T5_HIDE",
+    "count": 3
+   },
+   {
+    "id": "T4_LEATHER",
+    "count": 1
+   }
+  ],
+  "focus": 94
+ },
+ "T5_LEATHER_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T5_HIDE_LEVEL1@1",
+    "count": 3
+   },
+   {
+    "id": "T4_LEATHER_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T5_LEATHER_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T5_HIDE_LEVEL2@2",
+    "count": 3
+   },
+   {
+    "id": "T4_LEATHER_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T5_LEATHER_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T5_HIDE_LEVEL3@3",
+    "count": 3
+   },
+   {
+    "id": "T4_LEATHER_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T5_LEATHER_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T5_HIDE_LEVEL4@4",
+    "count": 3
+   },
+   {
+    "id": "T4_LEATHER_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T5_METALBAR": {
+  "inputs": [
+   {
+    "id": "T5_ORE",
+    "count": 3
+   },
+   {
+    "id": "T4_METALBAR",
+    "count": 1
+   }
+  ],
+  "focus": 94
+ },
+ "T5_METALBAR_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T5_ORE_LEVEL1@1",
+    "count": 3
+   },
+   {
+    "id": "T4_METALBAR_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T5_METALBAR_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T5_ORE_LEVEL2@2",
+    "count": 3
+   },
+   {
+    "id": "T4_METALBAR_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T5_METALBAR_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T5_ORE_LEVEL3@3",
+    "count": 3
+   },
+   {
+    "id": "T4_METALBAR_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T5_METALBAR_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T5_ORE_LEVEL4@4",
+    "count": 3
+   },
+   {
+    "id": "T4_METALBAR_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T5_PLANKS": {
+  "inputs": [
+   {
+    "id": "T5_WOOD",
+    "count": 3
+   },
+   {
+    "id": "T4_PLANKS",
+    "count": 1
+   }
+  ],
+  "focus": 94
+ },
+ "T5_PLANKS_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T5_WOOD_LEVEL1@1",
+    "count": 3
+   },
+   {
+    "id": "T4_PLANKS_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T5_PLANKS_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T5_WOOD_LEVEL2@2",
+    "count": 3
+   },
+   {
+    "id": "T4_PLANKS_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T5_PLANKS_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T5_WOOD_LEVEL3@3",
+    "count": 3
+   },
+   {
+    "id": "T4_PLANKS_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T5_PLANKS_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T5_WOOD_LEVEL4@4",
+    "count": 3
+   },
+   {
+    "id": "T4_PLANKS_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T5_STONEBLOCK": {
+  "inputs": [
+   {
+    "id": "T5_ROCK",
+    "count": 3
+   },
+   {
+    "id": "T4_STONEBLOCK",
+    "count": 1
+   }
+  ],
+  "focus": 94
+ },
+ "T6_CLOTH": {
+  "inputs": [
+   {
+    "id": "T6_FIBER",
+    "count": 4
+   },
+   {
+    "id": "T5_CLOTH",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T6_CLOTH_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T6_FIBER_LEVEL1@1",
+    "count": 4
+   },
+   {
+    "id": "T5_CLOTH_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T6_CLOTH_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T6_FIBER_LEVEL2@2",
+    "count": 4
+   },
+   {
+    "id": "T5_CLOTH_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T6_CLOTH_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T6_FIBER_LEVEL3@3",
+    "count": 4
+   },
+   {
+    "id": "T5_CLOTH_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T6_CLOTH_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T6_FIBER_LEVEL4@4",
+    "count": 4
+   },
+   {
+    "id": "T5_CLOTH_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T6_LEATHER": {
+  "inputs": [
+   {
+    "id": "T6_HIDE",
+    "count": 4
+   },
+   {
+    "id": "T5_LEATHER",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T6_LEATHER_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T6_HIDE_LEVEL1@1",
+    "count": 4
+   },
+   {
+    "id": "T5_LEATHER_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T6_LEATHER_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T6_HIDE_LEVEL2@2",
+    "count": 4
+   },
+   {
+    "id": "T5_LEATHER_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T6_LEATHER_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T6_HIDE_LEVEL3@3",
+    "count": 4
+   },
+   {
+    "id": "T5_LEATHER_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T6_LEATHER_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T6_HIDE_LEVEL4@4",
+    "count": 4
+   },
+   {
+    "id": "T5_LEATHER_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T6_METALBAR": {
+  "inputs": [
+   {
+    "id": "T6_ORE",
+    "count": 4
+   },
+   {
+    "id": "T5_METALBAR",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T6_METALBAR_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T6_ORE_LEVEL1@1",
+    "count": 4
+   },
+   {
+    "id": "T5_METALBAR_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T6_METALBAR_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T6_ORE_LEVEL2@2",
+    "count": 4
+   },
+   {
+    "id": "T5_METALBAR_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T6_METALBAR_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T6_ORE_LEVEL3@3",
+    "count": 4
+   },
+   {
+    "id": "T5_METALBAR_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T6_METALBAR_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T6_ORE_LEVEL4@4",
+    "count": 4
+   },
+   {
+    "id": "T5_METALBAR_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T6_PLANKS": {
+  "inputs": [
+   {
+    "id": "T6_WOOD",
+    "count": 4
+   },
+   {
+    "id": "T5_PLANKS",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T6_PLANKS_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T6_WOOD_LEVEL1@1",
+    "count": 4
+   },
+   {
+    "id": "T5_PLANKS_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T6_PLANKS_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T6_WOOD_LEVEL2@2",
+    "count": 4
+   },
+   {
+    "id": "T5_PLANKS_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T6_PLANKS_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T6_WOOD_LEVEL3@3",
+    "count": 4
+   },
+   {
+    "id": "T5_PLANKS_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T6_PLANKS_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T6_WOOD_LEVEL4@4",
+    "count": 4
+   },
+   {
+    "id": "T5_PLANKS_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T6_STONEBLOCK": {
+  "inputs": [
+   {
+    "id": "T6_ROCK",
+    "count": 4
+   },
+   {
+    "id": "T5_STONEBLOCK",
+    "count": 1
+   }
+  ],
+  "focus": 164
+ },
+ "T7_CLOTH": {
+  "inputs": [
+   {
+    "id": "T7_FIBER",
+    "count": 5
+   },
+   {
+    "id": "T6_CLOTH",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T7_CLOTH_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T7_FIBER_LEVEL1@1",
+    "count": 5
+   },
+   {
+    "id": "T6_CLOTH_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T7_CLOTH_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T7_FIBER_LEVEL2@2",
+    "count": 5
+   },
+   {
+    "id": "T6_CLOTH_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T7_CLOTH_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T7_FIBER_LEVEL3@3",
+    "count": 5
+   },
+   {
+    "id": "T6_CLOTH_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T7_CLOTH_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T7_FIBER_LEVEL4@4",
+    "count": 5
+   },
+   {
+    "id": "T6_CLOTH_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 2694
+ },
+ "T7_LEATHER": {
+  "inputs": [
+   {
+    "id": "T7_HIDE",
+    "count": 5
+   },
+   {
+    "id": "T6_LEATHER",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T7_LEATHER_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T7_HIDE_LEVEL1@1",
+    "count": 5
+   },
+   {
+    "id": "T6_LEATHER_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T7_LEATHER_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T7_HIDE_LEVEL2@2",
+    "count": 5
+   },
+   {
+    "id": "T6_LEATHER_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T7_LEATHER_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T7_HIDE_LEVEL3@3",
+    "count": 5
+   },
+   {
+    "id": "T6_LEATHER_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T7_LEATHER_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T7_HIDE_LEVEL4@4",
+    "count": 5
+   },
+   {
+    "id": "T6_LEATHER_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 2694
+ },
+ "T7_METALBAR": {
+  "inputs": [
+   {
+    "id": "T7_ORE",
+    "count": 5
+   },
+   {
+    "id": "T6_METALBAR",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T7_METALBAR_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T7_ORE_LEVEL1@1",
+    "count": 5
+   },
+   {
+    "id": "T6_METALBAR_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T7_METALBAR_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T7_ORE_LEVEL2@2",
+    "count": 5
+   },
+   {
+    "id": "T6_METALBAR_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T7_METALBAR_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T7_ORE_LEVEL3@3",
+    "count": 5
+   },
+   {
+    "id": "T6_METALBAR_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T7_METALBAR_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T7_ORE_LEVEL4@4",
+    "count": 5
+   },
+   {
+    "id": "T6_METALBAR_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 2694
+ },
+ "T7_PLANKS": {
+  "inputs": [
+   {
+    "id": "T7_WOOD",
+    "count": 5
+   },
+   {
+    "id": "T6_PLANKS",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T7_PLANKS_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T7_WOOD_LEVEL1@1",
+    "count": 5
+   },
+   {
+    "id": "T6_PLANKS_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T7_PLANKS_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T7_WOOD_LEVEL2@2",
+    "count": 5
+   },
+   {
+    "id": "T6_PLANKS_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T7_PLANKS_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T7_WOOD_LEVEL3@3",
+    "count": 5
+   },
+   {
+    "id": "T6_PLANKS_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T7_PLANKS_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T7_WOOD_LEVEL4@4",
+    "count": 5
+   },
+   {
+    "id": "T6_PLANKS_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 2694
+ },
+ "T7_STONEBLOCK": {
+  "inputs": [
+   {
+    "id": "T7_ROCK",
+    "count": 5
+   },
+   {
+    "id": "T6_STONEBLOCK",
+    "count": 1
+   }
+  ],
+  "focus": 287
+ },
+ "T8_CLOTH": {
+  "inputs": [
+   {
+    "id": "T8_FIBER",
+    "count": 5
+   },
+   {
+    "id": "T7_CLOTH",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T8_CLOTH_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T8_FIBER_LEVEL1@1",
+    "count": 5
+   },
+   {
+    "id": "T7_CLOTH_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T8_CLOTH_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T8_FIBER_LEVEL2@2",
+    "count": 5
+   },
+   {
+    "id": "T7_CLOTH_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T8_CLOTH_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T8_FIBER_LEVEL3@3",
+    "count": 5
+   },
+   {
+    "id": "T7_CLOTH_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 2694
+ },
+ "T8_CLOTH_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T8_FIBER_LEVEL4@4",
+    "count": 5
+   },
+   {
+    "id": "T7_CLOTH_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 4714
+ },
+ "T8_LEATHER": {
+  "inputs": [
+   {
+    "id": "T8_HIDE",
+    "count": 5
+   },
+   {
+    "id": "T7_LEATHER",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T8_LEATHER_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T8_HIDE_LEVEL1@1",
+    "count": 5
+   },
+   {
+    "id": "T7_LEATHER_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T8_LEATHER_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T8_HIDE_LEVEL2@2",
+    "count": 5
+   },
+   {
+    "id": "T7_LEATHER_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T8_LEATHER_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T8_HIDE_LEVEL3@3",
+    "count": 5
+   },
+   {
+    "id": "T7_LEATHER_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 2694
+ },
+ "T8_LEATHER_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T8_HIDE_LEVEL4@4",
+    "count": 5
+   },
+   {
+    "id": "T7_LEATHER_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 4714
+ },
+ "T8_METALBAR": {
+  "inputs": [
+   {
+    "id": "T8_ORE",
+    "count": 5
+   },
+   {
+    "id": "T7_METALBAR",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T8_METALBAR_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T8_ORE_LEVEL1@1",
+    "count": 5
+   },
+   {
+    "id": "T7_METALBAR_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T8_METALBAR_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T8_ORE_LEVEL2@2",
+    "count": 5
+   },
+   {
+    "id": "T7_METALBAR_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T8_METALBAR_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T8_ORE_LEVEL3@3",
+    "count": 5
+   },
+   {
+    "id": "T7_METALBAR_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 2694
+ },
+ "T8_METALBAR_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T8_ORE_LEVEL4@4",
+    "count": 5
+   },
+   {
+    "id": "T7_METALBAR_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 4714
+ },
+ "T8_PLANKS": {
+  "inputs": [
+   {
+    "id": "T8_WOOD",
+    "count": 5
+   },
+   {
+    "id": "T7_PLANKS",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ },
+ "T8_PLANKS_LEVEL1@1": {
+  "inputs": [
+   {
+    "id": "T8_WOOD_LEVEL1@1",
+    "count": 5
+   },
+   {
+    "id": "T7_PLANKS_LEVEL1@1",
+    "count": 1
+   }
+  ],
+  "focus": 880
+ },
+ "T8_PLANKS_LEVEL2@2": {
+  "inputs": [
+   {
+    "id": "T8_WOOD_LEVEL2@2",
+    "count": 5
+   },
+   {
+    "id": "T7_PLANKS_LEVEL2@2",
+    "count": 1
+   }
+  ],
+  "focus": 1539
+ },
+ "T8_PLANKS_LEVEL3@3": {
+  "inputs": [
+   {
+    "id": "T8_WOOD_LEVEL3@3",
+    "count": 5
+   },
+   {
+    "id": "T7_PLANKS_LEVEL3@3",
+    "count": 1
+   }
+  ],
+  "focus": 2694
+ },
+ "T8_PLANKS_LEVEL4@4": {
+  "inputs": [
+   {
+    "id": "T8_WOOD_LEVEL4@4",
+    "count": 5
+   },
+   {
+    "id": "T7_PLANKS_LEVEL4@4",
+    "count": 1
+   }
+  ],
+  "focus": 4714
+ },
+ "T8_STONEBLOCK": {
+  "inputs": [
+   {
+    "id": "T8_ROCK",
+    "count": 5
+   },
+   {
+    "id": "T7_STONEBLOCK",
+    "count": 1
+   }
+  ],
+  "focus": 503
+ }
+}

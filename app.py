@@ -38,6 +38,35 @@ aodp = AODP(server=config.DEFAULT_SERVER)
 auth_manager = AuthManager(aodp.db, aodp.db_lock)
 SAFE_ROYAL_CITIES = [c for c in config.ROYAL_CITIES if c != "Caerleon"]
 
+
+def _maybe_bootstrap_admin():
+    """Cria o admin inicial na 1ª subida da nuvem, sem shell.
+
+    Se ALBION_BOOTSTRAP_ADMIN=<usuario> e ainda não há admin, cria a conta e
+    IMPRIME a senha temporária no log (visível no painel do host). O leigo lê o
+    log, entra, e troca a senha (must_change_password já força isso). No deploy
+    local normal a variável fica vazia e nada acontece — usa-se a CLI.
+    """
+    name = os.environ.get("ALBION_BOOTSTRAP_ADMIN", "").strip()
+    if not name:
+        return
+    try:
+        if auth_manager.has_admin():
+            return
+        res = auth_manager.bootstrap_admin(name)
+        print("=" * 56, flush=True)
+        print(f"[BOOTSTRAP] admin '{res['username']}' criado.", flush=True)
+        print(f"[BOOTSTRAP] SENHA TEMPORARIA: {res['temporary_password']}",
+              flush=True)
+        print("[BOOTSTRAP] entre, troque a senha, e remova a variavel "
+              "ALBION_BOOTSTRAP_ADMIN.", flush=True)
+        print("=" * 56, flush=True)
+    except Exception as e:  # nunca derruba o boot por causa do bootstrap
+        print(f"[BOOTSTRAP] ignorado: {e!r}", flush=True)
+
+
+_maybe_bootstrap_admin()
+
 # /api/sweep é tocado por cron externo (sem sessão) — protegido por token próprio
 PUBLIC_AUTH_PATHS = {"/api/auth/login", "/api/auth/bootstrap-status",
                      "/api/sweep"}
