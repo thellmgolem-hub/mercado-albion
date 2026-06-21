@@ -77,6 +77,25 @@ _maybe_bootstrap_admin()
 _AUTOCOLLECT_CATS = ["weapons", "armors", "head", "shoes", "offhands", "capes",
                      "bags", "mounts", "consumables", "gathering", "crafting"]
 _autocollect_started = False
+# progresso da coleta automática, lido por /api/collect-status (barra no front)
+_autocollect_progress = {"running": False, "done": 0, "total": 0}
+
+# prioridade de coleta: categorias mais líquidas e tiers mais negociados primeiro,
+# para a Início mostrar recomendações em ~30 s (1º bloco) sem esperar tudo.
+_CAT_PRIORITY = {"bags": 0, "capes": 0, "consumables": 1, "gathering": 1,
+                 "crafting": 1, "mounts": 2, "head": 3, "shoes": 3,
+                 "offhands": 3, "weapons": 4, "armors": 4}
+_TIER_PRIORITY = {4: 0, 5: 0, 6: 0, 7: 1, 8: 1, 3: 2}
+
+
+def _prioritize_watch(items):
+    """Ordena a watchlist: mais líquido primeiro (categoria, tier, encanto)."""
+    def key(iid):
+        m = db.get(iid) or {}
+        return (_CAT_PRIORITY.get(m.get("cat"), 9),
+                _TIER_PRIORITY.get(m.get("tier"), 3),
+                m.get("ench", 0), iid)
+    return sorted(items, key=key)
 
 
 def _default_watch_seed(per_cat=400, total=2000):
@@ -129,14 +148,23 @@ def _start_auto_collector():
         except Exception as e:
             print("[auto-collect] seed falhou:", repr(e)[:200], flush=True)
         time.sleep(4)   # deixa o servidor subir antes de bater na API
+        CHUNK = 150
         while True:
             try:
-                r = aodp.collect(source="auto")
-                print(f"[auto-collect] {r.get('items', 0)} itens · "
-                      f"{r.get('price_rows', 0)} preços · "
-                      f"{r.get('history_series', 0)} histórico.", flush=True)
+                items = _prioritize_watch([w["item_id"] for w in aodp.watch_list()])
+                _autocollect_progress.update({"running": True, "done": 0,
+                                              "total": len(items)})
+                done = 0
+                for i in range(0, len(items), CHUNK):
+                    aodp.collect(item_ids=items[i:i + CHUNK], source="auto")
+                    done = min(i + CHUNK, len(items))
+                    _autocollect_progress["done"] = done
+                    print(f"[auto-collect] {done}/{len(items)} itens coletados.",
+                          flush=True)
             except Exception as e:
                 print("[auto-collect] erro:", repr(e)[:200], flush=True)
+            finally:
+                _autocollect_progress["running"] = False
             time.sleep(max(60, config.AUTO_COLLECT_INTERVAL_MIN * 60))
 
     threading.Thread(target=loop, daemon=True, name="auto-collect").start()
@@ -147,6 +175,13 @@ def _start_auto_collector():
 @app.on_event("startup")
 def _on_startup():
     _start_auto_collector()
+
+
+@app.get("/api/collect-status")
+def collect_status():
+    """Progresso da coleta automática local (alimenta a barra de progresso)."""
+    p = _autocollect_progress
+    return {"running": bool(p["running"]), "done": p["done"], "total": p["total"]}
 
 
 # /api/sweep e /api/intel-sweep são tocados por cron externo (sem sessão) —

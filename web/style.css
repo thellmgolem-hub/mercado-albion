@@ -1059,3 +1059,15 @@ tbody tr:nth-child(even):hover { background: rgba(212, 168, 67, 0.08); }
 .pl-params label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: .82rem; }
 .pl-params input { width: 130px; padding: 7px 9px; background: var(--panel2); border: 1px solid var(--border);
   border-radius: var(--r-sm); color: var(--text); }
+
+/* ---- Barra de progresso da coleta automática ---- */
+.collect-banner { position: relative; padding: 8px 16px; background: var(--panel2);
+  border-bottom: 1px solid var(--gold); overflow: hidden; }
+.collect-banner .cb-fill { position: absolute; inset: 0 auto 0 0; width: 0;
+  background: rgba(212,168,67,.22); transition: width .6s ease; z-index: 0; }
+.collect-banner .cb-txt { position: relative; z-index: 1; display: flex; align-items: center;
+  gap: 10px; color: var(--text); font-size: .84rem; }
+.collect-banner .cb-txt b { color: var(--gold-bright); }
+.collect-banner .cb-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold);
+  flex: none; animation: cbpulse 1s ease-in-out infinite; }
+@keyframes cbpulse { 0%,100% { opacity: .35; } 50% { opacity: 1; } }

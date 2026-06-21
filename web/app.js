@@ -2416,6 +2416,42 @@ async function loadStatus() {
   }
 }
 
+// barra de progresso da coleta automática (item 2): mostra "coletando X/Y" e
+// atualiza a Início a cada bloco que chega, pra não parecer travado.
+async function pollCollectStatus() {
+  let running = false;
+  try {
+    const s = await api('/api/collect-status');
+    const el = $('collectBanner');
+    if (el) {
+      if (s.running && s.total > 0) {
+        running = true;
+        const pct = Math.round(100 * s.done / Math.max(1, s.total));
+        el.hidden = false;
+        el.innerHTML = `<div class="cb-fill" style="width:${pct}%"></div>` +
+          `<div class="cb-txt"><span class="cb-dot"></span>` +
+          `Coletando dados do mercado… <b>${fmt(s.done)}/${fmt(s.total)}</b> (${pct}%)` +
+          ` <span class="muted">— a Início se preenche conforme chega</span></div>`;
+        if (s.done !== state._collectDone) {   // novo bloco: atualiza a Início
+          state._collectDone = s.done;
+          if (document.getElementById('tab-dashboard').classList.contains('active')) {
+            loadDashboardRecommendations();
+          }
+        }
+      } else {
+        if (!el.hidden) {                       // terminou: esconde + refresh final
+          el.hidden = true;
+          if (document.getElementById('tab-dashboard').classList.contains('active')) {
+            loadDashboardRecommendations();
+          }
+        }
+        state._collectDone = 0;
+      }
+    }
+  } catch (e) { /* endpoint ausente (nuvem) ou sem sessão: ignora */ }
+  setTimeout(pollCollectStatus, running ? 6000 : 20000);
+}
+
 // ====================================================== Linha de Produção
 // Editor visual de nós: escolhe-se 1+ produtos finais, a árvore de receita
 // (BOM) vem do servidor (/api/prodchain) já com RRR por cidade + preços; a
@@ -2999,6 +3035,7 @@ async function init() {
   renderFavs();
   loadGold();
   loadStatus();
+  pollCollectStatus();
   setInterval(loadGold, 5 * 60 * 1000);
   setInterval(loadStatus, 5 * 60 * 1000);
 
