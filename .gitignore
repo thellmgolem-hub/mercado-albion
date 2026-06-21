@@ -17,3 +17,6 @@ data/*
 backups/
 *.log
 .claude/settings.local.json
+
+# arquivo-fantasma do Windows (nome de dispositivo reservado)
+/nul

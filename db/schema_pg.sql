@@ -109,3 +109,15 @@ CREATE TABLE IF NOT EXISTS auth_audit (
   action TEXT NOT NULL, details_json TEXT, created_at DOUBLE PRECISION NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_auth_audit_time ON auth_audit (created_at DESC);
+
+-- Linha de Produção: cadeias salvas por conta (também criada no boot do app).
+CREATE TABLE IF NOT EXISTS production_chains (
+  id SERIAL PRIMARY KEY,
+  owner_user_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  updated_at DOUBLE PRECISION NOT NULL,
+  UNIQUE(owner_user_id, name)
+);
+CREATE INDEX IF NOT EXISTS idx_production_chains_owner
+  ON production_chains (owner_user_id);
