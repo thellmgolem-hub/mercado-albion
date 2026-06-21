@@ -50,7 +50,7 @@ def main(argv=None):
     sub.add_parser("list", help="lista contas sem segredos")
     for name, help_text in (
             ("reset-password", "gera nova senha temporaria"),
-            ("reset-device", "libera vinculo para outro dispositivo"),
+            ("reset-device", "libera os IPs registrados da conta (limite de 2)"),
             ("disable", "desativa a conta e suas sessoes"),
             ("enable", "reativa a conta")):
         p = sub.add_parser(name, help=help_text)

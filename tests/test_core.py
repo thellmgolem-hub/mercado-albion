@@ -1570,32 +1570,35 @@ class AuthManagerTests(unittest.TestCase):
             ["admin.local"]).fetchone()
         self.assertEqual(row[0], 1)
 
-    def test_device_binding_session_and_password_rotation(self):
+    def test_ip_binding_session_and_password_rotation(self):
         first = self.auth.login(
-            "admin.local", self.admin["temporary_password"],
-            device_label="PC de teste")
-        self.assertTrue(first["device_token"])
-        # sessão é validada COM o cookie de dispositivo casado (vínculo por req.)
+            "admin.local", self.admin["temporary_password"], ip="10.0.0.1")
+        self.assertNotIn("device_token", first)   # não há mais cookie de device
+        # sessão validada COM o mesmo IP (vínculo por requisição)
         self.assertEqual(
-            self.auth.authenticate(
-                first["session_token"], first["device_token"])["account_id"],
+            self.auth.authenticate(first["session_token"], ip="10.0.0.1")["account_id"],
             self.admin["account_id"])
-        # sessão sem o device cookie casado é rejeitada (não é bearer puro)
+        # sessão usada de um IP fora dos registrados é rejeitada
         with self.assertRaises(AuthError) as ctxd:
-            self.auth.authenticate(first["session_token"])
-        self.assertEqual(ctxd.exception.code, "device_unrecognized")
+            self.auth.authenticate(first["session_token"], ip="9.9.9.9")
+        self.assertEqual(ctxd.exception.code, "ip_unrecognized")
+        # 2º IP distinto: permitido (limite 2)
+        self.auth.login("admin.local", self.admin["temporary_password"], ip="10.0.0.2")
+        # 3º IP distinto: recusado
         with self.assertRaises(AuthError) as ctx:
-            self.auth.login("admin.local", self.admin["temporary_password"])
-        self.assertEqual(ctx.exception.code, "device_conflict")
+            self.auth.login("admin.local", self.admin["temporary_password"], ip="10.0.0.3")
+        self.assertEqual(ctx.exception.code, "ip_limit")
+        # admin libera os IPs -> 3º IP volta a entrar
+        self.auth.reset_device(self.admin["account_id"], self.admin["account_id"])
+        self.auth.login("admin.local", self.admin["temporary_password"], ip="10.0.0.3")
 
         new_password = "Frase segura local 2026!"
         self.auth.change_password(
             self.admin["account_id"], self.admin["temporary_password"],
             new_password)
-        with self.assertRaises(AuthError):
-            self.auth.authenticate(first["session_token"])
-        second = self.auth.login(
-            "admin.local", new_password, first["device_token"])
+        with self.assertRaises(AuthError):           # troca de senha invalida sessões
+            self.auth.authenticate(first["session_token"], ip="10.0.0.1")
+        second = self.auth.login("admin.local", new_password, ip="10.0.0.3")
         self.assertFalse(second["account"]["must_change_password"])
 
     def test_lock_never_blocks_correct_password(self):
@@ -1605,7 +1608,7 @@ class AuthManagerTests(unittest.TestCase):
             with self.assertRaises(AuthError):
                 self.auth.login("admin.local", "senha errada qualquer")
         res = self.auth.login("admin.local", self.admin["temporary_password"],
-                              device_label="pc")
+                              ip="1.2.3.4")
         self.assertEqual(res["account"]["id"], self.admin["account_id"])
 
     def test_change_password_rejects_reuse(self):
@@ -1636,15 +1639,14 @@ class AuthManagerTests(unittest.TestCase):
             self.admin["account_id"], made["account_id"], active=False)
         self.assertFalse(disabled["active"])
 
-    def test_reset_device_allows_a_new_binding(self):
-        first = self.auth.login(
-            "admin.local", self.admin["temporary_password"])
-        self.auth.reset_device(
-            self.admin["account_id"], self.admin["account_id"])
-        second = self.auth.login(
-            "admin.local", self.admin["temporary_password"],
-            device_label="PC novo")
-        self.assertNotEqual(first["device_token"], second["device_token"])
+    def test_reset_ips_allows_a_new_one(self):
+        self.auth.login("admin.local", self.admin["temporary_password"], ip="1.1.1.1")
+        self.auth.login("admin.local", self.admin["temporary_password"], ip="2.2.2.2")
+        with self.assertRaises(AuthError):   # 3º IP barrado pelo limite
+            self.auth.login("admin.local", self.admin["temporary_password"], ip="3.3.3.3")
+        self.auth.reset_device(self.admin["account_id"], self.admin["account_id"])
+        res = self.auth.login("admin.local", self.admin["temporary_password"], ip="3.3.3.3")
+        self.assertEqual(res["account"]["id"], self.admin["account_id"])
 
     def test_http_login_csrf_forced_password_and_admin_api(self):
         old_manager = app.auth_manager
@@ -1657,7 +1659,6 @@ class AuthManagerTests(unittest.TestCase):
             login = client.post("/api/auth/login", json={
                 "username": "admin.local",
                 "password": self.admin["temporary_password"],
-                "device_label": "Navegador de teste",
             })
             self.assertEqual(login.status_code, 200)
             me = client.get("/api/auth/me")

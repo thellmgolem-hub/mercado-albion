@@ -62,6 +62,7 @@ SCRYPT_DKLEN = 64
 SCRYPT_MAXMEM = 64 * 1024 * 1024
 SESSION_DAYS = 7
 SESSION_IDLE_HOURS = 12
+MAX_IPS_PER_ACCOUNT = 2   # conta usável de no máx. 2 IPs distintos (anti-share)
 MAX_LOGIN_FAILURES = 5
 
 COMMON_PASSWORDS = {
@@ -357,12 +358,11 @@ class AuthManager:
         data["active"] = bool(data["active"])
         data["must_change_password"] = bool(data["must_change_password"])
         data["profiles"] = self._profiles(con, data["id"])
-        device = con.execute(
-            "SELECT label, approved_at, last_seen_at FROM auth_devices "
-            "WHERE account_id=? AND revoked_at IS NULL ORDER BY id DESC LIMIT 1",
-            [data["id"]]).fetchone()
-        data["device"] = ({"label": device[0], "approved_at": device[1],
-                           "last_seen_at": device[2]} if device else None)
+        rows = con.execute(
+            "SELECT label, last_seen_at FROM auth_devices "
+            "WHERE account_id=? AND revoked_at IS NULL ORDER BY last_seen_at DESC",
+            [data["id"]]).fetchall()
+        data["ips"] = [{"ip": r[0], "last_seen_at": r[1]} for r in rows]
         return data
 
     @staticmethod
@@ -535,7 +535,7 @@ class AuthManager:
             con.execute("UPDATE auth_accounts SET "
                         "session_version=session_version+1,updated_at=? "
                         "WHERE id=?", [now, account_id])
-            self._audit(con, "device_reset", actor_id, account_id)
+            self._audit(con, "ip_reset", actor_id, account_id)
 
     def _throttle(self, con, norm, now):
         """Estado do throttle (failures, locked) — NÃO levanta: a senha CORRETA
@@ -558,7 +558,7 @@ class AuthManager:
               locked_until=excluded.locked_until,updated_at=excluded.updated_at
         """, [norm, failures, now + lock_seconds, now])
 
-    def login(self, username, password, device_token=None, device_label=None):
+    def login(self, username, password, ip=None):
         try:
             norm = normalize_username(username)
         except AuthError:
@@ -595,37 +595,32 @@ class AuthManager:
             account_id, version = row[0], row[5]
             con.execute("DELETE FROM auth_login_throttle WHERE username_norm=?",
                         [norm])
-            devices = con.execute(
+            # Limite de IPs por conta (anti-compartilhamento). auth_devices é
+            # reusada como registro de IPs: token_hash = hash do IP, label = IP.
+            ip = (ip or "0.0.0.0")[:45]
+            ip_hash = _token_hash(ip)
+            registered = con.execute(
                 "SELECT id,token_hash FROM auth_devices "
                 "WHERE account_id=? AND revoked_at IS NULL", [account_id]
             ).fetchall()
-            supplied_hash = _token_hash(device_token) if device_token else None
-            matched = next((d for d in devices if hmac.compare_digest(
-                d[1], supplied_hash or "")), None)
-            new_device_token = None
-            if devices and not matched:
-                self._audit(con, "device_conflict", account_id, account_id)
-                con.commit()
-                raise DeviceConflict()
-            if not devices:
-                new_device_token = secrets.token_urlsafe(32)
-                supplied_hash = _token_hash(new_device_token)
-                device_id = self._insert_id(con, """
+            matched = next((d for d in registered if hmac.compare_digest(
+                d[1], ip_hash)), None)
+            if matched:
+                con.execute("UPDATE auth_devices SET last_seen_at=? WHERE id=?",
+                            [now, matched[0]])
+            elif len(registered) < MAX_IPS_PER_ACCOUNT:
+                self._insert_id(con, """
                     INSERT INTO auth_devices
                       (account_id,token_hash,label,approved_at,last_seen_at)
                     VALUES (?,?,?,?,?)
-                """, [account_id, supplied_hash,
-                       _clean_text(device_label, 64) or "Dispositivo principal",
-                       now, now])
-                matched = (device_id, supplied_hash)
+                """, [account_id, ip_hash, ip, now, now])
             else:
-                # ROTACIONA o token do dispositivo a cada login: um cookie
-                # albion_device capturado deixa de valer após o próximo login
-                # legítimo (deixa de ser bearer permanente de 365 dias).
-                new_device_token = secrets.token_urlsafe(32)
-                con.execute("UPDATE auth_devices SET token_hash=?,last_seen_at=? "
-                            "WHERE id=?",
-                            [_token_hash(new_device_token), now, matched[0]])
+                self._audit(con, "ip_limit", account_id, account_id)
+                con.commit()
+                raise AuthError(
+                    f"Limite de {MAX_IPS_PER_ACCOUNT} IPs atingido para esta "
+                    "conta. Peça ao administrador para liberar os IPs.",
+                    "ip_limit", 403)
             # Uma sessao ativa por conta; abas compartilham o cookie.
             con.execute("DELETE FROM auth_sessions WHERE account_id=?",
                         [account_id])
@@ -643,12 +638,12 @@ class AuthManager:
             con.execute("UPDATE auth_accounts SET last_login_at=?,updated_at=? "
                         "WHERE id=?", [now, now, account_id])
             self._audit(con, "login_success", account_id, account_id,
-                        {"new_device": bool(new_device_token)})
+                        {"ip": ip, "new_ip": matched is None})
         account = self.get_account(account_id)
         return {"session_token": session_token, "csrf_token": csrf_token,
-                "device_token": new_device_token, "account": account}
+                "account": account}
 
-    def authenticate(self, session_token, device_token=None):
+    def authenticate(self, session_token, ip=None):
         if not session_token:
             raise AuthError("Sessao ausente.", "session_missing", 401)
         now = time.time()
@@ -666,17 +661,18 @@ class AuthManager:
                             [token_hash])
                 raise AuthError("Sessao expirada. Entre novamente.",
                                 "session_expired", 401)
-            # Vínculo de dispositivo verificado A CADA requisição: a sessão
-            # deixa de ser bearer puro — um albion_session roubado sem o
-            # albion_device casado é rejeitado (revisão de segurança).
-            devices = con.execute(
+            # Vínculo por IP verificado A CADA requisição: a sessão deixa de ser
+            # bearer puro — um albion_session roubado e usado de um IP fora dos
+            # ≤2 registrados é rejeitado (e força novo login, que respeita o
+            # limite de IPs).
+            ips = con.execute(
                 "SELECT token_hash FROM auth_devices WHERE account_id=? "
                 "AND revoked_at IS NULL", [row[0]]).fetchall()
-            if devices:
-                supplied = _token_hash(device_token) if device_token else ""
-                if not any(hmac.compare_digest(d[0], supplied) for d in devices):
-                    raise AuthError("Dispositivo nao reconhecido. Entre "
-                                    "novamente.", "device_unrecognized", 401)
+            if ips:
+                supplied = _token_hash((ip or "")[:45])
+                if not any(hmac.compare_digest(d[0], supplied) for d in ips):
+                    raise AuthError("IP nao reconhecido para esta sessao. Entre "
+                                    "novamente.", "ip_unrecognized", 401)
             if now - row[5] >= 300:
                 con.execute("UPDATE auth_sessions SET last_seen_at=?,"
                             "idle_expires_at=? WHERE token_hash=?",

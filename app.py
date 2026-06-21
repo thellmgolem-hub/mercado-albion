@@ -194,7 +194,6 @@ PROTECTED_DOC_PATHS = {"/docs", "/redoc", "/openapi.json"}
 class LoginBody(BaseModel):
     username: str = Field(min_length=1, max_length=64)
     password: str = Field(min_length=1, max_length=128)
-    device_label: str | None = Field(default=None, max_length=64)
 
 
 class ChangePasswordBody(BaseModel):
@@ -230,17 +229,22 @@ def _cookie_secure(request: Request):
     return config.AUTH_COOKIE_SECURE or request.url.scheme == "https"
 
 
+def _client_ip(request: Request) -> str:
+    """IP real do cliente. Na nuvem (atrás de proxy) vem do X-Forwarded-For (1º
+    hop); local cai em request.client.host (127.0.0.1)."""
+    if config.AUTH_TRUST_PROXY:
+        xff = request.headers.get("x-forwarded-for")
+        if xff:
+            return xff.split(",")[0].strip()[:45]
+    return (request.client.host if request.client else "0.0.0.0")[:45]
+
+
 def _set_login_cookies(response, request, result):
     secure = _cookie_secure(request)
     response.set_cookie(
         config.AUTH_SESSION_COOKIE, result["session_token"],
         max_age=7 * 86400, httponly=True, secure=secure,
         samesite="strict", path="/")
-    if result.get("device_token"):
-        response.set_cookie(
-            config.AUTH_DEVICE_COOKIE, result["device_token"],
-            max_age=90 * 86400, httponly=True, secure=secure,
-            samesite="strict", path="/")
 
 
 def _clear_auth_cookies(response):
@@ -271,7 +275,7 @@ async def _auth_guard(request: Request, call_next):
                     "manage_accounts.py bootstrap.", "bootstrap_required", 503)
             ctx = auth_manager.authenticate(
                 request.cookies.get(config.AUTH_SESSION_COOKIE),
-                request.cookies.get(config.AUTH_DEVICE_COOKIE))
+                ip=_client_ip(request))
             request.state.auth = ctx
             password_paths = {
                 "/api/auth/me", "/api/auth/logout",
@@ -323,9 +327,8 @@ def auth_login(body: LoginBody, request: Request):
     if not auth_manager.has_admin():
         raise AuthError("Crie o primeiro administrador pela CLI.",
                         "bootstrap_required", 503)
-    result = auth_manager.login(
-        body.username, body.password,
-        request.cookies.get(config.AUTH_DEVICE_COOKIE), body.device_label)
+    result = auth_manager.login(body.username, body.password,
+                                ip=_client_ip(request))
     response = JSONResponse({
         "account": result["account"], "csrf": result["csrf_token"],
         "roles": ROLES, "profiles_catalog": PROFILES,
@@ -342,7 +345,7 @@ def auth_me(request: Request):
         return JSONResponse({
             "account": {"id": 0, "username": "local", "role": "admin",
                         "active": 1, "must_change_password": False,
-                        "profile": None, "device_label": "local"},
+                        "profile": None, "ips": []},
             "csrf": "", "roles": ROLES, "profiles_catalog": PROFILES,
         }, headers={"Cache-Control": "no-store"})
     session_token = request.cookies.get(config.AUTH_SESSION_COOKIE)

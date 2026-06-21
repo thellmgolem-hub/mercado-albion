@@ -195,7 +195,7 @@ function applyAuth(payload) {
     <div><span>Usuário</span>${esc(state.auth.username)}</div>
     <div><span>Papel</span>${esc(state.roles[state.auth.role] || state.auth.role)}</div>
     <div><span>Nick Albion</span>${esc(state.auth.albion_nick || 'não informado')}</div>
-    <div><span>Dispositivo</span>${esc(state.auth.device?.label || 'a vincular')}</div>
+    <div><span>IPs (máx. 2)</span>${esc((state.auth.ips || []).map((x) => x.ip).join(', ') || 'nenhum ainda')}</div>
   </div>`;
 }
 
@@ -241,10 +241,10 @@ async function loadAccounts() {
       <td><details class="account-profiles-edit"><summary>${a.profiles.length ? esc(a.profiles.map((p) => state.profilesCatalog[p] || p).join(', ')) : 'nenhum'}</summary>
         <div class="account-profile-grid">${profileChecks(a.profiles, `profiles-${a.id}`)}</div>
         <button type="button" class="mini-btn" data-account-action="save-profiles">Salvar perfis</button></details></td>
-      <td>${esc(a.device?.label || 'não vinculado')}<small>login: ${esc(formatAccountDate(a.last_login_at))}</small></td>
+      <td>${esc((a.ips || []).map((x) => x.ip).join(', ') || '—')}<small>login: ${esc(formatAccountDate(a.last_login_at))}</small></td>
       <td><div class="account-actions">
         <button type="button" class="mini-btn" data-account-action="reset-password">Nova senha</button>
-        <button type="button" class="mini-btn" data-account-action="reset-device">Liberar dispositivo</button>
+        <button type="button" class="mini-btn" data-account-action="reset-device">Liberar IPs</button>
         <button type="button" class="mini-btn" data-account-action="toggle-active">${a.active ? 'Desativar' : 'Reativar'}</button>
       </div></td>
     </tr>`).join('')}</tbody></table>`;
@@ -252,8 +252,8 @@ async function loadAccounts() {
     const actionLabels = {
       bootstrap_admin: 'Administrador inicial', account_created: 'Conta criada',
       account_updated: 'Conta alterada', password_reset: 'Senha redefinida',
-      password_changed: 'Senha alterada', device_reset: 'Dispositivo liberado',
-      device_conflict: 'Dispositivo recusado', login_success: 'Login',
+      password_changed: 'Senha alterada', ip_reset: 'IPs liberados',
+      ip_limit: 'IP recusado (limite)', login_success: 'Login',
       login_failed: 'Login recusado', logout: 'Logout',
     };
     $('accountAuditTable').innerHTML = `<table><thead><tr><th>Quando</th><th>Evento</th><th>Autor</th><th>Conta</th></tr></thead><tbody>${audit.events.map((e) =>
@@ -272,7 +272,6 @@ function setupAuthUi() {
       await apiJson('/api/auth/login', 'POST', {
         username: $('loginUsername').value,
         password: $('loginPassword').value,
-        device_label: $('loginDevice').value || null,
       }, false);
       location.reload();
     } catch (e) {

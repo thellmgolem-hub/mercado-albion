@@ -200,7 +200,11 @@ SERVE_LAN = False
 AUTH_REQUIRED = os.environ.get("ALBION_AUTH_DISABLED") != "1"
 AUTH_COOKIE_SECURE = os.environ.get("ALBION_AUTH_COOKIE_SECURE") == "1"
 AUTH_SESSION_COOKIE = "albion_session"
-AUTH_DEVICE_COOKIE = "albion_device"
+AUTH_DEVICE_COOKIE = "albion_device"   # legado (não mais usado; vínculo é por IP)
+# Vínculo da conta agora é por IP: máx. de IPs em auth.MAX_IPS_PER_ACCOUNT.
+# Confia no X-Forwarded-For (proxy da nuvem, ex. Render) p/ achar o IP real do
+# cliente. Local não tem XFF e cai em request.client.host (127.0.0.1).
+AUTH_TRUST_PROXY = os.environ.get("ALBION_TRUST_PROXY", "1") == "1"
 # Máx. de itens por rodada de coleta. 2.300 itens ≈ 92 requisições à API
 # (2 × itens/50), ~40 s por rodada — confortável dentro de 150/min e 300/5min.
 COLLECT_MAX_ITEMS = 2500
