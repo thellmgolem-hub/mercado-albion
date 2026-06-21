@@ -4,6 +4,7 @@
 Rodar:  python app.py        (abre o navegador em http://127.0.0.1:8528)
 """
 import hmac
+import ipaddress
 import os
 import re
 import sqlite3
@@ -229,14 +230,32 @@ def _cookie_secure(request: Request):
     return config.AUTH_COOKIE_SECURE or request.url.scheme == "https"
 
 
+def _normalize_ip(s: str) -> str:
+    """Canoniza um IP: tira zona IPv6 (%eth0) e porta, valida com ipaddress.
+    Sem isso, o MESMO cliente com porta/zona variável viraria 'IPs' diferentes
+    (burlaria o limite e geraria ip_unrecognized espúrio)."""
+    s = (s or "").strip().split("%")[0]
+    if s.startswith("[") and "]" in s:        # [IPv6]:porta
+        s = s[1:s.index("]")]
+    elif s.count(":") == 1 and "." in s:      # IPv4:porta
+        s = s.rsplit(":", 1)[0]
+    try:
+        return str(ipaddress.ip_address(s))
+    except ValueError:
+        return (s[:45] or "0.0.0.0")
+
+
 def _client_ip(request: Request) -> str:
-    """IP real do cliente. Na nuvem (atrás de proxy) vem do X-Forwarded-For (1º
-    hop); local cai em request.client.host (127.0.0.1)."""
+    """IP real do cliente. Atrás de proxy de confiança (nuvem/Render) usa o
+    X-Forwarded-For — o item MAIS À DIREITA, que é o IP que de fato conectou ao
+    proxy (anti-spoof: um XFF forjado pelo cliente fica à esquerda). Local (sem
+    XFF) cai em request.client.host. Vínculo por IP é defesa-em-profundidade
+    sobre a sessão; AUTH_TRUST_PROXY=0 desliga a confiança no header."""
     if config.AUTH_TRUST_PROXY:
         xff = request.headers.get("x-forwarded-for")
         if xff:
-            return xff.split(",")[0].strip()[:45]
-    return (request.client.host if request.client else "0.0.0.0")[:45]
+            return _normalize_ip(xff.split(",")[-1])
+    return _normalize_ip(request.client.host if request.client else "0.0.0.0")
 
 
 def _set_login_cookies(response, request, result):
@@ -249,7 +268,7 @@ def _set_login_cookies(response, request, result):
 
 def _clear_auth_cookies(response):
     response.delete_cookie(config.AUTH_SESSION_COOKIE, path="/")
-    # O dispositivo permanece no logout; e o vinculo de um PC, nao a sessao.
+    # Os IPs registrados permanecem no logout; só a sessão (cookie) é apagada.
 
 
 def _require_role(request: Request, allowed):
@@ -345,7 +364,7 @@ def auth_me(request: Request):
         return JSONResponse({
             "account": {"id": 0, "username": "local", "role": "admin",
                         "active": 1, "must_change_password": False,
-                        "profile": None, "ips": []},
+                        "profiles": [], "ips": []},
             "csrf": "", "roles": ROLES, "profiles_catalog": PROFILES,
         }, headers={"Cache-Control": "no-store"})
     session_token = request.cookies.get(config.AUTH_SESSION_COOKIE)

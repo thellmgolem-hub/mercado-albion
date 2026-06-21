@@ -7,14 +7,15 @@ Seguranca:
 - sessao com validade absoluta e por inatividade;
 - CSRF por token rotativo;
 - lockout progressivo inclusive para usernames inexistentes;
-- um dispositivo aprovado por conta;
-- auditoria sem IP, e-mail ou identidade real.
+- vínculo por IP: a conta é usável de no máximo MAX_IPS_PER_ACCOUNT IPs;
+- auditoria sem e-mail ou identidade real.
 """
 from __future__ import annotations
 
 import base64
 import hashlib
 import hmac
+import ipaddress
 import json
 import re
 import secrets
@@ -78,14 +79,6 @@ class AuthError(Exception):
         self.message = message
         self.code = code
         self.status = status
-
-
-class DeviceConflict(AuthError):
-    def __init__(self):
-        super().__init__(
-            "Esta conta ja esta vinculada a outro dispositivo. "
-            "Solicite ao administrador a liberacao.",
-            "device_conflict", 403)
 
 
 def normalize_username(value: str) -> str:
@@ -299,6 +292,26 @@ class AuthManager:
                 for stmt in _AUTH_SCHEMA_PG.split(";"):
                     if stmt.strip():
                         con.execute(stmt)
+        self._revoke_legacy_devices()
+
+    def _revoke_legacy_devices(self):
+        """Migração idempotente: registros LEGADOS de dispositivo (label não é um
+        IP) seriam contados no limite de IPs e nunca casariam num login — revoga.
+        Numa base nova (nuvem) não há nada a fazer."""
+        try:
+            with self._tx() as con:
+                rows = con.execute(
+                    "SELECT id,label FROM auth_devices "
+                    "WHERE revoked_at IS NULL").fetchall()
+                now = time.time()
+                for rid, label in rows:
+                    try:
+                        ipaddress.ip_address((label or "").strip())
+                    except ValueError:
+                        con.execute("UPDATE auth_devices SET revoked_at=? "
+                                    "WHERE id=?", [now, rid])
+        except Exception:
+            pass   # nunca derruba o boot por causa da migração
 
     @staticmethod
     def _insert_id(con, sql, params):
@@ -669,7 +682,7 @@ class AuthManager:
                 "SELECT token_hash FROM auth_devices WHERE account_id=? "
                 "AND revoked_at IS NULL", [row[0]]).fetchall()
             if ips:
-                supplied = _token_hash((ip or "")[:45])
+                supplied = _token_hash((ip or "0.0.0.0")[:45])   # default igual ao login()
                 if not any(hmac.compare_digest(d[0], supplied) for d in ips):
                     raise AuthError("IP nao reconhecido para esta sessao. Entre "
                                     "novamente.", "ip_unrecognized", 401)

@@ -1691,6 +1691,37 @@ class AuthManagerTests(unittest.TestCase):
             app.auth_manager = old_manager
             app.config.AUTH_REQUIRED = old_required
 
+    def test_normalize_ip_strips_port_and_zone(self):
+        self.assertEqual(app._normalize_ip("1.2.3.4:5678"), "1.2.3.4")
+        self.assertEqual(app._normalize_ip("fe80::1%eth0"), "fe80::1")
+        self.assertEqual(app._normalize_ip(" 200.0.0.9 "), "200.0.0.9")
+
+    def test_client_ip_uses_rightmost_xff(self):
+        import types
+        # XFF forjado pelo cliente fica à ESQUERDA; o real (anexado pelo proxy de
+        # confiança) é o mais à DIREITA — é esse que vale.
+        req = types.SimpleNamespace(
+            headers={"x-forwarded-for": "6.6.6.6, 200.10.20.30"},
+            client=types.SimpleNamespace(host="10.0.0.5"))
+        self.assertEqual(app._client_ip(req), "200.10.20.30")
+
+    def test_legacy_device_rows_revoked(self):
+        import time as _t
+        aid, now = self.admin["account_id"], _t.time()
+        self.con.execute("INSERT INTO auth_devices "
+                         "(account_id,token_hash,label,approved_at,last_seen_at) "
+                         "VALUES (?,?,?,?,?)", [aid, "h1", "PC do João", now, now])
+        self.con.execute("INSERT INTO auth_devices "
+                         "(account_id,token_hash,label,approved_at,last_seen_at) "
+                         "VALUES (?,?,?,?,?)", [aid, "h2", "1.2.3.4", now, now])
+        self.con.commit()
+        self.auth._revoke_legacy_devices()
+        labels = [r[0] for r in self.con.execute(
+            "SELECT label FROM auth_devices WHERE account_id=? AND revoked_at IS NULL",
+            [aid]).fetchall()]
+        self.assertIn("1.2.3.4", labels)          # IP válido permanece
+        self.assertNotIn("PC do João", labels)    # legado (não-IP) revogado
+
 
 class IslandTests(unittest.TestCase):
     def _prices(self):
