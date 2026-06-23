@@ -2819,6 +2819,40 @@ const PL_SECTORS = [
   { key: 'buy', icon: '🛒', label: 'Comprar pronto', hint: 'insumos sem receita própria' },
 ];
 
+// traduz a cadeia em INFRAESTRUTURA física da guild (fazendas, refino, craft)
+function prodInfraHtml(calc) {
+  const pl = state.prodLine, nodes = pl.graph.nodes || {};
+  let farmRows = [], totalHarvests = 0, refineOps = 0, craftOps = 0, rawUnits = 0, animals = 0;
+  for (const it in nodes) {
+    const dem = Math.ceil((calc.demand || {})[it] || 0); if (dem <= 0) continue;
+    const n = nodes[it], sec = n.sector;
+    if (sec === 'craft') craftOps += calc.crafts[it] || 0;
+    else if (sec === 'refine') refineOps += calc.crafts[it] || 0;
+    else if (sec === 'raw') rawUnits += dem;
+    else if (sec === 'farm') {
+      if (n.farm && n.farm.yield) {
+        const h = Math.ceil(dem / n.farm.yield);
+        totalHarvests += h;
+        farmRows.push({ name: n.name_pt || it, h, cyc: n.farm.cycle_days });
+      } else animals += dem;
+    }
+  }
+  const secs = [];
+  if (farmRows.length) {
+    farmRows.sort((a, b) => b.h - a.h);
+    const detail = farmRows.map((f) => `${esc(f.name)}: <b>${fmt(f.h)}</b> colh.`).join(' · ');
+    secs.push(`<div class="pl-infra-sec"><span class="pl-infra-ic">🌾</span><b>Fazenda</b> —
+      <b>${fmt(totalHarvests)}</b> colheitas no total <span class="muted">(≈ ${fmt(totalHarvests)} canteiros p/ fazer tudo em 1 ciclo; 1 canteiro = 1 colheita/ciclo)</span>
+      <div class="pl-infra-detail">${detail}</div></div>`);
+  }
+  if (animals) secs.push(`<div class="pl-infra-sec"><span class="pl-infra-ic">🐄</span><b>Pecuária</b> — ${fmt(animals)} produtos de animal</div>`);
+  if (refineOps) secs.push(`<div class="pl-infra-sec"><span class="pl-infra-ic">⚙️</span><b>Refino</b> — <b>${fmt(refineOps)}</b> operações de refino na estação</div>`);
+  if (craftOps) secs.push(`<div class="pl-infra-sec"><span class="pl-infra-ic">🔨</span><b>Fabricação</b> — <b>${fmt(craftOps)}</b> crafts na estação</div>`);
+  if (rawUnits) secs.push(`<div class="pl-infra-sec"><span class="pl-infra-ic">🪓</span><b>Coleta</b> — <b>${fmt(rawUnits)}</b> unidades de recurso bruto</div>`);
+  if (!secs.length) return '';
+  return `<details class="pl-collapse pl-infra" open><summary>🏛️ Infraestrutura da guild para esta produção</summary>${secs.join('')}</details>`;
+}
+
 function prodRenderResult(calc) {
   const el = $('plResult'); if (!el) return;
   const pl = state.prodLine, nodes = pl.graph.nodes || {};
@@ -2848,7 +2882,7 @@ function prodRenderResult(calc) {
     if (calc.missing.length)
       warns += `<div class="pl-warn">${calc.missing.length} insumo(s) sem cotação de compra.</div>`;
   }
-  el.innerHTML = infra + costs + warns;
+  el.innerHTML = infra + prodInfraHtml(calc) + costs + warns;
 }
 
 // PASSO 2, visão ETAPAS: agrupada por SETOR da infraestrutura (Fabricação /

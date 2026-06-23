@@ -1068,6 +1068,12 @@ tbody tr:nth-child(even):hover { background: rgba(212, 168, 67, 0.08); }
 .pl-costs-toggle { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: .85rem;
   cursor: pointer; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--r-sm); }
 .pl-costs-on .pl-costs-toggle { color: var(--gold-bright); border-color: var(--gold); }
+.pl-infra { margin: 4px 0 12px; }
+.pl-infra > summary { font-weight: 650; }
+.pl-infra-sec { padding: 7px 2px; border-bottom: 1px solid var(--border); font-size: .9rem; }
+.pl-infra-sec:last-child { border-bottom: none; }
+.pl-infra-ic { margin-right: 6px; }
+.pl-infra-detail { color: var(--muted); font-size: .8rem; margin-top: 3px; padding-left: 22px; }
 .pl-cost-cards { margin-top: 4px; }
 .pl-cost-cards::before { content: '💰 Custos de mercado'; display: block; width: 100%; color: var(--muted);
   font-size: .76rem; margin-bottom: 4px; }

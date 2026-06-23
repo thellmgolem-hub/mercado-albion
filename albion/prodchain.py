@@ -61,6 +61,25 @@ def _farm_goods():
     return _FARM_GOODS
 
 
+_CROP_INDEX = None
+
+
+def _crop_index():
+    """{item_da_cultura: {yield, cycle_days}} — quanto cada canteiro entrega por
+    colheita e o tempo do ciclo, p/ estimar o nº de canteiros/colheitas."""
+    global _CROP_INDEX
+    if _CROP_INDEX is None:
+        d = craft._load("island_data.json") or {}
+        idx = {}
+        for info in (d.get("crops") or {}).values():
+            c = info.get("crop")
+            if c:
+                idx[c] = {"yield": info.get("crop_yield") or 0,
+                          "cycle_days": round((info.get("cycle_s") or 0) / 86400, 2)}
+        _CROP_INDEX = idx
+    return _CROP_INDEX
+
+
 def _sector(item, has_recipe):
     """Classifica a etapa na infraestrutura da guild: refino, fabricação, ilha
     (fazenda), coleta (bruto) ou compra (folha sem receita nem fazenda)."""
@@ -149,6 +168,9 @@ def build_graph(roots, price_of, *, premium=True, sell_mode="order",
         else:
             node.update({"is_raw": True, "recipe": None})
             node["sector"] = _sector(item, False)
+            ci = _crop_index().get(item)
+            if ci:                       # cultura de fazenda: rendimento/ciclo
+                node["farm"] = ci
             nodes[item] = node
 
     for r in roots:
