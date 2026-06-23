@@ -730,7 +730,8 @@ class MicrostructureTests(unittest.TestCase):
                 client.db.executemany(
                     "INSERT INTO history VALUES (?,?,?,?,?,?,?,?,?)",
                     [("americas", "T4_POT", "Martlock", 1, 24,
-                      "2026-06-1%dT00:00:00" % d, 500, 100, now)
+                      time.strftime("%Y-%m-%dT00:00:00", time.gmtime(now - d * 86400)),
+                      500, 100, now)
                      for d in range(1, 6)])
                 client.db.commit()
                 menu = mc.market_making_menu(client.db, "americas",
@@ -941,7 +942,8 @@ class RigorIIITests(unittest.TestCase):
                 client.db.executemany(
                     "INSERT INTO history VALUES (?,?,?,?,?,?,?,?,?)",
                     [("americas", "T4_POT", "Martlock", 1, 24,
-                      "2026-06-1%dT00:00:00" % d, 1000, 100, now)
+                      _t.strftime("%Y-%m-%dT00:00:00", _t.gmtime(now - d * 86400)),
+                      1000, 100, now)
                      for d in range(1, 6)])
                 client.db.commit()
                 full = mc.capital_allocation(client.db, "americas",
