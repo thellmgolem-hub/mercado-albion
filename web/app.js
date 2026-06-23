@@ -2514,7 +2514,8 @@ function prodPropagate() {                       // espelha solve(): Kahn + ceil
     seen.add(it);
     const n = nodes[it];
     // estoque declarado abate da demanda: só se produz/compra o que FALTA
-    const eff = Math.max(0, (gross[it] || 0) - (stock[it] || 0));
+    // (clamp >=0 p/ estoque negativo nunca inflar a demanda)
+    const eff = Math.max(0, (gross[it] || 0) - Math.max(0, stock[it] || 0));
     net[it] = eff;
     if (!plIsBuy(it) && eff > 0) {
       const b = Math.ceil(eff / (n.output || 1));
@@ -2860,7 +2861,8 @@ function prodRenderResult(calc) {
   const card = (v, k, cls = '') => `<div class="pl-statcard ${cls}"><div class="pl-stat-v">${v}</div><div class="pl-stat-k">${k}</div></div>`;
   // RESUMO DA INFRAESTRUTURA: quantas etapas em cada setor da guild
   const cnt = { craft: 0, refine: 0, farm: 0, raw: 0, buy: 0 };
-  for (const it in nodes) if ((calc.demand[it] || 0) > 0) cnt[nodes[it].sector || 'buy'] = (cnt[nodes[it].sector || 'buy'] || 0) + 1;
+  const gd = calc.gross || calc.demand || {};   // conta por BRUTO (igual à lista de etapas)
+  for (const it in nodes) if ((gd[it] || 0) > 0) cnt[nodes[it].sector || 'buy'] = (cnt[nodes[it].sector || 'buy'] || 0) + 1;
   let infra = `<div class="pl-cards">
     ${card(cnt.craft, '🔨 Fabricação')}
     ${card(cnt.refine, '⚙️ Refino')}
@@ -3033,7 +3035,7 @@ async function prodLoadChain(id) {
     for (const [k, v] of Object.entries(p.targets || {})) {
       const q = +v; if (q > 0 && isFinite(q)) pl.targets[k] = q;
     }
-    pl.stock = {};   // estoque declarado (qty >= 0 finita)
+    pl.stock = {};   // estoque declarado (só qty > 0 finita; 0 = sem estoque)
     for (const [k, v] of Object.entries(p.stock || {})) {
       const q = +v; if (q > 0 && isFinite(q)) pl.stock[k] = q;
     }

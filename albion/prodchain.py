@@ -258,7 +258,7 @@ def solve(graph, targets, *, state=None, stock=None, spec_fce=0, station_fee=0.0
             continue
         processed.add(item)
         n = nodes[item]
-        eff = max(0.0, gross[item] - (stock.get(item) or 0))
+        eff = max(0.0, gross[item] - max(0, stock.get(item) or 0))   # clamp estoque>=0
         need[item] = eff
         if not _is_buy(nodes, state, item) and eff > 0:
             out = n["output"] or 1

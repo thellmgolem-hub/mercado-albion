@@ -1660,7 +1660,7 @@ def prodchain_graph(item: str, premium: bool = True, sell_mode: str = "order"):
             premium=premium, sell_mode=sell_mode, cities=config.ROYAL_CITIES)
         for iid, node in g["nodes"].items():
             meta = _item_meta(iid)
-            node["name_pt"] = meta.get("pt", iid)
+            node["name_pt"] = meta.get("pt") or iid   # nunca nome vazio
             node["tier"] = meta.get("tier")
             node["enchant"] = meta.get("enchant", 0)
         return g
