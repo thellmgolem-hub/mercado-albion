@@ -36,7 +36,41 @@ from . import craft
 from . import production as prod
 from .flips import sell_revenue
 
-MAX_DEPTH = 10
+MAX_DEPTH = 12
+
+_FARM_GOODS = None
+
+
+def _farm_goods():
+    """Conjunto de itens que NASCEM na ilha (culturas, comidas, animais adultos)
+    — usado para classificar o setor 'Ilha' na cadeia."""
+    global _FARM_GOODS
+    if _FARM_GOODS is None:
+        d = craft._load("island_data.json") or {}
+        s = set()
+        for info in (d.get("crops") or {}).values():
+            if info.get("crop"):
+                s.add(info["crop"])
+            if info.get("byproduct"):
+                s.add(info["byproduct"])
+        s.update((d.get("food") or {}).keys())
+        for info in (d.get("animals") or {}).values():
+            if info.get("grown"):
+                s.add(info["grown"])
+        _FARM_GOODS = s
+    return _FARM_GOODS
+
+
+def _sector(item, has_recipe):
+    """Classifica a etapa na infraestrutura da guild: refino, fabricação, ilha
+    (fazenda), coleta (bruto) ou compra (folha sem receita nem fazenda)."""
+    if has_recipe:
+        return "refine" if craft._refining_family(item) else "craft"
+    if item in _farm_goods():
+        return "farm"
+    if prod.is_raw_resource(item):
+        return "raw"
+    return "buy"
 
 
 def _prod_recipe(item_id):
@@ -108,11 +142,13 @@ def build_graph(roots, price_of, *, premium=True, sell_mode="order",
                         "f": round(craft.unified_rrr(item, cat, c, True), 4)}
                     for c in cities},
             })
+            node["sector"] = _sector(item, True)
             nodes[item] = node
             for inp in rec["inputs"]:
                 visit(inp["id"], depth + 1)
         else:
             node.update({"is_raw": True, "recipe": None})
+            node["sector"] = _sector(item, False)
             nodes[item] = node
 
     for r in roots:

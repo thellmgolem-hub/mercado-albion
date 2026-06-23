@@ -9,6 +9,7 @@ RRR (taxa de retorno de recursos) = 1 - 1/(1 + bônus_estação + bônus_categor
 custo_efetivo = custo_insumos × (1 - RRR).
 """
 import json
+import re
 from pathlib import Path
 
 from . import config
@@ -29,10 +30,37 @@ def craft_data():
     return _load("craft_data.json")
 
 
+_ENCH_SHORT = re.compile(r"^(T\d+_[A-Z]+)@(\d+)$")
+_ENCH_LONG = re.compile(r"^(T\d+_[A-Z]+)_LEVEL\d+(@\d+)$")
+
+
+def _canon_ench(item_id):
+    """T8_PLANKS_LEVEL4@4 -> T8_PLANKS@4 (forma curta canônica do app)."""
+    m = _ENCH_LONG.match(item_id or "")
+    return f"{m.group(1)}{m.group(2)}" if m else item_id
+
+
 def recipe_for(item_id):
-    """Receita de craft ou de refino (o que existir) para o item."""
-    return (_load("recipes_craft.json").get(item_id)
-            or _load("recipes_refining.json").get(item_id))
+    """Receita de craft ou de refino (o que existir) para o item.
+
+    Refinado ENCANTADO é referenciado na forma curta (T8_PLANKS@4), mas o dump
+    indexa a receita na forma longa (T8_PLANKS_LEVEL4@4); resolvemos isso e
+    normalizamos os insumos de volta à forma curta — sem isso a cadeia parava no
+    refinado encantado em vez de descer até o recurso bruto."""
+    r = (_load("recipes_craft.json").get(item_id)
+         or _load("recipes_refining.json").get(item_id))
+    if not r:
+        m = _ENCH_SHORT.match(item_id or "")
+        if m:
+            longk = f"{m.group(1)}_LEVEL{m.group(2)}@{m.group(2)}"
+            r = (_load("recipes_refining.json").get(longk)
+                 or _load("recipes_craft.json").get(longk))
+    if not r:
+        return None
+    ins = r.get("inputs")
+    if ins and any(_ENCH_LONG.match(i.get("id", "")) for i in ins):
+        r = {**r, "inputs": [{**i, "id": _canon_ench(i["id"])} for i in ins]}
+    return r
 
 
 def craft_rrr(category, city, focus=False, extra=0.0):
