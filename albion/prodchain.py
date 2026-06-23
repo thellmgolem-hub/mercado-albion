@@ -202,18 +202,21 @@ def _buy_price(nodes, state, item):
     return (n.get("buy_by_city") or {}).get(c) or n.get("buy_price")
 
 
-def solve(graph, targets, *, state=None, spec_fce=0, station_fee=0.0,
+def solve(graph, targets, *, state=None, stock=None, spec_fce=0, station_fee=0.0,
           focus_price=0.0):
     """Propaga a quantidade do(s) alvo(s) pela cadeia e calcula custo/lucro.
 
     targets: {item_id: qtd_final}. state: {item: {mode:'make'|'buy', focus:bool,
-    city:str}}. spec_fce: Focus Cost Efficiency (barateia foco; não muda RRR).
-    station_fee: prata por craft. focus_price: prata por ponto de foco (0 = só
-    reporta pontos). Espelha a propagação do cliente (arredonda crafts p/ cima).
+    city:str}}. stock: {item_id: qtd_em_estoque} — abate da demanda (só se produz/
+    compra o que FALTA, e o nó coberto não propaga). spec_fce: Focus Cost
+    Efficiency (barateia foco; não muda RRR). station_fee: prata por craft.
+    focus_price: prata por ponto de foco (0 = só reporta pontos).
     """
     nodes = graph["nodes"]
     state = state or {}
-    demand = defaultdict(float)     # unidades de saída necessárias por item
+    stock = stock or {}
+    gross = defaultdict(float)      # demanda BRUTA acumulada dos pais
+    need = defaultdict(float)       # LÍQUIDO após abater estoque (a produzir/comprar)
     crafts = defaultdict(int)       # nº de batches (inteiro) por item
 
     # in-degree só conta arestas de nós que serão FABRICADOS (buy não expande)
@@ -224,7 +227,7 @@ def solve(graph, targets, *, state=None, spec_fce=0, station_fee=0.0,
         for inp in n["recipe"]:
             indeg[inp["id"]] += 1
     for item, q in targets.items():
-        demand[item] += q
+        gross[item] += q
     ready = deque(it for it in nodes if indeg[it] == 0)
     processed = set()
     while ready:
@@ -233,13 +236,15 @@ def solve(graph, targets, *, state=None, spec_fce=0, station_fee=0.0,
             continue
         processed.add(item)
         n = nodes[item]
-        if not _is_buy(nodes, state, item) and demand[item] > 0:
+        eff = max(0.0, gross[item] - (stock.get(item) or 0))
+        need[item] = eff
+        if not _is_buy(nodes, state, item) and eff > 0:
             out = n["output"] or 1
-            batches = math.ceil(demand[item] / out)
+            batches = math.ceil(eff / out)
             crafts[item] = batches
             rrr = _rrr(nodes, state, item)
             for inp in n["recipe"]:
-                demand[inp["id"]] += batches * inp["count"] * (1 - rrr)
+                gross[inp["id"]] += batches * inp["count"] * (1 - rrr)
         for inp in (n.get("recipe") or []):
             if not _is_buy(nodes, state, item):
                 indeg[inp["id"]] -= 1
@@ -251,7 +256,7 @@ def solve(graph, targets, *, state=None, spec_fce=0, station_fee=0.0,
     focus_points = 0.0
     station_total = 0.0
     for item in nodes:
-        q = demand[item]
+        q = need[item]
         if q <= 0:
             continue
         if _is_buy(nodes, state, item):
@@ -288,7 +293,7 @@ def solve(graph, targets, *, state=None, spec_fce=0, station_fee=0.0,
 
     out_nodes = {}
     for item in nodes:
-        q = demand[item]
+        q = need[item]
         if q <= 0:
             continue
         out_nodes[item] = {

@@ -1911,6 +1911,19 @@ class ProdChainTests(unittest.TestCase):
         self.assertGreater(s2["nodes"]["T4_METALBAR"]["demand"],
                            s1["nodes"]["T4_METALBAR"]["demand"])
 
+    def test_stock_reduces_demand(self):
+        from albion import prodchain
+        g = self._g()
+        base = prodchain.solve(g, {"T4_MAIN_SWORD": 100})
+        bar0 = base["nodes"]["T4_METALBAR"]["demand"]
+        # estoque parcial de barras abate a demanda a produzir
+        ws = prodchain.solve(g, {"T4_MAIN_SWORD": 100}, stock={"T4_METALBAR": 100})
+        self.assertLess(ws["nodes"]["T4_METALBAR"]["demand"], bar0)
+        # estoque que cobre o ALVO inteiro poda a cadeia (nada a produzir)
+        full = prodchain.solve(g, {"T4_MAIN_SWORD": 100}, stock={"T4_MAIN_SWORD": 100})
+        self.assertNotIn("T4_MAIN_SWORD", full["nodes"])
+        self.assertNotIn("T4_METALBAR", full["nodes"])
+
 
 if __name__ == "__main__":
     unittest.main()

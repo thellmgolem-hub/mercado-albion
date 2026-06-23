@@ -2460,7 +2460,7 @@ const PL_NW = 188, PL_NH = 96;          // tamanho aprox. do nó (âncora de are
 
 function prodInitState() {
   return { roots: [], targets: {}, graph: { nodes: {}, cities: [], sell_mode: 'order' },
-           ns: {}, qtyDefault: 100, stationFee: 0, specFce: 0, focusPrice: 0,
+           ns: {}, stock: {}, qtyDefault: 100, stationFee: 0, specFce: 0, focusPrice: 0,
            showCosts: false, savedId: null, savedName: '', calc: null, verdict: {} };
 }
 function plNodes() { return (state.prodLine.graph || {}).nodes || {}; }
@@ -2497,14 +2497,14 @@ function prodDefaultState(it) {
 }
 
 function prodPropagate() {                       // espelha solve(): Kahn + ceil
-  const nodes = plNodes(), pl = state.prodLine;
-  const demand = {}, crafts = {}, indeg = {};
+  const nodes = plNodes(), pl = state.prodLine, stock = pl.stock || {};
+  const gross = {}, net = {}, crafts = {}, indeg = {};
   for (const it in nodes) indeg[it] = 0;
   for (const it in nodes) {
     if (plIsBuy(it)) continue;
     for (const inp of nodes[it].recipe) indeg[inp.id] = (indeg[inp.id] || 0) + 1;
   }
-  for (const r of pl.roots) demand[r] = (demand[r] || 0) + (pl.targets[r] || 0);
+  for (const r of pl.roots) gross[r] = (gross[r] || 0) + (pl.targets[r] || 0);
   const ready = [];
   for (const it in nodes) if ((indeg[it] || 0) === 0) ready.push(it);
   const seen = new Set();
@@ -2513,22 +2513,25 @@ function prodPropagate() {                       // espelha solve(): Kahn + ceil
     if (seen.has(it)) continue;
     seen.add(it);
     const n = nodes[it];
-    if (!plIsBuy(it) && (demand[it] || 0) > 0) {
-      const b = Math.ceil(demand[it] / (n.output || 1));
+    // estoque declarado abate da demanda: só se produz/compra o que FALTA
+    const eff = Math.max(0, (gross[it] || 0) - (stock[it] || 0));
+    net[it] = eff;
+    if (!plIsBuy(it) && eff > 0) {
+      const b = Math.ceil(eff / (n.output || 1));
       crafts[it] = b;
       const rrr = plRrr(it);
-      for (const inp of n.recipe) demand[inp.id] = (demand[inp.id] || 0) + b * inp.count * (1 - rrr);
+      for (const inp of n.recipe) gross[inp.id] = (gross[inp.id] || 0) + b * inp.count * (1 - rrr);
     }
     if (!plIsBuy(it)) for (const inp of (n.recipe || [])) {
       indeg[inp.id] -= 1;
       if (indeg[inp.id] === 0) ready.push(inp.id);
     }
   }
-  return { demand, crafts };
+  return { demand: net, gross, crafts };
 }
 
 function prodComputeCosts(prop) {
-  const nodes = plNodes(), pl = state.prodLine, { demand, crafts } = prop;
+  const nodes = plNodes(), pl = state.prodLine, { demand, crafts, gross } = prop;
   const shopping = {}; let focusPoints = 0, stationTotal = 0;
   for (const it in nodes) {
     const q = demand[it] || 0;
@@ -2560,7 +2563,7 @@ function prodComputeCosts(prop) {
   return { shopping, buyCost, stationTotal, focusPoints, focusSilver, revenue,
            profit, perUnit: totalTarget ? profit / totalTarget : 0,
            roi: buyCost ? 100 * profit / buyCost : null, missing, missingSell,
-           demand, crafts };
+           demand, gross, crafts };
 }
 
 function prodMakeOrBuy() {                        // veredito intrínseco por nó
@@ -2854,7 +2857,8 @@ function prodRenderStepsList() {
   const el = $('plListView'); if (!el) return;
   const pl = state.prodLine, nodes = pl.graph.nodes || {}, calc = pl.calc || { demand: {}, crafts: {} };
   const show = pl.showCosts;
-  const items = Object.keys(nodes).filter((it) => (calc.demand[it] || 0) > 0);
+  const gross = calc.gross || calc.demand || {};
+  const items = Object.keys(nodes).filter((it) => (gross[it] || 0) > 0);
   if (!items.length) { el.innerHTML = '<div class="pl-empty-hint">Escolha um produto para ver as etapas.</div>'; return; }
   let html = '';
   for (const sec of PL_SECTORS) {
@@ -2864,6 +2868,7 @@ function prodRenderStepsList() {
     const rows = list.map((it) => {
       const n = nodes[it], buy = plIsBuy(it), dem = Math.ceil(calc.demand[it] || 0);
       const isRoot = pl.roots.includes(it), canCraft = !(n.is_raw || !n.recipe);
+      const st = (pl.stock || {})[it] || 0, covered = (gross[it] || 0) > 0 && dem === 0;
       const te = `T${n.tier || '?'}${n.enchant ? '.' + n.enchant : ''}`;
       const ctrl = canCraft ? `<div class="pl-rowctrl">
           <button class="pl-tg ${buy ? '' : 'on'}" data-act="make" data-id="${esc(it)}">Fabricar</button>
@@ -2878,9 +2883,10 @@ function prodRenderStepsList() {
                       : (calc.crafts[it] ? `<span class="muted">${fmt(calc.crafts[it])} crafts</span>` : '');
         costCell = `<td class="l">${rec}</td><td>${c}</td>`;
       }
-      return `<tr class="${isRoot ? 'pl-row-root' : ''}">
+      return `<tr class="${isRoot ? 'pl-row-root' : ''} ${covered ? 'pl-covered-row' : ''}">
         <td class="l"><div class="cell-item">${iconImg(it)}<div class="nm">${esc(n.name_pt || it)} <span class="muted">${te}</span></div></div></td>
-        <td class="pl-qty"><b>×${fmt(dem)}</b></td>
+        <td class="pl-qty">${covered ? '<span class="pl-covered">✓ em estoque</span>' : '<b>×' + fmt(dem) + '</b>'}</td>
+        <td class="pl-stock"><input type="number" class="pl-stock-in" data-id="${esc(it)}" min="0" value="${st || ''}" placeholder="tenho 0" title="quanto você já tem em estoque"></td>
         <td class="l">${ctrl}</td>${costCell}</tr>`;
     }).join('');
     html += `<div class="pl-sector"><div class="pl-sector-head"><span class="pl-sector-ic">${sec.icon}</span>${sec.label}<span class="pl-sector-n">${list.length}</span><span class="pl-sector-hint">${sec.hint}</span></div>
@@ -2895,6 +2901,11 @@ function prodRenderStepsList() {
   el.querySelectorAll('input[data-act="focus"]').forEach((c) => c.addEventListener('change', () => {
     const it = c.dataset.id, s = state.prodLine.ns[it] || (state.prodLine.ns[it] = prodDefaultState(it));
     if (s.mode !== 'buy') s.focus = c.checked;
+    prodRecompute();
+  }));
+  el.querySelectorAll('.pl-stock-in').forEach((inp) => inp.addEventListener('change', (e) => {
+    const it = e.target.dataset.id, v = Math.max(0, +e.target.value || 0);
+    if (v) state.prodLine.stock[it] = v; else delete state.prodLine.stock[it];
     prodRecompute();
   }));
 }
@@ -2961,7 +2972,7 @@ async function prodSaveChain() {
   const pl = state.prodLine;
   if (!pl.roots.length) { toast('monte uma cadeia antes de salvar'); return; }
   const name = ($('plName').value || '').trim() || 'Cadeia sem nome';
-  const payload = { v: 1, roots: pl.roots, targets: pl.targets,
+  const payload = { v: 1, roots: pl.roots, targets: pl.targets, stock: pl.stock,
     qtyDefault: pl.qtyDefault, stationFee: pl.stationFee, specFce: pl.specFce,
     focusPrice: pl.focusPrice, ns: pl.ns };
   try {
@@ -2987,6 +2998,10 @@ async function prodLoadChain(id) {
     pl.targets = {};
     for (const [k, v] of Object.entries(p.targets || {})) {
       const q = +v; if (q > 0 && isFinite(q)) pl.targets[k] = q;
+    }
+    pl.stock = {};   // estoque declarado (qty >= 0 finita)
+    for (const [k, v] of Object.entries(p.stock || {})) {
+      const q = +v; if (q > 0 && isFinite(q)) pl.stock[k] = q;
     }
     pl.qtyDefault = p.qtyDefault || 100; pl.stationFee = p.stationFee || 0;
     pl.specFce = p.specFce || 0; pl.focusPrice = p.focusPrice || 0;

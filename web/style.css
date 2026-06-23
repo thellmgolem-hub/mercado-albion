@@ -1060,6 +1060,11 @@ tbody tr:nth-child(even):hover { background: rgba(212, 168, 67, 0.08); }
 .pl-sector .pl-steps { margin-top: 2px; }
 .pl-qty { white-space: nowrap; }
 .pl-qty b { font-size: 1rem; }
+.pl-stock-in { width: 78px; padding: 5px 7px; background: var(--panel2); border: 1px solid var(--border);
+  border-radius: var(--r-sm); color: var(--text); font-size: .82rem; }
+.pl-stock-in:not(:placeholder-shown) { border-color: var(--gold); color: var(--gold-bright); }
+.pl-covered { color: var(--green); font-size: .82rem; font-weight: 600; }
+.pl-covered-row { opacity: .6; }
 .pl-costs-toggle { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: .85rem;
   cursor: pointer; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--r-sm); }
 .pl-costs-on .pl-costs-toggle { color: var(--gold-bright); border-color: var(--gold); }
