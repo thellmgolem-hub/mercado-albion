@@ -1050,6 +1050,23 @@ tbody tr:nth-child(even):hover { background: rgba(212, 168, 67, 0.08); }
 .pl-foco-chk { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: .8rem; cursor: pointer; }
 .pl-tag-buy { color: var(--gold-bright); font-size: .8rem; }
 
+/* setores da infraestrutura (LP v2) */
+.pl-sector { margin-bottom: 14px; }
+.pl-sector-head { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--r-sm);
+  background: var(--panel2); border-left: 3px solid var(--gold); font-weight: 650; }
+.pl-sector-ic { font-size: 1.05rem; }
+.pl-sector-n { background: var(--gold); color: #1d1812; border-radius: 10px; padding: 0 7px; font-size: .76rem; font-weight: 800; }
+.pl-sector-hint { color: var(--muted); font-weight: 400; font-size: .76rem; margin-left: auto; }
+.pl-sector .pl-steps { margin-top: 2px; }
+.pl-qty { white-space: nowrap; }
+.pl-qty b { font-size: 1rem; }
+.pl-costs-toggle { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: .85rem;
+  cursor: pointer; padding: 6px 8px; border: 1px solid var(--border); border-radius: var(--r-sm); }
+.pl-costs-on .pl-costs-toggle { color: var(--gold-bright); border-color: var(--gold); }
+.pl-cost-cards { margin-top: 4px; }
+.pl-cost-cards::before { content: '💰 Custos de mercado'; display: block; width: 100%; color: var(--muted);
+  font-size: .76rem; margin-bottom: 4px; }
+
 .pl-savebar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
 .pl-savebar input[type=text] { flex: 1; min-width: 150px; padding: 8px 10px; background: var(--panel2);
   border: 1px solid var(--border); border-radius: var(--r-sm); color: var(--text); }

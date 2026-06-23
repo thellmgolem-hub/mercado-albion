@@ -1619,6 +1619,24 @@ def island_view(view: str = "laborers", premium: bool = True,
         con.close()
 
 
+_ENCH_RE = re.compile(r"^(.*)@(\d+)$")
+
+
+def _item_meta(iid):
+    """db.get com fallback p/ ENCANTADO: o catálogo só guarda o item base, então
+    T8_WOOD@4 herda nome/tier de T8_WOOD e marca o encanto (.4)."""
+    m = db.get(iid)
+    if m:
+        return m
+    mm = _ENCH_RE.match(iid or "")
+    if mm:
+        base = db.get(mm.group(1))
+        if base:
+            e = int(mm.group(2))
+            return {**base, "pt": f"{base.get('pt', mm.group(1))} .{e}", "enchant": e}
+    return {}
+
+
 @app.get("/api/prodchain")
 def prodchain_graph(item: str, premium: bool = True, sell_mode: str = "order"):
     """Grafo de receita (BOM) de 1+ produtos finais p/ a Linha de Produção.
@@ -1641,7 +1659,7 @@ def prodchain_graph(item: str, premium: bool = True, sell_mode: str = "order"):
             roots, lambda i, c: q1.get((i, c)),
             premium=premium, sell_mode=sell_mode, cities=config.ROYAL_CITIES)
         for iid, node in g["nodes"].items():
-            meta = db.get(iid) or {}
+            meta = _item_meta(iid)
             node["name_pt"] = meta.get("pt", iid)
             node["tier"] = meta.get("tier")
             node["enchant"] = meta.get("enchant", 0)

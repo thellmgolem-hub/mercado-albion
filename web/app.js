@@ -2461,7 +2461,7 @@ const PL_NW = 188, PL_NH = 96;          // tamanho aprox. do nó (âncora de are
 function prodInitState() {
   return { roots: [], targets: {}, graph: { nodes: {}, cities: [], sell_mode: 'order' },
            ns: {}, qtyDefault: 100, stationFee: 0, specFce: 0, focusPrice: 0,
-           savedId: null, savedName: '', calc: null, verdict: {} };
+           showCosts: false, savedId: null, savedName: '', calc: null, verdict: {} };
 }
 function plNodes() { return (state.prodLine.graph || {}).nodes || {}; }
 function plCities() { return state.prodLine.graph.cities || []; }
@@ -2807,59 +2807,86 @@ function prodRenderProducts() {
 }
 
 // cartões de resultado (lucro/ROI/custo…) no topo, bem visível
+// setores da infraestrutura produtiva da guild (ordem: do produto ao bruto)
+const PL_SECTORS = [
+  { key: 'craft', icon: '🔨', label: 'Fabricação', hint: 'itens montados na estação de craft' },
+  { key: 'refine', icon: '⚙️', label: 'Refino', hint: 'barras, tábuas, tecido, couro, pedra' },
+  { key: 'farm', icon: '🌾', label: 'Ilha / Fazenda', hint: 'culturas, comida e produtos de animais' },
+  { key: 'raw', icon: '🪓', label: 'Coleta', hint: 'recursos brutos (minério, madeira, fibra…)' },
+  { key: 'buy', icon: '🛒', label: 'Comprar pronto', hint: 'insumos sem receita própria' },
+];
+
 function prodRenderResult(calc) {
   const el = $('plResult'); if (!el) return;
-  if (!calc || !state.prodLine.roots.length) { el.innerHTML = ''; return; }
+  const pl = state.prodLine, nodes = pl.graph.nodes || {};
+  if (!calc || !pl.roots.length) { el.innerHTML = ''; return; }
   const card = (v, k, cls = '') => `<div class="pl-statcard ${cls}"><div class="pl-stat-v">${v}</div><div class="pl-stat-k">${k}</div></div>`;
-  let warns = '';
-  if (calc.missingSell && calc.missingSell.length)
-    warns += `<div class="pl-warn">⚠ ${calc.missingSell.length} produto(s) final(is) sem preço de venda no cache — receita 0 e lucro subestimado (falta dado de mercado).</div>`;
-  if (calc.missing.length)
-    warns += `<div class="pl-warn">${calc.missing.length} insumo(s) sem cotação de compra — não entram no custo. Marque-os como Fabricar na etapa.</div>`;
-  el.innerHTML = `<div class="pl-cards">
-    ${card(`<span class="silver">${fmt(calc.profit)}</span>`, 'Lucro líquido', 'big ' + (calc.profit >= 0 ? 'pos' : 'neg'))}
-    ${card(calc.roi == null ? '—' : fmtPct(calc.roi), 'ROI')}
-    ${card(`<span class="silver">${fmt(calc.revenue)}</span>`, 'Receita (venda)')}
-    ${card(`<span class="silver">${fmt(calc.buyCost)}</span>`, 'Custo de compra')}
-    ${card(`<span class="silver">${fmt(calc.perUnit)}</span>`, 'Lucro / unidade')}
-    ${card(`${fmt(calc.focusPoints)} pts`, 'Foco necessário')}
-  </div>${warns}`;
+  // RESUMO DA INFRAESTRUTURA: quantas etapas em cada setor da guild
+  const cnt = { craft: 0, refine: 0, farm: 0, raw: 0, buy: 0 };
+  for (const it in nodes) if ((calc.demand[it] || 0) > 0) cnt[nodes[it].sector || 'buy'] = (cnt[nodes[it].sector || 'buy'] || 0) + 1;
+  let infra = `<div class="pl-cards">
+    ${card(cnt.craft, '🔨 Fabricação')}
+    ${card(cnt.refine, '⚙️ Refino')}
+    ${card(cnt.farm, '🌾 Ilha')}
+    ${card(cnt.raw + cnt.buy, '🪓 Coleta/compra')}
+    ${card(`${fmt(calc.focusPoints)} pts`, 'Foco total')}
+  </div>`;
+  // CUSTOS (opcional): só quando o usuário liga "preços de mercado"
+  let costs = '', warns = '';
+  if (pl.showCosts) {
+    costs = `<div class="pl-cards pl-cost-cards">
+      ${card(`<span class="silver">${fmt(calc.profit)}</span>`, 'Lucro líquido', 'big ' + (calc.profit >= 0 ? 'pos' : 'neg'))}
+      ${card(calc.roi == null ? '—' : fmtPct(calc.roi), 'ROI')}
+      ${card(`<span class="silver">${fmt(calc.revenue)}</span>`, 'Receita (venda)')}
+      ${card(`<span class="silver">${fmt(calc.buyCost)}</span>`, 'Custo de compra')}
+    </div>`;
+    if (calc.missingSell && calc.missingSell.length)
+      warns += `<div class="pl-warn">⚠ ${calc.missingSell.length} produto(s) final(is) sem preço de venda no cache.</div>`;
+    if (calc.missing.length)
+      warns += `<div class="pl-warn">${calc.missing.length} insumo(s) sem cotação de compra.</div>`;
+  }
+  el.innerHTML = infra + costs + warns;
 }
 
-// PASSO 2, visão TABELA: cada etapa com fabricar/comprar/foco (mais fácil que arrastar)
+// PASSO 2, visão ETAPAS: agrupada por SETOR da infraestrutura (Fabricação /
+// Refino / Ilha / Coleta / Comprar). Quantidade-primeiro; custos só com o toggle.
 function prodRenderStepsList() {
   const el = $('plListView'); if (!el) return;
   const pl = state.prodLine, nodes = pl.graph.nodes || {}, calc = pl.calc || { demand: {}, crafts: {} };
+  const show = pl.showCosts;
   const items = Object.keys(nodes).filter((it) => (calc.demand[it] || 0) > 0);
   if (!items.length) { el.innerHTML = '<div class="pl-empty-hint">Escolha um produto para ver as etapas.</div>'; return; }
-  items.sort((a, b) => (nodes[b].tier || 0) - (nodes[a].tier || 0) || a.localeCompare(b));
-  const rows = items.map((it) => {
-    const n = nodes[it], buy = plIsBuy(it), dem = calc.demand[it] || 0;
-    const v = (pl.verdict || {})[it], isRoot = pl.roots.includes(it);
-    const te = `T${n.tier || '?'}${n.enchant ? '.' + n.enchant : ''}`;
-    let decision;
-    if (n.is_raw || !n.recipe) decision = '<span class="pl-tag-buy">comprar (bruto)</span>';
-    else decision = `<div class="pl-rowctrl">
-        <button class="pl-tg ${buy ? '' : 'on'}" data-act="make" data-id="${esc(it)}">Fabricar</button>
-        <button class="pl-tg ${buy ? 'on' : ''}" data-act="buy" data-id="${esc(it)}">Comprar</button>
-        <label class="pl-foco-chk" title="usar foco nesta etapa"><input type="checkbox" data-act="focus" data-id="${esc(it)}" ${(pl.ns[it] || {}).focus ? 'checked' : ''} ${buy ? 'disabled' : ''}> foco</label>
-      </div>`;
-    let rec = '';
-    if (v && v.verdict) rec = `<span class="pl-badge ${v.verdict}" title="recomendação">${v.verdict === 'make' ? 'fabricar' : 'comprar'}${v.savings != null ? ` +${fmt(v.savings)}/un` : ''}</span>`;
-    const sh = (calc.shopping || {})[it];
-    const cost = buy
-      ? (sh && sh.priced ? `<span class="silver">${fmt(sh.cost)}</span>` : '<span class="muted">sem cotação</span>')
-      : (calc.crafts[it] ? `<span class="muted">${fmt(calc.crafts[it])} crafts</span>` : '');
-    return `<tr class="${isRoot ? 'pl-row-root' : ''}">
-      <td class="l"><div class="cell-item">${iconImg(it)}<div class="nm">${esc(n.name_pt || it)} <span class="muted">${te}</span></div></div></td>
-      <td><b>×${fmt(Math.ceil(dem))}</b></td>
-      <td class="l">${decision}</td>
-      <td class="l">${rec}</td>
-      <td>${cost}</td></tr>`;
-  }).join('');
-  el.innerHTML = `<table class="pl-steps"><thead><tr>
-    <th class="l">Etapa</th><th>Precisa</th><th class="l">Fabricar ou comprar?</th>
-    <th class="l">Recomendado</th><th>Custo / crafts</th></tr></thead><tbody>${rows}</tbody></table>`;
+  let html = '';
+  for (const sec of PL_SECTORS) {
+    const list = items.filter((it) => (nodes[it].sector || 'buy') === sec.key)
+      .sort((a, b) => (nodes[b].tier || 0) - (nodes[a].tier || 0) || a.localeCompare(b));
+    if (!list.length) continue;
+    const rows = list.map((it) => {
+      const n = nodes[it], buy = plIsBuy(it), dem = Math.ceil(calc.demand[it] || 0);
+      const isRoot = pl.roots.includes(it), canCraft = !(n.is_raw || !n.recipe);
+      const te = `T${n.tier || '?'}${n.enchant ? '.' + n.enchant : ''}`;
+      const ctrl = canCraft ? `<div class="pl-rowctrl">
+          <button class="pl-tg ${buy ? '' : 'on'}" data-act="make" data-id="${esc(it)}">Fabricar</button>
+          <button class="pl-tg ${buy ? 'on' : ''}" data-act="buy" data-id="${esc(it)}">Comprar</button>
+          <label class="pl-foco-chk" title="usar foco nesta etapa"><input type="checkbox" data-act="focus" data-id="${esc(it)}" ${(pl.ns[it] || {}).focus ? 'checked' : ''} ${buy ? 'disabled' : ''}> foco</label>
+        </div>` : '<span class="pl-tag-buy">adquirir</span>';
+      let costCell = '';
+      if (show) {
+        const v = (pl.verdict || {})[it], sh = (calc.shopping || {})[it];
+        const rec = (v && v.verdict) ? `<span class="pl-badge ${v.verdict}">${v.verdict === 'make' ? 'fabricar' : 'comprar'}${v.savings != null ? ' +' + fmt(v.savings) : ''}</span>` : '';
+        const c = buy ? (sh && sh.priced ? `<span class="silver">${fmt(sh.cost)}</span>` : '<span class="muted">—</span>')
+                      : (calc.crafts[it] ? `<span class="muted">${fmt(calc.crafts[it])} crafts</span>` : '');
+        costCell = `<td class="l">${rec}</td><td>${c}</td>`;
+      }
+      return `<tr class="${isRoot ? 'pl-row-root' : ''}">
+        <td class="l"><div class="cell-item">${iconImg(it)}<div class="nm">${esc(n.name_pt || it)} <span class="muted">${te}</span></div></div></td>
+        <td class="pl-qty"><b>×${fmt(dem)}</b></td>
+        <td class="l">${ctrl}</td>${costCell}</tr>`;
+    }).join('');
+    html += `<div class="pl-sector"><div class="pl-sector-head"><span class="pl-sector-ic">${sec.icon}</span>${sec.label}<span class="pl-sector-n">${list.length}</span><span class="pl-sector-hint">${sec.hint}</span></div>
+      <table class="pl-steps"><tbody>${rows}</tbody></table></div>`;
+  }
+  el.innerHTML = html;
   el.querySelectorAll('.pl-tg').forEach((b) => b.addEventListener('click', () => {
     const it = b.dataset.id, s = state.prodLine.ns[it] || (state.prodLine.ns[it] = prodDefaultState(it));
     if (b.dataset.act === 'make') s.mode = 'make'; else if (b.dataset.act === 'buy') s.mode = 'buy';
@@ -2898,19 +2925,22 @@ function prodSetAllFocus(on) {
 
 function prodRenderShopping(calc) {
   const wrap = $('plShopping'); if (!wrap) return;
-  if (!calc || !Object.keys(calc.shopping).length) { wrap.innerHTML = ''; return; }
+  const pl = state.prodLine, show = pl.showCosts, nodes = pl.graph.nodes || {};
+  if (!calc || !Object.keys(calc.shopping || {}).length) { wrap.innerHTML = ''; return; }
   const rows = Object.entries(calc.shopping).map(([id, s]) => ({
-    id, name: (plNodes()[id] || {}).name_pt || id, qty: s.qty, unit: s.unit,
+    id, name: (nodes[id] || {}).name_pt || id, qty: s.qty, unit: s.unit,
     cost: s.cost, city: s.city, priced: s.priced,
-  })).sort((a, b) => (b.cost || 0) - (a.cost || 0));
-  wrap.innerHTML = `<h3 class="pl-sh-title">Lista de compras (${rows.length} itens — recursos brutos + comprados prontos)</h3><div class="table-wrap" id="plShopTable"></div>`;
-  renderTable('plShopTable', [
-    { key: 'it', label: 'Item', align: 'l', value: (o) => o.name, html: (o) => `<div class="cell-item">${iconImg(o.id)}<div class="nm">${esc(o.name)}</div></div>` },
-    { key: 'qty', label: 'Quantidade', value: (o) => o.qty, html: (o) => fmt(o.qty) },
+  })).sort((a, b) => show ? (b.cost || 0) - (a.cost || 0) : (b.qty || 0) - (a.qty || 0));
+  const cols = [
+    { key: 'it', label: 'Matéria-prima', align: 'l', value: (o) => o.name, html: (o) => `<div class="cell-item">${iconImg(o.id)}<div class="nm">${esc(o.name)}</div></div>` },
+    { key: 'qty', label: 'Quantidade', value: (o) => o.qty, html: (o) => `<b>${fmt(o.qty)}</b>` },
+  ];
+  if (show) cols.push(
     { key: 'city', label: 'Comprar em', align: 'l', value: (o) => o.city || '', html: (o) => o.city ? cityHtml(o.city) : '—' },
-    { key: 'unit', label: 'Preço un', value: (o) => o.unit || 0, html: (o) => o.priced ? fmt(o.unit) : '<span class="muted">sem cotação</span>' },
-    { key: 'cost', label: 'Custo', value: (o) => o.cost || 0, html: (o) => o.priced ? `<span class="silver">${fmt(o.cost)}</span>` : '—' },
-  ], rows, { sortKey: 'cost' });
+    { key: 'unit', label: 'Preço un', value: (o) => o.unit || 0, html: (o) => o.priced ? fmt(o.unit) : '<span class="muted">—</span>' },
+    { key: 'cost', label: 'Custo', value: (o) => o.cost || 0, html: (o) => o.priced ? `<span class="silver">${fmt(o.cost)}</span>` : '—' });
+  wrap.innerHTML = `<h3 class="pl-sh-title">🛒 Matéria-prima a adquirir (${rows.length}) — recursos brutos + comprados prontos${show ? '' : ' · ative “Custos” p/ ver preços'}</h3><div class="table-wrap" id="plShopTable"></div>`;
+  renderTable('plShopTable', cols, rows, { sortKey: show ? 'cost' : 'qty' });
 }
 
 function addProdRoot(id) {
@@ -3007,6 +3037,12 @@ function prodWireControls() {
     state.prodLine.view = b.dataset.view;
     prodRenderChainView();
   }));
+  const sc = $('plShowCosts');
+  if (sc) { sc.checked = !!pl.showCosts; sc.addEventListener('change', (e) => {
+    state.prodLine.showCosts = e.target.checked;
+    document.getElementById('tab-linhaProducao').classList.toggle('pl-costs-on', e.target.checked);
+    prodRecompute();
+  }); }
   if ($('plAllFocus')) $('plAllFocus').addEventListener('click', () => prodSetAllFocus(true));
   if ($('plNoFocus')) $('plNoFocus').addEventListener('click', () => prodSetAllFocus(false));
   if ($('plSaveBtn')) $('plSaveBtn').addEventListener('click', prodSaveChain);
