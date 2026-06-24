@@ -1724,6 +1724,64 @@ class AuthManagerTests(unittest.TestCase):
         self.assertIn("1.2.3.4", labels)          # IP válido permanece
         self.assertNotIn("PC do João", labels)    # legado (não-IP) revogado
 
+    def test_bootstrap_super_and_org_columns_positioned(self):
+        # org_id/is_super entram no FIM do SELECT e das keys; se a posição
+        # corromper, role/org_id viriam de outra coluna. Bootstrap = super da
+        # org nº 1; create_account nunca concede super e herda a org do actor.
+        acct = self.auth.get_account(self.admin["account_id"])
+        self.assertEqual(acct["role"], "admin")
+        self.assertEqual(acct["org_id"], 1)
+        self.assertTrue(acct["is_super"])
+        made = self.auth.create_account(self.admin["account_id"], "membro.org",
+                                        role="member")
+        m = self.auth.get_account(made["account_id"])
+        self.assertEqual(m["role"], "member")
+        self.assertEqual(m["org_id"], 1)
+        self.assertFalse(m["is_super"])
+
+
+class MultiTenantIsolationTests(unittest.TestCase):
+    """Isolamento entre inquilinos no ChainStore (o que check_pg.py NÃO cobre).
+
+    O enforcement real é o Store que injeta org_id em TODA query; aqui provamos
+    que uma org/dono nunca alcança o recurso de outro (lê, apaga ou sobrescreve).
+    """
+
+    def setUp(self):
+        from albion import prodchain
+        self.con = sqlite3.connect(":memory:", check_same_thread=False)
+        self.store = prodchain.ChainStore(self.con, threading.Lock())
+
+    def tearDown(self):
+        self.con.close()
+
+    def test_chain_isolated_by_org_and_owner(self):
+        cid_a = self.store.save(1, 10, "cadeia A", {"x": 1})   # org 1, dono 10
+        cid_b = self.store.save(2, 20, "cadeia B", {"y": 2})   # org 2, dono 20
+        # B não LÊ a cadeia de A
+        self.assertIsNone(self.store.get(2, 20, cid_a))
+        self.assertEqual([r["id"] for r in self.store.list(2, 20)], [cid_b])
+        # B não APAGA a de A
+        self.assertFalse(self.store.delete(2, 20, cid_a))
+        # B não SOBRESCREVE a de A por cid (não encontrada -> KeyError -> 404)
+        with self.assertRaises(KeyError):
+            self.store.save(2, 20, "hijack", {"z": 3}, cid=cid_a)
+        # A segue intacta e legível pelo dono certo
+        self.assertEqual(self.store.get(1, 10, cid_a)["payload"], {"x": 1})
+        # org errada mesmo com o owner certo: o filtro org_id barra
+        self.assertIsNone(self.store.get(2, 10, cid_a))
+
+    def test_local_mode_org_and_owner_defaults(self):
+        import types
+        old = app.config.AUTH_REQUIRED
+        app.config.AUTH_REQUIRED = False
+        try:
+            req = types.SimpleNamespace(state=types.SimpleNamespace())
+            self.assertEqual(app._actor_org(req), 1)    # org default
+            self.assertEqual(app._chain_owner(req), 0)  # single-user
+        finally:
+            app.config.AUTH_REQUIRED = old
+
 
 class IslandTests(unittest.TestCase):
     def _prices(self):

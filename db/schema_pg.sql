@@ -41,7 +41,8 @@ CREATE TABLE IF NOT EXISTS positions (
   server TEXT, item_id TEXT, quality INTEGER, qty INTEGER,
   buy_price DOUBLE PRECISION, buy_city TEXT, opened_at DOUBLE PRECISION,
   sell_price DOUBLE PRECISION, sell_city TEXT, closed_at DOUBLE PRECISION,
-  note TEXT
+  note TEXT,
+  org_id INTEGER NOT NULL DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS sweep_state (
@@ -75,7 +76,9 @@ CREATE TABLE IF NOT EXISTS auth_accounts (
   must_change_password INTEGER NOT NULL DEFAULT 1,
   session_version INTEGER NOT NULL DEFAULT 1,
   created_at DOUBLE PRECISION NOT NULL, updated_at DOUBLE PRECISION NOT NULL,
-  last_login_at DOUBLE PRECISION, created_by INTEGER
+  last_login_at DOUBLE PRECISION, created_by INTEGER,
+  org_id INTEGER NOT NULL DEFAULT 1,
+  is_super INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS auth_profiles (
   account_id INTEGER NOT NULL, profile TEXT NOT NULL,
@@ -110,6 +113,40 @@ CREATE TABLE IF NOT EXISTS auth_audit (
 );
 CREATE INDEX IF NOT EXISTS idx_auth_audit_time ON auth_audit (created_at DESC);
 
+-- ===== Multi-inquilino (espelha albion/store.py) =======================
+-- Organizações (guildas-inquilinas). A org nº 1 é semeada por ensure_default_org.
+CREATE TABLE IF NOT EXISTS orgs (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  discord_guild_id BIGINT,
+  active INTEGER NOT NULL DEFAULT 1,
+  plan TEXT NOT NULL DEFAULT 'pilot',
+  created_at DOUBLE PRECISION NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orgs_discord ON orgs (discord_guild_id);
+-- Direito da ORG (operacao/analitico) — renovado por contribuição auditada.
+CREATE TABLE IF NOT EXISTS org_entitlements (
+  org_id INTEGER NOT NULL,
+  scope TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  expires_at TEXT,
+  updated_at DOUBLE PRECISION NOT NULL,
+  PRIMARY KEY (org_id, scope)
+);
+-- Direito da CONTA (pedágio do membro).
+CREATE TABLE IF NOT EXISTS account_entitlements (
+  account_id INTEGER NOT NULL,
+  scope TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  granted_at DOUBLE PRECISION NOT NULL,
+  renewed_at DOUBLE PRECISION,
+  expires_at TEXT,
+  source TEXT,
+  PRIMARY KEY (account_id, scope)
+);
+CREATE INDEX IF NOT EXISTS idx_acct_ent_expiry
+  ON account_entitlements (scope, expires_at);
+
 -- Linha de Produção: cadeias salvas por conta (também criada no boot do app).
 CREATE TABLE IF NOT EXISTS production_chains (
   id SERIAL PRIMARY KEY,
@@ -117,7 +154,10 @@ CREATE TABLE IF NOT EXISTS production_chains (
   name TEXT NOT NULL,
   payload TEXT NOT NULL,
   updated_at DOUBLE PRECISION NOT NULL,
+  org_id INTEGER NOT NULL DEFAULT 1,
   UNIQUE(owner_user_id, name)
 );
 CREATE INDEX IF NOT EXISTS idx_production_chains_owner
   ON production_chains (owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_production_chains_org
+  ON production_chains (org_id, owner_user_id);

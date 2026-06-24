@@ -178,7 +178,9 @@ CREATE TABLE IF NOT EXISTS auth_accounts (
   must_change_password INTEGER NOT NULL DEFAULT 1,
   session_version INTEGER NOT NULL DEFAULT 1,
   created_at REAL NOT NULL, updated_at REAL NOT NULL,
-  last_login_at REAL, created_by INTEGER
+  last_login_at REAL, created_by INTEGER,
+  org_id INTEGER NOT NULL DEFAULT 1,
+  is_super INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS auth_profiles (
   account_id INTEGER NOT NULL, profile TEXT NOT NULL,
@@ -230,7 +232,9 @@ CREATE TABLE IF NOT EXISTS auth_accounts (
   must_change_password INTEGER NOT NULL DEFAULT 1,
   session_version INTEGER NOT NULL DEFAULT 1,
   created_at DOUBLE PRECISION NOT NULL, updated_at DOUBLE PRECISION NOT NULL,
-  last_login_at DOUBLE PRECISION, created_by INTEGER
+  last_login_at DOUBLE PRECISION, created_by INTEGER,
+  org_id INTEGER NOT NULL DEFAULT 1,
+  is_super INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS auth_profiles (
   account_id INTEGER NOT NULL, profile TEXT NOT NULL,
@@ -292,7 +296,26 @@ class AuthManager:
                 for stmt in _AUTH_SCHEMA_PG.split(";"):
                     if stmt.strip():
                         con.execute(stmt)
+        self._migrate_org_columns()
         self._revoke_legacy_devices()
+
+    def _migrate_org_columns(self):
+        """Idempotente: base viva ganha org_id/is_super em auth_accounts e o
+        admin-dono é promovido a super (a nuvem já tinha admin SEM is_super antes
+        do multi-inquilino, então o DEFAULT 0 deixaria ninguém super)."""
+        from . import store  # import tardio: evita ciclo de importação
+        with self.lock:
+            store.add_column(self.con, "auth_accounts",
+                             "org_id INTEGER NOT NULL DEFAULT 1")
+            store.add_column(self.con, "auth_accounts",
+                             "is_super INTEGER NOT NULL DEFAULT 0")
+        with self._tx() as con:
+            if not con.execute("SELECT 1 FROM auth_accounts WHERE is_super=1 "
+                               "LIMIT 1").fetchone():
+                con.execute(
+                    "UPDATE auth_accounts SET is_super=1 WHERE id=("
+                    "SELECT id FROM auth_accounts WHERE role='admin' "
+                    "AND active=1 ORDER BY id LIMIT 1)")
 
     def _revoke_legacy_devices(self):
         """Migração idempotente: registros LEGADOS de dispositivo (label não é um
@@ -366,10 +389,13 @@ class AuthManager:
             return None
         keys = ["id", "username", "display_name", "albion_nick",
                 "discord_nick", "role", "active", "must_change_password",
-                "created_at", "updated_at", "last_login_at"]
+                "created_at", "updated_at", "last_login_at",
+                "org_id", "is_super"]
         data = dict(zip(keys, row[:len(keys)]))
         data["active"] = bool(data["active"])
         data["must_change_password"] = bool(data["must_change_password"])
+        data["is_super"] = bool(data["is_super"])
+        data["org_id"] = int(data["org_id"])
         data["profiles"] = self._profiles(con, data["id"])
         rows = con.execute(
             "SELECT label, last_seen_at FROM auth_devices "
@@ -381,7 +407,8 @@ class AuthManager:
     @staticmethod
     def _account_select():
         return ("SELECT id,username,display_name,albion_nick,discord_nick,role,"
-                "active,must_change_password,created_at,updated_at,last_login_at "
+                "active,must_change_password,created_at,updated_at,last_login_at,"
+                "org_id,is_super "
                 "FROM auth_accounts")
 
     def bootstrap_admin(self, username: str, display_name: str | None = None):
@@ -396,10 +423,11 @@ class AuthManager:
             account_id = self._insert_id(con, """
                 INSERT INTO auth_accounts
                   (username,username_norm,display_name,role,password_hash,
-                   password_salt,password_algo,created_at,updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?)
+                   password_salt,password_algo,created_at,updated_at,
+                   org_id,is_super)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)
             """, [norm, norm, _clean_text(display_name) or "Administrador",
-                   "admin", digest, salt, algo, now, now])
+                   "admin", digest, salt, algo, now, now, 1, 1])
             self._audit(con, "bootstrap_admin", account_id, account_id,
                         {"username": norm})
         return {"account_id": account_id, "username": norm,
@@ -420,16 +448,19 @@ class AuthManager:
         digest, salt, algo = hash_password(pwd, norm)
         now = time.time()
         with self._tx() as con:
+            arow = con.execute("SELECT org_id FROM auth_accounts WHERE id=?",
+                               [actor_id]).fetchone()
+            org_id = int(arow[0]) if arow else 1  # nova conta nasce na org do actor
             try:
                 account_id = self._insert_id(con, """
                     INSERT INTO auth_accounts
                       (username,username_norm,display_name,albion_nick,
                        discord_nick,role,password_hash,password_salt,
-                       password_algo,created_at,updated_at,created_by)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+                       password_algo,created_at,updated_at,created_by,org_id)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, [norm, norm, _clean_text(display_name),
                        _clean_text(albion_nick), _clean_text(discord_nick),
-                       role, digest, salt, algo, now, now, actor_id])
+                       role, digest, salt, algo, now, now, actor_id, org_id])
             except Exception as exc:
                 s = str(exc).upper()
                 if "UNIQUE" in s or "DUPLICATE KEY" in s:

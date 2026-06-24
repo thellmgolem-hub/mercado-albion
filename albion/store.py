@@ -315,7 +315,8 @@ CREATE TABLE IF NOT EXISTS positions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   server TEXT, item_id TEXT, quality INTEGER, qty INTEGER,
   buy_price REAL, buy_city TEXT, opened_at REAL,
-  sell_price REAL, sell_city TEXT, closed_at REAL, note TEXT
+  sell_price REAL, sell_city TEXT, closed_at REAL, note TEXT,
+  org_id INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS sweep_state (
   server TEXT PRIMARY KEY, cursor INTEGER, cycle INTEGER,
@@ -332,12 +333,43 @@ CREATE TABLE IF NOT EXISTS public_ingest_checkpoints (
   server TEXT, source TEXT, cursor_value INTEGER, last_success_at REAL,
   PRIMARY KEY (server, source)
 );
+CREATE TABLE IF NOT EXISTS orgs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  discord_guild_id INTEGER,
+  active INTEGER NOT NULL DEFAULT 1,
+  plan TEXT NOT NULL DEFAULT 'pilot',
+  created_at REAL NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orgs_discord
+  ON orgs (discord_guild_id);
+CREATE TABLE IF NOT EXISTS org_entitlements (
+  org_id INTEGER NOT NULL,
+  scope TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  expires_at TEXT,
+  updated_at REAL NOT NULL,
+  PRIMARY KEY (org_id, scope)
+);
+CREATE TABLE IF NOT EXISTS account_entitlements (
+  account_id INTEGER NOT NULL,
+  scope TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  granted_at REAL NOT NULL,
+  renewed_at REAL,
+  expires_at TEXT,
+  source TEXT,
+  PRIMARY KEY (account_id, scope)
+);
+CREATE INDEX IF NOT EXISTS idx_acct_ent_expiry
+  ON account_entitlements (scope, expires_at);
 CREATE TABLE IF NOT EXISTS production_chains (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   owner_user_id INTEGER NOT NULL,
   name TEXT NOT NULL,
   payload TEXT NOT NULL,
   updated_at REAL NOT NULL,
+  org_id INTEGER NOT NULL DEFAULT 1,
   UNIQUE(owner_user_id, name)
 );
 CREATE INDEX IF NOT EXISTS idx_production_chains_owner
@@ -376,7 +408,8 @@ CREATE TABLE IF NOT EXISTS positions (
   server TEXT, item_id TEXT, quality INTEGER, qty INTEGER,
   buy_price DOUBLE PRECISION, buy_city TEXT, opened_at DOUBLE PRECISION,
   sell_price DOUBLE PRECISION, sell_city TEXT, closed_at DOUBLE PRECISION,
-  note TEXT
+  note TEXT,
+  org_id INTEGER NOT NULL DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS sweep_state (
   server TEXT PRIMARY KEY, cursor INTEGER, cycle INTEGER,
@@ -393,12 +426,43 @@ CREATE TABLE IF NOT EXISTS public_ingest_checkpoints (
   server TEXT, source TEXT, cursor_value BIGINT, last_success_at DOUBLE PRECISION,
   PRIMARY KEY (server, source)
 );
+CREATE TABLE IF NOT EXISTS orgs (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  discord_guild_id BIGINT,
+  active INTEGER NOT NULL DEFAULT 1,
+  plan TEXT NOT NULL DEFAULT 'pilot',
+  created_at DOUBLE PRECISION NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_orgs_discord
+  ON orgs (discord_guild_id);
+CREATE TABLE IF NOT EXISTS org_entitlements (
+  org_id INTEGER NOT NULL,
+  scope TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  expires_at TEXT,
+  updated_at DOUBLE PRECISION NOT NULL,
+  PRIMARY KEY (org_id, scope)
+);
+CREATE TABLE IF NOT EXISTS account_entitlements (
+  account_id INTEGER NOT NULL,
+  scope TEXT NOT NULL,
+  active INTEGER NOT NULL DEFAULT 1,
+  granted_at DOUBLE PRECISION NOT NULL,
+  renewed_at DOUBLE PRECISION,
+  expires_at TEXT,
+  source TEXT,
+  PRIMARY KEY (account_id, scope)
+);
+CREATE INDEX IF NOT EXISTS idx_acct_ent_expiry
+  ON account_entitlements (scope, expires_at);
 CREATE TABLE IF NOT EXISTS production_chains (
   id SERIAL PRIMARY KEY,
   owner_user_id INTEGER NOT NULL,
   name TEXT NOT NULL,
   payload TEXT NOT NULL,
   updated_at DOUBLE PRECISION NOT NULL,
+  org_id INTEGER NOT NULL DEFAULT 1,
   UNIQUE(owner_user_id, name)
 );
 CREATE INDEX IF NOT EXISTS idx_production_chains_owner
@@ -406,12 +470,93 @@ CREATE INDEX IF NOT EXISTS idx_production_chains_owner
 """
 
 
+def _has_column(conn, table: str, col: str) -> bool:
+    """True se `table.col` existe no backend ativo."""
+    if getattr(conn, "backend", "sqlite") == "postgres":
+        cur = conn.execute(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name=? AND column_name=?", (table, col))
+        return cur.fetchone() is not None
+    cur = conn.execute(f"PRAGMA table_info({table})")
+    return any(r[1] == col for r in cur.fetchall())
+
+
+def add_column(conn, table: str, coldef: str) -> None:
+    """Adiciona uma coluna de forma idempotente nos dois backends.
+
+    `coldef` é "<nome> <tipo> [DEFAULT ...]". `ADD COLUMN NOT NULL` em tabela
+    populada EXIGE `DEFAULT` constante. Verifica a pós-condição e levanta se a
+    coluna não existir depois — falhar alto, porque o código novo depende dela
+    (nunca o molde `except: pass` cego).
+    """
+    col = coldef.split()[0]
+    if getattr(conn, "backend", "sqlite") == "postgres":
+        try:
+            conn.execute(
+                f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {coldef}")
+            conn.commit()
+        except Exception:
+            conn.rollback()  # ALTER que falha não envenena a transação seguinte
+    else:
+        try:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {coldef}")
+            conn.commit()
+        except Exception as e:  # só "duplicate column name" é idempotência
+            if "duplicate column" not in str(e).lower():
+                raise
+    if not _has_column(conn, table, col):
+        raise RuntimeError(
+            f"migração falhou: {table}.{col} não existe após ADD COLUMN")
+
+
+def ensure_default_org(conn) -> None:
+    """Semeia a org nº 1 e seus direitos (idempotente, fora do bootstrap).
+
+    A nuvem do piloto já tem admin -> o bootstrap nunca mais roda; por isso a
+    org default NÃO pode depender dele. Força `id=1` explícito e, no Postgres,
+    avança a sequência do SERIAL para um INSERT futuro não reusar o id 1.
+    """
+    now = datetime.now(timezone.utc).timestamp()
+    if getattr(conn, "backend", "sqlite") == "postgres":
+        conn.execute(
+            "INSERT INTO orgs (id, name, plan, active, created_at) "
+            "VALUES (1, 'Guilda principal', 'pilot', 1, ?) "
+            "ON CONFLICT (id) DO NOTHING", (now,))
+        conn.execute(
+            "SELECT setval(pg_get_serial_sequence('orgs','id'), "
+            "GREATEST((SELECT MAX(id) FROM orgs), 1))")
+        for scope in ("operacao", "analitico"):
+            conn.execute(
+                "INSERT INTO org_entitlements "
+                "(org_id, scope, active, expires_at, updated_at) "
+                "VALUES (1, ?, 1, NULL, ?) "
+                "ON CONFLICT (org_id, scope) DO NOTHING", (scope, now))
+    else:
+        conn.execute(
+            "INSERT OR IGNORE INTO orgs (id, name, plan, active, created_at) "
+            "VALUES (1, 'Guilda principal', 'pilot', 1, ?)", (now,))
+        for scope in ("operacao", "analitico"):
+            conn.execute(
+                "INSERT OR IGNORE INTO org_entitlements "
+                "(org_id, scope, active, expires_at, updated_at) "
+                "VALUES (1, ?, 1, NULL, ?)", (scope, now))
+    conn.commit()
+
+
 def init_schema(conn):
     """Cria as tabelas do piloto no backend ativo (idempotente)."""
-    if conn.backend == "sqlite":
+    if getattr(conn, "backend", "sqlite") == "sqlite":
         conn.executescript(_SQLITE_SCHEMA)
     else:
         for stmt in _PG_SCHEMA.split(";"):
             if stmt.strip():
                 conn.execute(stmt)
     conn.commit()
+    # Migração idempotente para bases que predatam o multi-inquilino: o
+    # CREATE ... IF NOT EXISTS acima NÃO altera tabela viva sem org_id.
+    add_column(conn, "production_chains", "org_id INTEGER NOT NULL DEFAULT 1")
+    add_column(conn, "positions", "org_id INTEGER NOT NULL DEFAULT 1")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_production_chains_org "
+                 "ON production_chains (org_id, owner_user_id)")
+    conn.commit()
+    ensure_default_org(conn)

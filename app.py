@@ -271,14 +271,59 @@ def _clear_auth_cookies(response):
     # Os IPs registrados permanecem no logout; só a sessão (cookie) é apagada.
 
 
-def _require_role(request: Request, allowed):
+def _require_role(request: Request, allowed, *, org=None):
     if not config.AUTH_REQUIRED:
-        return {"id": 0, "username": "local", "role": "admin"}
+        return {"id": 0, "username": "local", "role": "admin",
+                "org_id": 1, "is_super": True}
     account = getattr(request.state, "auth", {}).get("account")
     if not account or account.get("role") not in allowed:
         raise AuthError("Voce nao tem permissao para esta operacao.",
                         "forbidden", 403)
+    # Escopo de inquilino: um admin-de-guilda só opera na própria org; o
+    # super-admin (dono) cruza inquilinos.
+    if (org is not None and not account.get("is_super")
+            and int(account.get("org_id") or 0) != int(org)):
+        raise AuthError("Operacao fora do seu inquilino.",
+                        "org_forbidden", 403)
     return account
+
+
+def _actor_org(request: Request) -> int:
+    """id do inquilino (org) do solicitante. 1 = org default / modo local."""
+    if not config.AUTH_REQUIRED:
+        return 1
+    acct = (getattr(request.state, "auth", {}) or {}).get("account") or {}
+    return int(acct.get("org_id") or 1)
+
+
+def _require_entitlement(request: Request, scope: str):
+    """Gate da superfície operacional pelo DIREITO do inquilino.
+
+    Fase 1: a org nº 1 nasce com o direito ativo e sem prazo (permissivo) e o
+    modo local libera — a trava real (cobrança) morde na Fase 2. Lê
+    org_entitlements do inquilino do solicitante; fail-closed se não houver
+    registro, para não vazar a superfície."""
+    if not config.AUTH_REQUIRED:
+        return
+    org = _actor_org(request)
+    with aodp.db_lock:
+        try:
+            row = aodp.db.execute(
+                "SELECT active,expires_at FROM org_entitlements "
+                "WHERE org_id=? AND scope=?", [org, scope]).fetchone()
+        finally:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    if row is None:
+        raise AuthError("Inquilino sem direito de acesso a esta area.",
+                        "entitlement_missing", 403)
+    active, expires = row[0], row[1]
+    if not active or (expires is not None
+                      and str(expires) < store.cutoff_iso(0)):
+        raise AuthError("Acesso a esta area expirou. Renove a contribuicao.",
+                        "entitlement_expired", 403)
 
 
 @app.middleware("http")
@@ -1684,14 +1729,17 @@ def _chain_owner(request: Request) -> int:
 
 @app.get("/api/prodchain/chains")
 def prodchain_chains_list(request: Request):
-    return {"chains": chain_store.list(_chain_owner(request))}
+    _require_entitlement(request, "operacao")
+    return {"chains": chain_store.list(_actor_org(request),
+                                       _chain_owner(request))}
 
 
 @app.post("/api/prodchain/chains")
 def prodchain_chains_save(body: ChainSaveBody, request: Request):
+    _require_entitlement(request, "operacao")
     try:
-        cid = chain_store.save(_chain_owner(request), body.name,
-                               body.payload, body.id)
+        cid = chain_store.save(_actor_org(request), _chain_owner(request),
+                               body.name, body.payload, body.id)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except KeyError:
@@ -1701,7 +1749,8 @@ def prodchain_chains_save(body: ChainSaveBody, request: Request):
 
 @app.get("/api/prodchain/chains/{cid}")
 def prodchain_chains_get(cid: int, request: Request):
-    ch = chain_store.get(_chain_owner(request), cid)
+    _require_entitlement(request, "operacao")
+    ch = chain_store.get(_actor_org(request), _chain_owner(request), cid)
     if not ch:
         raise HTTPException(status_code=404, detail="cadeia não encontrada")
     return {"chain": ch}
@@ -1709,7 +1758,8 @@ def prodchain_chains_get(cid: int, request: Request):
 
 @app.delete("/api/prodchain/chains/{cid}")
 def prodchain_chains_delete(cid: int, request: Request):
-    if not chain_store.delete(_chain_owner(request), cid):
+    _require_entitlement(request, "operacao")
+    if not chain_store.delete(_actor_org(request), _chain_owner(request), cid):
         raise HTTPException(status_code=404, detail="cadeia não encontrada")
     return {"ok": True}
 

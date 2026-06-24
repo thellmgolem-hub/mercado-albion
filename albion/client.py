@@ -248,6 +248,10 @@ class AODP:
               ON kill_demand_daily (server, day);
             """)
             self.db.commit()
+            # Multi-inquilino: tabelas orgs/entitlements + migração idempotente de
+            # org_id (production_chains/positions) + semeadura da org nº 1. Vale
+            # p/ o SQLite local também (não só o Postgres, que já chamava acima).
+            store.init_schema(self.db)
 
     def _fetch_ages(self, kind: str, keys: list[str]) -> dict[str, float]:
         """fetched_at por chave do fetch_log."""

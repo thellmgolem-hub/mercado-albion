@@ -404,6 +404,7 @@ CREATE TABLE IF NOT EXISTS production_chains (
   name TEXT NOT NULL,
   payload TEXT NOT NULL,
   updated_at REAL NOT NULL,
+  org_id INTEGER NOT NULL DEFAULT 1,
   UNIQUE(owner_user_id, name)
 );
 CREATE INDEX IF NOT EXISTS idx_production_chains_owner
@@ -416,6 +417,7 @@ CREATE TABLE IF NOT EXISTS production_chains (
   name TEXT NOT NULL,
   payload TEXT NOT NULL,
   updated_at DOUBLE PRECISION NOT NULL,
+  org_id INTEGER NOT NULL DEFAULT 1,
   UNIQUE(owner_user_id, name)
 );
 CREATE INDEX IF NOT EXISTS idx_production_chains_owner
@@ -430,8 +432,9 @@ class ChainStore:
 
     Espelha o padrão do AuthManager: cria o próprio schema (idempotente), _tx
     para escrita (commit/rollback) e _read que encerra a transação no Postgres
-    (evita 'idle in transaction' no pooler). Toda operação é escopada pelo
-    owner_user_id — um dono nunca enxerga/edita a cadeia de outro.
+    (evita 'idle in transaction' no pooler). Toda operação é escopada por
+    (org_id, owner_user_id) — uma guilda nunca enxerga/edita a cadeia de outra,
+    e um dono nunca a de outro dono.
     """
 
     def __init__(self, con, lock):
@@ -444,6 +447,17 @@ class ChainStore:
                 for stmt in _CHAINS_PG.split(";"):
                     if stmt.strip():
                         c.execute(stmt)
+        # Base viva criada antes do multi-inquilino: garante a coluna org_id
+        # (idempotente; nova tabela já nasce com ela pelo DDL acima).
+        from . import store
+        with self.lock:
+            store.add_column(self.con, "production_chains",
+                             "org_id INTEGER NOT NULL DEFAULT 1")
+            # índice criado SÓ após a coluna existir (base viva pode predatá-la)
+            self.con.execute(
+                "CREATE INDEX IF NOT EXISTS idx_production_chains_org "
+                "ON production_chains (org_id, owner_user_id)")
+            self.con.commit()
 
     @contextmanager
     def _tx(self):
@@ -472,19 +486,20 @@ class ChainStore:
             return con.execute(sql, params).lastrowid
         return con.execute(sql + " RETURNING id", params).fetchone()[0]
 
-    def list(self, owner):
+    def list(self, org, owner):
         with self._read() as con:
             rows = con.execute(
                 "SELECT id,name,updated_at FROM production_chains "
-                "WHERE owner_user_id=? ORDER BY updated_at DESC",
-                [owner]).fetchall()
+                "WHERE org_id=? AND owner_user_id=? ORDER BY updated_at DESC",
+                [org, owner]).fetchall()
         return [{"id": r[0], "name": r[1], "updated_at": r[2]} for r in rows]
 
-    def get(self, owner, cid):
+    def get(self, org, owner, cid):
         with self._read() as con:
             row = con.execute(
                 "SELECT id,name,payload,updated_at FROM production_chains "
-                "WHERE id=? AND owner_user_id=?", [cid, owner]).fetchone()
+                "WHERE id=? AND org_id=? AND owner_user_id=?",
+                [cid, org, owner]).fetchone()
         if not row:
             return None
         try:
@@ -494,8 +509,12 @@ class ChainStore:
         return {"id": row[0], "name": row[1], "payload": payload,
                 "updated_at": row[3]}
 
-    def save(self, owner, name, payload, cid=None):
-        """Cria ou atualiza. Sem cid: upsert por (owner,name). Devolve o id."""
+    def save(self, org, owner, name, payload, cid=None):
+        """Cria ou atualiza. Sem cid: upsert por (owner,name). Devolve o id.
+
+        Escopado por (org_id, owner_user_id): um cid de outra org/dono não é
+        confiado — o WHERE não casa e a atualização levanta KeyError (404).
+        """
         name = (name or "").strip()[:80] or "Sem nome"
         body = json.dumps(payload, ensure_ascii=False)
         if len(body) > MAX_PAYLOAD:
@@ -505,14 +524,15 @@ class ChainStore:
             if cid is not None:
                 cur = con.execute(
                     "UPDATE production_chains SET name=?,payload=?,updated_at=? "
-                    "WHERE id=? AND owner_user_id=?",
-                    [name, body, now, cid, owner])
+                    "WHERE id=? AND org_id=? AND owner_user_id=?",
+                    [name, body, now, cid, org, owner])
                 if not cur.rowcount:
                     raise KeyError("cadeia não encontrada")
                 return cid
             existing = con.execute(
                 "SELECT id FROM production_chains "
-                "WHERE owner_user_id=? AND name=?", [owner, name]).fetchone()
+                "WHERE org_id=? AND owner_user_id=? AND name=?",
+                [org, owner, name]).fetchone()
             if existing:
                 con.execute(
                     "UPDATE production_chains SET payload=?,updated_at=? "
@@ -520,12 +540,14 @@ class ChainStore:
                 return existing[0]
             return self._insert_id(con,
                 "INSERT INTO production_chains "
-                "(owner_user_id,name,payload,updated_at) VALUES (?,?,?,?)",
-                [owner, name, body, now])
+                "(org_id,owner_user_id,name,payload,updated_at) "
+                "VALUES (?,?,?,?,?)",
+                [org, owner, name, body, now])
 
-    def delete(self, owner, cid):
+    def delete(self, org, owner, cid):
         with self._tx() as con:
             cur = con.execute(
-                "DELETE FROM production_chains WHERE id=? AND owner_user_id=?",
-                [cid, owner])
+                "DELETE FROM production_chains "
+                "WHERE id=? AND org_id=? AND owner_user_id=?",
+                [cid, org, owner])
             return bool(cur.rowcount)
