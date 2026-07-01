@@ -794,6 +794,55 @@ def _fuse_opportunities(opps):
     return opps
 
 
+def cmd_advisor(args, fmt):
+    """Consultor de flips por orçamento: prata + cidade -> melhores compras."""
+    from albion import advisor, store
+    db = ItemDB()
+    con = store.connect(readonly=True)
+    if con is None:
+        info("Cache vazio — rode 'collect' antes de usar o consultor.")
+        return
+    try:
+        quals = [int(x) for x in str(args.quality or "1").split(",") if x.strip()]
+        res = advisor.advise(
+            con, config.DEFAULT_SERVER, db, budget=args.budget, city=args.city,
+            qualities=quals, premium=args.premium, buy_mode=args.buy_mode,
+            sell_mode=args.sell_mode, include_black_market=args.bm,
+            history_days=args.days, min_profit=args.min_profit,
+            max_lines=args.limit, fresh_max_age_min=args.fresh)
+    finally:
+        con.close()
+    if fmt == "json":
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        return
+
+    def _m(v):
+        return f"{int(round(v)):,}".replace(",", ".")
+
+    s = res["summary"]
+    info(f"Com {_m(res['budget'])} prata em {city_pt(res['city'])}: gasta "
+         f"{_m(s['orcamento_usado'])}, sobra {_m(s['orcamento_restante'])}, "
+         f"lucro estimado {_m(s['lucro_total_estimado'])} "
+         f"(ROI {s['roi_total_pct']}%).")
+    rows = []
+    for l in res["shopping_list"]:
+        bm = " [BM]" if l["sell_city"] == "Black Market" else ""
+        rows.append({
+            "item": f"{l['name_pt']} T{l['tier']}.{l['ench']}",
+            "rota": f"{city_pt(l['buy_city'])} → {city_pt(l['sell_city'])}{bm}",
+            "unid": l["units"], "custo": _m(l["custo"]),
+            "lucro": _m(l["lucro_liquido"]), "roi": l["roi_pct"],
+            "conf": l["confidence_label"],
+        })
+    cols = [("item", "Item"), ("rota", "Compra→Venda"), ("unid", "Unid"),
+            ("custo", "Custo"), ("lucro", "Lucro"), ("roi", "ROI%"),
+            ("conf", "Conf")]
+    emit(rows, cols, fmt)
+    if not rows:
+        info("Nenhuma opção confiável no orçamento — tente outra cidade, "
+             "--bm, ou um orçamento maior.")
+
+
 def cmd_lab(args, fmt):
     from app import item_analysis
     res = item_analysis(item=args.item, cities=args.cities,
@@ -2513,7 +2562,7 @@ def build_parser():
 
     sub = ap.add_subparsers(
         dest="cmd", required=True,
-        metavar="{search,prices,flips,scan,sell,history,recommend,lab,craft,origin,watch,"
+        metavar="{search,prices,flips,advisor,scan,sell,history,recommend,lab,craft,origin,watch,"
                 "collect,intel,survival,backtest,journals,refine,report,pos,"
                 "indexes,prod,logi,risk,fc,demand,guild,pvp,micro,gold,status,prune,sql}")
 
@@ -2575,6 +2624,27 @@ def build_parser():
     p.add_argument("--min-roi", type=float, help="ROI mínimo em %%")
     p.add_argument("--limit", type=int, default=30)
     p.set_defaults(func=cmd_flips)
+
+    p = sub.add_parser("advisor", parents=[common],
+                       help="consultor: prata + cidade -> melhores compras p/ flip")
+    p.add_argument("--budget", type=float, required=True, help="prata disponível")
+    p.add_argument("--city", required=True, help="cidade onde você está (compra)")
+    p.add_argument("--quality", default="1", help="qualidades 1-5 (padrão 1)")
+    p.add_argument("--premium", action=argparse.BooleanOptionalAction, default=True,
+                   help="com premium (imposto 4%%); --no-premium = 8%%")
+    p.add_argument("--buy-mode", choices=("instant", "order"), default="instant",
+                   dest="buy_mode", help="modo de compra (padrão instant)")
+    p.add_argument("--sell-mode", choices=("instant", "order"), default="order",
+                   dest="sell_mode", help="modo de venda (padrão order)")
+    p.add_argument("--bm", action="store_true",
+                   help="incluir Mercado Negro como destino de venda")
+    p.add_argument("--min-profit", type=float, default=0, dest="min_profit",
+                   help="lucro mínimo por unidade (prata)")
+    p.add_argument("--days", type=int, default=7, help="janela de liquidez (dias)")
+    p.add_argument("--fresh", type=int, default=720,
+                   help="idade máx. do dado em minutos (padrão 720)")
+    p.add_argument("--limit", type=int, default=40, help="máx. de linhas")
+    p.set_defaults(func=cmd_advisor)
 
     p = sub.add_parser("scan", parents=[common],
                        help="escaneia uma categoria em busca de flips")

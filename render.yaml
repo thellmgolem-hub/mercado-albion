@@ -7,7 +7,10 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    # --no-access-log: o cron bate no /api/sweep a cada minuto; sem isto o
+    # uvicorn gravaria a request line (com querystring) no log. O token vai por
+    # header (X-Sweep-Token), mas isto blinda contra qualquer segredo em URL.
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT --no-access-log
     envVars:
       # Versão do Python (psycopg[binary] tem wheels para 3.12)
       - key: PYTHON_VERSION

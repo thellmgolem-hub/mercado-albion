@@ -1698,14 +1698,20 @@ class AuthManagerTests(unittest.TestCase):
         self.assertEqual(app._normalize_ip("fe80::1%eth0"), "fe80::1")
         self.assertEqual(app._normalize_ip(" 200.0.0.9 "), "200.0.0.9")
 
-    def test_client_ip_uses_rightmost_xff(self):
+    def test_client_ip_edge_header_then_leftmost_xff(self):
         import types
-        # XFF forjado pelo cliente fica à ESQUERDA; o real (anexado pelo proxy de
-        # confiança) é o mais à DIREITA — é esse que vale.
+        # header de borda não-forjável (Cloudflare/edge) tem prioridade
         req = types.SimpleNamespace(
-            headers={"x-forwarded-for": "6.6.6.6, 200.10.20.30"},
+            headers={"cf-connecting-ip": "203.0.113.7",
+                     "x-forwarded-for": "6.6.6.6, 10.0.0.1"},
             client=types.SimpleNamespace(host="10.0.0.5"))
-        self.assertEqual(app._client_ip(req), "200.10.20.30")
+        self.assertEqual(app._client_ip(req), "203.0.113.7")
+        # sem header de borda: o cliente ORIGINAL é o mais à ESQUERDA do XFF —
+        # o Render põe o IP real à esquerda; pegar o 'mais à direita' era inócuo
+        req2 = types.SimpleNamespace(
+            headers={"x-forwarded-for": "200.10.20.30, 10.0.0.1"},
+            client=types.SimpleNamespace(host="10.0.0.5"))
+        self.assertEqual(app._client_ip(req2), "200.10.20.30")
 
     def test_legacy_device_rows_revoked(self):
         import time as _t

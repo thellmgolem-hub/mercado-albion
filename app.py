@@ -40,6 +40,7 @@ db = ItemDB()
 aodp = AODP(server=config.DEFAULT_SERVER)
 auth_manager = AuthManager(aodp.db, aodp.db_lock)
 from albion import prodchain as _prodchain  # noqa: E402
+from albion import advisor as _advisor  # noqa: E402
 chain_store = _prodchain.ChainStore(aodp.db, aodp.db_lock)
 SAFE_ROYAL_CITIES = [c for c in config.ROYAL_CITIES if c != "Caerleon"]
 
@@ -245,16 +246,29 @@ def _normalize_ip(s: str) -> str:
         return (s[:45] or "0.0.0.0")
 
 
+# Headers que a borda/CDN define com o IP REAL do cliente e que o cliente NÃO
+# consegue forjar ATRAVÉS da borda (Cloudflare e afins os sobrescrevem).
+_TRUSTED_CLIENT_IP_HEADERS = ("cf-connecting-ip", "true-client-ip")
+
+
 def _client_ip(request: Request) -> str:
-    """IP real do cliente. Atrás de proxy de confiança (nuvem/Render) usa o
-    X-Forwarded-For — o item MAIS À DIREITA, que é o IP que de fato conectou ao
-    proxy (anti-spoof: um XFF forjado pelo cliente fica à esquerda). Local (sem
-    XFF) cai em request.client.host. Vínculo por IP é defesa-em-profundidade
-    sobre a sessão; AUTH_TRUST_PROXY=0 desliga a confiança no header."""
+    """IP real do cliente atrás de proxy de confiança (Render/CDN).
+
+    Ordem: (1) header de borda não-forjável (CF-Connecting-IP/True-Client-IP);
+    (2) o item MAIS À ESQUERDA do X-Forwarded-For — o cliente ORIGINAL na
+    convenção padrão em que cada proxy anexa (o Render põe o IP real à esquerda;
+    pegar o 'mais à direita' era ERRADO e tornava o vínculo por IP inócuo na
+    nuvem, além de poder expulsar usuário legítimo); (3) request.client.host
+    (local, sem proxy). Vínculo por IP é defesa-em-profundidade sobre a sessão;
+    AUTH_TRUST_PROXY=0 ignora os headers de proxy."""
     if config.AUTH_TRUST_PROXY:
+        for h in _TRUSTED_CLIENT_IP_HEADERS:
+            v = request.headers.get(h)
+            if v:
+                return _normalize_ip(v.split(",")[0])
         xff = request.headers.get("x-forwarded-for")
         if xff:
-            return _normalize_ip(xff.split(",")[-1])
+            return _normalize_ip(xff.split(",")[0])
     return _normalize_ip(request.client.host if request.client else "0.0.0.0")
 
 
@@ -386,13 +400,44 @@ def auth_bootstrap_status():
                        "manage_accounts.py bootstrap --username admin"}
 
 
+# Defesa de DoS no login: cada tentativa roda 1 scrypt (~32MB, ~167ms) mesmo p/
+# usuário inexistente. Sem isto, um anônimo faz spray de usernames e estoura a
+# RAM/threadpool do free-tier. O throttle por-username (auth.py) NÃO cobre spray.
+_LOGIN_SEM = threading.BoundedSemaphore(3)   # scrypt concorrente -> teto de RAM
+_LOGIN_HITS = {}                              # ip -> [timestamps recentes]
+_LOGIN_HITS_LOCK = threading.Lock()
+_LOGIN_WINDOW_S = 60
+_LOGIN_MAX_PER_WINDOW = 12
+
+
+def _login_rate_ok(ip: str) -> bool:
+    now = time.time()
+    cutoff = now - _LOGIN_WINDOW_S
+    with _LOGIN_HITS_LOCK:
+        hits = [t for t in _LOGIN_HITS.get(ip, ()) if t >= cutoff]
+        if len(hits) >= _LOGIN_MAX_PER_WINDOW:
+            _LOGIN_HITS[ip] = hits
+            return False
+        hits.append(now)
+        _LOGIN_HITS[ip] = hits
+        if len(_LOGIN_HITS) > 4096:          # poda para não crescer sem limite
+            for k in [k for k, v in list(_LOGIN_HITS.items())
+                      if not v or v[-1] < cutoff]:
+                _LOGIN_HITS.pop(k, None)
+        return True
+
+
 @app.post("/api/auth/login")
 def auth_login(body: LoginBody, request: Request):
+    ip = _client_ip(request)
+    if not _login_rate_ok(ip):
+        raise AuthError("Muitas tentativas de login deste IP. Aguarde um minuto.",
+                        "login_rate_limited", 429)
     if not auth_manager.has_admin():
         raise AuthError("Crie o primeiro administrador pela CLI.",
                         "bootstrap_required", 503)
-    result = auth_manager.login(body.username, body.password,
-                                ip=_client_ip(request))
+    with _LOGIN_SEM:                          # serializa o scrypt (limita RAM)
+        result = auth_manager.login(body.username, body.password, ip=ip)
     response = JSONResponse({
         "account": result["account"], "csrf": result["csrf_token"],
         "roles": ROLES, "profiles_catalog": PROFILES,
@@ -614,6 +659,12 @@ def status():
 _INTEL_LOCK = threading.Lock()
 
 
+def _sweep_token(request: Request, token: str) -> str:
+    """Token do sweep: preferir o header X-Sweep-Token (não vaza no access-log
+    do uvicorn como a query string faz a cada minuto); cair na query por compat."""
+    return request.headers.get("x-sweep-token") or token or ""
+
+
 def _check_sweep_token(token: str):
     """Gate dos endpoints de sweep: fail-closed em prod sem token; comparação em
     tempo constante por BYTES (str não-ASCII em compare_digest levantaria 500)."""
@@ -642,15 +693,15 @@ def _market_universe():
 
 @app.get("/api/sweep")
 @app.post("/api/sweep")
-def sweep(token: str = "",
+def sweep(request: Request, token: str = "",
           count: int = Query(config.SWEEP_ITEMS_PER_TICK, ge=10, le=400)):
     """Um TOQUE do sweep fatiado (tocado por cron a cada minuto).
 
     Avança um cursor pelo universo de mercado, busca a fatia (preços sempre
     frescos + histórico se velho) e grava no store. Em ~3 h varre tudo e recicla.
-    Protegido por ALBION_SWEEP_TOKEN (se definido).
+    Protegido por ALBION_SWEEP_TOKEN (header X-Sweep-Token ou ?token=).
     """
-    _check_sweep_token(token)
+    _check_sweep_token(_sweep_token(request, token))
     universe = _market_universe()
     n = len(universe)
     if not n:
@@ -678,7 +729,7 @@ def sweep(token: str = "",
 
 @app.get("/api/intel-sweep")
 @app.post("/api/intel-sweep")
-def intel_sweep(token: str = ""):
+def intel_sweep(request: Request, token: str = ""):
     """Um toque do sweep de KILLBOARD magro (tocado por cron, ~10 em 10 min).
 
     Pagina o gameinfo e agrega o equipamento das vítimas em kill_demand_daily
@@ -686,7 +737,7 @@ def intel_sweep(token: str = ""):
     (fazer-vs-comprar, regear, ranking de destruição) e Logística (reposição).
     """
     from albion import gameinfo
-    _check_sweep_token(token)
+    _check_sweep_token(_sweep_token(request, token))
     # serializa a ingestão: dois toques concorrentes leriam o mesmo checkpoint e
     # contariam a demanda em DOBRO. Se já está rodando, devolve sem reprocessar.
     if not _INTEL_LOCK.acquire(blocking=False):
@@ -1762,6 +1813,74 @@ def prodchain_chains_delete(cid: int, request: Request):
     if not chain_store.delete(_actor_org(request), _chain_owner(request), cid):
         raise HTTPException(status_code=404, detail="cadeia não encontrada")
     return {"ok": True}
+
+
+_ADVISOR_REFRESH_CAP = 300
+
+
+def _advisor_refresh_city(city, flipable):
+    """Refresh best-effort de UMA cidade no submit: só os itens flipáveis que já
+    têm cotação nela, limitado a _ADVISOR_REFRESH_CAP ids. Nunca varre o mercado
+    inteiro e nunca derruba a resposta — o cache 24/7 é o caminho principal."""
+    try:
+        con = _cache_connection()
+        if con is None:
+            return
+        try:
+            rows = con.execute(
+                "SELECT DISTINCT item_id FROM prices WHERE server=? AND city=?",
+                [aodp.server, city]).fetchall()
+        finally:
+            con.close()
+        ids = [r[0] for r in rows if r[0] in flipable][:_ADVISOR_REFRESH_CAP]
+        if ids:
+            aodp.get_prices(ids, [city], max_age=0)   # 1 refresh, 1 cidade
+    except Exception:
+        pass
+
+
+@app.get("/api/flip-advisor")
+def flip_advisor(
+    request: Request,
+    budget: float = Query(..., gt=0),
+    city: str = Query(...),
+    qualities: str | None = "1",
+    premium: bool = True,
+    buy_mode: str = "instant",
+    sell_mode: str = "order",
+    include_black_market: bool = False,
+    history_days: int = Query(7, ge=1, le=180),
+    min_profit: float = 0,
+    max_lines: int = Query(40, ge=1, le=200),
+    fresh_max_age_min: int = Query(720, ge=0),
+    refresh: bool = False,
+):
+    """Consultor de flips por orçamento: prata + cidade -> melhores compras.
+
+    Lê o cache que o sweep mantém fresco (cache-only). `refresh=true` dispara 1
+    atualização limitada da cidade escolhida antes de calcular."""
+    if buy_mode not in ("instant", "order") or sell_mode not in ("instant", "order"):
+        raise HTTPException(status_code=400, detail="modo de compra/venda inválido")
+    quals = _csv_int(qualities) or [1]
+    flipable = set(_default_watch_seed())
+    if refresh:
+        _advisor_refresh_city(city, flipable)
+    con = _cache_connection()
+    if con is None:
+        return _advisor.advise(None, aodp.server, db, budget=budget, city=city,
+                               capture_rate=config.CAPTURE_RATE)
+    try:
+        res = _advisor.advise(
+            con, aodp.server, db, budget=budget, city=city, qualities=quals,
+            premium=premium, buy_mode=buy_mode, sell_mode=sell_mode,
+            include_black_market=include_black_market, history_days=history_days,
+            min_profit=min_profit, max_lines=max_lines,
+            fresh_max_age_min=fresh_max_age_min, flipable=flipable)
+        res["coverage"] = _cache_coverage(con)
+        res["refreshed_city"] = bool(refresh)
+        return res
+    finally:
+        con.close()
 
 
 def _clean_prows(con):

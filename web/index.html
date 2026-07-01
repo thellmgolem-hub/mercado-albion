@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mercado Albion — Américas</title>
-<link rel="stylesheet" href="style.css?v=20260621-lpv2d">
+<link rel="stylesheet" href="style.css?v=20260621-lpv2d-advisor">
 <link rel="icon" href="/icon/T4_BAG?size=64">
 </head>
 <body class="auth-pending">
@@ -38,6 +38,7 @@
   <button data-tab="moedas">Moedas</button>
   <button data-tab="item">Item</button>
   <button data-tab="flips">Flips</button>
+  <button data-tab="consultor">Consultor</button>
   <button data-tab="scanner">Scanner</button>
   <button data-tab="avancado">Avançado</button>
   <button data-tab="ilha">Ilha</button>
@@ -434,6 +435,52 @@
      venda instantânea = preço × (1 − imposto) · ordem de venda = preço × (1 − imposto − 2,5%).
      No <b>Mercado Negro</b> a venda é sempre contra as ordens do sistema (instantânea) e
      um item de qualidade alta pode preencher ordens de qualidade menor.</p>
+</section>
+
+<!-- ============================ CONSULTOR ============================ -->
+<section class="tab" id="tab-consultor">
+  <div class="section-head">
+    <div>
+      <h1>Consultor de flips por orçamento</h1>
+      <div class="sub">Diga quanta prata você tem e onde está — a plataforma devolve as
+        melhores compras para revender que cabem no seu orçamento.</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="field">
+      <label>Prata disponível</label>
+      <input type="number" id="advisorBudget" value="1000000" min="1000" step="100000">
+    </div>
+    <div class="field">
+      <label>Cidade onde você está</label>
+      <select id="advisorCity"></select>
+    </div>
+    <div class="field">
+      <label>Venda</label>
+      <select id="advisorSellMode">
+        <option value="order" selected>por ordem de venda (+2,5% taxa)</option>
+        <option value="instant">instantânea (preencho ordem de compra)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Mercado Negro</label>
+      <div class="field-row"><input type="checkbox" id="advisorBM"> <span class="muted">incluir Caerleon</span></div>
+    </div>
+    <div class="field">
+      <label title="Com premium o imposto de venda é 4%; sem premium, 8%">Premium</label>
+      <div class="field-row"><input type="checkbox" id="advisorPremium" checked> <span class="muted">imposto 4%</span></div>
+    </div>
+    <button class="btn" id="advisorRun">Consultar</button>
+  </div>
+  <div class="status" id="advisorStatus"></div>
+  <div class="lab-summary" id="advisorSummary"></div>
+  <div id="advisorWarnings"></div>
+  <div class="table-wrap" id="advisorTable"></div>
+  <p class="hint">A lista é a melhor combinação de compras que cabe no seu orçamento, priorizando
+     lucro líquido por prata. <b>Unid.</b> é limitada pelo <b>orçamento</b> ou pela <b>liquidez</b>
+     (giro diário) — passe o mouse para ver qual. Custo/lucro já descontam imposto e a taxa de
+     anúncio de 2,5% onde ela se aplica.</p>
 </section>
 
 <!-- ============================ SCANNER ============================ -->
@@ -883,6 +930,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260621-lpv2d"></script>
+<script src="app.js?v=20260621-lpv2d-advisor"></script>
 </body>
 </html>

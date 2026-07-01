@@ -891,6 +891,7 @@ document.querySelectorAll('#tabs button').forEach((b) => {
       state.prodLineLoaded = true;
       initProdLine();
     }
+    if (b.dataset.tab === 'consultor') advisorInit();
     // o gráfico do ouro precisa do canvas VISÍVEL para dimensionar — carrega
     // ao abrir a aba (não no init, quando a aba está oculta)
     if (b.dataset.tab === 'moedas' && !state.moedasLoaded) {
@@ -1585,6 +1586,141 @@ async function runFlips() {
     st.textContent = 'erro: ' + e.message;
   } finally {
     $('flipsRun').disabled = false;
+  }
+}
+
+// ============================================================ aba CONSULTOR
+// Consultor de flips por orçamento: prata + cidade -> melhor lista de compras.
+function advisorInit() {
+  if (state.advisorInited) return;
+  state.advisorInited = true;
+  // só as 5 cidades reais seguras (sem Caerleon) — o Mercado Negro é opção à parte
+  const safe = (state.meta.royal_cities || []).filter((c) => c !== 'Caerleon');
+  $('advisorCity').innerHTML = safe
+    .map((c) => `<option value="${esc(c)}">${esc(cityLabel(c))}</option>`).join('');
+  $('advisorRun').addEventListener('click', runAdvisor);
+}
+
+function advisorSummaryHtml(s, cityKey) {
+  const pill = (label, val) => `<div class="lab-pill"><b>${esc(label)}</b><span>${val}</span></div>`;
+  return [
+    pill('Cidade', esc(cityLabel(cityKey))),
+    pill('Orçamento usado', `<span class="silver">${fmt(s.orcamento_usado)}</span>`),
+    pill('Sobra', `<span class="silver muted">${fmt(s.orcamento_restante)}</span>`),
+    pill('Lucro estimado', `<span class="silver profit-pos">${fmt(s.lucro_total_estimado)}</span>`),
+    pill('ROI total', `<span class="profit-pos">${fmtPct(s.roi_total_pct)}</span>`),
+  ].join('');
+}
+
+function advisorColumns() {
+  return [
+    {
+      key: 'item', label: 'Item', align: 'l',
+      value: (o) => o.name_pt,
+      html: (o) => `<div class="cell-item">
+        ${iconImg(o.item_id, o.quality)}
+        <div class="nm">${teBadge(o)} ${esc(o.name_pt)} ${qHtml(o.quality)}
+        <small>${esc(o.item_id)}</small></div></div>`,
+    },
+    {
+      key: 'buy_city', label: 'Comprar em', align: 'l',
+      value: (o) => o.buy_city,
+      html: (o) => `<div class="route">${cityHtml(o.buy_city)}</div>`,
+    },
+    {
+      key: 'sell_city', label: 'Vender em', align: 'l',
+      value: (o) => o.sell_city,
+      html: (o) => o.sell_city === 'Black Market'
+        ? `<span class="bm" title="Mercado Negro (Caerleon)">Mercado Negro</span>`
+        : `<div class="route">${cityHtml(o.sell_city)}</div>`,
+    },
+    {
+      key: 'buy', label: 'Preço', value: (o) => o.buy_price,
+      html: (o) => `<span class="silver">${fmt(o.buy_price)}</span> ${ageHtml(o.buy_age_min)}
+        <span class="arr">→</span> <span class="silver">${fmt(o.sell_price)}</span> ${ageHtml(o.sell_age_min)}`,
+    },
+    {
+      key: 'units', label: 'Unid.', align: 'c', value: (o) => o.units,
+      html: (o) => {
+        const why = o.units_cap_reason === 'budget' ? 'limitado pelo orçamento'
+          : o.units_cap_reason === 'liquidity' ? 'limitado pela liquidez (giro diário)'
+          : '';
+        return `<span title="${esc(why)}">${fmt(o.units)}</span>`;
+      },
+    },
+    {
+      key: 'custo', label: 'Custo', value: (o) => o.custo,
+      html: (o) => `<span class="silver muted">${fmt(o.custo)}</span>`,
+    },
+    {
+      key: 'lucro', label: 'Lucro', value: (o) => o.lucro_liquido,
+      html: (o) => `<span class="silver ${o.lucro_liquido >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(o.lucro_liquido)}</span>`,
+    },
+    {
+      key: 'roi', label: 'ROI %', value: (o) => o.roi_pct,
+      html: (o) => o.roi_pct == null ? '—'
+        : `${o.roi_pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`,
+    },
+    {
+      key: 'conf', label: 'Conf.', align: 'c',
+      value: (o) => o.confidence_score ?? 0,
+      html: (o) => {
+        const label = o.confidence_label || 'baixa';
+        const cls = label.replace(/\s+/g, '-');
+        const labelPt = label === 'media' ? 'média' : label;
+        const note = o.confidence_notes
+          || `compra ${o.buy_age_min ?? '?'} min · venda ${o.sell_age_min ?? '?'} min`;
+        return `<span class="conf conf-${esc(cls)}" title="${esc(note)}">${esc(labelPt)}</span>`;
+      },
+    },
+  ];
+}
+
+async function runAdvisor() {
+  const budget = +$('advisorBudget').value;
+  if (!budget || budget <= 0) { toast('informe a prata disponível'); return; }
+  const st = $('advisorStatus');
+  st.className = 'status';
+  st.textContent = 'montando a lista de compras…';
+  $('advisorRun').disabled = true;
+  $('advisorSummary').innerHTML = '';
+  $('advisorWarnings').innerHTML = '';
+  $('advisorTable').innerHTML = '';
+  try {
+    const res = await api('/api/flip-advisor', {
+      budget,
+      city: $('advisorCity').value,
+      include_black_market: $('advisorBM').checked,
+      premium: $('advisorPremium').checked,
+      sell_mode: $('advisorSellMode').value,
+    });
+    const list = res.shopping_list || [];
+    const summary = res.summary || {};
+    if (!list.length) {
+      st.className = 'status warn';
+      st.textContent = 'Nenhuma opção confiável no orçamento — tente outra cidade, incluir o Mercado Negro, ou um orçamento maior.';
+      return;
+    }
+    $('advisorSummary').innerHTML = advisorSummaryHtml(summary, res.city);
+    // avisos discretos
+    const warns = [];
+    if (summary.black_market_incluido) {
+      warns.push('Mercado Negro fica em Caerleon (zona de risco) — o custo/risco de transporte não está no cálculo.');
+    }
+    if (list.some((o) => o.low_liquidity_data)) {
+      warns.push('Algumas linhas sem dado de liquidez — estimadas só pelo orçamento.');
+    }
+    $('advisorWarnings').innerHTML = warns
+      .map((w) => `<p class="hint">⚠ ${esc(w)}</p>`).join('');
+    const rows = list.map((o) => ({ ...o, _copy: o.name_pt }));
+    renderTable('advisorTable', advisorColumns(), rows, { sortKey: 'lucro' });
+    st.textContent = `${rows.length} compras · imposto ${res.premium ? '4%' : '8%'} · captura ${
+      Math.round((summary.capture_rate ?? res.capture_rate ?? 0.2) * 100)}%`;
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  } finally {
+    $('advisorRun').disabled = false;
   }
 }
 
