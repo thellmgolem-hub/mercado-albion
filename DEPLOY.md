@@ -38,15 +38,22 @@ acordado). Nada de cartão. Tempo: ~30–45 min.
    `ALBION_BOOTSTRAP_ADMIN` (já cumpriu o papel).
 
 ## 4) O cron (o coração) — cron-job.org, sem cartão
+> Segurança: o token vai por **header** `X-Sweep-Token`, não na URL — assim não
+> aparece em log nenhum (o app também roda com `--no-access-log`). A query
+> `?token=` ainda funciona por compatibilidade, mas prefira o header.
+
 1. No Render → **Environment** → copie o valor de `ALBION_SWEEP_TOKEN`.
 2. cron-job.org → crie conta → **Create cronjob**:
-   - **URL**: `https://SUA-URL.onrender.com/api/sweep?token=SEU_TOKEN&count=100`
+   - **URL**: `https://SUA-URL.onrender.com/api/sweep?count=100`
    - **Schedule**: a cada **1 minuto**.
+   - Aba **Advanced / Headers** → adicione um header:
+     `X-Sweep-Token` = `SEU_TOKEN`
 3. Salve e **ative**. Pronto: a cada minuto ele busca 100 itens e mantém o app
    acordado. Em ~1,5–2 h varre os ~10.400 itens e recicla, sozinho.
 4. **(Opcional, recomendado) Segundo cronjob — killboard.** Crie outro cronjob:
-   - **URL**: `https://SUA-URL.onrender.com/api/intel-sweep?token=SEU_TOKEN`
+   - **URL**: `https://SUA-URL.onrender.com/api/intel-sweep`
    - **Schedule**: a cada **10 minutos**.
+   - **Headers**: `X-Sweep-Token` = `SEU_TOKEN` (o mesmo).
    Esse alimenta o agregado de destruição (kill_demand_daily) que liga o hub
    **Guild** (fazer-vs-comprar, regear, ranking de destruição) e o **mapa de
    reposição** da Logística. Sem ele, essas telas ficam vazias (o resto funciona
