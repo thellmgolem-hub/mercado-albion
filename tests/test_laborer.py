@@ -51,18 +51,20 @@ class CraftingLaborerTests(unittest.TestCase):
         },
     }
 
-    # Dois validitem, AMBOS vendáveis. SYN_PRICEY tem MAIOR margem de craft
-    # (deve ser o escolhido), embora custe mais material — a jogada real vende o
-    # item, então o critério é margem, não material.
+    # Dois validitem, AMBOS vendáveis e feitos SÓ de refinado básico
+    # (T6_METALBAR — casa no regex de insumo limpo, refined_only default).
+    # SYN_PRICEY tem MAIOR margem de craft (deve ser o escolhido), embora custe
+    # mais material — a jogada real vende o item, então o critério é margem.
     RECIPES = {
-        "SYN_CHEAP": {"inputs": [{"id": "SYN_BAR", "count": 2}],   # mat 200
+        "SYN_CHEAP": {"inputs": [{"id": "T6_METALBAR", "count": 2}],   # mat 200
                       "focus": 0, "output": 1, "category": "tools"},
-        "SYN_PRICEY": {"inputs": [{"id": "SYN_BAR", "count": 10}],  # mat 1000
+        "SYN_PRICEY": {"inputs": [{"id": "T6_METALBAR", "count": 10}],  # mat 1000
                        "focus": 0, "output": 1, "category": "tools"},
     }
 
     PRICES = {
-        "SYN_BAR": 100,          # insumo (ench 0)
+        "T6_METALBAR": 100,      # insumo refinado (ench 0)
+        "SYN_BAR": 100,          # item de loot (ench 0)
         "SYN_BAR@1": 500,        # loot encantado (ench 1)
         "SYN_CHEAP": 300,        # net 280,5 -> margem 80,5
         "SYN_PRICEY": 2000,      # net 1870  -> margem 870  (MAIOR)
@@ -221,6 +223,86 @@ class CraftingLaborerTests(unittest.TestCase):
         # default é 0 (não inventamos taxa)
         self.assertEqual(base["station_fee"], 0)
         self.assertEqual(base["custo_taxa_estacao"], 0)
+
+    def test_special_input_fill_item_excluded_for_refined_one(self):
+        # SYN_PRICEY passa a usar um COMPONENTE ESPECIAL (skillbook) — mesmo com
+        # margem maior, deve ser EXCLUÍDO (refined_only). Vence o 100% refinado
+        # (SYN_CHEAP, só T6_METALBAR), e fill_item_inputs comprova a decisão.
+        orig_recipes = dict(self.RECIPES)
+        orig_prices = dict(self.PRICES)
+        try:
+            self.RECIPES["SYN_PRICEY"] = {
+                "inputs": [{"id": "T6_METALBAR", "count": 10},
+                           {"id": "T6_SKILLBOOK_STANDARD", "count": 1}],
+                "focus": 0, "output": 1, "category": "tools"}
+            self.PRICES["T6_SKILLBOOK_STANDARD"] = 500
+            r = island.crafting_laborer_economy(
+                self._q1(), premium=True, sell_mode="order",
+                refined_only=True)["rows"][0]
+            self.assertEqual(r["fill_item"], "SYN_CHEAP")     # o refinado venceu
+            self.assertFalse(r["fill_impuro"])                # escolhido é limpo
+            ins = {i["id"] for i in r["fill_item_inputs"]}
+            self.assertEqual(ins, {"T6_METALBAR"})            # só refinado básico
+            # com --no-fill-refined-only o especial volta a ser elegível (maior margem)
+            r2 = island.crafting_laborer_economy(
+                self._q1(), premium=True, sell_mode="order",
+                refined_only=False)["rows"][0]
+            self.assertEqual(r2["fill_item"], "SYN_PRICEY")
+        finally:
+            self.RECIPES.clear(); self.RECIPES.update(orig_recipes)
+            self.PRICES.clear(); self.PRICES.update(orig_prices)
+
+    def test_all_special_flags_impuro(self):
+        # se o ÚNICO cotado tem insumo especial, o motor usa-o mas marca fill_impuro.
+        orig_recipes = dict(self.RECIPES)
+        orig_prices = dict(self.PRICES)
+        try:
+            self.PRICES.pop("SYN_CHEAP")   # sobra só o SYN_PRICEY
+            self.RECIPES["SYN_PRICEY"] = {
+                "inputs": [{"id": "T6_METALBAR", "count": 10},
+                           {"id": "T6_ARTEFACT_FOO", "count": 1}],
+                "focus": 0, "output": 1, "category": "tools"}
+            self.PRICES["T6_ARTEFACT_FOO"] = 500
+            r = island.crafting_laborer_economy(
+                self._q1(), premium=True, sell_mode="order",
+                refined_only=True)["rows"][0]
+            self.assertEqual(r["fill_item"], "SYN_PRICEY")
+            self.assertTrue(r["fill_impuro"])      # avisa: insumo especial
+            self.assertFalse(r["fill_eligivel"])
+        finally:
+            self.RECIPES.clear(); self.RECIPES.update(orig_recipes)
+            self.PRICES.clear(); self.PRICES.update(orig_prices)
+
+    def test_farm_input_accepted_when_allow_farm(self):
+        # insumo FARMÁVEL (cultura) é aceito só com allow_farm; sem ele, exclui.
+        orig_recipes = dict(self.RECIPES)
+        orig_prices = dict(self.PRICES)
+        orig_load = island._load
+        try:
+            # island_data com uma cultura farmável (T6_POTATO)
+            island._load = lambda: {"laborers": self.LAB,
+                                    "crops": {"T6_FARM_POTATO_SEED":
+                                              {"crop": "T6_POTATO"}}}
+            self.RECIPES["SYN_CHEAP"] = {
+                "inputs": [{"id": "T6_METALBAR", "count": 2},
+                           {"id": "T6_POTATO", "count": 1}],
+                "focus": 0, "output": 1, "category": "tools"}
+            self.PRICES["T6_POTATO"] = 50
+            self.PRICES.pop("SYN_PRICEY")   # sobra o SYN_CHEAP (metalbar + batata)
+            r_yes = island.crafting_laborer_economy(
+                self._q1(), premium=True, sell_mode="order",
+                refined_only=True, allow_farm=True)["rows"][0]
+            self.assertEqual(r_yes["fill_item"], "SYN_CHEAP")
+            self.assertFalse(r_yes["fill_impuro"])   # batata é farmável => limpo
+            # sem allow_farm, a batata deixa de ser limpa => impuro
+            r_no = island.crafting_laborer_economy(
+                self._q1(), premium=True, sell_mode="order",
+                refined_only=True, allow_farm=False)["rows"][0]
+            self.assertTrue(r_no["fill_impuro"])
+        finally:
+            island._load = orig_load
+            self.RECIPES.clear(); self.RECIPES.update(orig_recipes)
+            self.PRICES.clear(); self.PRICES.update(orig_prices)
 
     def test_partial_loot_pricing_is_conservative(self):
         # sem preço p/ a variante encantada: ela contribui 0 e a cobertura cai

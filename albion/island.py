@@ -27,13 +27,50 @@ Mecânica do jogo (verificada no items.json + loot.json + wiki, jun/2026):
   trabalhador devolve (lootlist ponderada por peso) — Play B (alimentar) vs Play
   A (só flipar o cheio).
 """
+import re
+
 from . import config
 from . import craft
 from .flips import sell_revenue
 
+# Refinado BÁSICO: as 5 famílias de barra/tábua/couro/tecido/bloco, qualquer
+# tier e encanto (_LEVELx). É o insumo "limpo" que o dono aceita no item de fill.
+_REFINED_INPUT = re.compile(r"^T\d+_(PLANKS|METALBAR|LEATHER|CLOTH|STONEBLOCK)(_LEVEL\d+)?$")
+
 
 def _load():
     return craft._load("island_data.json") or {}
+
+
+def _farm_items():
+    """Ids de itens FARMÁVEIS na fazenda (data/island_data.json): sementes e
+    produtos de cultura + bebês/adultos de pecuária + comidas. São insumos
+    'limpos' que o dono aceita no item de fill (ração/carne/cultura), além dos
+    refinados básicos."""
+    d = _load()
+    out = set()
+    for seed, info in (d.get("crops") or {}).items():
+        out.add(seed)                       # a semente plantável
+        if info.get("crop"):
+            out.add(info["crop"])           # o produto colhido
+    for baby, info in (d.get("animals") or {}).items():
+        out.add(baby)
+        if info.get("grown"):
+            out.add(info["grown"])
+    out.update(d.get("food") or {})         # comidas (culturas/carne)
+    return out
+
+
+def _input_is_clean(input_id, farm_ids, allow_farm):
+    """O insumo direto do item de fill é aceitável? True se for refinado básico
+    (PLANKS/METALBAR/LEATHER/CLOTH/STONEBLOCK, qualquer tier/encanto) ou, se
+    allow_farm, um item farmável. Qualquer outro (SKILLBOOK, ARTEFACT, RUNE/SOUL/
+    RELIC, ESSENCE, TOME, componente de mob, etc.) reprova o item de fill."""
+    if _REFINED_INPUT.match(input_id or ""):
+        return True
+    if allow_farm and input_id in farm_ids:
+        return True
+    return False
 
 
 def _best_buy(price_q1, item, cities):
@@ -234,7 +271,8 @@ def _loot_id(entry):
     return f"{entry['item']}@{ench}" if ench else entry["item"]
 
 
-def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None):
+def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None,
+               refined_only=True, allow_farm=True, farm_ids=None):
     """Como ENCHER o diário craftando — a jogada REAL: você crafta o item, ganha
     a fama (enche o diário) e VENDE o item. Encher NÃO consome o item.
 
@@ -263,6 +301,15 @@ def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None):
     CLI — island.py fica sem SQL). Escolhe o de maior margem ENTRE os elegíveis;
     se nenhum for elegível, cai no de maior margem geral e marca os flags
     (fill_liquidez_baixa / fill_isca). sell_ok=None => tudo aprovado (sem histórico).
+
+    Insumo LIMPO (refined_only, preferência do dono): o item de fill só é
+    elegível se TODOS os seus insumos DIRETOS forem refinado básico (PLANKS/
+    METALBAR/LEATHER/CLOTH/STONEBLOCK, qualquer tier/encanto) ou — se allow_farm
+    — item farmável (crops/animais/comida do island_data). Qualquer componente
+    especial (SKILLBOOK, ARTEFACT, RUNE/SOUL/RELIC, ESSENCE, TOME, item de mob)
+    torna o validitem INELEGÍVEL. Ex.: T4_BAG_INSIGHT (usa T4_SKILLBOOK_STANDARD)
+    é EXCLUÍDO; T4_BAG (só T4_CLOTH+T4_LEATHER) passa. fill_item_inputs no retorno
+    deixa a decisão auditável.
     """
     fill = info.get("fill")
     if not fill or not fill.get("fame_value"):
@@ -270,6 +317,7 @@ def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None):
     fame_value = fill["fame_value"]
     crafts = info["max_fame"] / fame_value if fame_value else 0
     sell_ok = sell_ok or (lambda _i, _p: True)
+    farm_ids = farm_ids if farm_ids is not None else _farm_items()
     cands = []   # dict por candidato vendável (margem + metadados + elegibilidade)
     for vid in fill["items"]:
         recipe = craft.recipe_for(vid)
@@ -284,6 +332,7 @@ def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None):
         cat = recipe.get("category")
         bcity = craft.unified_bonus_city(vid, cat) or (cities[0] if cities else None)
         mat, ok = 0.0, True
+        inputs = [{"id": i["id"], "count": i["count"]} for i in recipe["inputs"]]
         for inp in recipe["inputs"]:
             b = _best_buy(price_q1, inp["id"], cities)
             if not b:
@@ -292,18 +341,22 @@ def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None):
             mat += inp["count"] * b[1]
         if not ok:
             continue
+        # insumo limpo? (só refinado básico, +farm se allow_farm)
+        clean = all(_input_is_clean(i["id"], farm_ids, allow_farm) for i in inputs)
         rrr = craft.unified_rrr(vid, cat, bcity) if bcity else 0.0
         out_qty = recipe.get("output", 1) or 1
         eff_mat = mat * (1 - rrr)
         margin = item_net * out_qty - eff_mat     # margem de craft (por craft)
         n_sell_cities = sum(1 for c in cities if (price_q1.get((vid, c)) or 0) > 0)
         price_ok = sell_ok(vid, raw_price)        # dentro da banda de VWAP?
-        eligible = n_sell_cities >= 3 and price_ok
+        eligible = (n_sell_cities >= 3 and price_ok
+                    and (clean or not refined_only))
         cands.append({
             "margin": margin, "vid": vid, "bcity": bcity,
             "rrr_pct": round(rrr * 100, 1), "eff_mat": round(eff_mat),
             "item_net": round(item_net), "item_city": item_city,
-            "n_cities": n_sell_cities, "price_ok": price_ok, "eligible": eligible,
+            "n_cities": n_sell_cities, "price_ok": price_ok, "clean": clean,
+            "inputs": inputs, "eligible": eligible,
         })
     if not cands:
         return None
@@ -324,16 +377,21 @@ def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None):
         "craft_sell_city": best["item_city"],
         "fill_sell_cities": best["n_cities"],        # cidades cotando venda do item
         "material_cost_unit": best["eff_mat"],       # material net RRR por craft
-        # sem candidato elegível: o escolhido é suspeito (isca / mercado fino).
+        "fill_item_inputs": best["inputs"],          # insumos DIRETOS (auditável)
+        # sem candidato elegível: o escolhido é suspeito (isca / mercado fino /
+        # insumo especial). Flags separam o motivo.
+        "fill_eligivel": chosen_eligible,
         "fill_liquidez_baixa": not (chosen_eligible or best["n_cities"] >= 3),
         "fill_isca": not chosen_eligible and not best["price_ok"],
+        "fill_impuro": not chosen_eligible and refined_only and not best["clean"],
         "fill_cost_is_proxy": True,   # fama/craft = fame_value p/ todo validitem
     }
 
 
 def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
                              cities=None, limit=60, station_fee=0,
-                             fill_sell_ok=None):
+                             fill_sell_ok=None, refined_only=True,
+                             allow_farm=True):
     """Modelo COMPLETO do trabalhador de FABRICAÇÃO (diário que enche craftando).
 
     Diferente de laborer_economy (que só mede a margem de FLIP do diário
@@ -364,6 +422,10 @@ def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
     fill_sell_ok(item_id, preço_bruto) -> bool: validador anti-isca por VWAP
     histórico, injetado pela CLI (island.py fica sem SQL). None => sem histórico
     (tudo aprovado; a defesa cai só nas >=3 cidades).
+    refined_only (default True, preferência do dono): o item de fill só é
+    elegível se TODOS os insumos diretos forem refinado básico (+farm se
+    allow_farm); item com componente especial (skillbook/artefato/runa/…) é
+    excluído. fill_item_inputs no retorno deixa isso auditável.
 
     Só diários com fill.items (enchem craftando: HUNTER/MAGE/MERCENARY/TOOLMAKER/
     WARRIOR). Coleta/pesca enchem coletando e ficam de fora. Ordena por
@@ -372,6 +434,7 @@ def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
     data = _load().get("laborers") or {}
     if not data:
         return {"available": False, "rows": []}
+    farm_ids = _farm_items()
     cities = cities or config.CITIES
     rows = []
     for empty, info in data.items():
@@ -399,7 +462,8 @@ def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
         buy = _best_buy(price_q1, empty, cities)
         sell = _best_sell(price_q1, info["full"], cities, sell_mode, premium)
         fp = _fill_plan(info, price_q1, cities, premium, sell_mode,
-                        sell_ok=fill_sell_ok)
+                        sell_ok=fill_sell_ok, refined_only=refined_only,
+                        allow_farm=allow_farm, farm_ids=farm_ids)
         if not buy or not sell or fp is None:
             continue
         empty_price, full_net = buy[1], sell[1]
@@ -429,11 +493,14 @@ def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
             "craft_venda_liquida": fp["craft_sell_net"],  # venda líq do item
             "material_un": fp["material_cost_unit"],
             "fill_sell_cities": fp["fill_sell_cities"],   # cidades cotando o item
+            "fill_item_inputs": fp["fill_item_inputs"],   # insumos diretos (auditável)
             "station_fee": round(station_fee or 0),       # taxa NPC por craft (entrada)
             "custo_taxa_estacao": round(fee_total),        # taxa × n_crafts
             "fill_cost_is_proxy": fp["fill_cost_is_proxy"],
+            "fill_eligivel": fp["fill_eligivel"],   # o escolhido passou nos filtros
             "fill_liquidez_baixa": thin,   # nenhum candidato elegível (<3 cid.)
             "fill_isca": fp["fill_isca"],  # escolhido caiu fora da banda de VWAP
+            "fill_impuro": fp["fill_impuro"],  # escolhido tem insumo especial
             "buy_city": buy[0], "vazio": round(empty_price),
             "sell_city": sell[0], "cheio": round(full_net),
             "lucro_alimentar_vendendo": round(lucro_vendendo),

@@ -1374,7 +1374,8 @@ def cmd_laborers(args, fmt):
     # sem limite no motor: filtramos família/tier ANTES de cortar em args.limit
     res = island.crafting_laborer_economy(
         q1, premium=args.premium, sell_mode=args.sell_mode, cities=cities,
-        limit=None, station_fee=args.station_fee, fill_sell_ok=fill_sell_ok)
+        limit=None, station_fee=args.station_fee, fill_sell_ok=fill_sell_ok,
+        refined_only=args.fill_refined_only, allow_farm=args.allow_farm)
     out = res.get("rows", [])
     if args.family:
         fam = args.family.upper()
@@ -1385,9 +1386,13 @@ def cmd_laborers(args, fmt):
     for r in out:
         r["diario"] = name(r["empty"]) or r["empty"]
         r["devolve"] = name(r["loot_top"]) or r["loot_top"]
-        flags = ("" + (" [!isca]" if r.get("fill_isca") else "")
+        flags = ((" [!isca]" if r.get("fill_isca") else "")
+                 + (" [!impuro]" if r.get("fill_impuro") else "")
                  + (" [!liq]" if r["fill_liquidez_baixa"] else ""))
         r["encher_com"] = (name(r["fill_item"]) or r["fill_item"]) + flags
+        r["insumos_fill"] = ", ".join(
+            f"{i['count']}×{name(i['id']) or i['id']}"
+            for i in (r.get("fill_item_inputs") or []))
     if fmt == "json":
         emit(out, [], fmt)
         return
@@ -1398,18 +1403,23 @@ def cmd_laborers(args, fmt):
     fee_txt = (f" Taxa de estação = {args.station_fee:g} prata/craft "
                f"(× {out[0]['crafts_to_fill']:g} crafts)." if args.station_fee
                else " Taxa de estação = 0 (entrada do usuário; preencha --station-fee).")
+    refined_txt = (" Item de fill: SÓ refinado básico"
+                   + (" + farmável" if args.allow_farm else "")
+                   + " (--no-fill-refined-only libera especiais)."
+                   if args.fill_refined_only else " Item de fill: qualquer insumo.")
     info(f"{len(out)} trabalhadores de FABRICAÇÃO. ENCHER = craftar, ganhar fama e"
          " VENDER o item (não descartar); o custo de encher é a MARGEM DE CRAFT"
-         " (venda líq − material net RRR).{}".format(fee_txt) +
+         " (venda líq − material net RRR).{}{}".format(fee_txt, refined_txt) +
          " Lucro alimentar (vendendo) = retorno + n_crafts × margem_craft"
          " − taxa − vazio; 'descart.' = pessimista (item fora); lucro flip = cheio"
          " − vazio. Fama/craft ainda é PROXY (= fame_value do dump). Defesa"
          " anti-isca: item de fill fora da banda 0,35..3× do VWAP (ou sem"
-         " histórico) é rejeitado. '[!isca]' = escolhido fora da banda; '[!liq]' ="
-         " nenhum candidato líquido (>=3 cidades) — desconfie do valor.")
+         " histórico) é rejeitado. '[!isca]' fora da banda; '[!impuro]' insumo"
+         " especial; '[!liq]' <3 cidades — desconfie do valor.")
     emit(out,
          [("diario", "Diário"), ("tier", "T"), ("devolve", "Devolve"),
           ("retorno_por_diario", "Retorno"), ("encher_com", "Encher com"),
+          ("insumos_fill", "Insumos do fill"),
           ("margem_craft_un", "Margem craft/un"),
           ("custo_taxa_estacao", "Taxa estação"), ("vazio", "Vazio"),
           ("lucro_alimentar_vendendo", "Lucro alim. (vend.)"),
@@ -2917,6 +2927,12 @@ def build_parser():
                         "usuário; varia por cidade/dia — sem default != 0)")
     p.add_argument("--vwap-days", type=float, default=30,
                    help="janela do VWAP histórico p/ a banda anti-isca do fill")
+    p.add_argument("--fill-refined-only", action=argparse.BooleanOptionalAction,
+                   default=True, help="item de fill só com refinado básico "
+                        "(+farm); exclui skillbook/artefato/etc. (padrão: on)")
+    p.add_argument("--allow-farm", action=argparse.BooleanOptionalAction,
+                   default=True, help="aceita item farmável (cultura/carne/ração) "
+                        "como insumo do fill (padrão: on)")
     p.add_argument("--premium", action=argparse.BooleanOptionalAction,
                    default=True)
     p.add_argument("--limit", type=int, default=60)
