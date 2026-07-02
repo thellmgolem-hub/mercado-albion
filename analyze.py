@@ -1303,6 +1303,85 @@ def cmd_journals(args, fmt):
          fmt)
 
 
+def cmd_laborers(args, fmt):
+    """Trabalhador de FABRICAÇÃO completo: encher craftando + o RETORNO dele.
+
+    Ao contrário de `journals` (que só mede a margem de flip vazio->cheio), aqui
+    modelamos os dois lados. ENCHER é a jogada real: você crafta o validitem,
+    ganha a fama e VENDE o item (não descarta) — então o custo de encher é a
+    MARGEM DE CRAFT (venda líq − material net RRR), não o material bruto. Escolhe
+    o validitem que maximiza n_crafts × margem_craft (vendável). O trabalhador
+    DEVOLVE loot (lootlist ponderada por peso). Play B (alimentar, vendendo os
+    itens) = retorno + n_crafts × margem_craft − vazio; Play A (flipar) = cheio −
+    vazio. A coluna 'descart.' mantém o pessimista (item jogado fora). Ordena por
+    lucro alimentar vendendo. Lê o cache (store, RO) e monta price_q1."""
+    from albion import island, store
+    from albion.microstructure import clean_price_rows
+    db = ItemDB()
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid) if iid else None
+    con = store.connect(readonly=True)
+    if con is None:
+        info("Cache vazio — rode 'collect' antes.")
+        return
+    try:
+        raw = [dict(r) for r in con.execute(
+            "SELECT * FROM prices WHERE server=?",
+            [config.DEFAULT_SERVER]).fetchall()]
+    finally:
+        con.close()
+    # SANEAMENTO anti-âncora: o motor escolhe o validitem de MAIOR margem, então
+    # é o mais exposto a ordens-isca. clean_price_rows zera o outlier entre
+    # cidades (>=3 cotadas) — mesma defesa do hub Avançado (app._price_lookups).
+    q1 = {}
+    for r in clean_price_rows(raw):
+        if r.get("quality") != 1:
+            continue
+        sp = r.get("sell_price_min") or 0
+        if sp <= 0:
+            continue
+        item, city = r["item_id"], r["city"]
+        if (item, city) not in q1 or sp < q1[(item, city)]:
+            q1[(item, city)] = sp
+    cities = parse_cities(args.cities)
+    # sem limite no motor: filtramos família/tier ANTES de cortar em args.limit
+    res = island.crafting_laborer_economy(
+        q1, premium=args.premium, sell_mode=args.sell_mode, cities=cities,
+        limit=None)
+    out = res.get("rows", [])
+    if args.family:
+        fam = args.family.upper()
+        out = [r for r in out if r["family"] == fam]
+    if args.tier:
+        out = [r for r in out if r["tier"] == args.tier]
+    out = out[:args.limit]
+    for r in out:
+        r["diario"] = name(r["empty"]) or r["empty"]
+        r["devolve"] = name(r["loot_top"]) or r["loot_top"]
+        r["encher_com"] = (name(r["fill_item"]) or r["fill_item"]) + \
+            (" [!liq]" if r["fill_liquidez_baixa"] else "")
+    if fmt == "json":
+        emit(out, [], fmt)
+        return
+    if not out:
+        info("Nenhum trabalhador de fabricação precificado no cache "
+             "(precisa de vazio, cheio, itens de loot e insumos do fill).")
+        return
+    info(f"{len(out)} trabalhadores de FABRICAÇÃO. ENCHER = craftar, ganhar fama e"
+         " VENDER o item (não descartar); o custo de encher é a MARGEM DE CRAFT"
+         " (venda líq − material net RRR). Lucro alimentar (vendendo) = retorno +"
+         " n_crafts × margem_craft − vazio; 'descart.' = pessimista (item fora);"
+         " lucro flip = cheio − vazio. Fama/craft ainda é PROXY (= fame_value do"
+         " dump). '[!liq]' = item de fill pouco/nada cotado (confira a liquidez).")
+    emit(out,
+         [("diario", "Diário"), ("tier", "T"), ("devolve", "Devolve"),
+          ("retorno_por_diario", "Retorno"), ("encher_com", "Encher com"),
+          ("margem_craft_un", "Margem craft/un"), ("vazio", "Vazio"),
+          ("lucro_alimentar_vendendo", "Lucro alim. (vend.)"),
+          ("lucro_alimentar_descartando", "Lucro alim. (descart.)"),
+          ("lucro_flip", "Lucro flip")],
+         fmt)
+
+
 def cmd_backtest(args, fmt):
     """Backtest de sinal: o lucro prometido se realizou na coleta seguinte?"""
     from albion import backtest as backtest_mod
@@ -2790,6 +2869,17 @@ def build_parser():
     p.add_argument("--max-age", type=int, default=config.PRICES_TTL)
     p.add_argument("--limit", type=int, default=25)
     p.set_defaults(func=cmd_journals)
+
+    p = sub.add_parser("laborers", parents=[common],
+                       help="trabalhador de fabricação: encher craftando + retorno")
+    p.add_argument("--family", help="TOOLMAKER|HUNTER|MAGE|WARRIOR|MERCENARY")
+    p.add_argument("--tier", type=int, help="filtra por tier (o dono foca T6)")
+    p.add_argument("--cities", help="cidades (padrão: todas)")
+    p.add_argument("--sell-mode", choices=["instant", "order"], default="order")
+    p.add_argument("--premium", action=argparse.BooleanOptionalAction,
+                   default=True)
+    p.add_argument("--limit", type=int, default=60)
+    p.set_defaults(func=cmd_laborers)
 
     p = sub.add_parser("report", parents=[common],
                        help="relatório do dia (opcional: publica no Discord)")

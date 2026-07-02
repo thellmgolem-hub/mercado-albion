@@ -796,803 +796,6449 @@
   }
  },
  "laborers": {
-  "T2_JOURNAL_TOOLMAKER_EMPTY": {
-   "full": "T2_JOURNAL_TOOLMAKER_FULL",
-   "family": "TOOLMAKER",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T2_JOURNAL_TROPHY_GENERAL_EMPTY": {
-   "full": "T2_JOURNAL_TROPHY_GENERAL_FULL",
-   "family": "TROPHY",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T7_JOURNAL_FIBER_EMPTY": {
-   "full": "T7_JOURNAL_FIBER_FULL",
-   "family": "FIBER",
-   "tier": 7,
-   "resource_family": "FIBER"
-  },
-  "T5_JOURNAL_FISHING_EMPTY": {
-   "full": "T5_JOURNAL_FISHING_FULL",
-   "family": "FISHING",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T4_JOURNAL_TOOLMAKER_EMPTY": {
-   "full": "T4_JOURNAL_TOOLMAKER_FULL",
-   "family": "TOOLMAKER",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T5_JOURNAL_TROPHY_STONE_EMPTY": {
-   "full": "T5_JOURNAL_TROPHY_STONE_FULL",
-   "family": "TROPHY",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T4_JOURNAL_TROPHY_STONE_EMPTY": {
-   "full": "T4_JOURNAL_TROPHY_STONE_FULL",
+  "T4_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_WOOD_FULL",
    "family": "TROPHY",
    "tier": 4,
-   "resource_family": null
-  },
-  "T4_JOURNAL_FISHING_EMPTY": {
-   "full": "T4_JOURNAL_FISHING_FULL",
-   "family": "FISHING",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T6_JOURNAL_TROPHY_FISHING_EMPTY": {
-   "full": "T6_JOURNAL_TROPHY_FISHING_FULL",
-   "family": "TROPHY",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T4_JOURNAL_TROPHY_ORE_EMPTY": {
-   "full": "T4_JOURNAL_TROPHY_ORE_FULL",
-   "family": "TROPHY",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T8_JOURNAL_STONE_EMPTY": {
-   "full": "T8_JOURNAL_STONE_FULL",
-   "family": "STONE",
-   "tier": 8,
-   "resource_family": "ROCK"
-  },
-  "T4_JOURNAL_FIBER_EMPTY": {
-   "full": "T4_JOURNAL_FIBER_FULL",
-   "family": "FIBER",
-   "tier": 4,
-   "resource_family": "FIBER"
-  },
-  "T5_JOURNAL_WOOD_EMPTY": {
-   "full": "T5_JOURNAL_WOOD_FULL",
-   "family": "WOOD",
-   "tier": 5,
-   "resource_family": "WOOD"
-  },
-  "T7_JOURNAL_WOOD_EMPTY": {
-   "full": "T7_JOURNAL_WOOD_FULL",
-   "family": "WOOD",
-   "tier": 7,
-   "resource_family": "WOOD"
-  },
-  "T3_JOURNAL_ORE_EMPTY": {
-   "full": "T3_JOURNAL_ORE_FULL",
-   "family": "ORE",
-   "tier": 3,
-   "resource_family": "ORE"
-  },
-  "T5_JOURNAL_TROPHY_FISHING_EMPTY": {
-   "full": "T5_JOURNAL_TROPHY_FISHING_FULL",
-   "family": "TROPHY",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T8_JOURNAL_HIDE_EMPTY": {
-   "full": "T8_JOURNAL_HIDE_FULL",
-   "family": "HIDE",
-   "tier": 8,
-   "resource_family": "HIDE"
-  },
-  "T5_JOURNAL_WARRIOR_EMPTY": {
-   "full": "T5_JOURNAL_WARRIOR_FULL",
-   "family": "WARRIOR",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T3_JOURNAL_TROPHY_FISHING_EMPTY": {
-   "full": "T3_JOURNAL_TROPHY_FISHING_FULL",
-   "family": "TROPHY",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T4_JOURNAL_ORE_EMPTY": {
-   "full": "T4_JOURNAL_ORE_FULL",
-   "family": "ORE",
-   "tier": 4,
-   "resource_family": "ORE"
-  },
-  "T4_JOURNAL_TROPHY_HIDE_EMPTY": {
-   "full": "T4_JOURNAL_TROPHY_HIDE_FULL",
-   "family": "TROPHY",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T6_JOURNAL_MERCENARY_EMPTY": {
-   "full": "T6_JOURNAL_MERCENARY_FULL",
-   "family": "MERCENARY",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T6_JOURNAL_MAGE_EMPTY": {
-   "full": "T6_JOURNAL_MAGE_FULL",
-   "family": "MAGE",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T3_JOURNAL_TOOLMAKER_EMPTY": {
-   "full": "T3_JOURNAL_TOOLMAKER_FULL",
-   "family": "TOOLMAKER",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T8_JOURNAL_HUNTER_EMPTY": {
-   "full": "T8_JOURNAL_HUNTER_FULL",
-   "family": "HUNTER",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T4_JOURNAL_HIDE_EMPTY": {
-   "full": "T4_JOURNAL_HIDE_FULL",
-   "family": "HIDE",
-   "tier": 4,
-   "resource_family": "HIDE"
-  },
-  "T5_JOURNAL_TROPHY_FIBER_EMPTY": {
-   "full": "T5_JOURNAL_TROPHY_FIBER_FULL",
-   "family": "TROPHY",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T7_JOURNAL_TROPHY_ORE_EMPTY": {
-   "full": "T7_JOURNAL_TROPHY_ORE_FULL",
-   "family": "TROPHY",
-   "tier": 7,
-   "resource_family": null
+   "resource_family": null,
+   "max_fame": 3600.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_FURNITUREITEM_TROPHY_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
   },
   "T5_JOURNAL_TOOLMAKER_EMPTY": {
    "full": "T5_JOURNAL_TOOLMAKER_FULL",
    "family": "TOOLMAKER",
    "tier": 5,
-   "resource_family": null
-  },
-  "T8_JOURNAL_WOOD_EMPTY": {
-   "full": "T8_JOURNAL_WOOD_FULL",
-   "family": "WOOD",
-   "tier": 8,
-   "resource_family": "WOOD"
-  },
-  "T6_JOURNAL_TROPHY_STONE_EMPTY": {
-   "full": "T6_JOURNAL_TROPHY_STONE_FULL",
-   "family": "TROPHY",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T4_JOURNAL_TROPHY_GENERAL_EMPTY": {
-   "full": "T4_JOURNAL_TROPHY_GENERAL_FULL",
-   "family": "TROPHY",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T6_JOURNAL_FISHING_EMPTY": {
-   "full": "T6_JOURNAL_FISHING_FULL",
-   "family": "FISHING",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T8_JOURNAL_TOOLMAKER_EMPTY": {
-   "full": "T8_JOURNAL_TOOLMAKER_FULL",
-   "family": "TOOLMAKER",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T7_JOURNAL_HIDE_EMPTY": {
-   "full": "T7_JOURNAL_HIDE_FULL",
-   "family": "HIDE",
-   "tier": 7,
-   "resource_family": "HIDE"
-  },
-  "T7_JOURNAL_TROPHY_WOOD_EMPTY": {
-   "full": "T7_JOURNAL_TROPHY_WOOD_FULL",
-   "family": "TROPHY",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T2_JOURNAL_HUNTER_EMPTY": {
-   "full": "T2_JOURNAL_HUNTER_FULL",
-   "family": "HUNTER",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T8_JOURNAL_FIBER_EMPTY": {
-   "full": "T8_JOURNAL_FIBER_FULL",
-   "family": "FIBER",
-   "tier": 8,
-   "resource_family": "FIBER"
-  },
-  "T6_JOURNAL_WARRIOR_EMPTY": {
-   "full": "T6_JOURNAL_WARRIOR_FULL",
-   "family": "WARRIOR",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T8_JOURNAL_TROPHY_STONE_EMPTY": {
-   "full": "T8_JOURNAL_TROPHY_STONE_FULL",
-   "family": "TROPHY",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T2_JOURNAL_WARRIOR_EMPTY": {
-   "full": "T2_JOURNAL_WARRIOR_FULL",
-   "family": "WARRIOR",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T8_JOURNAL_TROPHY_HIDE_EMPTY": {
-   "full": "T8_JOURNAL_TROPHY_HIDE_FULL",
-   "family": "TROPHY",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T4_JOURNAL_WARRIOR_EMPTY": {
-   "full": "T4_JOURNAL_WARRIOR_FULL",
-   "family": "WARRIOR",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T7_JOURNAL_TROPHY_MERCENARY_EMPTY": {
-   "full": "T7_JOURNAL_TROPHY_MERCENARY_FULL",
-   "family": "TROPHY",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T2_JOURNAL_TROPHY_WOOD_EMPTY": {
-   "full": "T2_JOURNAL_TROPHY_WOOD_FULL",
-   "family": "TROPHY",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T4_JOURNAL_TROPHY_MERCENARY_EMPTY": {
-   "full": "T4_JOURNAL_TROPHY_MERCENARY_FULL",
-   "family": "TROPHY",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T8_JOURNAL_MAGE_EMPTY": {
-   "full": "T8_JOURNAL_MAGE_FULL",
-   "family": "MAGE",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T6_JOURNAL_HIDE_EMPTY": {
-   "full": "T6_JOURNAL_HIDE_FULL",
-   "family": "HIDE",
-   "tier": 6,
-   "resource_family": "HIDE"
-  },
-  "T5_JOURNAL_MERCENARY_EMPTY": {
-   "full": "T5_JOURNAL_MERCENARY_FULL",
-   "family": "MERCENARY",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T6_JOURNAL_TOOLMAKER_EMPTY": {
-   "full": "T6_JOURNAL_TOOLMAKER_FULL",
-   "family": "TOOLMAKER",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T3_JOURNAL_TROPHY_ORE_EMPTY": {
-   "full": "T3_JOURNAL_TROPHY_ORE_FULL",
-   "family": "TROPHY",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T8_JOURNAL_TROPHY_ORE_EMPTY": {
-   "full": "T8_JOURNAL_TROPHY_ORE_FULL",
-   "family": "TROPHY",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T5_JOURNAL_HUNTER_EMPTY": {
-   "full": "T5_JOURNAL_HUNTER_FULL",
-   "family": "HUNTER",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T4_JOURNAL_MAGE_EMPTY": {
-   "full": "T4_JOURNAL_MAGE_FULL",
-   "family": "MAGE",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T6_JOURNAL_TROPHY_MERCENARY_EMPTY": {
-   "full": "T6_JOURNAL_TROPHY_MERCENARY_FULL",
-   "family": "TROPHY",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T8_JOURNAL_TROPHY_WOOD_EMPTY": {
-   "full": "T8_JOURNAL_TROPHY_WOOD_FULL",
-   "family": "TROPHY",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T7_JOURNAL_TROPHY_STONE_EMPTY": {
-   "full": "T7_JOURNAL_TROPHY_STONE_FULL",
-   "family": "TROPHY",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T5_JOURNAL_TROPHY_MERCENARY_EMPTY": {
-   "full": "T5_JOURNAL_TROPHY_MERCENARY_FULL",
-   "family": "TROPHY",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T3_JOURNAL_TROPHY_WOOD_EMPTY": {
-   "full": "T3_JOURNAL_TROPHY_WOOD_FULL",
-   "family": "TROPHY",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T5_JOURNAL_FIBER_EMPTY": {
-   "full": "T5_JOURNAL_FIBER_FULL",
-   "family": "FIBER",
-   "tier": 5,
-   "resource_family": "FIBER"
-  },
-  "T7_JOURNAL_TROPHY_GENERAL_EMPTY": {
-   "full": "T7_JOURNAL_TROPHY_GENERAL_FULL",
-   "family": "TROPHY",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T3_JOURNAL_TROPHY_MERCENARY_EMPTY": {
-   "full": "T3_JOURNAL_TROPHY_MERCENARY_FULL",
-   "family": "TROPHY",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T3_JOURNAL_TROPHY_HIDE_EMPTY": {
-   "full": "T3_JOURNAL_TROPHY_HIDE_FULL",
-   "family": "TROPHY",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T3_JOURNAL_FIBER_EMPTY": {
-   "full": "T3_JOURNAL_FIBER_FULL",
-   "family": "FIBER",
-   "tier": 3,
-   "resource_family": "FIBER"
-  },
-  "T2_JOURNAL_TROPHY_FISHING_EMPTY": {
-   "full": "T2_JOURNAL_TROPHY_FISHING_FULL",
-   "family": "TROPHY",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T6_JOURNAL_TROPHY_FIBER_EMPTY": {
-   "full": "T6_JOURNAL_TROPHY_FIBER_FULL",
-   "family": "TROPHY",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T5_JOURNAL_STONE_EMPTY": {
-   "full": "T5_JOURNAL_STONE_FULL",
-   "family": "STONE",
-   "tier": 5,
-   "resource_family": "ROCK"
-  },
-  "T2_JOURNAL_STONE_EMPTY": {
-   "full": "T2_JOURNAL_STONE_FULL",
-   "family": "STONE",
-   "tier": 2,
-   "resource_family": "ROCK"
-  },
-  "T2_JOURNAL_TROPHY_STONE_EMPTY": {
-   "full": "T2_JOURNAL_TROPHY_STONE_FULL",
-   "family": "TROPHY",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T2_JOURNAL_FIBER_EMPTY": {
-   "full": "T2_JOURNAL_FIBER_FULL",
-   "family": "FIBER",
-   "tier": 2,
-   "resource_family": "FIBER"
-  },
-  "T3_JOURNAL_HUNTER_EMPTY": {
-   "full": "T3_JOURNAL_HUNTER_FULL",
-   "family": "HUNTER",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T7_JOURNAL_FISHING_EMPTY": {
-   "full": "T7_JOURNAL_FISHING_FULL",
-   "family": "FISHING",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T2_JOURNAL_WOOD_EMPTY": {
-   "full": "T2_JOURNAL_WOOD_FULL",
-   "family": "WOOD",
-   "tier": 2,
-   "resource_family": "WOOD"
-  },
-  "T5_JOURNAL_TROPHY_GENERAL_EMPTY": {
-   "full": "T5_JOURNAL_TROPHY_GENERAL_FULL",
-   "family": "TROPHY",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T8_JOURNAL_WARRIOR_EMPTY": {
-   "full": "T8_JOURNAL_WARRIOR_FULL",
-   "family": "WARRIOR",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T5_JOURNAL_TROPHY_ORE_EMPTY": {
-   "full": "T5_JOURNAL_TROPHY_ORE_FULL",
-   "family": "TROPHY",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T2_JOURNAL_ORE_EMPTY": {
-   "full": "T2_JOURNAL_ORE_FULL",
-   "family": "ORE",
-   "tier": 2,
-   "resource_family": "ORE"
-  },
-  "T6_JOURNAL_ORE_EMPTY": {
-   "full": "T6_JOURNAL_ORE_FULL",
-   "family": "ORE",
-   "tier": 6,
-   "resource_family": "ORE"
-  },
-  "T7_JOURNAL_TROPHY_HIDE_EMPTY": {
-   "full": "T7_JOURNAL_TROPHY_HIDE_FULL",
-   "family": "TROPHY",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T8_JOURNAL_TROPHY_FISHING_EMPTY": {
-   "full": "T8_JOURNAL_TROPHY_FISHING_FULL",
-   "family": "TROPHY",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T2_JOURNAL_MERCENARY_EMPTY": {
-   "full": "T2_JOURNAL_MERCENARY_FULL",
-   "family": "MERCENARY",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T3_JOURNAL_MAGE_EMPTY": {
-   "full": "T3_JOURNAL_MAGE_FULL",
-   "family": "MAGE",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T8_JOURNAL_MERCENARY_EMPTY": {
-   "full": "T8_JOURNAL_MERCENARY_FULL",
-   "family": "MERCENARY",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T2_JOURNAL_TROPHY_ORE_EMPTY": {
-   "full": "T2_JOURNAL_TROPHY_ORE_FULL",
-   "family": "TROPHY",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T8_JOURNAL_TROPHY_GENERAL_EMPTY": {
-   "full": "T8_JOURNAL_TROPHY_GENERAL_FULL",
-   "family": "TROPHY",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T2_JOURNAL_HIDE_EMPTY": {
-   "full": "T2_JOURNAL_HIDE_FULL",
-   "family": "HIDE",
-   "tier": 2,
-   "resource_family": "HIDE"
-  },
-  "T3_JOURNAL_WOOD_EMPTY": {
-   "full": "T3_JOURNAL_WOOD_FULL",
-   "family": "WOOD",
-   "tier": 3,
-   "resource_family": "WOOD"
-  },
-  "T7_JOURNAL_TROPHY_FIBER_EMPTY": {
-   "full": "T7_JOURNAL_TROPHY_FIBER_FULL",
-   "family": "TROPHY",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T7_JOURNAL_MERCENARY_EMPTY": {
-   "full": "T7_JOURNAL_MERCENARY_FULL",
-   "family": "MERCENARY",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T3_JOURNAL_MERCENARY_EMPTY": {
-   "full": "T3_JOURNAL_MERCENARY_FULL",
-   "family": "MERCENARY",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T7_JOURNAL_TOOLMAKER_EMPTY": {
-   "full": "T7_JOURNAL_TOOLMAKER_FULL",
-   "family": "TOOLMAKER",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T6_JOURNAL_TROPHY_ORE_EMPTY": {
-   "full": "T6_JOURNAL_TROPHY_ORE_FULL",
-   "family": "TROPHY",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T3_JOURNAL_FISHING_EMPTY": {
-   "full": "T3_JOURNAL_FISHING_FULL",
-   "family": "FISHING",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T4_JOURNAL_TROPHY_FIBER_EMPTY": {
-   "full": "T4_JOURNAL_TROPHY_FIBER_FULL",
-   "family": "TROPHY",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T8_JOURNAL_FISHING_EMPTY": {
-   "full": "T8_JOURNAL_FISHING_FULL",
-   "family": "FISHING",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T7_JOURNAL_STONE_EMPTY": {
-   "full": "T7_JOURNAL_STONE_FULL",
-   "family": "STONE",
-   "tier": 7,
-   "resource_family": "ROCK"
-  },
-  "T8_JOURNAL_ORE_EMPTY": {
-   "full": "T8_JOURNAL_ORE_FULL",
-   "family": "ORE",
-   "tier": 8,
-   "resource_family": "ORE"
-  },
-  "T4_JOURNAL_TROPHY_WOOD_EMPTY": {
-   "full": "T4_JOURNAL_TROPHY_WOOD_FULL",
-   "family": "TROPHY",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T7_JOURNAL_WARRIOR_EMPTY": {
-   "full": "T7_JOURNAL_WARRIOR_FULL",
-   "family": "WARRIOR",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T2_JOURNAL_FISHING_EMPTY": {
-   "full": "T2_JOURNAL_FISHING_FULL",
-   "family": "FISHING",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T7_JOURNAL_HUNTER_EMPTY": {
-   "full": "T7_JOURNAL_HUNTER_FULL",
-   "family": "HUNTER",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T5_JOURNAL_ORE_EMPTY": {
-   "full": "T5_JOURNAL_ORE_FULL",
-   "family": "ORE",
-   "tier": 5,
-   "resource_family": "ORE"
-  },
-  "T4_JOURNAL_MERCENARY_EMPTY": {
-   "full": "T4_JOURNAL_MERCENARY_FULL",
-   "family": "MERCENARY",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T3_JOURNAL_TROPHY_STONE_EMPTY": {
-   "full": "T3_JOURNAL_TROPHY_STONE_FULL",
-   "family": "TROPHY",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T2_JOURNAL_TROPHY_MERCENARY_EMPTY": {
-   "full": "T2_JOURNAL_TROPHY_MERCENARY_FULL",
-   "family": "TROPHY",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T4_JOURNAL_HUNTER_EMPTY": {
-   "full": "T4_JOURNAL_HUNTER_FULL",
-   "family": "HUNTER",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T3_JOURNAL_WARRIOR_EMPTY": {
-   "full": "T3_JOURNAL_WARRIOR_FULL",
-   "family": "WARRIOR",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T3_JOURNAL_TROPHY_GENERAL_EMPTY": {
-   "full": "T3_JOURNAL_TROPHY_GENERAL_FULL",
-   "family": "TROPHY",
-   "tier": 3,
-   "resource_family": null
-  },
-  "T5_JOURNAL_TROPHY_HIDE_EMPTY": {
-   "full": "T5_JOURNAL_TROPHY_HIDE_FULL",
-   "family": "TROPHY",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T7_JOURNAL_TROPHY_FISHING_EMPTY": {
-   "full": "T7_JOURNAL_TROPHY_FISHING_FULL",
-   "family": "TROPHY",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T6_JOURNAL_WOOD_EMPTY": {
-   "full": "T6_JOURNAL_WOOD_FULL",
-   "family": "WOOD",
-   "tier": 6,
-   "resource_family": "WOOD"
-  },
-  "T7_JOURNAL_MAGE_EMPTY": {
-   "full": "T7_JOURNAL_MAGE_FULL",
-   "family": "MAGE",
-   "tier": 7,
-   "resource_family": null
-  },
-  "T6_JOURNAL_TROPHY_GENERAL_EMPTY": {
-   "full": "T6_JOURNAL_TROPHY_GENERAL_FULL",
-   "family": "TROPHY",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T4_JOURNAL_WOOD_EMPTY": {
-   "full": "T4_JOURNAL_WOOD_FULL",
-   "family": "WOOD",
-   "tier": 4,
-   "resource_family": "WOOD"
+   "resource_family": null,
+   "max_fame": 7200.0,
+   "base_loot_amount": 8.0,
+   "fill": {
+    "fame_value": 2400.0,
+    "min_tier": 5,
+    "items": [
+     "T5_CAPE",
+     "T5_BAG",
+     "T5_BAG_INSIGHT",
+     "T5_HEAD_GATHERER_FIBER",
+     "T5_ARMOR_GATHERER_FIBER",
+     "T5_SHOES_GATHERER_FIBER",
+     "T5_BACKPACK_GATHERER_FIBER",
+     "T5_HEAD_GATHERER_HIDE",
+     "T5_ARMOR_GATHERER_HIDE",
+     "T5_SHOES_GATHERER_HIDE",
+     "T5_BACKPACK_GATHERER_HIDE",
+     "T5_HEAD_GATHERER_ORE",
+     "T5_ARMOR_GATHERER_ORE",
+     "T5_SHOES_GATHERER_ORE",
+     "T5_BACKPACK_GATHERER_ORE",
+     "T5_HEAD_GATHERER_ROCK",
+     "T5_ARMOR_GATHERER_ROCK",
+     "T5_SHOES_GATHERER_ROCK",
+     "T5_BACKPACK_GATHERER_ROCK",
+     "T5_HEAD_GATHERER_WOOD",
+     "T5_ARMOR_GATHERER_WOOD",
+     "T5_SHOES_GATHERER_WOOD",
+     "T5_BACKPACK_GATHERER_WOOD",
+     "T5_2H_TOOL_PICK",
+     "T5_2H_TOOL_HAMMER",
+     "T5_2H_TOOL_AXE",
+     "T5_2H_TOOL_SICKLE",
+     "T5_2H_TOOL_KNIFE",
+     "T5_2H_TOOL_SIEGEHAMMER",
+     "T5_FURNITUREITEM_CHEST",
+     "T5_FURNITUREITEM_BED",
+     "T5_FURNITUREITEM_TABLE",
+     "T5_FURNITUREITEM_REPAIRKIT",
+     "T5_2H_TOOL_FISHINGROD",
+     "T5_HEAD_GATHERER_FISH",
+     "T5_ARMOR_GATHERER_FISH",
+     "T5_SHOES_GATHERER_FISH",
+     "T5_BACKPACK_GATHERER_FISH",
+     "T5_2H_TOOL_HAMMER_AVALON",
+     "T5_2H_TOOL_AXE_AVALON",
+     "T5_2H_TOOL_PICK_AVALON",
+     "T5_2H_TOOL_SICKLE_AVALON",
+     "T5_2H_TOOL_KNIFE_AVALON",
+     "T5_2H_TOOL_SIEGEHAMMER_AVALON",
+     "T5_2H_TOOL_FISHINGROD_AVALON",
+     "T5_2H_TOOL_TRACKING",
+     "T5_SIEGE_BANNER"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T5_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 400.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 40.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 4.0
+    },
+    {
+     "item": "T5_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T5_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T5_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T5_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T5_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T5_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T5_LEATHER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_LEATHER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_LEATHER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
   },
   "T7_JOURNAL_ORE_EMPTY": {
    "full": "T7_JOURNAL_ORE_FULL",
    "family": "ORE",
    "tier": 7,
-   "resource_family": "ORE"
+   "resource_family": "ORE",
+   "max_fame": 14400.0,
+   "base_loot_amount": 38.4,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T7_ORE_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T7_ORE_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_ORE_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
   },
-  "T5_JOURNAL_HIDE_EMPTY": {
-   "full": "T5_JOURNAL_HIDE_FULL",
-   "family": "HIDE",
+  "T5_JOURNAL_FISHING_EMPTY": {
+   "full": "T5_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
    "tier": 5,
-   "resource_family": "HIDE"
+   "resource_family": null,
+   "max_fame": 3680.0,
+   "base_loot_amount": 17.0301,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T1_SEAWEED",
+     "ench": 0,
+     "amount": 4.0,
+     "weight": 46.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T4_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T3_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T4_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    }
+   ]
   },
-  "T6_JOURNAL_HUNTER_EMPTY": {
-   "full": "T6_JOURNAL_HUNTER_FULL",
-   "family": "HUNTER",
-   "tier": 6,
-   "resource_family": null
-  },
-  "T8_JOURNAL_TROPHY_MERCENARY_EMPTY": {
-   "full": "T8_JOURNAL_TROPHY_MERCENARY_FULL",
-   "family": "TROPHY",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T6_JOURNAL_FIBER_EMPTY": {
-   "full": "T6_JOURNAL_FIBER_FULL",
-   "family": "FIBER",
-   "tier": 6,
-   "resource_family": "FIBER"
-  },
-  "T5_JOURNAL_MAGE_EMPTY": {
-   "full": "T5_JOURNAL_MAGE_FULL",
-   "family": "MAGE",
-   "tier": 5,
-   "resource_family": null
-  },
-  "T2_JOURNAL_TROPHY_FIBER_EMPTY": {
-   "full": "T2_JOURNAL_TROPHY_FIBER_FULL",
+  "T2_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_ORE_FULL",
    "family": "TROPHY",
    "tier": 2,
-   "resource_family": null
-  },
-  "T6_JOURNAL_TROPHY_WOOD_EMPTY": {
-   "full": "T6_JOURNAL_TROPHY_WOOD_FULL",
-   "family": "TROPHY",
-   "tier": 6,
-   "resource_family": null
+   "resource_family": null,
+   "max_fame": 900.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_FURNITUREITEM_TROPHY_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
   },
   "T3_JOURNAL_TROPHY_FIBER_EMPTY": {
    "full": "T3_JOURNAL_TROPHY_FIBER_FULL",
    "family": "TROPHY",
    "tier": 3,
-   "resource_family": null
+   "resource_family": null,
+   "max_fame": 1800.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_FURNITUREITEM_TROPHY_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
   },
-  "T2_JOURNAL_MAGE_EMPTY": {
-   "full": "T2_JOURNAL_MAGE_FULL",
+  "T3_JOURNAL_MAGE_EMPTY": {
+   "full": "T3_JOURNAL_MAGE_FULL",
    "family": "MAGE",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T3_JOURNAL_HIDE_EMPTY": {
-   "full": "T3_JOURNAL_HIDE_FULL",
-   "family": "HIDE",
    "tier": 3,
-   "resource_family": "HIDE"
+   "resource_family": null,
+   "max_fame": 1800.0,
+   "base_loot_amount": 24.0,
+   "fill": {
+    "fame_value": 600.0,
+    "min_tier": 3,
+    "items": [
+     "T3_OFF_BOOK",
+     "T3_HEAD_CLOTH_SET1",
+     "T3_ARMOR_CLOTH_SET1",
+     "T3_SHOES_CLOTH_SET1",
+     "T3_MAIN_CURSEDSTAFF",
+     "T3_MAIN_FIRESTAFF",
+     "T3_MAIN_FROSTSTAFF",
+     "T3_MAIN_ARCANESTAFF",
+     "T3_MAIN_HOLYSTAFF"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T3_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T3_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T3_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
   },
-  "T6_JOURNAL_STONE_EMPTY": {
-   "full": "T6_JOURNAL_STONE_FULL",
-   "family": "STONE",
-   "tier": 6,
-   "resource_family": "ROCK"
-  },
-  "T5_JOURNAL_TROPHY_WOOD_EMPTY": {
-   "full": "T5_JOURNAL_TROPHY_WOOD_FULL",
+  "T7_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_GENERAL_FULL",
    "family": "TROPHY",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 18225.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_FURNITUREITEM_TROPHY_GENERAL",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T5_JOURNAL_FIBER_EMPTY": {
+   "full": "T5_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
    "tier": 5,
-   "resource_family": null
-  },
-  "T4_JOURNAL_TROPHY_FISHING_EMPTY": {
-   "full": "T4_JOURNAL_TROPHY_FISHING_FULL",
-   "family": "TROPHY",
-   "tier": 4,
-   "resource_family": null
-  },
-  "T8_JOURNAL_TROPHY_FIBER_EMPTY": {
-   "full": "T8_JOURNAL_TROPHY_FIBER_FULL",
-   "family": "TROPHY",
-   "tier": 8,
-   "resource_family": null
-  },
-  "T2_JOURNAL_TROPHY_HIDE_EMPTY": {
-   "full": "T2_JOURNAL_TROPHY_HIDE_FULL",
-   "family": "TROPHY",
-   "tier": 2,
-   "resource_family": null
-  },
-  "T4_JOURNAL_STONE_EMPTY": {
-   "full": "T4_JOURNAL_STONE_FULL",
-   "family": "STONE",
-   "tier": 4,
-   "resource_family": "ROCK"
-  },
-  "T6_JOURNAL_TROPHY_HIDE_EMPTY": {
-   "full": "T6_JOURNAL_TROPHY_HIDE_FULL",
-   "family": "TROPHY",
-   "tier": 6,
-   "resource_family": null
+   "resource_family": "FIBER",
+   "max_fame": 3600.0,
+   "base_loot_amount": 32.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T5_FIBER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_FIBER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FIBER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
   },
   "T3_JOURNAL_STONE_EMPTY": {
    "full": "T3_JOURNAL_STONE_FULL",
    "family": "STONE",
    "tier": 3,
-   "resource_family": "ROCK"
+   "resource_family": "ROCK",
+   "max_fame": 900.0,
+   "base_loot_amount": 60.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T3_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 4080.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_FURNITUREITEM_TROPHY_FISH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5.0
+    }
+   ]
+  },
+  "T5_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 13104.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_FURNITUREITEM_TROPHY_MERCENARY",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T6_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 21600.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_FURNITUREITEM_TROPHY_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T4_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 9792.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_FURNITUREITEM_TROPHY_MERCENARY",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T5_JOURNAL_MAGE_EMPTY": {
+   "full": "T5_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 7200.0,
+   "base_loot_amount": 8.0,
+   "fill": {
+    "fame_value": 2400.0,
+    "min_tier": 5,
+    "items": [
+     "T5_OFF_BOOK",
+     "T5_OFF_ORB_MORGANA",
+     "T5_OFF_DEMONSKULL_HELL",
+     "T5_OFF_TOTEM_KEEPER",
+     "T5_HEAD_CLOTH_SET1",
+     "T5_ARMOR_CLOTH_SET1",
+     "T5_SHOES_CLOTH_SET1",
+     "T5_HEAD_CLOTH_SET2",
+     "T5_ARMOR_CLOTH_SET2",
+     "T5_SHOES_CLOTH_SET2",
+     "T5_HEAD_CLOTH_SET3",
+     "T5_ARMOR_CLOTH_SET3",
+     "T5_SHOES_CLOTH_SET3",
+     "T5_HEAD_CLOTH_KEEPER",
+     "T5_ARMOR_CLOTH_KEEPER",
+     "T5_SHOES_CLOTH_KEEPER",
+     "T5_HEAD_CLOTH_HELL",
+     "T5_ARMOR_CLOTH_HELL",
+     "T5_SHOES_CLOTH_HELL",
+     "T5_HEAD_CLOTH_MORGANA",
+     "T5_ARMOR_CLOTH_MORGANA",
+     "T5_SHOES_CLOTH_MORGANA",
+     "T5_MAIN_CURSEDSTAFF",
+     "T5_2H_CURSEDSTAFF",
+     "T5_2H_DEMONICSTAFF",
+     "T5_MAIN_CURSEDSTAFF_UNDEAD",
+     "T5_2H_SKULLORB_HELL",
+     "T5_2H_CURSEDSTAFF_MORGANA",
+     "T5_MAIN_FIRESTAFF",
+     "T5_2H_FIRESTAFF",
+     "T5_2H_INFERNOSTAFF",
+     "T5_MAIN_FIRESTAFF_KEEPER",
+     "T5_2H_FIRESTAFF_HELL",
+     "T5_2H_INFERNOSTAFF_MORGANA",
+     "T5_MAIN_FROSTSTAFF",
+     "T5_2H_FROSTSTAFF",
+     "T5_2H_GLACIALSTAFF",
+     "T5_MAIN_FROSTSTAFF_KEEPER",
+     "T5_2H_ICEGAUNTLETS_HELL",
+     "T5_2H_ICECRYSTAL_UNDEAD",
+     "T5_MAIN_ARCANESTAFF",
+     "T5_2H_ARCANESTAFF",
+     "T5_2H_ENIGMATICSTAFF",
+     "T5_MAIN_ARCANESTAFF_UNDEAD",
+     "T5_2H_ARCANESTAFF_HELL",
+     "T5_2H_ENIGMATICORB_MORGANA",
+     "T5_MAIN_HOLYSTAFF",
+     "T5_2H_HOLYSTAFF",
+     "T5_2H_DIVINESTAFF",
+     "T5_MAIN_HOLYSTAFF_MORGANA",
+     "T5_2H_HOLYSTAFF_HELL",
+     "T5_2H_HOLYSTAFF_UNDEAD",
+     "T5_ARMOR_CLOTH_AVALON",
+     "T5_HEAD_CLOTH_AVALON",
+     "T5_SHOES_CLOTH_AVALON",
+     "T5_MAIN_CURSEDSTAFF_AVALON",
+     "T5_2H_FIRE_RINGPAIR_AVALON",
+     "T5_MAIN_FROSTSTAFF_AVALON",
+     "T5_2H_ARCANE_RINGPAIR_AVALON",
+     "T5_MAIN_HOLYSTAFF_AVALON",
+     "T5_OFF_CENSER_AVALON",
+     "T5_HEAD_CLOTH_FEY",
+     "T5_ARMOR_CLOTH_FEY",
+     "T5_SHOES_CLOTH_FEY",
+     "T5_2H_ARCANESTAFF_CRYSTAL",
+     "T5_2H_FROSTSTAFF_CRYSTAL",
+     "T5_2H_HOLYSTAFF_CRYSTAL",
+     "T5_MAIN_CURSEDSTAFF_CRYSTAL",
+     "T5_MAIN_FIRESTAFF_CRYSTAL",
+     "T5_OFF_TOME_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T5_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T5_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 500.0
+    },
+    {
+     "item": "T5_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T5_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 5.0
+    },
+    {
+     "item": "T5_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 400.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 40.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 4.0
+    },
+    {
+     "item": "T5_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T4_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T4_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 3264.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": []
+  },
+  "T2_JOURNAL_STONE_EMPTY": {
+   "full": "T2_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 2,
+   "resource_family": "ROCK",
+   "max_fame": 450.0,
+   "base_loot_amount": 38.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_ORE_EMPTY": {
+   "full": "T8_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 8,
+   "resource_family": "ORE",
+   "max_fame": 28800.0,
+   "base_loot_amount": 38.4,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T8_ORE_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T8_ORE_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T8_ORE_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T3_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 1800.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_FURNITUREITEM_TROPHY_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T2_JOURNAL_HIDE_EMPTY": {
+   "full": "T2_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 2,
+   "resource_family": "HIDE",
+   "max_fame": 450.0,
+   "base_loot_amount": 38.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T8_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 58590.0,
+   "base_loot_amount": 4.2,
+   "fill": {
+    "fame_value": 19200.0,
+    "min_tier": 8,
+    "items": [
+     "T8_OFF_SHIELD",
+     "T8_OFF_TOWERSHIELD_UNDEAD",
+     "T8_OFF_SHIELD_HELL",
+     "T8_OFF_SPIKEDSHIELD_MORGANA",
+     "T8_HEAD_PLATE_SET1",
+     "T8_ARMOR_PLATE_SET1",
+     "T8_SHOES_PLATE_SET1",
+     "T8_HEAD_PLATE_SET2",
+     "T8_ARMOR_PLATE_SET2",
+     "T8_SHOES_PLATE_SET2",
+     "T8_HEAD_PLATE_SET3",
+     "T8_ARMOR_PLATE_SET3",
+     "T8_SHOES_PLATE_SET3",
+     "T8_HEAD_PLATE_UNDEAD",
+     "T8_ARMOR_PLATE_UNDEAD",
+     "T8_SHOES_PLATE_UNDEAD",
+     "T8_HEAD_PLATE_HELL",
+     "T8_ARMOR_PLATE_HELL",
+     "T8_SHOES_PLATE_HELL",
+     "T8_HEAD_PLATE_KEEPER",
+     "T8_ARMOR_PLATE_KEEPER",
+     "T8_SHOES_PLATE_KEEPER",
+     "T8_2H_CROSSBOW",
+     "T8_2H_CROSSBOWLARGE",
+     "T8_MAIN_1HCROSSBOW",
+     "T8_2H_REPEATINGCROSSBOW_UNDEAD",
+     "T8_2H_DUALCROSSBOW_HELL",
+     "T8_2H_CROSSBOWLARGE_MORGANA",
+     "T8_MAIN_AXE",
+     "T8_2H_AXE",
+     "T8_2H_HALBERD",
+     "T8_2H_HALBERD_MORGANA",
+     "T8_2H_SCYTHE_HELL",
+     "T8_2H_DUALAXE_KEEPER",
+     "T8_MAIN_SWORD",
+     "T8_2H_CLAYMORE",
+     "T8_2H_DUALSWORD",
+     "T8_MAIN_SCIMITAR_MORGANA",
+     "T8_2H_CLEAVER_HELL",
+     "T8_2H_DUALSCIMITAR_UNDEAD",
+     "T8_MAIN_HAMMER",
+     "T8_2H_POLEHAMMER",
+     "T8_2H_HAMMER",
+     "T8_2H_HAMMER_UNDEAD",
+     "T8_2H_DUALHAMMER_HELL",
+     "T8_2H_RAM_KEEPER",
+     "T8_MAIN_MACE",
+     "T8_2H_MACE",
+     "T8_2H_FLAIL",
+     "T8_MAIN_ROCKMACE_KEEPER",
+     "T8_MAIN_MACE_HELL",
+     "T8_2H_MACE_MORGANA",
+     "T8_ARMOR_PLATE_AVALON",
+     "T8_HEAD_PLATE_AVALON",
+     "T8_SHOES_PLATE_AVALON",
+     "T8_2H_CROSSBOW_CANNON_AVALON",
+     "T8_2H_AXE_AVALON",
+     "T8_2H_CLAYMORE_AVALON",
+     "T8_2H_HAMMER_AVALON",
+     "T8_2H_DUALMACE_AVALON",
+     "T8_OFF_SHIELD_AVALON",
+     "T8_2H_KNUCKLES_SET1",
+     "T8_2H_KNUCKLES_SET2",
+     "T8_2H_KNUCKLES_SET3",
+     "T8_2H_KNUCKLES_MORGANA",
+     "T8_2H_KNUCKLES_HELL",
+     "T8_2H_KNUCKLES_KEEPER",
+     "T8_2H_KNUCKLES_AVALON",
+     "T8_ARMOR_PLATE_FEY",
+     "T8_SHOES_PLATE_FEY",
+     "T8_HEAD_PLATE_FEY",
+     "T8_MAIN_SWORD_CRYSTAL",
+     "T8_2H_SCYTHE_CRYSTAL",
+     "T8_MAIN_MACE_CRYSTAL",
+     "T8_2H_KNUCKLES_CRYSTAL",
+     "T8_2H_DUALCROSSBOW_CRYSTAL",
+     "T8_2H_HAMMER_CRYSTAL",
+     "T8_OFF_SHIELD_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T8_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 13223.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 700.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 70.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 7.0
+    },
+    {
+     "item": "T8_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T8_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T8_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T8_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T8_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T6_JOURNAL_FIBER_EMPTY": {
+   "full": "T6_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 6,
+   "resource_family": "FIBER",
+   "max_fame": 7200.0,
+   "base_loot_amount": 32.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T6_FIBER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T6_FIBER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T6_FIBER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T8_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 57600.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_FURNITUREITEM_TROPHY_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T7_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T7_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 7968.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": []
+  },
+  "T8_JOURNAL_HIDE_EMPTY": {
+   "full": "T8_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 8,
+   "resource_family": "HIDE",
+   "max_fame": 28800.0,
+   "base_loot_amount": 38.4,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T8_HIDE_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T8_HIDE_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T8_HIDE_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T4_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 3600.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_FURNITUREITEM_TROPHY_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T3_JOURNAL_FIBER_EMPTY": {
+   "full": "T3_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 3,
+   "resource_family": "FIBER",
+   "max_fame": 900.0,
+   "base_loot_amount": 60.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 57600.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_FURNITUREITEM_TROPHY_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T4_JOURNAL_STONE_EMPTY": {
+   "full": "T4_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 4,
+   "resource_family": "ROCK",
+   "max_fame": 1800.0,
+   "base_loot_amount": 48.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T5_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 8100.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_FURNITUREITEM_TROPHY_GENERAL",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T4_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T4_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 3600.0,
+   "base_loot_amount": 16.0,
+   "fill": {
+    "fame_value": 1200.0,
+    "min_tier": 4,
+    "items": [
+     "T4_OFF_SHIELD",
+     "T4_OFF_TOWERSHIELD_UNDEAD",
+     "T4_OFF_SHIELD_HELL",
+     "T4_OFF_SPIKEDSHIELD_MORGANA",
+     "T4_HEAD_PLATE_SET1",
+     "T4_ARMOR_PLATE_SET1",
+     "T4_SHOES_PLATE_SET1",
+     "T4_HEAD_PLATE_SET2",
+     "T4_ARMOR_PLATE_SET2",
+     "T4_SHOES_PLATE_SET2",
+     "T4_HEAD_PLATE_SET3",
+     "T4_ARMOR_PLATE_SET3",
+     "T4_SHOES_PLATE_SET3",
+     "T4_HEAD_PLATE_UNDEAD",
+     "T4_ARMOR_PLATE_UNDEAD",
+     "T4_SHOES_PLATE_UNDEAD",
+     "T4_HEAD_PLATE_HELL",
+     "T4_ARMOR_PLATE_HELL",
+     "T4_SHOES_PLATE_HELL",
+     "T4_HEAD_PLATE_KEEPER",
+     "T4_ARMOR_PLATE_KEEPER",
+     "T4_SHOES_PLATE_KEEPER",
+     "T4_2H_CROSSBOW",
+     "T4_2H_CROSSBOWLARGE",
+     "T4_MAIN_1HCROSSBOW",
+     "T4_2H_REPEATINGCROSSBOW_UNDEAD",
+     "T4_2H_DUALCROSSBOW_HELL",
+     "T4_2H_CROSSBOWLARGE_MORGANA",
+     "T4_MAIN_AXE",
+     "T4_2H_AXE",
+     "T4_2H_HALBERD",
+     "T4_2H_HALBERD_MORGANA",
+     "T4_2H_SCYTHE_HELL",
+     "T4_2H_DUALAXE_KEEPER",
+     "T4_MAIN_SWORD",
+     "T4_2H_CLAYMORE",
+     "T4_2H_DUALSWORD",
+     "T4_MAIN_SCIMITAR_MORGANA",
+     "T4_2H_CLEAVER_HELL",
+     "T4_2H_DUALSCIMITAR_UNDEAD",
+     "T4_MAIN_HAMMER",
+     "T4_2H_POLEHAMMER",
+     "T4_2H_HAMMER",
+     "T4_2H_HAMMER_UNDEAD",
+     "T4_2H_DUALHAMMER_HELL",
+     "T4_2H_RAM_KEEPER",
+     "T4_MAIN_MACE",
+     "T4_2H_MACE",
+     "T4_2H_FLAIL",
+     "T4_MAIN_ROCKMACE_KEEPER",
+     "T4_MAIN_MACE_HELL",
+     "T4_2H_MACE_MORGANA",
+     "T4_ARMOR_PLATE_AVALON",
+     "T4_HEAD_PLATE_AVALON",
+     "T4_SHOES_PLATE_AVALON",
+     "T4_2H_CROSSBOW_CANNON_AVALON",
+     "T4_2H_AXE_AVALON",
+     "T4_2H_CLAYMORE_AVALON",
+     "T4_2H_HAMMER_AVALON",
+     "T4_2H_DUALMACE_AVALON",
+     "T4_OFF_SHIELD_AVALON",
+     "T4_2H_KNUCKLES_SET1",
+     "T4_2H_KNUCKLES_SET2",
+     "T4_2H_KNUCKLES_SET3",
+     "T4_2H_KNUCKLES_MORGANA",
+     "T4_2H_KNUCKLES_HELL",
+     "T4_2H_KNUCKLES_KEEPER",
+     "T4_2H_KNUCKLES_AVALON",
+     "T4_ARMOR_PLATE_FEY",
+     "T4_SHOES_PLATE_FEY",
+     "T4_HEAD_PLATE_FEY",
+     "T4_MAIN_SWORD_CRYSTAL",
+     "T4_2H_SCYTHE_CRYSTAL",
+     "T4_MAIN_MACE_CRYSTAL",
+     "T4_2H_KNUCKLES_CRYSTAL",
+     "T4_2H_DUALCROSSBOW_CRYSTAL",
+     "T4_2H_HAMMER_CRYSTAL",
+     "T4_OFF_SHIELD_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T4_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 13223.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 700.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 70.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 7.0
+    },
+    {
+     "item": "T4_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T4_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T4_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T4_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T4_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T2_JOURNAL_ORE_EMPTY": {
+   "full": "T2_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 2,
+   "resource_family": "ORE",
+   "max_fame": 450.0,
+   "base_loot_amount": 38.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_STONE_EMPTY": {
+   "full": "T8_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 8,
+   "resource_family": "ROCK",
+   "max_fame": 28800.0,
+   "base_loot_amount": 38.4,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T3_JOURNAL_WOOD_EMPTY": {
+   "full": "T3_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 3,
+   "resource_family": "WOOD",
+   "max_fame": 900.0,
+   "base_loot_amount": 60.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T4_JOURNAL_HIDE_EMPTY": {
+   "full": "T4_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 4,
+   "resource_family": "HIDE",
+   "max_fame": 1800.0,
+   "base_loot_amount": 48.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T4_HIDE_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T4_HIDE_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T4_HIDE_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T6_JOURNAL_ORE_EMPTY": {
+   "full": "T6_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 6,
+   "resource_family": "ORE",
+   "max_fame": 7200.0,
+   "base_loot_amount": 32.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T6_ORE_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T6_ORE_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T6_ORE_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T7_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 28800.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_FURNITUREITEM_TROPHY_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T2_JOURNAL_HUNTER_EMPTY": {
+   "full": "T2_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 900.0,
+   "base_loot_amount": 38.0,
+   "fill": {
+    "fame_value": 300.0,
+    "min_tier": 2,
+    "items": [
+     "T2_HEAD_LEATHER_SET1",
+     "T2_ARMOR_LEATHER_SET1",
+     "T2_SHOES_LEATHER_SET1",
+     "T2_2H_BOW"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T2_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T2_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T2_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    }
+   ]
+  },
+  "T2_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T2_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 900.0,
+   "base_loot_amount": 38.0,
+   "fill": {
+    "fame_value": 300.0,
+    "min_tier": 2,
+    "items": [
+     "T2_CAPE",
+     "T2_BAG",
+     "T2_2H_TOOL_PICK",
+     "T2_2H_TOOL_HAMMER",
+     "T2_2H_TOOL_AXE",
+     "T2_2H_TOOL_SICKLE",
+     "T2_2H_TOOL_KNIFE",
+     "T2_2H_TOOL_SIEGEHAMMER",
+     "T2_FURNITUREITEM_CHEST",
+     "T2_FURNITUREITEM_BED",
+     "T2_FURNITUREITEM_TABLE"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T2_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T2_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T2_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T2_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T3_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 1800.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_FURNITUREITEM_TROPHY_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T3_JOURNAL_FISHING_EMPTY": {
+   "full": "T3_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 1360.0,
+   "base_loot_amount": 9.976,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T1_SEAWEED",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 41.0
+    },
+    {
+     "item": "T1_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T2_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T1_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T2_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T3_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    }
+   ]
+  },
+  "T5_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T5_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 7200.0,
+   "base_loot_amount": 8.0,
+   "fill": {
+    "fame_value": 2400.0,
+    "min_tier": 5,
+    "items": [
+     "T5_OFF_SHIELD",
+     "T5_OFF_TOWERSHIELD_UNDEAD",
+     "T5_OFF_SHIELD_HELL",
+     "T5_OFF_SPIKEDSHIELD_MORGANA",
+     "T5_HEAD_PLATE_SET1",
+     "T5_ARMOR_PLATE_SET1",
+     "T5_SHOES_PLATE_SET1",
+     "T5_HEAD_PLATE_SET2",
+     "T5_ARMOR_PLATE_SET2",
+     "T5_SHOES_PLATE_SET2",
+     "T5_HEAD_PLATE_SET3",
+     "T5_ARMOR_PLATE_SET3",
+     "T5_SHOES_PLATE_SET3",
+     "T5_HEAD_PLATE_UNDEAD",
+     "T5_ARMOR_PLATE_UNDEAD",
+     "T5_SHOES_PLATE_UNDEAD",
+     "T5_HEAD_PLATE_HELL",
+     "T5_ARMOR_PLATE_HELL",
+     "T5_SHOES_PLATE_HELL",
+     "T5_HEAD_PLATE_KEEPER",
+     "T5_ARMOR_PLATE_KEEPER",
+     "T5_SHOES_PLATE_KEEPER",
+     "T5_2H_CROSSBOW",
+     "T5_2H_CROSSBOWLARGE",
+     "T5_MAIN_1HCROSSBOW",
+     "T5_2H_REPEATINGCROSSBOW_UNDEAD",
+     "T5_2H_DUALCROSSBOW_HELL",
+     "T5_2H_CROSSBOWLARGE_MORGANA",
+     "T5_MAIN_AXE",
+     "T5_2H_AXE",
+     "T5_2H_HALBERD",
+     "T5_2H_HALBERD_MORGANA",
+     "T5_2H_SCYTHE_HELL",
+     "T5_2H_DUALAXE_KEEPER",
+     "T5_MAIN_SWORD",
+     "T5_2H_CLAYMORE",
+     "T5_2H_DUALSWORD",
+     "T5_MAIN_SCIMITAR_MORGANA",
+     "T5_2H_CLEAVER_HELL",
+     "T5_2H_DUALSCIMITAR_UNDEAD",
+     "T5_MAIN_HAMMER",
+     "T5_2H_POLEHAMMER",
+     "T5_2H_HAMMER",
+     "T5_2H_HAMMER_UNDEAD",
+     "T5_2H_DUALHAMMER_HELL",
+     "T5_2H_RAM_KEEPER",
+     "T5_MAIN_MACE",
+     "T5_2H_MACE",
+     "T5_2H_FLAIL",
+     "T5_MAIN_ROCKMACE_KEEPER",
+     "T5_MAIN_MACE_HELL",
+     "T5_2H_MACE_MORGANA",
+     "T5_ARMOR_PLATE_AVALON",
+     "T5_HEAD_PLATE_AVALON",
+     "T5_SHOES_PLATE_AVALON",
+     "T5_2H_CROSSBOW_CANNON_AVALON",
+     "T5_2H_AXE_AVALON",
+     "T5_2H_CLAYMORE_AVALON",
+     "T5_2H_HAMMER_AVALON",
+     "T5_2H_DUALMACE_AVALON",
+     "T5_OFF_SHIELD_AVALON",
+     "T5_2H_KNUCKLES_SET1",
+     "T5_2H_KNUCKLES_SET2",
+     "T5_2H_KNUCKLES_SET3",
+     "T5_2H_KNUCKLES_MORGANA",
+     "T5_2H_KNUCKLES_HELL",
+     "T5_2H_KNUCKLES_KEEPER",
+     "T5_2H_KNUCKLES_AVALON",
+     "T5_ARMOR_PLATE_FEY",
+     "T5_SHOES_PLATE_FEY",
+     "T5_HEAD_PLATE_FEY",
+     "T5_MAIN_SWORD_CRYSTAL",
+     "T5_2H_SCYTHE_CRYSTAL",
+     "T5_MAIN_MACE_CRYSTAL",
+     "T5_2H_KNUCKLES_CRYSTAL",
+     "T5_2H_DUALCROSSBOW_CRYSTAL",
+     "T5_2H_HAMMER_CRYSTAL",
+     "T5_OFF_SHIELD_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T5_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 13223.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 700.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 70.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 7.0
+    },
+    {
+     "item": "T5_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T5_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T5_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T6_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 14400.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_FURNITUREITEM_TROPHY_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T7_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 19920.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_FURNITUREITEM_TROPHY_FISH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 15.0
+    }
+   ]
+  },
+  "T3_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 1800.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_FURNITUREITEM_TROPHY_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 24960.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_FURNITUREITEM_TROPHY_FISH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 15.0
+    }
+   ]
+  },
+  "T2_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 4235.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_FURNITUREITEM_TROPHY_MERCENARY",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T4_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 3600.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_FURNITUREITEM_TROPHY_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T7_JOURNAL_WOOD_EMPTY": {
+   "full": "T7_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 7,
+   "resource_family": "WOOD",
+   "max_fame": 14400.0,
+   "base_loot_amount": 38.4,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T7_WOOD_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T7_WOOD_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_WOOD_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T8_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 32400.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_FURNITUREITEM_TROPHY_MERCENARY",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T3_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 3600.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_FURNITUREITEM_TROPHY_GENERAL",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T3_JOURNAL_HUNTER_EMPTY": {
+   "full": "T3_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 1800.0,
+   "base_loot_amount": 24.0,
+   "fill": {
+    "fame_value": 600.0,
+    "min_tier": 3,
+    "items": [
+     "T3_OFF_TORCH",
+     "T3_HEAD_LEATHER_SET1",
+     "T3_ARMOR_LEATHER_SET1",
+     "T3_SHOES_LEATHER_SET1",
+     "T3_2H_BOW",
+     "T3_MAIN_NATURESTAFF",
+     "T3_MAIN_DAGGER",
+     "T3_MAIN_SPEAR",
+     "T3_2H_QUARTERSTAFF",
+     "T3_2H_SHAPESHIFTER_SET1"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T3_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T3_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T3_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    }
+   ]
+  },
+  "T7_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 23904.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_FURNITUREITEM_TROPHY_MERCENARY",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T2_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 2400.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_FURNITUREITEM_TROPHY_GENERAL",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T5_JOURNAL_HIDE_EMPTY": {
+   "full": "T5_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 5,
+   "resource_family": "HIDE",
+   "max_fame": 3600.0,
+   "base_loot_amount": 32.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T5_HIDE_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_HIDE_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_HIDE_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T4_JOURNAL_ORE_EMPTY": {
+   "full": "T4_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 4,
+   "resource_family": "ORE",
+   "max_fame": 1800.0,
+   "base_loot_amount": 48.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T4_ORE_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T4_ORE_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T4_ORE_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T3_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T3_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 1800.0,
+   "base_loot_amount": 24.0,
+   "fill": {
+    "fame_value": 600.0,
+    "min_tier": 3,
+    "items": [
+     "T3_CAPE",
+     "T3_BAG",
+     "T3_2H_TOOL_PICK",
+     "T3_2H_TOOL_HAMMER",
+     "T3_2H_TOOL_AXE",
+     "T3_2H_TOOL_SICKLE",
+     "T3_2H_TOOL_KNIFE",
+     "T3_2H_TOOL_SIEGEHAMMER",
+     "T3_FURNITUREITEM_CHEST",
+     "T3_FURNITUREITEM_BED",
+     "T3_FURNITUREITEM_TABLE",
+     "T3_2H_TOOL_FISHINGROD",
+     "T3_2H_TOOL_TRACKING"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T3_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T3_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T3_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T3_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T5_JOURNAL_ORE_EMPTY": {
+   "full": "T5_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 5,
+   "resource_family": "ORE",
+   "max_fame": 3600.0,
+   "base_loot_amount": 32.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T5_ORE_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_ORE_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_ORE_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T2_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 900.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_FURNITUREITEM_TROPHY_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T2_JOURNAL_FISHING_EMPTY": {
+   "full": "T2_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 720.0,
+   "base_loot_amount": 10.6,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T1_SEAWEED",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T1_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 24.0
+    },
+    {
+     "item": "T2_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 24.0
+    },
+    {
+     "item": "T1_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 24.0
+    },
+    {
+     "item": "T2_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 24.0
+    }
+   ]
+  },
+  "T7_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T7_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 28380.0,
+   "base_loot_amount": 4.4,
+   "fill": {
+    "fame_value": 9600.0,
+    "min_tier": 7,
+    "items": [
+     "T7_CAPE",
+     "T7_BAG",
+     "T7_BAG_INSIGHT",
+     "T7_HEAD_GATHERER_FIBER",
+     "T7_ARMOR_GATHERER_FIBER",
+     "T7_SHOES_GATHERER_FIBER",
+     "T7_BACKPACK_GATHERER_FIBER",
+     "T7_HEAD_GATHERER_HIDE",
+     "T7_ARMOR_GATHERER_HIDE",
+     "T7_SHOES_GATHERER_HIDE",
+     "T7_BACKPACK_GATHERER_HIDE",
+     "T7_HEAD_GATHERER_ORE",
+     "T7_ARMOR_GATHERER_ORE",
+     "T7_SHOES_GATHERER_ORE",
+     "T7_BACKPACK_GATHERER_ORE",
+     "T7_HEAD_GATHERER_ROCK",
+     "T7_ARMOR_GATHERER_ROCK",
+     "T7_SHOES_GATHERER_ROCK",
+     "T7_BACKPACK_GATHERER_ROCK",
+     "T7_HEAD_GATHERER_WOOD",
+     "T7_ARMOR_GATHERER_WOOD",
+     "T7_SHOES_GATHERER_WOOD",
+     "T7_BACKPACK_GATHERER_WOOD",
+     "T7_2H_TOOL_PICK",
+     "T7_2H_TOOL_HAMMER",
+     "T7_2H_TOOL_AXE",
+     "T7_2H_TOOL_SICKLE",
+     "T7_2H_TOOL_KNIFE",
+     "T7_2H_TOOL_SIEGEHAMMER",
+     "T7_FURNITUREITEM_BED",
+     "T7_FURNITUREITEM_TABLE",
+     "T7_FURNITUREITEM_REPAIRKIT",
+     "T7_2H_TOOL_FISHINGROD",
+     "T7_HEAD_GATHERER_FISH",
+     "T7_ARMOR_GATHERER_FISH",
+     "T7_SHOES_GATHERER_FISH",
+     "T7_BACKPACK_GATHERER_FISH",
+     "T7_2H_TOOL_AXE_AVALON",
+     "T7_2H_TOOL_FISHINGROD_AVALON",
+     "T7_2H_TOOL_HAMMER_AVALON",
+     "T7_2H_TOOL_KNIFE_AVALON",
+     "T7_2H_TOOL_PICK_AVALON",
+     "T7_2H_TOOL_SICKLE_AVALON",
+     "T7_2H_TOOL_SIEGEHAMMER_AVALON",
+     "T7_2H_TOOL_TRACKING",
+     "T7_SIEGE_BANNER"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T7_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 400.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 40.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 4.0
+    },
+    {
+     "item": "T7_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T7_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T7_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T7_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T7_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T7_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T7_LEATHER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T7_LEATHER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_LEATHER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T8_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 57600.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_FURNITUREITEM_TROPHY_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T6_JOURNAL_FISHING_EMPTY": {
+   "full": "T6_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 4880.0,
+   "base_loot_amount": 20.0528,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T1_SEAWEED",
+     "ench": 0,
+     "amount": 6.0,
+     "weight": 39.0
+    },
+    {
+     "item": "T4_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T6_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T4_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T6_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    }
+   ]
+  },
+  "T6_JOURNAL_HIDE_EMPTY": {
+   "full": "T6_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 6,
+   "resource_family": "HIDE",
+   "max_fame": 7200.0,
+   "base_loot_amount": 32.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T6_HIDE_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T6_HIDE_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T6_HIDE_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T7_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 28800.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_FURNITUREITEM_TROPHY_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T6_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 14400.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_FURNITUREITEM_TROPHY_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T4_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T4_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 3600.0,
+   "base_loot_amount": 16.0,
+   "fill": {
+    "fame_value": 1200.0,
+    "min_tier": 4,
+    "items": [
+     "T4_CAPE",
+     "T4_BAG",
+     "T4_BAG_INSIGHT",
+     "T4_HEAD_GATHERER_FIBER",
+     "T4_ARMOR_GATHERER_FIBER",
+     "T4_SHOES_GATHERER_FIBER",
+     "T4_BACKPACK_GATHERER_FIBER",
+     "T4_HEAD_GATHERER_HIDE",
+     "T4_ARMOR_GATHERER_HIDE",
+     "T4_SHOES_GATHERER_HIDE",
+     "T4_BACKPACK_GATHERER_HIDE",
+     "T4_HEAD_GATHERER_ORE",
+     "T4_ARMOR_GATHERER_ORE",
+     "T4_SHOES_GATHERER_ORE",
+     "T4_BACKPACK_GATHERER_ORE",
+     "T4_HEAD_GATHERER_ROCK",
+     "T4_ARMOR_GATHERER_ROCK",
+     "T4_SHOES_GATHERER_ROCK",
+     "T4_BACKPACK_GATHERER_ROCK",
+     "T4_HEAD_GATHERER_WOOD",
+     "T4_ARMOR_GATHERER_WOOD",
+     "T4_SHOES_GATHERER_WOOD",
+     "T4_BACKPACK_GATHERER_WOOD",
+     "T4_2H_TOOL_PICK",
+     "T4_2H_TOOL_HAMMER",
+     "T4_2H_TOOL_AXE",
+     "T4_2H_TOOL_SICKLE",
+     "T4_2H_TOOL_KNIFE",
+     "T4_2H_TOOL_SIEGEHAMMER",
+     "T4_FURNITUREITEM_CHEST",
+     "T4_FURNITUREITEM_BED",
+     "T4_FURNITUREITEM_TABLE",
+     "T4_FURNITUREITEM_REPAIRKIT",
+     "T4_2H_TOOL_FISHINGROD",
+     "T4_HEAD_GATHERER_FISH",
+     "T4_ARMOR_GATHERER_FISH",
+     "T4_SHOES_GATHERER_FISH",
+     "T4_BACKPACK_GATHERER_FISH",
+     "T4_2H_TOOL_SICKLE_AVALON",
+     "T4_2H_TOOL_AXE_AVALON",
+     "T4_2H_TOOL_PICK_AVALON",
+     "T4_2H_TOOL_HAMMER_AVALON",
+     "T4_2H_TOOL_KNIFE_AVALON",
+     "T4_2H_TOOL_SIEGEHAMMER_AVALON",
+     "T4_2H_TOOL_FISHINGROD_AVALON",
+     "T4_2H_TOOL_TRACKING",
+     "T4_SIEGE_BANNER"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T4_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 400.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 40.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 4.0
+    },
+    {
+     "item": "T4_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T4_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T4_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T4_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T4_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T4_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T4_LEATHER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T4_LEATHER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T4_LEATHER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T8_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T8_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 58590.0,
+   "base_loot_amount": 4.2,
+   "fill": {
+    "fame_value": 19200.0,
+    "min_tier": 8,
+    "items": [
+     "T8_CAPE",
+     "T8_BAG",
+     "T8_BAG_INSIGHT",
+     "T8_HEAD_GATHERER_FIBER",
+     "T8_ARMOR_GATHERER_FIBER",
+     "T8_SHOES_GATHERER_FIBER",
+     "T8_BACKPACK_GATHERER_FIBER",
+     "T8_HEAD_GATHERER_HIDE",
+     "T8_ARMOR_GATHERER_HIDE",
+     "T8_SHOES_GATHERER_HIDE",
+     "T8_BACKPACK_GATHERER_HIDE",
+     "T8_HEAD_GATHERER_ORE",
+     "T8_ARMOR_GATHERER_ORE",
+     "T8_SHOES_GATHERER_ORE",
+     "T8_BACKPACK_GATHERER_ORE",
+     "T8_HEAD_GATHERER_ROCK",
+     "T8_ARMOR_GATHERER_ROCK",
+     "T8_SHOES_GATHERER_ROCK",
+     "T8_BACKPACK_GATHERER_ROCK",
+     "T8_HEAD_GATHERER_WOOD",
+     "T8_ARMOR_GATHERER_WOOD",
+     "T8_SHOES_GATHERER_WOOD",
+     "T8_BACKPACK_GATHERER_WOOD",
+     "T8_2H_TOOL_PICK",
+     "T8_2H_TOOL_HAMMER",
+     "T8_2H_TOOL_AXE",
+     "T8_2H_TOOL_SICKLE",
+     "T8_2H_TOOL_KNIFE",
+     "T8_2H_TOOL_SIEGEHAMMER",
+     "T8_FURNITUREITEM_BED",
+     "T8_FURNITUREITEM_TABLE",
+     "T8_FURNITUREITEM_REPAIRKIT",
+     "T8_2H_TOOL_FISHINGROD",
+     "T8_HEAD_GATHERER_FISH",
+     "T8_ARMOR_GATHERER_FISH",
+     "T8_SHOES_GATHERER_FISH",
+     "T8_BACKPACK_GATHERER_FISH",
+     "T8_FURNITUREITEM_TROPHY_FISHING_BOSS",
+     "T8_2H_TOOL_AXE_AVALON",
+     "T8_2H_TOOL_FISHINGROD_AVALON",
+     "T8_2H_TOOL_HAMMER_AVALON",
+     "T8_2H_TOOL_KNIFE_AVALON",
+     "T8_2H_TOOL_PICK_AVALON",
+     "T8_2H_TOOL_SICKLE_AVALON",
+     "T8_2H_TOOL_SIEGEHAMMER_AVALON",
+     "T8_2H_TOOL_TRACKING",
+     "T8_SIEGE_BANNER"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T8_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 400.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 40.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 4.0
+    },
+    {
+     "item": "T8_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T8_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T8_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T8_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T8_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T8_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T8_LEATHER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T8_LEATHER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T8_LEATHER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T4_JOURNAL_FISHING_EMPTY": {
+   "full": "T4_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 2223.0,
+   "base_loot_amount": 13.9112,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T1_SEAWEED",
+     "ench": 0,
+     "amount": 2.0,
+     "weight": 29.0
+    },
+    {
+     "item": "T2_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T4_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T2_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T3_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T4_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    }
+   ]
+  },
+  "T7_JOURNAL_FISHING_EMPTY": {
+   "full": "T7_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 6640.0,
+   "base_loot_amount": 22.3876,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T1_SEAWEED",
+     "ench": 0,
+     "amount": 9.0,
+     "weight": 52.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T6_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T5_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T6_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T7_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    }
+   ]
+  },
+  "T4_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 6669.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_FURNITUREITEM_TROPHY_FISH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5.0
+    }
+   ]
+  },
+  "T2_JOURNAL_WOOD_EMPTY": {
+   "full": "T2_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 2,
+   "resource_family": "WOOD",
+   "max_fame": 450.0,
+   "base_loot_amount": 38.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T2_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 900.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_FURNITUREITEM_TROPHY_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T3_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T3_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 2171.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": []
+  },
+  "T7_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T7_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 28380.0,
+   "base_loot_amount": 4.4,
+   "fill": {
+    "fame_value": 9600.0,
+    "min_tier": 7,
+    "items": [
+     "T7_OFF_SHIELD",
+     "T7_OFF_TOWERSHIELD_UNDEAD",
+     "T7_OFF_SHIELD_HELL",
+     "T7_OFF_SPIKEDSHIELD_MORGANA",
+     "T7_HEAD_PLATE_SET1",
+     "T7_ARMOR_PLATE_SET1",
+     "T7_SHOES_PLATE_SET1",
+     "T7_HEAD_PLATE_SET2",
+     "T7_ARMOR_PLATE_SET2",
+     "T7_SHOES_PLATE_SET2",
+     "T7_HEAD_PLATE_SET3",
+     "T7_ARMOR_PLATE_SET3",
+     "T7_SHOES_PLATE_SET3",
+     "T7_HEAD_PLATE_UNDEAD",
+     "T7_ARMOR_PLATE_UNDEAD",
+     "T7_SHOES_PLATE_UNDEAD",
+     "T7_HEAD_PLATE_HELL",
+     "T7_ARMOR_PLATE_HELL",
+     "T7_SHOES_PLATE_HELL",
+     "T7_HEAD_PLATE_KEEPER",
+     "T7_ARMOR_PLATE_KEEPER",
+     "T7_SHOES_PLATE_KEEPER",
+     "T7_2H_CROSSBOW",
+     "T7_2H_CROSSBOWLARGE",
+     "T7_MAIN_1HCROSSBOW",
+     "T7_2H_REPEATINGCROSSBOW_UNDEAD",
+     "T7_2H_DUALCROSSBOW_HELL",
+     "T7_2H_CROSSBOWLARGE_MORGANA",
+     "T7_MAIN_AXE",
+     "T7_2H_AXE",
+     "T7_2H_HALBERD",
+     "T7_2H_HALBERD_MORGANA",
+     "T7_2H_SCYTHE_HELL",
+     "T7_2H_DUALAXE_KEEPER",
+     "T7_MAIN_SWORD",
+     "T7_2H_CLAYMORE",
+     "T7_2H_DUALSWORD",
+     "T7_MAIN_SCIMITAR_MORGANA",
+     "T7_2H_CLEAVER_HELL",
+     "T7_2H_DUALSCIMITAR_UNDEAD",
+     "T7_MAIN_HAMMER",
+     "T7_2H_POLEHAMMER",
+     "T7_2H_HAMMER",
+     "T7_2H_HAMMER_UNDEAD",
+     "T7_2H_DUALHAMMER_HELL",
+     "T7_2H_RAM_KEEPER",
+     "T7_MAIN_MACE",
+     "T7_2H_MACE",
+     "T7_2H_FLAIL",
+     "T7_MAIN_ROCKMACE_KEEPER",
+     "T7_MAIN_MACE_HELL",
+     "T7_2H_MACE_MORGANA",
+     "T7_ARMOR_PLATE_AVALON",
+     "T7_HEAD_PLATE_AVALON",
+     "T7_SHOES_PLATE_AVALON",
+     "T7_2H_CROSSBOW_CANNON_AVALON",
+     "T7_2H_AXE_AVALON",
+     "T7_2H_CLAYMORE_AVALON",
+     "T7_2H_HAMMER_AVALON",
+     "T7_2H_DUALMACE_AVALON",
+     "T7_OFF_SHIELD_AVALON",
+     "T7_2H_KNUCKLES_SET1",
+     "T7_2H_KNUCKLES_SET2",
+     "T7_2H_KNUCKLES_SET3",
+     "T7_2H_KNUCKLES_MORGANA",
+     "T7_2H_KNUCKLES_HELL",
+     "T7_2H_KNUCKLES_KEEPER",
+     "T7_2H_KNUCKLES_AVALON",
+     "T7_ARMOR_PLATE_FEY",
+     "T7_SHOES_PLATE_FEY",
+     "T7_HEAD_PLATE_FEY",
+     "T7_MAIN_SWORD_CRYSTAL",
+     "T7_2H_SCYTHE_CRYSTAL",
+     "T7_MAIN_MACE_CRYSTAL",
+     "T7_2H_KNUCKLES_CRYSTAL",
+     "T7_2H_DUALCROSSBOW_CRYSTAL",
+     "T7_2H_HAMMER_CRYSTAL",
+     "T7_OFF_SHIELD_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T7_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 13223.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 700.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 70.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 7.0
+    },
+    {
+     "item": "T7_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T7_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T7_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T7_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T7_JOURNAL_STONE_EMPTY": {
+   "full": "T7_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 7,
+   "resource_family": "ROCK",
+   "max_fame": 14400.0,
+   "base_loot_amount": 38.4,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_MAGE_EMPTY": {
+   "full": "T8_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 58590.0,
+   "base_loot_amount": 4.2,
+   "fill": {
+    "fame_value": 19200.0,
+    "min_tier": 8,
+    "items": [
+     "T8_OFF_BOOK",
+     "T8_OFF_ORB_MORGANA",
+     "T8_OFF_DEMONSKULL_HELL",
+     "T8_OFF_TOTEM_KEEPER",
+     "T8_HEAD_CLOTH_SET1",
+     "T8_ARMOR_CLOTH_SET1",
+     "T8_SHOES_CLOTH_SET1",
+     "T8_HEAD_CLOTH_SET2",
+     "T8_ARMOR_CLOTH_SET2",
+     "T8_SHOES_CLOTH_SET2",
+     "T8_HEAD_CLOTH_SET3",
+     "T8_ARMOR_CLOTH_SET3",
+     "T8_SHOES_CLOTH_SET3",
+     "T8_HEAD_CLOTH_KEEPER",
+     "T8_ARMOR_CLOTH_KEEPER",
+     "T8_SHOES_CLOTH_KEEPER",
+     "T8_HEAD_CLOTH_HELL",
+     "T8_ARMOR_CLOTH_HELL",
+     "T8_SHOES_CLOTH_HELL",
+     "T8_HEAD_CLOTH_MORGANA",
+     "T8_ARMOR_CLOTH_MORGANA",
+     "T8_SHOES_CLOTH_MORGANA",
+     "T8_MAIN_CURSEDSTAFF",
+     "T8_2H_CURSEDSTAFF",
+     "T8_2H_DEMONICSTAFF",
+     "T8_MAIN_CURSEDSTAFF_UNDEAD",
+     "T8_2H_SKULLORB_HELL",
+     "T8_2H_CURSEDSTAFF_MORGANA",
+     "T8_MAIN_FIRESTAFF",
+     "T8_2H_FIRESTAFF",
+     "T8_2H_INFERNOSTAFF",
+     "T8_MAIN_FIRESTAFF_KEEPER",
+     "T8_2H_FIRESTAFF_HELL",
+     "T8_2H_INFERNOSTAFF_MORGANA",
+     "T8_MAIN_FROSTSTAFF",
+     "T8_2H_FROSTSTAFF",
+     "T8_2H_GLACIALSTAFF",
+     "T8_MAIN_FROSTSTAFF_KEEPER",
+     "T8_2H_ICEGAUNTLETS_HELL",
+     "T8_2H_ICECRYSTAL_UNDEAD",
+     "T8_MAIN_ARCANESTAFF",
+     "T8_2H_ARCANESTAFF",
+     "T8_2H_ENIGMATICSTAFF",
+     "T8_MAIN_ARCANESTAFF_UNDEAD",
+     "T8_2H_ARCANESTAFF_HELL",
+     "T8_2H_ENIGMATICORB_MORGANA",
+     "T8_MAIN_HOLYSTAFF",
+     "T8_2H_HOLYSTAFF",
+     "T8_2H_DIVINESTAFF",
+     "T8_MAIN_HOLYSTAFF_MORGANA",
+     "T8_2H_HOLYSTAFF_HELL",
+     "T8_2H_HOLYSTAFF_UNDEAD",
+     "T8_ARMOR_CLOTH_AVALON",
+     "T8_HEAD_CLOTH_AVALON",
+     "T8_SHOES_CLOTH_AVALON",
+     "T8_MAIN_CURSEDSTAFF_AVALON",
+     "T8_2H_FIRE_RINGPAIR_AVALON",
+     "T8_MAIN_FROSTSTAFF_AVALON",
+     "T8_2H_ARCANE_RINGPAIR_AVALON",
+     "T8_MAIN_HOLYSTAFF_AVALON",
+     "T8_OFF_CENSER_AVALON",
+     "T8_HEAD_CLOTH_FEY",
+     "T8_ARMOR_CLOTH_FEY",
+     "T8_SHOES_CLOTH_FEY",
+     "T8_2H_ARCANESTAFF_CRYSTAL",
+     "T8_2H_FROSTSTAFF_CRYSTAL",
+     "T8_2H_HOLYSTAFF_CRYSTAL",
+     "T8_MAIN_CURSEDSTAFF_CRYSTAL",
+     "T8_MAIN_FIRESTAFF_CRYSTAL",
+     "T8_OFF_TOME_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T8_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T8_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 500.0
+    },
+    {
+     "item": "T8_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T8_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 5.0
+    },
+    {
+     "item": "T8_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 400.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 40.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 4.0
+    },
+    {
+     "item": "T8_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T8_JOURNAL_HUNTER_EMPTY": {
+   "full": "T8_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 58590.0,
+   "base_loot_amount": 4.2,
+   "fill": {
+    "fame_value": 19200.0,
+    "min_tier": 8,
+    "items": [
+     "T8_OFF_TORCH",
+     "T8_OFF_HORN_KEEPER",
+     "T8_OFF_JESTERCANE_HELL",
+     "T8_OFF_LAMP_UNDEAD",
+     "T8_HEAD_LEATHER_SET1",
+     "T8_ARMOR_LEATHER_SET1",
+     "T8_SHOES_LEATHER_SET1",
+     "T8_HEAD_LEATHER_SET2",
+     "T8_ARMOR_LEATHER_SET2",
+     "T8_SHOES_LEATHER_SET2",
+     "T8_HEAD_LEATHER_SET3",
+     "T8_ARMOR_LEATHER_SET3",
+     "T8_SHOES_LEATHER_SET3",
+     "T8_HEAD_LEATHER_MORGANA",
+     "T8_ARMOR_LEATHER_MORGANA",
+     "T8_SHOES_LEATHER_MORGANA",
+     "T8_HEAD_LEATHER_HELL",
+     "T8_ARMOR_LEATHER_HELL",
+     "T8_SHOES_LEATHER_HELL",
+     "T8_HEAD_LEATHER_UNDEAD",
+     "T8_ARMOR_LEATHER_UNDEAD",
+     "T8_SHOES_LEATHER_UNDEAD",
+     "T8_2H_BOW",
+     "T8_2H_WARBOW",
+     "T8_2H_LONGBOW",
+     "T8_2H_LONGBOW_UNDEAD",
+     "T8_2H_BOW_HELL",
+     "T8_2H_BOW_KEEPER",
+     "T8_MAIN_NATURESTAFF",
+     "T8_2H_NATURESTAFF",
+     "T8_2H_WILDSTAFF",
+     "T8_MAIN_NATURESTAFF_KEEPER",
+     "T8_2H_NATURESTAFF_HELL",
+     "T8_2H_NATURESTAFF_KEEPER",
+     "T8_MAIN_DAGGER",
+     "T8_2H_DAGGERPAIR",
+     "T8_2H_CLAWPAIR",
+     "T8_MAIN_RAPIER_MORGANA",
+     "T8_MAIN_DAGGER_HELL",
+     "T8_2H_DUALSICKLE_UNDEAD",
+     "T8_MAIN_SPEAR",
+     "T8_2H_SPEAR",
+     "T8_2H_GLAIVE",
+     "T8_MAIN_SPEAR_KEEPER",
+     "T8_2H_HARPOON_HELL",
+     "T8_2H_TRIDENT_UNDEAD",
+     "T8_2H_QUARTERSTAFF",
+     "T8_2H_IRONCLADEDSTAFF",
+     "T8_2H_DOUBLEBLADEDSTAFF",
+     "T8_2H_COMBATSTAFF_MORGANA",
+     "T8_2H_TWINSCYTHE_HELL",
+     "T8_2H_ROCKSTAFF_KEEPER",
+     "T8_ARMOR_LEATHER_AVALON",
+     "T8_HEAD_LEATHER_AVALON",
+     "T8_SHOES_LEATHER_AVALON",
+     "T8_2H_BOW_AVALON",
+     "T8_MAIN_NATURESTAFF_AVALON",
+     "T8_2H_DAGGER_KATAR_AVALON",
+     "T8_MAIN_SPEAR_LANCE_AVALON",
+     "T8_2H_QUARTERSTAFF_AVALON",
+     "T8_OFF_TALISMAN_AVALON",
+     "T8_HEAD_LEATHER_FEY",
+     "T8_ARMOR_LEATHER_FEY",
+     "T8_SHOES_LEATHER_FEY",
+     "T8_2H_SHAPESHIFTER_SET1",
+     "T8_2H_SHAPESHIFTER_SET2",
+     "T8_2H_SHAPESHIFTER_SET3",
+     "T8_2H_SHAPESHIFTER_MORGANA",
+     "T8_2H_SHAPESHIFTER_HELL",
+     "T8_2H_SHAPESHIFTER_KEEPER",
+     "T8_2H_SHAPESHIFTER_AVALON",
+     "T8_2H_GLAIVE_CRYSTAL",
+     "T8_2H_DOUBLEBLADEDSTAFF_CRYSTAL",
+     "T8_2H_DAGGERPAIR_CRYSTAL",
+     "T8_2H_BOW_CRYSTAL",
+     "T8_2H_SHAPESHIFTER_CRYSTAL",
+     "T8_MAIN_NATURESTAFF_CRYSTAL",
+     "T8_OFF_TORCH_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T8_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T8_LEATHER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 500.0
+    },
+    {
+     "item": "T8_LEATHER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T8_LEATHER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 5.0
+    },
+    {
+     "item": "T8_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 300.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 30.0
+    },
+    {
+     "item": "T8_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 3.0
+    },
+    {
+     "item": "T8_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 300.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 30.0
+    },
+    {
+     "item": "T8_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 3.0
+    }
+   ]
+  },
+  "T6_JOURNAL_STONE_EMPTY": {
+   "full": "T6_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 6,
+   "resource_family": "ROCK",
+   "max_fame": 7200.0,
+   "base_loot_amount": 32.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_FISHING_EMPTY": {
+   "full": "T8_JOURNAL_FISHING_FULL",
+   "family": "FISHING",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 8320.0,
+   "base_loot_amount": 25.119,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T1_SEAWEED",
+     "ench": 0,
+     "amount": 14.0,
+     "weight": 46.0
+    },
+    {
+     "item": "T6_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T8_FISH_FRESHWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T6_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T7_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T8_FISH_SALTWATER_ALL_COMMON",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 150.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_FOREST_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_MOUNTAIN_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_HIGHLANDS_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_STEPPE_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_SWAMP_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_FRESHWATER_AVALON_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T3_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FISH_SALTWATER_ALL_RARE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    }
+   ]
+  },
+  "T6_JOURNAL_WOOD_EMPTY": {
+   "full": "T6_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 6,
+   "resource_family": "WOOD",
+   "max_fame": 7200.0,
+   "base_loot_amount": 32.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T6_WOOD_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T6_WOOD_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T6_WOOD_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T7_JOURNAL_HUNTER_EMPTY": {
+   "full": "T7_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 28380.0,
+   "base_loot_amount": 4.4,
+   "fill": {
+    "fame_value": 9600.0,
+    "min_tier": 7,
+    "items": [
+     "T7_OFF_TORCH",
+     "T7_OFF_HORN_KEEPER",
+     "T7_OFF_JESTERCANE_HELL",
+     "T7_OFF_LAMP_UNDEAD",
+     "T7_HEAD_LEATHER_SET1",
+     "T7_ARMOR_LEATHER_SET1",
+     "T7_SHOES_LEATHER_SET1",
+     "T7_HEAD_LEATHER_SET2",
+     "T7_ARMOR_LEATHER_SET2",
+     "T7_SHOES_LEATHER_SET2",
+     "T7_HEAD_LEATHER_SET3",
+     "T7_ARMOR_LEATHER_SET3",
+     "T7_SHOES_LEATHER_SET3",
+     "T7_HEAD_LEATHER_MORGANA",
+     "T7_ARMOR_LEATHER_MORGANA",
+     "T7_SHOES_LEATHER_MORGANA",
+     "T7_HEAD_LEATHER_HELL",
+     "T7_ARMOR_LEATHER_HELL",
+     "T7_SHOES_LEATHER_HELL",
+     "T7_HEAD_LEATHER_UNDEAD",
+     "T7_ARMOR_LEATHER_UNDEAD",
+     "T7_SHOES_LEATHER_UNDEAD",
+     "T7_2H_BOW",
+     "T7_2H_WARBOW",
+     "T7_2H_LONGBOW",
+     "T7_2H_LONGBOW_UNDEAD",
+     "T7_2H_BOW_HELL",
+     "T7_2H_BOW_KEEPER",
+     "T7_MAIN_NATURESTAFF",
+     "T7_2H_NATURESTAFF",
+     "T7_2H_WILDSTAFF",
+     "T7_MAIN_NATURESTAFF_KEEPER",
+     "T7_2H_NATURESTAFF_HELL",
+     "T7_2H_NATURESTAFF_KEEPER",
+     "T7_MAIN_DAGGER",
+     "T7_2H_DAGGERPAIR",
+     "T7_2H_CLAWPAIR",
+     "T7_MAIN_RAPIER_MORGANA",
+     "T7_MAIN_DAGGER_HELL",
+     "T7_2H_DUALSICKLE_UNDEAD",
+     "T7_MAIN_SPEAR",
+     "T7_2H_SPEAR",
+     "T7_2H_GLAIVE",
+     "T7_MAIN_SPEAR_KEEPER",
+     "T7_2H_HARPOON_HELL",
+     "T7_2H_TRIDENT_UNDEAD",
+     "T7_2H_QUARTERSTAFF",
+     "T7_2H_IRONCLADEDSTAFF",
+     "T7_2H_DOUBLEBLADEDSTAFF",
+     "T7_2H_COMBATSTAFF_MORGANA",
+     "T7_2H_TWINSCYTHE_HELL",
+     "T7_2H_ROCKSTAFF_KEEPER",
+     "T7_ARMOR_LEATHER_AVALON",
+     "T7_HEAD_LEATHER_AVALON",
+     "T7_SHOES_LEATHER_AVALON",
+     "T7_2H_BOW_AVALON",
+     "T7_MAIN_NATURESTAFF_AVALON",
+     "T7_2H_DAGGER_KATAR_AVALON",
+     "T7_MAIN_SPEAR_LANCE_AVALON",
+     "T7_2H_QUARTERSTAFF_AVALON",
+     "T7_OFF_TALISMAN_AVALON",
+     "T7_HEAD_LEATHER_FEY",
+     "T7_ARMOR_LEATHER_FEY",
+     "T7_SHOES_LEATHER_FEY",
+     "T7_2H_SHAPESHIFTER_SET1",
+     "T7_2H_SHAPESHIFTER_SET2",
+     "T7_2H_SHAPESHIFTER_SET3",
+     "T7_2H_SHAPESHIFTER_MORGANA",
+     "T7_2H_SHAPESHIFTER_HELL",
+     "T7_2H_SHAPESHIFTER_KEEPER",
+     "T7_2H_SHAPESHIFTER_AVALON",
+     "T7_2H_GLAIVE_CRYSTAL",
+     "T7_2H_DOUBLEBLADEDSTAFF_CRYSTAL",
+     "T7_2H_DAGGERPAIR_CRYSTAL",
+     "T7_2H_BOW_CRYSTAL",
+     "T7_2H_SHAPESHIFTER_CRYSTAL",
+     "T7_MAIN_NATURESTAFF_CRYSTAL",
+     "T7_OFF_TORCH_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T7_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T7_LEATHER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 500.0
+    },
+    {
+     "item": "T7_LEATHER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T7_LEATHER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 5.0
+    },
+    {
+     "item": "T7_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 300.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 30.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 3.0
+    },
+    {
+     "item": "T7_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 300.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 30.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 3.0
+    }
+   ]
+  },
+  "T5_JOURNAL_STONE_EMPTY": {
+   "full": "T5_JOURNAL_STONE_FULL",
+   "family": "STONE",
+   "tier": 5,
+   "resource_family": "ROCK",
+   "max_fame": 3600.0,
+   "base_loot_amount": 32.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T2_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T2_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 900.0,
+   "base_loot_amount": 38.0,
+   "fill": {
+    "fame_value": 300.0,
+    "min_tier": 2,
+    "items": [
+     "T2_OFF_SHIELD",
+     "T2_HEAD_PLATE_SET1",
+     "T2_ARMOR_PLATE_SET1",
+     "T2_SHOES_PLATE_SET1",
+     "T2_MAIN_SWORD"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T2_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 13223.0
+    },
+    {
+     "item": "T2_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T2_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T5_JOURNAL_TROPHY_ORE_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_ORE_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 7200.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_FURNITUREITEM_TROPHY_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T5_JOURNAL_WOOD_EMPTY": {
+   "full": "T5_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 5,
+   "resource_family": "WOOD",
+   "max_fame": 3600.0,
+   "base_loot_amount": 32.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T5_WOOD_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T5_WOOD_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T5_WOOD_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T3_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 2700.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_FURNITUREITEM_TROPHY_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 57600.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_FURNITUREITEM_TROPHY_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T7_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 28800.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_FURNITUREITEM_TROPHY_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T2_JOURNAL_FIBER_EMPTY": {
+   "full": "T2_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 2,
+   "resource_family": "FIBER",
+   "max_fame": 450.0,
+   "base_loot_amount": 38.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T4_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 5400.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_FURNITUREITEM_TROPHY_GENERAL",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_FIBER_EMPTY": {
+   "full": "T8_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 8,
+   "resource_family": "FIBER",
+   "max_fame": 28800.0,
+   "base_loot_amount": 38.4,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T8_FIBER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T8_FIBER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T8_FIBER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T2_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 2160.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_FURNITUREITEM_TROPHY_FISH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T3_JOURNAL_HIDE_EMPTY": {
+   "full": "T3_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 3,
+   "resource_family": "HIDE",
+   "max_fame": 900.0,
+   "base_loot_amount": 60.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T6_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 17568.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_FURNITUREITEM_TROPHY_MERCENARY",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T6_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 14640.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_FURNITUREITEM_TROPHY_FISH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    }
+   ]
+  },
+  "T4_JOURNAL_HUNTER_EMPTY": {
+   "full": "T4_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 3600.0,
+   "base_loot_amount": 16.0,
+   "fill": {
+    "fame_value": 1200.0,
+    "min_tier": 4,
+    "items": [
+     "T4_OFF_TORCH",
+     "T4_OFF_HORN_KEEPER",
+     "T4_OFF_JESTERCANE_HELL",
+     "T4_OFF_LAMP_UNDEAD",
+     "T4_HEAD_LEATHER_SET1",
+     "T4_ARMOR_LEATHER_SET1",
+     "T4_SHOES_LEATHER_SET1",
+     "T4_HEAD_LEATHER_SET2",
+     "T4_ARMOR_LEATHER_SET2",
+     "T4_SHOES_LEATHER_SET2",
+     "T4_HEAD_LEATHER_SET3",
+     "T4_ARMOR_LEATHER_SET3",
+     "T4_SHOES_LEATHER_SET3",
+     "T4_HEAD_LEATHER_MORGANA",
+     "T4_ARMOR_LEATHER_MORGANA",
+     "T4_SHOES_LEATHER_MORGANA",
+     "T4_HEAD_LEATHER_HELL",
+     "T4_ARMOR_LEATHER_HELL",
+     "T4_SHOES_LEATHER_HELL",
+     "T4_HEAD_LEATHER_UNDEAD",
+     "T4_ARMOR_LEATHER_UNDEAD",
+     "T4_SHOES_LEATHER_UNDEAD",
+     "T4_2H_BOW",
+     "T4_2H_WARBOW",
+     "T4_2H_LONGBOW",
+     "T4_2H_LONGBOW_UNDEAD",
+     "T4_2H_BOW_HELL",
+     "T4_2H_BOW_KEEPER",
+     "T4_MAIN_NATURESTAFF",
+     "T4_2H_NATURESTAFF",
+     "T4_2H_WILDSTAFF",
+     "T4_MAIN_NATURESTAFF_KEEPER",
+     "T4_2H_NATURESTAFF_HELL",
+     "T4_2H_NATURESTAFF_KEEPER",
+     "T4_MAIN_DAGGER",
+     "T4_2H_DAGGERPAIR",
+     "T4_2H_CLAWPAIR",
+     "T4_MAIN_RAPIER_MORGANA",
+     "T4_MAIN_DAGGER_HELL",
+     "T4_2H_DUALSICKLE_UNDEAD",
+     "T4_MAIN_SPEAR",
+     "T4_2H_SPEAR",
+     "T4_2H_GLAIVE",
+     "T4_MAIN_SPEAR_KEEPER",
+     "T4_2H_HARPOON_HELL",
+     "T4_2H_TRIDENT_UNDEAD",
+     "T4_2H_QUARTERSTAFF",
+     "T4_2H_IRONCLADEDSTAFF",
+     "T4_2H_DOUBLEBLADEDSTAFF",
+     "T4_2H_COMBATSTAFF_MORGANA",
+     "T4_2H_TWINSCYTHE_HELL",
+     "T4_2H_ROCKSTAFF_KEEPER",
+     "T4_ARMOR_LEATHER_AVALON",
+     "T4_HEAD_LEATHER_AVALON",
+     "T4_SHOES_LEATHER_AVALON",
+     "T4_2H_BOW_AVALON",
+     "T4_MAIN_NATURESTAFF_AVALON",
+     "T4_2H_DAGGER_KATAR_AVALON",
+     "T4_MAIN_SPEAR_LANCE_AVALON",
+     "T4_2H_QUARTERSTAFF_AVALON",
+     "T4_OFF_TALISMAN_AVALON",
+     "T4_HEAD_LEATHER_FEY",
+     "T4_ARMOR_LEATHER_FEY",
+     "T4_SHOES_LEATHER_FEY",
+     "T4_2H_SHAPESHIFTER_SET1",
+     "T4_2H_SHAPESHIFTER_SET2",
+     "T4_2H_SHAPESHIFTER_SET3",
+     "T4_2H_SHAPESHIFTER_MORGANA",
+     "T4_2H_SHAPESHIFTER_HELL",
+     "T4_2H_SHAPESHIFTER_KEEPER",
+     "T4_2H_SHAPESHIFTER_AVALON",
+     "T4_2H_GLAIVE_CRYSTAL",
+     "T4_2H_DOUBLEBLADEDSTAFF_CRYSTAL",
+     "T4_2H_DAGGERPAIR_CRYSTAL",
+     "T4_2H_BOW_CRYSTAL",
+     "T4_2H_SHAPESHIFTER_CRYSTAL",
+     "T4_MAIN_NATURESTAFF_CRYSTAL",
+     "T4_OFF_TORCH_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T4_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T4_LEATHER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 500.0
+    },
+    {
+     "item": "T4_LEATHER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T4_LEATHER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 5.0
+    },
+    {
+     "item": "T4_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 300.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 30.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 3.0
+    },
+    {
+     "item": "T4_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 300.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 30.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 3.0
+    }
+   ]
+  },
+  "T4_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 5400.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_FURNITUREITEM_TROPHY_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_WOOD_EMPTY": {
+   "full": "T8_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 8,
+   "resource_family": "WOOD",
+   "max_fame": 28800.0,
+   "base_loot_amount": 38.4,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T8_WOOD_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T8_WOOD_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T8_WOOD_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T7_JOURNAL_HIDE_EMPTY": {
+   "full": "T7_JOURNAL_HIDE_FULL",
+   "family": "HIDE",
+   "tier": 7,
+   "resource_family": "HIDE",
+   "max_fame": 14400.0,
+   "base_loot_amount": 38.4,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T7_HIDE_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T7_HIDE_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_HIDE_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T3_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T3_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 1800.0,
+   "base_loot_amount": 24.0,
+   "fill": {
+    "fame_value": 600.0,
+    "min_tier": 3,
+    "items": [
+     "T3_OFF_SHIELD",
+     "T3_HEAD_PLATE_SET1",
+     "T3_ARMOR_PLATE_SET1",
+     "T3_SHOES_PLATE_SET1",
+     "T3_2H_CROSSBOW",
+     "T3_MAIN_AXE",
+     "T3_MAIN_SWORD",
+     "T3_MAIN_HAMMER",
+     "T3_MAIN_MACE",
+     "T3_2H_KNUCKLES_SET1"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T3_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 13223.0
+    },
+    {
+     "item": "T3_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T3_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T6_JOURNAL_MAGE_EMPTY": {
+   "full": "T6_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 14400.0,
+   "base_loot_amount": 5.3333,
+   "fill": {
+    "fame_value": 4800.0,
+    "min_tier": 6,
+    "items": [
+     "T6_OFF_BOOK",
+     "T6_OFF_ORB_MORGANA",
+     "T6_OFF_DEMONSKULL_HELL",
+     "T6_OFF_TOTEM_KEEPER",
+     "T6_HEAD_CLOTH_SET1",
+     "T6_ARMOR_CLOTH_SET1",
+     "T6_SHOES_CLOTH_SET1",
+     "T6_HEAD_CLOTH_SET2",
+     "T6_ARMOR_CLOTH_SET2",
+     "T6_SHOES_CLOTH_SET2",
+     "T6_HEAD_CLOTH_SET3",
+     "T6_ARMOR_CLOTH_SET3",
+     "T6_SHOES_CLOTH_SET3",
+     "T6_HEAD_CLOTH_KEEPER",
+     "T6_ARMOR_CLOTH_KEEPER",
+     "T6_SHOES_CLOTH_KEEPER",
+     "T6_HEAD_CLOTH_HELL",
+     "T6_ARMOR_CLOTH_HELL",
+     "T6_SHOES_CLOTH_HELL",
+     "T6_HEAD_CLOTH_MORGANA",
+     "T6_ARMOR_CLOTH_MORGANA",
+     "T6_SHOES_CLOTH_MORGANA",
+     "T6_MAIN_CURSEDSTAFF",
+     "T6_2H_CURSEDSTAFF",
+     "T6_2H_DEMONICSTAFF",
+     "T6_MAIN_CURSEDSTAFF_UNDEAD",
+     "T6_2H_SKULLORB_HELL",
+     "T6_2H_CURSEDSTAFF_MORGANA",
+     "T6_MAIN_FIRESTAFF",
+     "T6_2H_FIRESTAFF",
+     "T6_2H_INFERNOSTAFF",
+     "T6_MAIN_FIRESTAFF_KEEPER",
+     "T6_2H_FIRESTAFF_HELL",
+     "T6_2H_INFERNOSTAFF_MORGANA",
+     "T6_MAIN_FROSTSTAFF",
+     "T6_2H_FROSTSTAFF",
+     "T6_2H_GLACIALSTAFF",
+     "T6_MAIN_FROSTSTAFF_KEEPER",
+     "T6_2H_ICEGAUNTLETS_HELL",
+     "T6_2H_ICECRYSTAL_UNDEAD",
+     "T6_MAIN_ARCANESTAFF",
+     "T6_2H_ARCANESTAFF",
+     "T6_2H_ENIGMATICSTAFF",
+     "T6_MAIN_ARCANESTAFF_UNDEAD",
+     "T6_2H_ARCANESTAFF_HELL",
+     "T6_2H_ENIGMATICORB_MORGANA",
+     "T6_MAIN_HOLYSTAFF",
+     "T6_2H_HOLYSTAFF",
+     "T6_2H_DIVINESTAFF",
+     "T6_MAIN_HOLYSTAFF_MORGANA",
+     "T6_2H_HOLYSTAFF_HELL",
+     "T6_2H_HOLYSTAFF_UNDEAD",
+     "T6_ARMOR_CLOTH_AVALON",
+     "T6_HEAD_CLOTH_AVALON",
+     "T6_SHOES_CLOTH_AVALON",
+     "T6_MAIN_CURSEDSTAFF_AVALON",
+     "T6_2H_FIRE_RINGPAIR_AVALON",
+     "T6_MAIN_FROSTSTAFF_AVALON",
+     "T6_2H_ARCANE_RINGPAIR_AVALON",
+     "T6_MAIN_HOLYSTAFF_AVALON",
+     "T6_OFF_CENSER_AVALON",
+     "T6_HEAD_CLOTH_FEY",
+     "T6_ARMOR_CLOTH_FEY",
+     "T6_SHOES_CLOTH_FEY",
+     "T6_2H_ARCANESTAFF_CRYSTAL",
+     "T6_2H_FROSTSTAFF_CRYSTAL",
+     "T6_2H_HOLYSTAFF_CRYSTAL",
+     "T6_MAIN_CURSEDSTAFF_CRYSTAL",
+     "T6_MAIN_FIRESTAFF_CRYSTAL",
+     "T6_OFF_TOME_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T6_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T6_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 500.0
+    },
+    {
+     "item": "T6_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T6_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 5.0
+    },
+    {
+     "item": "T6_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 400.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 40.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 4.0
+    },
+    {
+     "item": "T6_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T5_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 7200.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_FURNITUREITEM_TROPHY_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T5_JOURNAL_HUNTER_EMPTY": {
+   "full": "T5_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 7200.0,
+   "base_loot_amount": 8.0,
+   "fill": {
+    "fame_value": 2400.0,
+    "min_tier": 5,
+    "items": [
+     "T5_OFF_TORCH",
+     "T5_OFF_HORN_KEEPER",
+     "T5_OFF_JESTERCANE_HELL",
+     "T5_OFF_LAMP_UNDEAD",
+     "T5_HEAD_LEATHER_SET1",
+     "T5_ARMOR_LEATHER_SET1",
+     "T5_SHOES_LEATHER_SET1",
+     "T5_HEAD_LEATHER_SET2",
+     "T5_ARMOR_LEATHER_SET2",
+     "T5_SHOES_LEATHER_SET2",
+     "T5_HEAD_LEATHER_SET3",
+     "T5_ARMOR_LEATHER_SET3",
+     "T5_SHOES_LEATHER_SET3",
+     "T5_HEAD_LEATHER_MORGANA",
+     "T5_ARMOR_LEATHER_MORGANA",
+     "T5_SHOES_LEATHER_MORGANA",
+     "T5_HEAD_LEATHER_HELL",
+     "T5_ARMOR_LEATHER_HELL",
+     "T5_SHOES_LEATHER_HELL",
+     "T5_HEAD_LEATHER_UNDEAD",
+     "T5_ARMOR_LEATHER_UNDEAD",
+     "T5_SHOES_LEATHER_UNDEAD",
+     "T5_2H_BOW",
+     "T5_2H_WARBOW",
+     "T5_2H_LONGBOW",
+     "T5_2H_LONGBOW_UNDEAD",
+     "T5_2H_BOW_HELL",
+     "T5_2H_BOW_KEEPER",
+     "T5_MAIN_NATURESTAFF",
+     "T5_2H_NATURESTAFF",
+     "T5_2H_WILDSTAFF",
+     "T5_MAIN_NATURESTAFF_KEEPER",
+     "T5_2H_NATURESTAFF_HELL",
+     "T5_2H_NATURESTAFF_KEEPER",
+     "T5_MAIN_DAGGER",
+     "T5_2H_DAGGERPAIR",
+     "T5_2H_CLAWPAIR",
+     "T5_MAIN_RAPIER_MORGANA",
+     "T5_MAIN_DAGGER_HELL",
+     "T5_2H_DUALSICKLE_UNDEAD",
+     "T5_MAIN_SPEAR",
+     "T5_2H_SPEAR",
+     "T5_2H_GLAIVE",
+     "T5_MAIN_SPEAR_KEEPER",
+     "T5_2H_HARPOON_HELL",
+     "T5_2H_TRIDENT_UNDEAD",
+     "T5_2H_QUARTERSTAFF",
+     "T5_2H_IRONCLADEDSTAFF",
+     "T5_2H_DOUBLEBLADEDSTAFF",
+     "T5_2H_COMBATSTAFF_MORGANA",
+     "T5_2H_TWINSCYTHE_HELL",
+     "T5_2H_ROCKSTAFF_KEEPER",
+     "T5_ARMOR_LEATHER_AVALON",
+     "T5_HEAD_LEATHER_AVALON",
+     "T5_SHOES_LEATHER_AVALON",
+     "T5_2H_BOW_AVALON",
+     "T5_MAIN_NATURESTAFF_AVALON",
+     "T5_2H_DAGGER_KATAR_AVALON",
+     "T5_MAIN_SPEAR_LANCE_AVALON",
+     "T5_2H_QUARTERSTAFF_AVALON",
+     "T5_OFF_TALISMAN_AVALON",
+     "T5_HEAD_LEATHER_FEY",
+     "T5_ARMOR_LEATHER_FEY",
+     "T5_SHOES_LEATHER_FEY",
+     "T5_2H_SHAPESHIFTER_SET1",
+     "T5_2H_SHAPESHIFTER_SET2",
+     "T5_2H_SHAPESHIFTER_SET3",
+     "T5_2H_SHAPESHIFTER_MORGANA",
+     "T5_2H_SHAPESHIFTER_HELL",
+     "T5_2H_SHAPESHIFTER_KEEPER",
+     "T5_2H_SHAPESHIFTER_AVALON",
+     "T5_2H_GLAIVE_CRYSTAL",
+     "T5_2H_DOUBLEBLADEDSTAFF_CRYSTAL",
+     "T5_2H_DAGGERPAIR_CRYSTAL",
+     "T5_2H_BOW_CRYSTAL",
+     "T5_2H_SHAPESHIFTER_CRYSTAL",
+     "T5_MAIN_NATURESTAFF_CRYSTAL",
+     "T5_OFF_TORCH_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T5_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T5_LEATHER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 500.0
+    },
+    {
+     "item": "T5_LEATHER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T5_LEATHER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 5.0
+    },
+    {
+     "item": "T5_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 300.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 30.0
+    },
+    {
+     "item": "T5_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 3.0
+    },
+    {
+     "item": "T5_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 300.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 30.0
+    },
+    {
+     "item": "T5_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 3.0
+    }
+   ]
+  },
+  "T4_JOURNAL_WOOD_EMPTY": {
+   "full": "T4_JOURNAL_WOOD_FULL",
+   "family": "WOOD",
+   "tier": 4,
+   "resource_family": "WOOD",
+   "max_fame": 1800.0,
+   "base_loot_amount": 48.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T4_WOOD_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T4_WOOD_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T4_WOOD_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T7_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 28800.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_FURNITUREITEM_TROPHY_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T6_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T6_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 5856.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": []
+  },
+  "T6_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 12150.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_FURNITUREITEM_TROPHY_GENERAL",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T2_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 900.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_FURNITUREITEM_TROPHY_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T2_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T2_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 1350.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T2_FURNITUREITEM_TROPHY_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 86400.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_FURNITUREITEM_TROPHY_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T7_JOURNAL_FIBER_EMPTY": {
+   "full": "T7_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 7,
+   "resource_family": "FIBER",
+   "max_fame": 14400.0,
+   "base_loot_amount": 38.4,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T7_FIBER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T7_FIBER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_FIBER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T5_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 10800.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_FURNITUREITEM_TROPHY_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T6_JOURNAL_HUNTER_EMPTY": {
+   "full": "T6_JOURNAL_HUNTER_FULL",
+   "family": "HUNTER",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 14400.0,
+   "base_loot_amount": 5.3333,
+   "fill": {
+    "fame_value": 4800.0,
+    "min_tier": 6,
+    "items": [
+     "T6_OFF_TORCH",
+     "T6_OFF_HORN_KEEPER",
+     "T6_OFF_JESTERCANE_HELL",
+     "T6_OFF_LAMP_UNDEAD",
+     "T6_HEAD_LEATHER_SET1",
+     "T6_ARMOR_LEATHER_SET1",
+     "T6_SHOES_LEATHER_SET1",
+     "T6_HEAD_LEATHER_SET2",
+     "T6_ARMOR_LEATHER_SET2",
+     "T6_SHOES_LEATHER_SET2",
+     "T6_HEAD_LEATHER_SET3",
+     "T6_ARMOR_LEATHER_SET3",
+     "T6_SHOES_LEATHER_SET3",
+     "T6_HEAD_LEATHER_MORGANA",
+     "T6_ARMOR_LEATHER_MORGANA",
+     "T6_SHOES_LEATHER_MORGANA",
+     "T6_HEAD_LEATHER_HELL",
+     "T6_ARMOR_LEATHER_HELL",
+     "T6_SHOES_LEATHER_HELL",
+     "T6_HEAD_LEATHER_UNDEAD",
+     "T6_ARMOR_LEATHER_UNDEAD",
+     "T6_SHOES_LEATHER_UNDEAD",
+     "T6_2H_BOW",
+     "T6_2H_WARBOW",
+     "T6_2H_LONGBOW",
+     "T6_2H_LONGBOW_UNDEAD",
+     "T6_2H_BOW_HELL",
+     "T6_2H_BOW_KEEPER",
+     "T6_MAIN_NATURESTAFF",
+     "T6_2H_NATURESTAFF",
+     "T6_2H_WILDSTAFF",
+     "T6_MAIN_NATURESTAFF_KEEPER",
+     "T6_2H_NATURESTAFF_HELL",
+     "T6_2H_NATURESTAFF_KEEPER",
+     "T6_MAIN_DAGGER",
+     "T6_2H_DAGGERPAIR",
+     "T6_2H_CLAWPAIR",
+     "T6_MAIN_RAPIER_MORGANA",
+     "T6_MAIN_DAGGER_HELL",
+     "T6_2H_DUALSICKLE_UNDEAD",
+     "T6_MAIN_SPEAR",
+     "T6_2H_SPEAR",
+     "T6_2H_GLAIVE",
+     "T6_MAIN_SPEAR_KEEPER",
+     "T6_2H_HARPOON_HELL",
+     "T6_2H_TRIDENT_UNDEAD",
+     "T6_2H_QUARTERSTAFF",
+     "T6_2H_IRONCLADEDSTAFF",
+     "T6_2H_DOUBLEBLADEDSTAFF",
+     "T6_2H_COMBATSTAFF_MORGANA",
+     "T6_2H_TWINSCYTHE_HELL",
+     "T6_2H_ROCKSTAFF_KEEPER",
+     "T6_ARMOR_LEATHER_AVALON",
+     "T6_HEAD_LEATHER_AVALON",
+     "T6_SHOES_LEATHER_AVALON",
+     "T6_2H_BOW_AVALON",
+     "T6_MAIN_NATURESTAFF_AVALON",
+     "T6_2H_DAGGER_KATAR_AVALON",
+     "T6_MAIN_SPEAR_LANCE_AVALON",
+     "T6_2H_QUARTERSTAFF_AVALON",
+     "T6_OFF_TALISMAN_AVALON",
+     "T6_HEAD_LEATHER_FEY",
+     "T6_ARMOR_LEATHER_FEY",
+     "T6_SHOES_LEATHER_FEY",
+     "T6_2H_SHAPESHIFTER_SET1",
+     "T6_2H_SHAPESHIFTER_SET2",
+     "T6_2H_SHAPESHIFTER_SET3",
+     "T6_2H_SHAPESHIFTER_MORGANA",
+     "T6_2H_SHAPESHIFTER_HELL",
+     "T6_2H_SHAPESHIFTER_KEEPER",
+     "T6_2H_SHAPESHIFTER_AVALON",
+     "T6_2H_GLAIVE_CRYSTAL",
+     "T6_2H_DOUBLEBLADEDSTAFF_CRYSTAL",
+     "T6_2H_DAGGERPAIR_CRYSTAL",
+     "T6_2H_BOW_CRYSTAL",
+     "T6_2H_SHAPESHIFTER_CRYSTAL",
+     "T6_MAIN_NATURESTAFF_CRYSTAL",
+     "T6_OFF_TORCH_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T6_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T6_LEATHER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 500.0
+    },
+    {
+     "item": "T6_LEATHER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T6_LEATHER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 5.0
+    },
+    {
+     "item": "T6_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 300.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 30.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 3.0
+    },
+    {
+     "item": "T6_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 5667.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 300.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 30.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 3.0
+    }
+   ]
+  },
+  "T7_JOURNAL_TROPHY_HIDE_EMPTY": {
+   "full": "T7_JOURNAL_TROPHY_HIDE_FULL",
+   "family": "TROPHY",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 43200.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T7_FURNITUREITEM_TROPHY_HIDE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T4_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T4_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 3600.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_FURNITUREITEM_TROPHY_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T6_JOURNAL_TROPHY_WOOD_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_WOOD_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 14400.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_FURNITUREITEM_TROPHY_WOOD",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T2_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T2_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 1412.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": []
+  },
+  "T4_JOURNAL_FIBER_EMPTY": {
+   "full": "T4_JOURNAL_FIBER_FULL",
+   "family": "FIBER",
+   "tier": 4,
+   "resource_family": "FIBER",
+   "max_fame": 1800.0,
+   "base_loot_amount": 48.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T4_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T4_FIBER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T4_FIBER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T4_FIBER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T5_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 7200.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_FURNITUREITEM_TROPHY_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T3_JOURNAL_ORE_EMPTY": {
+   "full": "T3_JOURNAL_ORE_FULL",
+   "family": "ORE",
+   "tier": 3,
+   "resource_family": "ORE",
+   "max_fame": 900.0,
+   "base_loot_amount": 60.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_ORE",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T8_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T8_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 10800.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": []
+  },
+  "T8_JOURNAL_TROPHY_GENERAL_EMPTY": {
+   "full": "T8_JOURNAL_TROPHY_GENERAL_FULL",
+   "family": "TROPHY",
+   "tier": 8,
+   "resource_family": null,
+   "max_fame": 27339.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T8_FURNITUREITEM_TROPHY_GENERAL",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T5_JOURNAL_TROPHY_STONE_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_STONE_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 7200.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_FURNITUREITEM_TROPHY_ROCK",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T3_JOURNAL_TROPHY_MERCENARY_EMPTY": {
+   "full": "T3_JOURNAL_TROPHY_MERCENARY_FULL",
+   "family": "TROPHY",
+   "tier": 3,
+   "resource_family": null,
+   "max_fame": 6514.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T3_FURNITUREITEM_TROPHY_MERCENARY",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T4_JOURNAL_MAGE_EMPTY": {
+   "full": "T4_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 4,
+   "resource_family": null,
+   "max_fame": 3600.0,
+   "base_loot_amount": 16.0,
+   "fill": {
+    "fame_value": 1200.0,
+    "min_tier": 4,
+    "items": [
+     "T4_OFF_BOOK",
+     "T4_OFF_ORB_MORGANA",
+     "T4_OFF_DEMONSKULL_HELL",
+     "T4_OFF_TOTEM_KEEPER",
+     "T4_HEAD_CLOTH_SET1",
+     "T4_ARMOR_CLOTH_SET1",
+     "T4_SHOES_CLOTH_SET1",
+     "T4_HEAD_CLOTH_SET2",
+     "T4_ARMOR_CLOTH_SET2",
+     "T4_SHOES_CLOTH_SET2",
+     "T4_HEAD_CLOTH_SET3",
+     "T4_ARMOR_CLOTH_SET3",
+     "T4_SHOES_CLOTH_SET3",
+     "T4_HEAD_CLOTH_KEEPER",
+     "T4_ARMOR_CLOTH_KEEPER",
+     "T4_SHOES_CLOTH_KEEPER",
+     "T4_HEAD_CLOTH_HELL",
+     "T4_ARMOR_CLOTH_HELL",
+     "T4_SHOES_CLOTH_HELL",
+     "T4_HEAD_CLOTH_MORGANA",
+     "T4_ARMOR_CLOTH_MORGANA",
+     "T4_SHOES_CLOTH_MORGANA",
+     "T4_MAIN_CURSEDSTAFF",
+     "T4_2H_CURSEDSTAFF",
+     "T4_2H_DEMONICSTAFF",
+     "T4_MAIN_CURSEDSTAFF_UNDEAD",
+     "T4_2H_SKULLORB_HELL",
+     "T4_2H_CURSEDSTAFF_MORGANA",
+     "T4_MAIN_FIRESTAFF",
+     "T4_2H_FIRESTAFF",
+     "T4_2H_INFERNOSTAFF",
+     "T4_MAIN_FIRESTAFF_KEEPER",
+     "T4_2H_FIRESTAFF_HELL",
+     "T4_2H_INFERNOSTAFF_MORGANA",
+     "T4_MAIN_FROSTSTAFF",
+     "T4_2H_FROSTSTAFF",
+     "T4_2H_GLACIALSTAFF",
+     "T4_MAIN_FROSTSTAFF_KEEPER",
+     "T4_2H_ICEGAUNTLETS_HELL",
+     "T4_2H_ICECRYSTAL_UNDEAD",
+     "T4_MAIN_ARCANESTAFF",
+     "T4_2H_ARCANESTAFF",
+     "T4_2H_ENIGMATICSTAFF",
+     "T4_MAIN_ARCANESTAFF_UNDEAD",
+     "T4_2H_ARCANESTAFF_HELL",
+     "T4_2H_ENIGMATICORB_MORGANA",
+     "T4_MAIN_HOLYSTAFF",
+     "T4_2H_HOLYSTAFF",
+     "T4_2H_DIVINESTAFF",
+     "T4_MAIN_HOLYSTAFF_MORGANA",
+     "T4_2H_HOLYSTAFF_HELL",
+     "T4_2H_HOLYSTAFF_UNDEAD",
+     "T4_ARMOR_CLOTH_AVALON",
+     "T4_HEAD_CLOTH_AVALON",
+     "T4_SHOES_CLOTH_AVALON",
+     "T4_MAIN_CURSEDSTAFF_AVALON",
+     "T4_2H_FIRE_RINGPAIR_AVALON",
+     "T4_MAIN_FROSTSTAFF_AVALON",
+     "T4_2H_ARCANE_RINGPAIR_AVALON",
+     "T4_MAIN_HOLYSTAFF_AVALON",
+     "T4_OFF_CENSER_AVALON",
+     "T4_HEAD_CLOTH_FEY",
+     "T4_ARMOR_CLOTH_FEY",
+     "T4_SHOES_CLOTH_FEY",
+     "T4_2H_ARCANESTAFF_CRYSTAL",
+     "T4_2H_FROSTSTAFF_CRYSTAL",
+     "T4_2H_HOLYSTAFF_CRYSTAL",
+     "T4_MAIN_CURSEDSTAFF_CRYSTAL",
+     "T4_MAIN_FIRESTAFF_CRYSTAL",
+     "T4_OFF_TOME_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T4_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T4_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 500.0
+    },
+    {
+     "item": "T4_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T4_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 5.0
+    },
+    {
+     "item": "T4_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 400.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 40.0
+    },
+    {
+     "item": "T4_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 4.0
+    },
+    {
+     "item": "T4_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T4_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T6_JOURNAL_TROPHY_FIBER_EMPTY": {
+   "full": "T6_JOURNAL_TROPHY_FIBER_FULL",
+   "family": "TROPHY",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 14400.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T6_FURNITUREITEM_TROPHY_FIBER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T7_JOURNAL_MAGE_EMPTY": {
+   "full": "T7_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 7,
+   "resource_family": null,
+   "max_fame": 28380.0,
+   "base_loot_amount": 4.4,
+   "fill": {
+    "fame_value": 9600.0,
+    "min_tier": 7,
+    "items": [
+     "T7_OFF_BOOK",
+     "T7_OFF_ORB_MORGANA",
+     "T7_OFF_DEMONSKULL_HELL",
+     "T7_OFF_TOTEM_KEEPER",
+     "T7_HEAD_CLOTH_SET1",
+     "T7_ARMOR_CLOTH_SET1",
+     "T7_SHOES_CLOTH_SET1",
+     "T7_HEAD_CLOTH_SET2",
+     "T7_ARMOR_CLOTH_SET2",
+     "T7_SHOES_CLOTH_SET2",
+     "T7_HEAD_CLOTH_SET3",
+     "T7_ARMOR_CLOTH_SET3",
+     "T7_SHOES_CLOTH_SET3",
+     "T7_HEAD_CLOTH_KEEPER",
+     "T7_ARMOR_CLOTH_KEEPER",
+     "T7_SHOES_CLOTH_KEEPER",
+     "T7_HEAD_CLOTH_HELL",
+     "T7_ARMOR_CLOTH_HELL",
+     "T7_SHOES_CLOTH_HELL",
+     "T7_HEAD_CLOTH_MORGANA",
+     "T7_ARMOR_CLOTH_MORGANA",
+     "T7_SHOES_CLOTH_MORGANA",
+     "T7_MAIN_CURSEDSTAFF",
+     "T7_2H_CURSEDSTAFF",
+     "T7_2H_DEMONICSTAFF",
+     "T7_MAIN_CURSEDSTAFF_UNDEAD",
+     "T7_2H_SKULLORB_HELL",
+     "T7_2H_CURSEDSTAFF_MORGANA",
+     "T7_MAIN_FIRESTAFF",
+     "T7_2H_FIRESTAFF",
+     "T7_2H_INFERNOSTAFF",
+     "T7_MAIN_FIRESTAFF_KEEPER",
+     "T7_2H_FIRESTAFF_HELL",
+     "T7_2H_INFERNOSTAFF_MORGANA",
+     "T7_MAIN_FROSTSTAFF",
+     "T7_2H_FROSTSTAFF",
+     "T7_2H_GLACIALSTAFF",
+     "T7_MAIN_FROSTSTAFF_KEEPER",
+     "T7_2H_ICEGAUNTLETS_HELL",
+     "T7_2H_ICECRYSTAL_UNDEAD",
+     "T7_MAIN_ARCANESTAFF",
+     "T7_2H_ARCANESTAFF",
+     "T7_2H_ENIGMATICSTAFF",
+     "T7_MAIN_ARCANESTAFF_UNDEAD",
+     "T7_2H_ARCANESTAFF_HELL",
+     "T7_2H_ENIGMATICORB_MORGANA",
+     "T7_MAIN_HOLYSTAFF",
+     "T7_2H_HOLYSTAFF",
+     "T7_2H_DIVINESTAFF",
+     "T7_MAIN_HOLYSTAFF_MORGANA",
+     "T7_2H_HOLYSTAFF_HELL",
+     "T7_2H_HOLYSTAFF_UNDEAD",
+     "T7_ARMOR_CLOTH_AVALON",
+     "T7_HEAD_CLOTH_AVALON",
+     "T7_SHOES_CLOTH_AVALON",
+     "T7_MAIN_CURSEDSTAFF_AVALON",
+     "T7_2H_FIRE_RINGPAIR_AVALON",
+     "T7_MAIN_FROSTSTAFF_AVALON",
+     "T7_2H_ARCANE_RINGPAIR_AVALON",
+     "T7_MAIN_HOLYSTAFF_AVALON",
+     "T7_OFF_CENSER_AVALON",
+     "T7_HEAD_CLOTH_FEY",
+     "T7_ARMOR_CLOTH_FEY",
+     "T7_SHOES_CLOTH_FEY",
+     "T7_2H_ARCANESTAFF_CRYSTAL",
+     "T7_2H_FROSTSTAFF_CRYSTAL",
+     "T7_2H_HOLYSTAFF_CRYSTAL",
+     "T7_MAIN_CURSEDSTAFF_CRYSTAL",
+     "T7_MAIN_FIRESTAFF_CRYSTAL",
+     "T7_OFF_TOME_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T7_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T7_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 500.0
+    },
+    {
+     "item": "T7_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 50.0
+    },
+    {
+     "item": "T7_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 5.0
+    },
+    {
+     "item": "T7_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 400.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 40.0
+    },
+    {
+     "item": "T7_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 4.0
+    },
+    {
+     "item": "T7_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T7_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T2_JOURNAL_MAGE_EMPTY": {
+   "full": "T2_JOURNAL_MAGE_FULL",
+   "family": "MAGE",
+   "tier": 2,
+   "resource_family": null,
+   "max_fame": 900.0,
+   "base_loot_amount": 38.0,
+   "fill": {
+    "fame_value": 300.0,
+    "min_tier": 2,
+    "items": [
+     "T2_OFF_BOOK",
+     "T2_HEAD_CLOTH_SET1",
+     "T2_ARMOR_CLOTH_SET1",
+     "T2_SHOES_CLOTH_SET1",
+     "T2_MAIN_FIRESTAFF"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T2_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 9445.0
+    },
+    {
+     "item": "T2_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T2_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    }
+   ]
+  },
+  "T5_JOURNAL_TROPHY_FISHING_EMPTY": {
+   "full": "T5_JOURNAL_TROPHY_FISHING_FULL",
+   "family": "TROPHY",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 11040.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": [
+    {
+     "item": "T5_FURNITUREITEM_TROPHY_FISH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 10.0
+    }
+   ]
+  },
+  "T6_JOURNAL_TOOLMAKER_EMPTY": {
+   "full": "T6_JOURNAL_TOOLMAKER_FULL",
+   "family": "TOOLMAKER",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 14400.0,
+   "base_loot_amount": 5.3333,
+   "fill": {
+    "fame_value": 4800.0,
+    "min_tier": 6,
+    "items": [
+     "T6_CAPE",
+     "T6_BAG",
+     "T6_BAG_INSIGHT",
+     "T6_CAPE_PLATE_UNDEAD",
+     "T6_CAPE_LEATHER_UNDEAD",
+     "T6_CAPE_CLOTH_UNDEAD",
+     "T6_CAPE_PLATE_KEEPER",
+     "T6_CAPE_LEATHER_KEEPER",
+     "T6_CAPE_CLOTH_KEEPER",
+     "T6_CAPE_PLATE_MORGANA",
+     "T6_CAPE_LEATHER_MORGANA",
+     "T6_CAPE_CLOTH_MORGANA",
+     "T6_HEAD_GATHERER_FIBER",
+     "T6_ARMOR_GATHERER_FIBER",
+     "T6_SHOES_GATHERER_FIBER",
+     "T6_BACKPACK_GATHERER_FIBER",
+     "T6_HEAD_GATHERER_HIDE",
+     "T6_ARMOR_GATHERER_HIDE",
+     "T6_SHOES_GATHERER_HIDE",
+     "T6_BACKPACK_GATHERER_HIDE",
+     "T6_HEAD_GATHERER_ORE",
+     "T6_ARMOR_GATHERER_ORE",
+     "T6_SHOES_GATHERER_ORE",
+     "T6_BACKPACK_GATHERER_ORE",
+     "T6_HEAD_GATHERER_ROCK",
+     "T6_ARMOR_GATHERER_ROCK",
+     "T6_SHOES_GATHERER_ROCK",
+     "T6_BACKPACK_GATHERER_ROCK",
+     "T6_HEAD_GATHERER_WOOD",
+     "T6_ARMOR_GATHERER_WOOD",
+     "T6_SHOES_GATHERER_WOOD",
+     "T6_BACKPACK_GATHERER_WOOD",
+     "T6_2H_TOOL_PICK",
+     "T6_2H_TOOL_HAMMER",
+     "T6_2H_TOOL_AXE",
+     "T6_2H_TOOL_SICKLE",
+     "T6_2H_TOOL_KNIFE",
+     "T6_2H_TOOL_SIEGEHAMMER",
+     "T6_FURNITUREITEM_BED",
+     "T6_FURNITUREITEM_TABLE",
+     "T6_FURNITUREITEM_REPAIRKIT",
+     "T6_2H_TOOL_FISHINGROD",
+     "T6_HEAD_GATHERER_FISH",
+     "T6_ARMOR_GATHERER_FISH",
+     "T6_SHOES_GATHERER_FISH",
+     "T6_BACKPACK_GATHERER_FISH",
+     "T6_2H_TOOL_HAMMER_AVALON",
+     "T6_2H_TOOL_AXE_AVALON",
+     "T6_2H_TOOL_PICK_AVALON",
+     "T6_2H_TOOL_SICKLE_AVALON",
+     "T6_2H_TOOL_KNIFE_AVALON",
+     "T6_2H_TOOL_SIEGEHAMMER_AVALON",
+     "T6_2H_TOOL_FISHINGROD_AVALON",
+     "T6_2H_TOOL_TRACKING",
+     "T6_SIEGE_BANNER",
+     "UNIQUE_HIDEOUT"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T6_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 7556.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 400.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 40.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 4.0
+    },
+    {
+     "item": "T6_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T6_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T6_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T6_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T6_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T6_LEATHER",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T6_LEATHER_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T6_LEATHER_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T6_LEATHER_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
+  },
+  "T5_JOURNAL_MERCENARY_EMPTY": {
+   "full": "T5_JOURNAL_MERCENARY_FULL",
+   "family": "MERCENARY",
+   "tier": 5,
+   "resource_family": null,
+   "max_fame": 4368.0,
+   "base_loot_amount": 1.0,
+   "fill": null,
+   "loot": []
+  },
+  "T6_JOURNAL_WARRIOR_EMPTY": {
+   "full": "T6_JOURNAL_WARRIOR_FULL",
+   "family": "WARRIOR",
+   "tier": 6,
+   "resource_family": null,
+   "max_fame": 14400.0,
+   "base_loot_amount": 5.3333,
+   "fill": {
+    "fame_value": 4800.0,
+    "min_tier": 6,
+    "items": [
+     "T6_OFF_SHIELD",
+     "T6_OFF_TOWERSHIELD_UNDEAD",
+     "T6_OFF_SHIELD_HELL",
+     "T6_OFF_SPIKEDSHIELD_MORGANA",
+     "T6_HEAD_PLATE_SET1",
+     "T6_ARMOR_PLATE_SET1",
+     "T6_SHOES_PLATE_SET1",
+     "T6_HEAD_PLATE_SET2",
+     "T6_ARMOR_PLATE_SET2",
+     "T6_SHOES_PLATE_SET2",
+     "T6_HEAD_PLATE_SET3",
+     "T6_ARMOR_PLATE_SET3",
+     "T6_SHOES_PLATE_SET3",
+     "T6_HEAD_PLATE_UNDEAD",
+     "T6_ARMOR_PLATE_UNDEAD",
+     "T6_SHOES_PLATE_UNDEAD",
+     "T6_HEAD_PLATE_HELL",
+     "T6_ARMOR_PLATE_HELL",
+     "T6_SHOES_PLATE_HELL",
+     "T6_HEAD_PLATE_KEEPER",
+     "T6_ARMOR_PLATE_KEEPER",
+     "T6_SHOES_PLATE_KEEPER",
+     "T6_2H_CROSSBOW",
+     "T6_2H_CROSSBOWLARGE",
+     "T6_MAIN_1HCROSSBOW",
+     "T6_2H_REPEATINGCROSSBOW_UNDEAD",
+     "T6_2H_DUALCROSSBOW_HELL",
+     "T6_2H_CROSSBOWLARGE_MORGANA",
+     "T6_MAIN_AXE",
+     "T6_2H_AXE",
+     "T6_2H_HALBERD",
+     "T6_2H_HALBERD_MORGANA",
+     "T6_2H_SCYTHE_HELL",
+     "T6_2H_DUALAXE_KEEPER",
+     "T6_MAIN_SWORD",
+     "T6_2H_CLAYMORE",
+     "T6_2H_DUALSWORD",
+     "T6_MAIN_SCIMITAR_MORGANA",
+     "T6_2H_CLEAVER_HELL",
+     "T6_2H_DUALSCIMITAR_UNDEAD",
+     "T6_MAIN_HAMMER",
+     "T6_2H_POLEHAMMER",
+     "T6_2H_HAMMER",
+     "T6_2H_HAMMER_UNDEAD",
+     "T6_2H_DUALHAMMER_HELL",
+     "T6_2H_RAM_KEEPER",
+     "T6_MAIN_MACE",
+     "T6_2H_MACE",
+     "T6_2H_FLAIL",
+     "T6_MAIN_ROCKMACE_KEEPER",
+     "T6_MAIN_MACE_HELL",
+     "T6_2H_MACE_MORGANA",
+     "T6_ARMOR_PLATE_AVALON",
+     "T6_HEAD_PLATE_AVALON",
+     "T6_SHOES_PLATE_AVALON",
+     "T6_2H_CROSSBOW_CANNON_AVALON",
+     "T6_2H_AXE_AVALON",
+     "T6_2H_CLAYMORE_AVALON",
+     "T6_2H_HAMMER_AVALON",
+     "T6_2H_DUALMACE_AVALON",
+     "T6_OFF_SHIELD_AVALON",
+     "T6_2H_KNUCKLES_SET1",
+     "T6_2H_KNUCKLES_SET2",
+     "T6_2H_KNUCKLES_SET3",
+     "T6_2H_KNUCKLES_MORGANA",
+     "T6_2H_KNUCKLES_HELL",
+     "T6_2H_KNUCKLES_KEEPER",
+     "T6_2H_KNUCKLES_AVALON",
+     "T6_ARMOR_PLATE_FEY",
+     "T6_SHOES_PLATE_FEY",
+     "T6_HEAD_PLATE_FEY",
+     "T6_MAIN_SWORD_CRYSTAL",
+     "T6_2H_SCYTHE_CRYSTAL",
+     "T6_MAIN_MACE_CRYSTAL",
+     "T6_2H_KNUCKLES_CRYSTAL",
+     "T6_2H_DUALCROSSBOW_CRYSTAL",
+     "T6_2H_HAMMER_CRYSTAL",
+     "T6_OFF_SHIELD_CRYSTAL"
+    ]
+   },
+   "loot": [
+    {
+     "item": "T6_METALBAR",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 13223.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 700.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 70.0
+    },
+    {
+     "item": "T6_METALBAR_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 7.0
+    },
+    {
+     "item": "T6_PLANKS",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 3778.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 200.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 20.0
+    },
+    {
+     "item": "T6_PLANKS_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 2.0
+    },
+    {
+     "item": "T6_CLOTH",
+     "ench": 0,
+     "amount": 1.0,
+     "weight": 1889.0
+    },
+    {
+     "item": "T6_CLOTH_LEVEL1",
+     "ench": 1,
+     "amount": 1.0,
+     "weight": 100.0
+    },
+    {
+     "item": "T6_CLOTH_LEVEL2",
+     "ench": 2,
+     "amount": 1.0,
+     "weight": 10.0
+    },
+    {
+     "item": "T6_CLOTH_LEVEL3",
+     "ench": 3,
+     "amount": 1.0,
+     "weight": 1.0
+    }
+   ]
   }
  },
  "_fonte": "items.json + loot.json + items_db.json — ao-bin-dumps"

@@ -9,7 +9,9 @@ Fontes do ao-bin-dumps (re-baixáveis):
   items_raw.json = master/items.json ; loot.json = master/loot.json
 Os dumps grandes podem ser apagados depois; só o island_data.json fica.
 
-Uso: python scripts/build_island_data.py
+Uso: python scripts/build_island_data.py            # build completo (exige loot.json)
+     python scripts/build_island_data.py --laborers  # só reconstrói trabalhadores
+                                                      # (merge; NÃO exige loot.json)
 """
 import json
 import re
@@ -153,11 +155,61 @@ def build_food(items):
     return out
 
 
-def build_laborers(item_ids):
+def _journal_detail(node):
+    """Extrai do NÓ-BASE do diário (items_raw) os campos do modelo do trabalhador.
+
+    node = idx['T6_JOURNAL_TOOLMAKER'] (sem sufixo _EMPTY/_FULL). Devolve:
+      max_fame, base_loot_amount, fill (o que ENCHE craftando) e loot (o que o
+      trabalhador DEVOLVE). fill fica None em diários de coleta/pesca (que enchem
+      coletando, não craftando — não têm famefillingmissions.craftitemfame).
+    """
+    fill = None
+    ff = node.get("famefillingmissions") or {}
+    cif = ff.get("craftitemfame")
+    if isinstance(cif, dict):
+        vi = cif.get("validitem") or []
+        if isinstance(vi, dict):
+            vi = [vi]
+        items = [v.get("@id") for v in vi if v.get("@id")]
+        if items:
+            fill = {
+                "fame_value": _f(cif, "@value"),   # fama por craft de 1 item @mintier
+                "min_tier": int(_f(cif, "@mintier")),
+                "items": items,
+            }
+    loot = []
+    ll = (node.get("lootlist") or {}).get("loot")
+    if isinstance(ll, dict):
+        ll = [ll]
+    for e in (ll or []):
+        name = e.get("@itemname")
+        if not name:
+            continue
+        loot.append({
+            "item": name,
+            "ench": int(_f(e, "@itemenchantmentlevel")),   # 0 se ausente
+            "amount": _avg_amount(e.get("@itemamount") or "1"),
+            "weight": _f(e, "@weight"),
+        })
+    return {
+        "max_fame": _f(node, "@maxfame"),
+        "base_loot_amount": _f(node, "@baselootamount"),
+        "fill": fill,
+        "loot": loot,
+    }
+
+
+def build_laborers(item_ids, items=None):
     """Pares de diário vazio/cheio por família/tier + o recurso produzido.
 
-    Os diários ficam no catálogo processado (items_db.json), não no items.json.
+    Os pares _EMPTY/_FULL ficam no catálogo processado (items_db.json); o
+    NÓ-BASE do diário (ex.: 'T6_JOURNAL_TOOLMAKER', sem sufixo) fica em
+    items_raw.json e traz o modelo do trabalhador (max_fame, base_loot_amount,
+    fill=itens que enchem craftando, loot=o que o trabalhador devolve). Passe
+    `items` (índice de items_raw por @uniquename) para enriquecer; sem ele o
+    comportamento antigo (só o par + família/tier/recurso) é preservado.
     """
+    items = items or {}
     out = {}
     for uid in item_ids:
         if "_JOURNAL_" not in uid or not uid.endswith("_EMPTY"):
@@ -169,14 +221,53 @@ def build_laborers(item_ids):
         if not m:
             continue
         tier, fam = int(m.group(1)), m.group(2)
-        out[uid] = {
+        entry = {
             "full": full,
             "family": fam,
             "tier": tier,
             # None p/ fabricantes/pesca (não entregam recurso bruto de id limpo)
             "resource_family": JOURNAL_RESOURCE.get(fam),
         }
+        base = uid[:-6]                       # 'T6_JOURNAL_TOOLMAKER' (nó do dump)
+        node = items.get(base)
+        if node is not None:
+            entry.update(_journal_detail(node))
+        out[uid] = entry
     return out
+
+
+def rebuild_laborers():
+    """Reconstrói SÓ a seção 'laborers' do items_raw.json e faz MERGE no
+    data/island_data.json existente (preserva crops/animals/food).
+
+    Não depende de loot.json (que pode ter sido apagado) — só de items_raw.json
+    (o modelo do trabalhador) + items_db.json (os pares _EMPTY/_FULL). Use quando
+    quiser atualizar os trabalhadores sem re-baixar/rodar tudo (build main()).
+    """
+    for fname in ("items_raw.json", "items_db.json", "island_data.json"):
+        if not (DATA / fname).exists():
+            raise SystemExit(
+                f"Falta data/{fname} para reconstruir os trabalhadores.\n"
+                "  items_raw.json = master/items.json (ao-bin-dumps)\n"
+                "  items_db.json  = scripts/build_items_db.py\n"
+                "  island_data.json = scripts/build_island_data.py")
+    raw = json.loads((DATA / "items_raw.json").read_text(encoding="utf-8"))
+    db_ids = {i["id"] for i in
+              json.loads((DATA / "items_db.json").read_text(encoding="utf-8"))}
+    items = index_items(raw)
+    laborers = build_laborers(db_ids, items)
+    data = json.loads((DATA / "island_data.json").read_text(encoding="utf-8"))
+    before = {k: len(data.get(k, {})) for k in ("crops", "animals", "food")}
+    data["laborers"] = laborers        # MERGE: só troca a seção de trabalhadores
+    (DATA / "island_data.json").write_text(
+        json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    after = {k: len(data.get(k, {})) for k in ("crops", "animals", "food")}
+    with_fill = sum(1 for v in laborers.values() if v.get("fill"))
+    print(f"laborers reconstruídos: {len(laborers)} diários "
+          f"({with_fill} enchem craftando). crops/animals/food preservados: "
+          f"{before} -> {after}"
+          + ("  [OK]" if before == after else "  [ALERTA: contagem mudou!]"))
+    return laborers
 
 
 def main():
@@ -196,7 +287,7 @@ def main():
         "crops": build_crops(items, lootidx),
         "animals": build_animals(items),
         "food": build_food(items),
-        "laborers": build_laborers(db_ids),
+        "laborers": build_laborers(db_ids, items),
         "_fonte": "items.json + loot.json + items_db.json — ao-bin-dumps",
     }
     (DATA / "island_data.json").write_text(
@@ -207,4 +298,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if "--laborers" in sys.argv:   # só reconstrói trabalhadores (não exige loot.json)
+        rebuild_laborers()
+    else:
+        main()
