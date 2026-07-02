@@ -1327,11 +1327,19 @@ def cmd_laborers(args, fmt):
         raw = [dict(r) for r in con.execute(
             "SELECT * FROM prices WHERE server=?",
             [config.DEFAULT_SERVER]).fetchall()]
+        # VWAP histórico (q1, ~30d, ponderado por volume) p/ a banda anti-isca do
+        # item de fill. Corte por texto ISO (store.cutoff_iso) — dual SQLite/PG.
+        cutoff = store.cutoff_iso(args.vwap_days)
+        hist = con.execute(
+            """SELECT item_id, avg_price, item_count FROM history
+               WHERE server=? AND time_scale=24 AND quality=1
+                 AND avg_price>0 AND ts >= ?""",
+            [config.DEFAULT_SERVER, cutoff]).fetchall()
     finally:
         con.close()
-    # SANEAMENTO anti-âncora: o motor escolhe o validitem de MAIOR margem, então
-    # é o mais exposto a ordens-isca. clean_price_rows zera o outlier entre
-    # cidades (>=3 cotadas) — mesma defesa do hub Avançado (app._price_lookups).
+    # SANEAMENTO anti-âncora (nível 1): o motor escolhe o validitem de MAIOR
+    # margem, então é o mais exposto a ordens-isca. clean_price_rows zera o
+    # outlier entre cidades (>=3 cotadas) — mesma defesa do hub Avançado.
     q1 = {}
     for r in clean_price_rows(raw):
         if r.get("quality") != 1:
@@ -1342,11 +1350,31 @@ def cmd_laborers(args, fmt):
         item, city = r["item_id"], r["city"]
         if (item, city) not in q1 or sp < q1[(item, city)]:
             q1[(item, city)] = sp
+    # VWAP por item (Σ preço×volume / Σ volume) para a banda 0.35..3× do VWAP.
+    vwap_num, vwap_den = {}, {}
+    for row in hist:
+        iid, avg, cnt = row["item_id"], row["avg_price"] or 0, row["item_count"] or 0
+        if avg <= 0 or cnt <= 0:
+            continue
+        vwap_num[iid] = vwap_num.get(iid, 0) + avg * cnt
+        vwap_den[iid] = vwap_den.get(iid, 0) + cnt
+    vwap = {i: vwap_num[i] / vwap_den[i] for i in vwap_num if vwap_den[i] > 0}
+
+    def fill_sell_ok(item_id, price):
+        """Banda anti-isca do item de FILL: sem VWAP => rejeita (não dá pra
+        validar o preço de um item que nunca negociou); com VWAP, exige
+        0.35×VWAP <= preço <= 3×VWAP. Só o item de fill passa por aqui — o loot
+        e os insumos usam o q1 já saneado por cidade (clean_price_rows)."""
+        v = vwap.get(item_id)
+        if not v:
+            return False                     # sem histórico => não confiável
+        return 0.35 * v <= price <= 3.0 * v
+
     cities = parse_cities(args.cities)
     # sem limite no motor: filtramos família/tier ANTES de cortar em args.limit
     res = island.crafting_laborer_economy(
         q1, premium=args.premium, sell_mode=args.sell_mode, cities=cities,
-        limit=None)
+        limit=None, station_fee=args.station_fee, fill_sell_ok=fill_sell_ok)
     out = res.get("rows", [])
     if args.family:
         fam = args.family.upper()
@@ -1357,8 +1385,9 @@ def cmd_laborers(args, fmt):
     for r in out:
         r["diario"] = name(r["empty"]) or r["empty"]
         r["devolve"] = name(r["loot_top"]) or r["loot_top"]
-        r["encher_com"] = (name(r["fill_item"]) or r["fill_item"]) + \
-            (" [!liq]" if r["fill_liquidez_baixa"] else "")
+        flags = ("" + (" [!isca]" if r.get("fill_isca") else "")
+                 + (" [!liq]" if r["fill_liquidez_baixa"] else ""))
+        r["encher_com"] = (name(r["fill_item"]) or r["fill_item"]) + flags
     if fmt == "json":
         emit(out, [], fmt)
         return
@@ -1366,16 +1395,23 @@ def cmd_laborers(args, fmt):
         info("Nenhum trabalhador de fabricação precificado no cache "
              "(precisa de vazio, cheio, itens de loot e insumos do fill).")
         return
+    fee_txt = (f" Taxa de estação = {args.station_fee:g} prata/craft "
+               f"(× {out[0]['crafts_to_fill']:g} crafts)." if args.station_fee
+               else " Taxa de estação = 0 (entrada do usuário; preencha --station-fee).")
     info(f"{len(out)} trabalhadores de FABRICAÇÃO. ENCHER = craftar, ganhar fama e"
          " VENDER o item (não descartar); o custo de encher é a MARGEM DE CRAFT"
-         " (venda líq − material net RRR). Lucro alimentar (vendendo) = retorno +"
-         " n_crafts × margem_craft − vazio; 'descart.' = pessimista (item fora);"
-         " lucro flip = cheio − vazio. Fama/craft ainda é PROXY (= fame_value do"
-         " dump). '[!liq]' = item de fill pouco/nada cotado (confira a liquidez).")
+         " (venda líq − material net RRR).{}".format(fee_txt) +
+         " Lucro alimentar (vendendo) = retorno + n_crafts × margem_craft"
+         " − taxa − vazio; 'descart.' = pessimista (item fora); lucro flip = cheio"
+         " − vazio. Fama/craft ainda é PROXY (= fame_value do dump). Defesa"
+         " anti-isca: item de fill fora da banda 0,35..3× do VWAP (ou sem"
+         " histórico) é rejeitado. '[!isca]' = escolhido fora da banda; '[!liq]' ="
+         " nenhum candidato líquido (>=3 cidades) — desconfie do valor.")
     emit(out,
          [("diario", "Diário"), ("tier", "T"), ("devolve", "Devolve"),
           ("retorno_por_diario", "Retorno"), ("encher_com", "Encher com"),
-          ("margem_craft_un", "Margem craft/un"), ("vazio", "Vazio"),
+          ("margem_craft_un", "Margem craft/un"),
+          ("custo_taxa_estacao", "Taxa estação"), ("vazio", "Vazio"),
           ("lucro_alimentar_vendendo", "Lucro alim. (vend.)"),
           ("lucro_alimentar_descartando", "Lucro alim. (descart.)"),
           ("lucro_flip", "Lucro flip")],
@@ -2876,6 +2912,11 @@ def build_parser():
     p.add_argument("--tier", type=int, help="filtra por tier (o dono foca T6)")
     p.add_argument("--cities", help="cidades (padrão: todas)")
     p.add_argument("--sell-mode", choices=["instant", "order"], default="order")
+    p.add_argument("--station-fee", type=float, default=0,
+                   help="taxa do NPC de craft, prata por CRAFT (entrada do "
+                        "usuário; varia por cidade/dia — sem default != 0)")
+    p.add_argument("--vwap-days", type=float, default=30,
+                   help="janela do VWAP histórico p/ a banda anti-isca do fill")
     p.add_argument("--premium", action=argparse.BooleanOptionalAction,
                    default=True)
     p.add_argument("--limit", type=int, default=60)

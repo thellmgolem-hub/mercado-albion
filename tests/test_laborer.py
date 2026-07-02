@@ -163,6 +163,65 @@ class CraftingLaborerTests(unittest.TestCase):
             self.PRICES.clear()
             self.PRICES.update(orig)
 
+    def test_bait_price_fill_item_is_rejected(self):
+        # SYN_PRICEY vira ISCA: preço absurdo (margem gigante). Um validador de
+        # VWAP (fill_sell_ok) o rejeita; o motor deve escolher o SÃO (SYN_CHEAP),
+        # que tem margem menor mas passa na banda — e o escolhido NÃO é isca.
+        orig = dict(self.PRICES)
+        try:
+            self.PRICES["SYN_PRICEY"] = 9_000_000   # isca: 9M
+            sell_ok = lambda iid, price: iid != "SYN_PRICEY"   # reprova a isca
+            res = island.crafting_laborer_economy(
+                self._q1(), premium=True, sell_mode="order",
+                fill_sell_ok=sell_ok)
+            r = res["rows"][0]
+            self.assertEqual(r["fill_item"], "SYN_CHEAP")   # o são venceu
+            self.assertFalse(r["fill_isca"])                # o escolhido é elegível
+            # e o lucro NÃO explodiu por causa da isca (margem do SYN_CHEAP ~80)
+            self.assertLess(r["margem_craft_un"], 1000)
+        finally:
+            self.PRICES.clear()
+            self.PRICES.update(orig)
+
+    def test_bait_flagged_when_no_sane_alternative(self):
+        # se o ÚNICO validitem cotado é isca, o motor usa-o mas marca fill_isca.
+        orig = dict(self.PRICES)
+        try:
+            self.PRICES.pop("SYN_CHEAP")            # sobra só o SYN_PRICEY (isca)
+            self.PRICES["SYN_PRICEY"] = 9_000_000
+            sell_ok = lambda iid, price: price <= 5000   # reprova a isca
+            res = island.crafting_laborer_economy(
+                self._q1(), premium=True, sell_mode="order",
+                fill_sell_ok=sell_ok)
+            r = res["rows"][0]
+            self.assertEqual(r["fill_item"], "SYN_PRICEY")
+            self.assertTrue(r["fill_isca"])          # avisa: escolhido fora da banda
+        finally:
+            self.PRICES.clear()
+            self.PRICES.update(orig)
+
+    def test_station_fee_reduces_profit_by_ncrafts_times_fee(self):
+        # station_fee (prata por craft) abate n_crafts × fee do lucro alimentar.
+        base = island.crafting_laborer_economy(
+            self._q1(), premium=True, sell_mode="order", station_fee=0)["rows"][0]
+        fee = 300
+        withfee = island.crafting_laborer_economy(
+            self._q1(), premium=True, sell_mode="order",
+            station_fee=fee)["rows"][0]
+        n = base["crafts_to_fill"]               # 4.0 na fixture
+        self.assertEqual(withfee["custo_taxa_estacao"], round(n * fee))
+        self.assertEqual(withfee["station_fee"], fee)
+        # vendendo E descartando caem exatamente n×fee
+        self.assertEqual(
+            base["lucro_alimentar_vendendo"] - withfee["lucro_alimentar_vendendo"],
+            round(n * fee))
+        self.assertEqual(
+            base["lucro_alimentar_descartando"]
+            - withfee["lucro_alimentar_descartando"], round(n * fee))
+        # default é 0 (não inventamos taxa)
+        self.assertEqual(base["station_fee"], 0)
+        self.assertEqual(base["custo_taxa_estacao"], 0)
+
     def test_partial_loot_pricing_is_conservative(self):
         # sem preço p/ a variante encantada: ela contribui 0 e a cobertura cai
         orig = dict(self.PRICES)

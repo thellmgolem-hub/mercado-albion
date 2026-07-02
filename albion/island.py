@@ -234,7 +234,7 @@ def _loot_id(entry):
     return f"{entry['item']}@{ench}" if ench else entry["item"]
 
 
-def _fill_plan(info, price_q1, cities, premium, sell_mode):
+def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None):
     """Como ENCHER o diário craftando — a jogada REAL: você crafta o item, ganha
     a fama (enche o diário) e VENDE o item. Encher NÃO consome o item.
 
@@ -256,19 +256,21 @@ def _fill_plan(info, price_q1, cities, premium, sell_mode):
     lucrativo / menos deficitário e vendável). Devolve dois custos de encher:
       fill_cost_selling    = −(n_crafts × margem_craft)  (crédito se margem>0)
       fill_cost_discarding =  n_crafts × custo_material   (pessimista: item fora)
+
+    Defesa anti-isca: como o motor persegue o MAIOR preço de venda (alvo de
+    ordem-isca), um candidato só é ELEGÍVEL se: cotado em >=3 cidades E aprovado
+    por sell_ok(item_id, preço_bruto) (banda de VWAP histórico, injetada pela
+    CLI — island.py fica sem SQL). Escolhe o de maior margem ENTRE os elegíveis;
+    se nenhum for elegível, cai no de maior margem geral e marca os flags
+    (fill_liquidez_baixa / fill_isca). sell_ok=None => tudo aprovado (sem histórico).
     """
     fill = info.get("fill")
     if not fill or not fill.get("fame_value"):
         return None
     fame_value = fill["fame_value"]
     crafts = info["max_fame"] / fame_value if fame_value else 0
-    # candidatos vendáveis. Maximizamos margem de craft, MAS o "melhor/maior"
-    # preço é o alvo preferido de ordem-isca: um validitem cotado em <3 cidades
-    # pode ser âncora que escapou do saneamento (clean_price_rows só age com >=3
-    # cidades). Por isso preferimos o de MAIOR margem entre os LÍQUIDOS (>=3
-    # cidades cotando venda); só caímos nos ilíquidos se nenhum líquido existir
-    # (e aí o flag fill_liquidez_baixa avisa). Assim o default não persegue isca.
-    cands = []   # (margem, vid, bcity, rrr%, eff_mat, item_net, item_city, n_cid)
+    sell_ok = sell_ok or (lambda _i, _p: True)
+    cands = []   # dict por candidato vendável (margem + metadados + elegibilidade)
     for vid in fill["items"]:
         recipe = craft.recipe_for(vid)
         if not recipe or not recipe.get("inputs"):
@@ -276,6 +278,9 @@ def _fill_plan(info, price_q1, cities, premium, sell_mode):
         item_sell = _best_sell(price_q1, vid, cities, sell_mode, premium)
         if not item_sell or item_sell[1] <= 0:
             continue                  # exige item vendável (com cotação de venda)
+        item_city, item_net = item_sell[0], item_sell[1]
+        # preço BRUTO (ask) na cidade escolhida — é ele que a banda de VWAP checa.
+        raw_price = price_q1.get((vid, item_city)) or 0
         cat = recipe.get("category")
         bcity = craft.unified_bonus_city(vid, cat) or (cities[0] if cities else None)
         mat, ok = 0.0, True
@@ -290,35 +295,45 @@ def _fill_plan(info, price_q1, cities, premium, sell_mode):
         rrr = craft.unified_rrr(vid, cat, bcity) if bcity else 0.0
         out_qty = recipe.get("output", 1) or 1
         eff_mat = mat * (1 - rrr)
-        margin = item_sell[1] * out_qty - eff_mat     # margem de craft (por craft)
+        margin = item_net * out_qty - eff_mat     # margem de craft (por craft)
         n_sell_cities = sum(1 for c in cities if (price_q1.get((vid, c)) or 0) > 0)
-        cands.append((margin, vid, bcity, round(rrr * 100, 1), round(eff_mat),
-                      round(item_sell[1]), item_sell[0], n_sell_cities))
+        price_ok = sell_ok(vid, raw_price)        # dentro da banda de VWAP?
+        eligible = n_sell_cities >= 3 and price_ok
+        cands.append({
+            "margin": margin, "vid": vid, "bcity": bcity,
+            "rrr_pct": round(rrr * 100, 1), "eff_mat": round(eff_mat),
+            "item_net": round(item_net), "item_city": item_city,
+            "n_cities": n_sell_cities, "price_ok": price_ok, "eligible": eligible,
+        })
     if not cands:
         return None
-    liquid = [c for c in cands if c[7] >= 3]
-    best = max(liquid or cands, key=lambda c: c[0])   # maior margem; líquido 1º
-    margin, vid, bcity, rrr_pct, eff_mat, item_net, item_city, n_cities = best
+    pool = [c for c in cands if c["eligible"]]
+    best = max(pool or cands, key=lambda c: c["margin"])  # maior margem; elegível 1º
+    chosen_eligible = bool(pool)
     return {
         # jogada real: encher = pagar a margem NEGATIVA de craft (crédito se +).
-        "fill_cost_selling": round(-crafts * margin),
+        "fill_cost_selling": round(-crafts * best["margin"]),
         # pessimista: item jogado fora, custo = material bruto net RRR.
-        "fill_cost_discarding": round(crafts * eff_mat),
+        "fill_cost_discarding": round(crafts * best["eff_mat"]),
         "crafts_to_fill": round(crafts, 2),
-        "fill_item": vid,
-        "fill_city": bcity,
-        "fill_rrr_pct": rrr_pct,
-        "craft_margin_unit": round(margin),      # margem de craft por unidade
-        "craft_sell_net": item_net,              # venda líquida do item craftado
-        "craft_sell_city": item_city,
-        "fill_sell_cities": n_cities,            # cidades cotando venda do item
-        "material_cost_unit": eff_mat,           # material net RRR por craft
+        "fill_item": best["vid"],
+        "fill_city": best["bcity"],
+        "fill_rrr_pct": best["rrr_pct"],
+        "craft_margin_unit": round(best["margin"]),  # margem de craft por unidade
+        "craft_sell_net": best["item_net"],          # venda líquida do item craftado
+        "craft_sell_city": best["item_city"],
+        "fill_sell_cities": best["n_cities"],        # cidades cotando venda do item
+        "material_cost_unit": best["eff_mat"],       # material net RRR por craft
+        # sem candidato elegível: o escolhido é suspeito (isca / mercado fino).
+        "fill_liquidez_baixa": not (chosen_eligible or best["n_cities"] >= 3),
+        "fill_isca": not chosen_eligible and not best["price_ok"],
         "fill_cost_is_proxy": True,   # fama/craft = fame_value p/ todo validitem
     }
 
 
 def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
-                             cities=None, limit=60):
+                             cities=None, limit=60, station_fee=0,
+                             fill_sell_ok=None):
     """Modelo COMPLETO do trabalhador de FABRICAÇÃO (diário que enche craftando).
 
     Diferente de laborer_economy (que só mede a margem de FLIP do diário
@@ -332,14 +347,23 @@ def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
     - ENCHER craftando é a jogada real: você crafta o validitem, ganha a fama e
       VENDE o item — não o descarta. Logo o custo de encher é a MARGEM DE CRAFT,
       não o material bruto (ver _fill_plan). Escolhe o validitem que maximiza
-      n_crafts × margem_craft (vendável, venda_líq>0). fama/craft é PROXY.
+      n_crafts × margem_craft ENTRE os elegíveis (>=3 cidades E dentro da banda
+      de VWAP via fill_sell_ok). fama/craft é PROXY.
     - vazio = best_buy(diário _EMPTY); cheio = best_sell(diário _FULL).
     - lucro_alimentar_vendendo = retorno_por_diario + n_crafts × margem_craft
-      − vazio   (Play B REAL: enche craftando e VENDE os itens craftados).
+      − n_crafts × station_fee − vazio   (Play B REAL: enche craftando e VENDE
+      os itens; station_fee = taxa do NPC de craft por craft).
     - lucro_alimentar_descartando = retorno_por_diario − n_crafts × material
-      − vazio   (pessimista: o item craftado é jogado fora).
+      − n_crafts × station_fee − vazio   (pessimista: o item é jogado fora).
     - lucro_flip = cheio − vazio   (Play A: só vender o diário cheio — a
       alternativa que laborer_economy mede).
+
+    station_fee (prata por CRAFT, default 0): a taxa do NPC da estação varia por
+    cidade/dia e é ENTRADA do usuário — na plataforma/Discord vira um CAMPO
+    preenchido na hora do craft. NÃO tem default != 0 (não inventamos taxa).
+    fill_sell_ok(item_id, preço_bruto) -> bool: validador anti-isca por VWAP
+    histórico, injetado pela CLI (island.py fica sem SQL). None => sem histórico
+    (tudo aprovado; a defesa cai só nas >=3 cidades).
 
     Só diários com fill.items (enchem craftando: HUNTER/MAGE/MERCENARY/TOOLMAKER/
     WARRIOR). Coleta/pesca enchem coletando e ficam de fora. Ordena por
@@ -374,19 +398,20 @@ def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
         ret_per_full *= info.get("base_loot_amount") or 0
         buy = _best_buy(price_q1, empty, cities)
         sell = _best_sell(price_q1, info["full"], cities, sell_mode, premium)
-        fp = _fill_plan(info, price_q1, cities, premium, sell_mode)
+        fp = _fill_plan(info, price_q1, cities, premium, sell_mode,
+                        sell_ok=fill_sell_ok)
         if not buy or not sell or fp is None:
             continue
         empty_price, full_net = buy[1], sell[1]
-        # encher VENDENDO: custo = fill_cost_selling (crédito se margem>0)
-        lucro_vendendo = ret_per_full - fp["fill_cost_selling"] - empty_price
-        lucro_descartando = ret_per_full - fp["fill_cost_discarding"] - empty_price
+        crafts = fp["crafts_to_fill"]
+        fee_total = crafts * (station_fee or 0)   # taxa do NPC × nº de crafts
+        # encher VENDENDO: custo = fill_cost_selling (crédito se margem>0) + taxa
+        lucro_vendendo = (ret_per_full - fp["fill_cost_selling"] - fee_total
+                          - empty_price)
+        lucro_descartando = (ret_per_full - fp["fill_cost_discarding"] - fee_total
+                             - empty_price)
         lucro_flip = full_net - empty_price
-        # liquidez: o item de fill é pouco cotado? O motor pega a MAIOR margem,
-        # então um item vendido em <3 cidades pode ser ordem-isca que escapou do
-        # saneamento (que só zera outlier com >=3 cidades). Aviso p/ o usuário.
-        thin = (fp["fill_city"] is None or fp["craft_sell_net"] <= 0
-                or fp["fill_sell_cities"] < 3)
+        thin = fp["fill_liquidez_baixa"]
         rows.append({
             "empty": empty, "full": info["full"],
             "family": info["family"], "tier": info["tier"],
@@ -404,8 +429,11 @@ def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
             "craft_venda_liquida": fp["craft_sell_net"],  # venda líq do item
             "material_un": fp["material_cost_unit"],
             "fill_sell_cities": fp["fill_sell_cities"],   # cidades cotando o item
+            "station_fee": round(station_fee or 0),       # taxa NPC por craft (entrada)
+            "custo_taxa_estacao": round(fee_total),        # taxa × n_crafts
             "fill_cost_is_proxy": fp["fill_cost_is_proxy"],
-            "fill_liquidez_baixa": thin,   # item de fill pouco/nada cotado (<3 cid.)
+            "fill_liquidez_baixa": thin,   # nenhum candidato elegível (<3 cid.)
+            "fill_isca": fp["fill_isca"],  # escolhido caiu fora da banda de VWAP
             "buy_city": buy[0], "vazio": round(empty_price),
             "sell_city": sell[0], "cheio": round(full_net),
             "lucro_alimentar_vendendo": round(lucro_vendendo),
