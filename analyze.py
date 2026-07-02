@@ -1303,6 +1303,68 @@ def cmd_journals(args, fmt):
          fmt)
 
 
+def _laborer_market_data(vwap_days):
+    """Dados de mercado p/ os comandos de laborer: q1 saneado, VWAP por item,
+    volume DIÁRIO por item e o validador anti-isca. Lê o cache (store, RO) uma
+    vez. Devolve dict ou None se o cache estiver vazio. island.py fica sem SQL —
+    aqui é o único ponto que toca o banco.
+    """
+    from albion import store
+    from albion.microstructure import clean_price_rows
+    con = store.connect(readonly=True)
+    if con is None:
+        return None
+    try:
+        raw = [dict(r) for r in con.execute(
+            "SELECT * FROM prices WHERE server=?",
+            [config.DEFAULT_SERVER]).fetchall()]
+        # histórico q1/24h na janela do VWAP; corte por texto ISO (dual SQLite/PG)
+        cutoff = store.cutoff_iso(vwap_days)
+        hist = con.execute(
+            """SELECT item_id, avg_price, item_count FROM history
+               WHERE server=? AND time_scale=24 AND quality=1
+                 AND avg_price>0 AND ts >= ?""",
+            [config.DEFAULT_SERVER, cutoff]).fetchall()
+    finally:
+        con.close()
+    # SANEAMENTO anti-âncora (nível 1): o motor persegue o MAIOR preço de venda,
+    # então é o mais exposto a isca. clean_price_rows zera o outlier entre cidades
+    # (>=3 cotadas) — mesma defesa do hub Avançado (app._price_lookups).
+    q1 = {}
+    for r in clean_price_rows(raw):
+        if r.get("quality") != 1:
+            continue
+        sp = r.get("sell_price_min") or 0
+        if sp <= 0:
+            continue
+        item, city = r["item_id"], r["city"]
+        if (item, city) not in q1 or sp < q1[(item, city)]:
+            q1[(item, city)] = sp
+    # VWAP por item (Σ preço×volume / Σ volume) e volume DIÁRIO (Σ volume / dias).
+    vwap_num, vol_sum = {}, {}
+    for row in hist:
+        iid, avg, cnt = row["item_id"], row["avg_price"] or 0, row["item_count"] or 0
+        if avg <= 0 or cnt <= 0:
+            continue
+        vwap_num[iid] = vwap_num.get(iid, 0) + avg * cnt
+        vol_sum[iid] = vol_sum.get(iid, 0) + cnt
+    vwap = {i: vwap_num[i] / vol_sum[i] for i in vol_sum if vol_sum[i] > 0}
+    days = max(vwap_days, 1)
+    volumes = {i: vol_sum[i] / days for i in vol_sum}   # unidades negociadas/dia
+
+    def fill_sell_ok(item_id, price):
+        """Banda anti-isca do item de FILL: sem VWAP => rejeita (não dá pra validar
+        um item que nunca negociou); com VWAP, exige 0.35×VWAP <= preço <= 3×VWAP.
+        Só o item de fill passa por aqui — loot e insumos usam o q1 já saneado."""
+        v = vwap.get(item_id)
+        if not v:
+            return False
+        return 0.35 * v <= price <= 3.0 * v
+
+    return {"q1": q1, "vwap": vwap, "volumes": volumes,
+            "fill_sell_ok": fill_sell_ok}
+
+
 def cmd_laborers(args, fmt):
     """Trabalhador de FABRICAÇÃO completo: encher craftando + o RETORNO dele.
 
@@ -1315,61 +1377,14 @@ def cmd_laborers(args, fmt):
     itens) = retorno + n_crafts × margem_craft − vazio; Play A (flipar) = cheio −
     vazio. A coluna 'descart.' mantém o pessimista (item jogado fora). Ordena por
     lucro alimentar vendendo. Lê o cache (store, RO) e monta price_q1."""
-    from albion import island, store
-    from albion.microstructure import clean_price_rows
+    from albion import island
     db = ItemDB()
     name = lambda iid: (db.get(iid) or {}).get("pt", iid) if iid else None
-    con = store.connect(readonly=True)
-    if con is None:
+    md = _laborer_market_data(args.vwap_days)
+    if md is None:
         info("Cache vazio — rode 'collect' antes.")
         return
-    try:
-        raw = [dict(r) for r in con.execute(
-            "SELECT * FROM prices WHERE server=?",
-            [config.DEFAULT_SERVER]).fetchall()]
-        # VWAP histórico (q1, ~30d, ponderado por volume) p/ a banda anti-isca do
-        # item de fill. Corte por texto ISO (store.cutoff_iso) — dual SQLite/PG.
-        cutoff = store.cutoff_iso(args.vwap_days)
-        hist = con.execute(
-            """SELECT item_id, avg_price, item_count FROM history
-               WHERE server=? AND time_scale=24 AND quality=1
-                 AND avg_price>0 AND ts >= ?""",
-            [config.DEFAULT_SERVER, cutoff]).fetchall()
-    finally:
-        con.close()
-    # SANEAMENTO anti-âncora (nível 1): o motor escolhe o validitem de MAIOR
-    # margem, então é o mais exposto a ordens-isca. clean_price_rows zera o
-    # outlier entre cidades (>=3 cotadas) — mesma defesa do hub Avançado.
-    q1 = {}
-    for r in clean_price_rows(raw):
-        if r.get("quality") != 1:
-            continue
-        sp = r.get("sell_price_min") or 0
-        if sp <= 0:
-            continue
-        item, city = r["item_id"], r["city"]
-        if (item, city) not in q1 or sp < q1[(item, city)]:
-            q1[(item, city)] = sp
-    # VWAP por item (Σ preço×volume / Σ volume) para a banda 0.35..3× do VWAP.
-    vwap_num, vwap_den = {}, {}
-    for row in hist:
-        iid, avg, cnt = row["item_id"], row["avg_price"] or 0, row["item_count"] or 0
-        if avg <= 0 or cnt <= 0:
-            continue
-        vwap_num[iid] = vwap_num.get(iid, 0) + avg * cnt
-        vwap_den[iid] = vwap_den.get(iid, 0) + cnt
-    vwap = {i: vwap_num[i] / vwap_den[i] for i in vwap_num if vwap_den[i] > 0}
-
-    def fill_sell_ok(item_id, price):
-        """Banda anti-isca do item de FILL: sem VWAP => rejeita (não dá pra
-        validar o preço de um item que nunca negociou); com VWAP, exige
-        0.35×VWAP <= preço <= 3×VWAP. Só o item de fill passa por aqui — o loot
-        e os insumos usam o q1 já saneado por cidade (clean_price_rows)."""
-        v = vwap.get(item_id)
-        if not v:
-            return False                     # sem histórico => não confiável
-        return 0.35 * v <= price <= 3.0 * v
-
+    q1, fill_sell_ok = md["q1"], md["fill_sell_ok"]
     cities = parse_cities(args.cities)
     # sem limite no motor: filtramos família/tier ANTES de cortar em args.limit
     res = island.crafting_laborer_economy(
@@ -1426,6 +1441,93 @@ def cmd_laborers(args, fmt):
           ("lucro_alimentar_descartando", "Lucro alim. (descart.)"),
           ("lucro_flip", "Lucro flip")],
          fmt)
+
+
+def cmd_laborplan(args, fmt):
+    """Otimizador de DIVERSIFICAÇÃO + lista de produção p/ N trabalhadores.
+
+    Mecânica: 1 diário/dia por laborer, n_crafts=3 por diário. Encher todos os
+    laborers da mesma família com o MESMO item derruba o preço — então este
+    comando diversifica a produção do fill entre vários itens elegíveis, cada um
+    até --market-depth (20%) do volume diário dele. Imprime a CESTA (o que craftar
+    e vender por dia), o MATERIAL/dia (refinado por família + coleta bruta
+    estimada) e o RESUMO/dia (retorno dos trabalhadores, margem de craft, custo
+    dos vazios, taxa de estação, LUCRO/DIA), avisando se o mercado satura."""
+    from albion import island
+    db = ItemDB()
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid) if iid else None
+    md = _laborer_market_data(args.vwap_days)
+    if md is None:
+        info("Cache vazio — rode 'collect' antes.")
+        return
+    cities = parse_cities(args.cities)
+    res = island.laborer_plan(
+        md["q1"], family=args.family, tier=args.tier, n_laborers=args.laborers,
+        journals_per_day=args.journals_per_day, market_depth=args.market_depth,
+        station_fee=args.station_fee, premium=args.premium,
+        sell_mode=args.sell_mode, cities=cities, item_volumes=md["volumes"],
+        fill_sell_ok=md["fill_sell_ok"])
+    if not res.get("available"):
+        die(f"Sem plano: {res.get('reason', 'família/tier inválidos')} "
+            f"({res.get('family')} T{res.get('tier')}).")
+    if fmt == "json":
+        print(json.dumps(res, ensure_ascii=False, indent=2))
+        return
+
+    # (a) CESTA
+    basket = res["basket"]
+    for b in basket:
+        b["item_pt"] = name(b["item"]) or b["item"]
+        b["craftar_dia"] = b["crafts_dia"]
+        b["pct"] = f"{b['pct_mercado']}%" if b["pct_mercado"] is not None else "-"
+        b["onde"] = f"{city_pt(b['craft_city'])}→{city_pt(b['sell_city'])}"
+    info(f"PLANO {res['family']} T{res['tier']} · {res['n_laborers']} laborers × "
+         f"{res['journals_per_day']} diário/dia × {res['n_crafts']} crafts = "
+         f"{res['crafts_needed']} crafts/dia. Cesta diversificada (cada item ≤ "
+         f"{res['market_depth']:.0%} do volume diário dele; guloso por margem).")
+    emit(basket,
+         [("item_pt", "Item de fill"), ("craftar_dia", "Craftar/dia"),
+          ("pct", "% mercado"), ("onde", "Craft→Venda"),
+          ("margem_un", "Margem/un"), ("lucro_item_dia", "Lucro item/dia")],
+         fmt)
+
+    # (b) MATERIAL/dia
+    mat_rows = []
+    for f, q in sorted(res["refined_per_day"].items()):
+        raw = island._REFINED_TO_RAW.get(f)
+        raw_q = res["raw_gather_per_day"].get(raw)
+        mat_rows.append({
+            "familia": f, "refinado_dia": q,
+            "coleta_bruta": f"~{raw_q} {raw}" if raw_q else "-",
+        })
+    info("MATERIAL por dia (refinado net RRR) + coleta bruta ESTIMADA "
+         "(~1 bruto por refinado; ajuste conforme o ratio real de refino).")
+    emit(mat_rows, [("familia", "Refinado"), ("refinado_dia", "Refinado/dia"),
+                    ("coleta_bruta", "Coleta bruta/dia (est.)")], fmt)
+
+    # (c) RESUMO/dia
+    resumo = [
+        {"parte": "Retorno dos trabalhadores (+)", "valor": res["worker_return_total"]},
+        {"parte": "Margem de craft do fill (+)", "valor": res["craft_margin_total"]},
+        {"parte": "Custo dos diários vazios (−)", "valor": -res["empty_cost_total"]},
+        {"parte": f"Taxa de estação (−, {res['station_fee']:g}/craft)",
+         "valor": -res["station_fee_total"]},
+        {"parte": "= LUCRO/DIA", "valor": res["profit_day"]},
+    ]
+    info(f"RESUMO/dia · {res['crafts_allocated']}/{res['crafts_needed']} crafts "
+         f"alocados · retorno/diário {res['return_per_journal']} (loot "
+         f"{res['loot_priced_weight_pct']}% precificado) · vazio "
+         f"{res['empty_price']}. Fama/craft é PROXY.")
+    emit(resumo, [("parte", "Parte"), ("valor", "Prata/dia")], fmt)
+
+    if res["market_limited"]:
+        info(f"⚠ MERCADO SATURA: a {res['market_depth'] * 100:g}% do volume, o "
+             f"mercado absorve só {res['market_capacity']} crafts/dia (precisava de "
+             f"{res['crafts_needed']}). Dá p/ alimentar ~{res['laborers_feedable']} "
+             f"laborers desta família/tier. Diversifique famílias/tiers, baixe "
+             f"--market-depth com cautela, ou reduza os laborers.")
+    elif res["empty_missing"]:
+        info("Diário vazio sem cotação de compra — custo do vazio entrou como 0.")
 
 
 def cmd_backtest(args, fmt):
@@ -2937,6 +3039,27 @@ def build_parser():
                    default=True)
     p.add_argument("--limit", type=int, default=60)
     p.set_defaults(func=cmd_laborers)
+
+    p = sub.add_parser("laborplan", parents=[common],
+                       help="otimiza a cesta de fill + produção p/ N trabalhadores")
+    p.add_argument("--family", required=True,
+                   help="WARRIOR|HUNTER|MAGE|TOOLMAKER|MERCENARY")
+    p.add_argument("--tier", type=int, required=True)
+    p.add_argument("--laborers", type=int, required=True,
+                   help="quantos trabalhadores desta família/tier")
+    p.add_argument("--journals-per-day", type=int, default=1,
+                   help="diários por trabalhador por dia (proc. ~22h≈1d)")
+    p.add_argument("--market-depth", type=float, default=0.2,
+                   help="fração do volume diário que cada item pode absorver (0.2=20%%)")
+    p.add_argument("--station-fee", type=float, default=0,
+                   help="taxa do NPC de craft, prata por CRAFT (entrada do usuário)")
+    p.add_argument("--vwap-days", type=float, default=30,
+                   help="janela do VWAP/volume histórico")
+    p.add_argument("--cities", help="cidades (padrão: todas)")
+    p.add_argument("--sell-mode", choices=["instant", "order"], default="order")
+    p.add_argument("--premium", action=argparse.BooleanOptionalAction,
+                   default=True)
+    p.set_defaults(func=cmd_laborplan)
 
     p = sub.add_parser("report", parents=[common],
                        help="relatório do dia (opcional: publica no Discord)")

@@ -318,5 +318,97 @@ class CraftingLaborerTests(unittest.TestCase):
             self.PRICES.update(orig)
 
 
+class LaborerPlanTests(unittest.TestCase):
+    """Otimizador de diversificação + produção (island.laborer_plan)."""
+    # a chave DEVE bater com T{tier}_JOURNAL_{family}_EMPTY (o que laborer_plan monta)
+    LAB = {
+        "T6_JOURNAL_TESTER_EMPTY": {
+            "full": "T6_JOURNAL_TESTER_FULL", "family": "TESTER", "tier": 6,
+            "resource_family": None, "max_fame": 12000.0, "base_loot_amount": 4.0,
+            "fill": {"fame_value": 3000.0, "min_tier": 6,
+                     "items": ["SYN_CHEAP", "SYN_PRICEY"]},
+            "loot": [{"item": "SYN_BAR", "ench": 0, "amount": 1.0, "weight": 100.0}],
+        },
+    }
+    RECIPES = {  # ambos 100% refinado (T6_METALBAR), ambos elegíveis
+        "SYN_CHEAP": {"inputs": [{"id": "T6_METALBAR", "count": 2}],   # mat 200
+                      "focus": 0, "output": 1, "category": "tools"},
+        "SYN_PRICEY": {"inputs": [{"id": "T6_METALBAR", "count": 10}],  # mat 1000
+                       "focus": 0, "output": 1, "category": "tools"},
+    }
+    PRICES = {
+        "T6_METALBAR": 100,
+        "SYN_BAR": 100,
+        "SYN_CHEAP": 300,        # margem ~80,5
+        "SYN_PRICEY": 2000,      # margem ~870 (MAIOR -> guloso pega 1º)
+        "T6_JOURNAL_TESTER_EMPTY": 400,
+        "T6_JOURNAL_TESTER_FULL": 9000,
+    }
+
+    def _q1(self):
+        return {(iid, c): p for iid, p in self.PRICES.items()
+                for c in config.CITIES}
+
+    def setUp(self):
+        self._o = (island._load, island.craft.recipe_for,
+                   island.craft.unified_rrr, island.craft.unified_bonus_city)
+        island._load = lambda: {"laborers": self.LAB}
+        island.craft.recipe_for = lambda iid: self.RECIPES.get(iid)
+        island.craft.unified_rrr = lambda *a, **k: 0.0
+        island.craft.unified_bonus_city = lambda *a, **k: "Martlock"
+
+    def tearDown(self):
+        (island._load, island.craft.recipe_for, island.craft.unified_rrr,
+         island.craft.unified_bonus_city) = self._o
+
+    def _plan(self, volumes, **kw):
+        return island.laborer_plan(
+            self._q1(), family="TESTER", tier=6, n_laborers=kw.pop("n", 3),
+            item_volumes=volumes, **kw)
+
+    def test_allocation_respects_per_item_cap(self):
+        # SYN_PRICEY vol 20 -> cap 4 ; SYN_CHEAP vol 50 -> cap 10. needed=9.
+        # guloso: pega 4 do PRICEY (maior margem) + 5 do CHEAP = 9. Nenhum passa do cap.
+        r = self._plan({"SYN_PRICEY": 20, "SYN_CHEAP": 50}, n=3)
+        self.assertFalse(r["market_limited"])
+        self.assertEqual(r["crafts_allocated"], 9)
+        by = {b["item"]: b for b in r["basket"]}
+        self.assertEqual(by["SYN_PRICEY"]["crafts_dia"], 4)   # limitado pelo cap
+        self.assertEqual(by["SYN_PRICEY"]["cap"], 4)
+        self.assertEqual(by["SYN_CHEAP"]["crafts_dia"], 5)    # completa o restante
+        for b in r["basket"]:
+            self.assertLessEqual(b["crafts_dia"], b["cap"])   # nunca passa do cap
+        # material refinado net RRR: 4×10 (PRICEY) + 5×2 (CHEAP) = 50 T6_METALBAR
+        self.assertEqual(r["refined_per_day"]["METALBAR"], 50)
+        self.assertEqual(r["raw_gather_per_day"]["ORE"], 50)  # ~1 bruto/refinado
+
+    def test_market_limited_when_caps_below_need(self):
+        # volumes baixos: cap 2 + 2 = 4 < needed 9 -> market_limited, feedable=1
+        r = self._plan({"SYN_PRICEY": 10, "SYN_CHEAP": 10}, n=3)
+        self.assertTrue(r["market_limited"])
+        self.assertEqual(r["market_capacity"], 4)     # 2 + 2
+        self.assertEqual(r["crafts_allocated"], 4)
+        self.assertEqual(r["laborers_feedable"], 1)   # 4 // 3
+        # item sem volume é EXCLUÍDO (não dá pra vender)
+        r2 = self._plan({"SYN_PRICEY": 10}, n=3)      # SYN_CHEAP sem volume
+        self.assertEqual({b["item"] for b in r2["basket"]}, {"SYN_PRICEY"})
+
+    def test_profit_day_is_sum_of_parts(self):
+        r = self._plan({"SYN_PRICEY": 20, "SYN_CHEAP": 50}, n=3, station_fee=50)
+        # lucro/dia = retorno_total + margem_total − vazio_total − taxa_total
+        self.assertEqual(
+            r["profit_day"],
+            r["worker_return_total"] + r["craft_margin_total"]
+            - r["empty_cost_total"] - r["station_fee_total"])
+        n_journals = r["n_laborers"] * r["journals_per_day"]
+        self.assertEqual(r["worker_return_total"],
+                         n_journals * r["return_per_journal"])
+        self.assertEqual(r["empty_cost_total"], n_journals * r["empty_price"])
+        self.assertEqual(r["station_fee_total"], r["crafts_allocated"] * 50)
+        # margem total bate com a soma dos itens da cesta
+        self.assertEqual(r["craft_margin_total"],
+                         sum(b["lucro_item_dia"] for b in r["basket"]))
+
+
 if __name__ == "__main__":
     unittest.main()

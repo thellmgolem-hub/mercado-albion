@@ -271,6 +271,78 @@ def _loot_id(entry):
     return f"{entry['item']}@{ench}" if ench else entry["item"]
 
 
+# refinado -> família de refino -> recurso BRUTO coletável (p/ estimativa de coleta)
+_REFINED_TO_RAW = {"PLANKS": "WOOD", "METALBAR": "ORE", "LEATHER": "HIDE",
+                   "CLOTH": "FIBER", "STONEBLOCK": "ROCK"}
+
+
+def _refined_family(input_id):
+    """'T6_PLANKS' / 'T6_PLANKS_LEVEL2' -> 'PLANKS'; None se não for refinado."""
+    m = _REFINED_INPUT.match(input_id or "")
+    return m.group(1) if m else None
+
+
+def _fill_candidates(item_ids, price_q1, cities, premium, sell_mode, *,
+                     sell_ok=None, refined_only=True, allow_farm=True,
+                     farm_ids=None):
+    """Candidatos de FILL avaliados: margem/un, custo de material net RRR,
+    elegibilidade (>=3 cidades + banda VWAP + insumo limpo) e a receita quebrada
+    por família de refinado (p/ agregar material/coleta no laborer_plan).
+
+    Reusado por _fill_plan (escolhe o melhor) e laborer_plan (aloca a cesta).
+    Devolve lista de dicts; NÃO ordena.
+    """
+    sell_ok = sell_ok or (lambda _i, _p: True)
+    farm_ids = farm_ids if farm_ids is not None else _farm_items()
+    cands = []
+    for vid in item_ids:
+        recipe = craft.recipe_for(vid)
+        if not recipe or not recipe.get("inputs"):
+            continue
+        item_sell = _best_sell(price_q1, vid, cities, sell_mode, premium)
+        if not item_sell or item_sell[1] <= 0:
+            continue                  # exige item vendável (com cotação de venda)
+        item_city, item_net = item_sell[0], item_sell[1]
+        raw_price = price_q1.get((vid, item_city)) or 0   # ask p/ a banda de VWAP
+        cat = recipe.get("category")
+        bcity = craft.unified_bonus_city(vid, cat) or (cities[0] if cities else None)
+        rrr = craft.unified_rrr(vid, cat, bcity) if bcity else 0.0
+        mat, ok = 0.0, True
+        inputs = [{"id": i["id"], "count": i["count"]} for i in recipe["inputs"]]
+        # material refinado por família, JÁ net RRR (a RRR devolve recurso, então
+        # abate a QUANTIDADE efetiva de insumo — não o custo, senão dupla contagem).
+        refined_by_family = {}
+        for inp in recipe["inputs"]:
+            b = _best_buy(price_q1, inp["id"], cities)
+            if not b:
+                ok = False
+                break
+            mat += inp["count"] * b[1]
+            fam = _refined_family(inp["id"])
+            if fam:
+                refined_by_family[fam] = (refined_by_family.get(fam, 0.0)
+                                          + inp["count"] * (1 - rrr))
+        if not ok:
+            continue
+        clean = all(_input_is_clean(i["id"], farm_ids, allow_farm) for i in inputs)
+        out_qty = recipe.get("output", 1) or 1
+        eff_mat = mat * (1 - rrr)
+        margin = item_net * out_qty - eff_mat     # margem de craft (por craft)
+        n_sell_cities = sum(1 for c in cities if (price_q1.get((vid, c)) or 0) > 0)
+        price_ok = sell_ok(vid, raw_price)
+        eligible = (n_sell_cities >= 3 and price_ok
+                    and (clean or not refined_only))
+        cands.append({
+            "margin": margin, "vid": vid, "bcity": bcity,
+            "rrr_pct": round(rrr * 100, 1), "eff_mat": round(eff_mat),
+            "item_net": round(item_net), "item_city": item_city,
+            "n_cities": n_sell_cities, "price_ok": price_ok, "clean": clean,
+            "inputs": inputs, "eligible": eligible,
+            "refined_by_family": refined_by_family,   # {'PLANKS': qtd net RRR, ...}
+        })
+    return cands
+
+
 def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None,
                refined_only=True, allow_farm=True, farm_ids=None):
     """Como ENCHER o diário craftando — a jogada REAL: você crafta o item, ganha
@@ -316,48 +388,9 @@ def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None,
         return None
     fame_value = fill["fame_value"]
     crafts = info["max_fame"] / fame_value if fame_value else 0
-    sell_ok = sell_ok or (lambda _i, _p: True)
-    farm_ids = farm_ids if farm_ids is not None else _farm_items()
-    cands = []   # dict por candidato vendável (margem + metadados + elegibilidade)
-    for vid in fill["items"]:
-        recipe = craft.recipe_for(vid)
-        if not recipe or not recipe.get("inputs"):
-            continue
-        item_sell = _best_sell(price_q1, vid, cities, sell_mode, premium)
-        if not item_sell or item_sell[1] <= 0:
-            continue                  # exige item vendável (com cotação de venda)
-        item_city, item_net = item_sell[0], item_sell[1]
-        # preço BRUTO (ask) na cidade escolhida — é ele que a banda de VWAP checa.
-        raw_price = price_q1.get((vid, item_city)) or 0
-        cat = recipe.get("category")
-        bcity = craft.unified_bonus_city(vid, cat) or (cities[0] if cities else None)
-        mat, ok = 0.0, True
-        inputs = [{"id": i["id"], "count": i["count"]} for i in recipe["inputs"]]
-        for inp in recipe["inputs"]:
-            b = _best_buy(price_q1, inp["id"], cities)
-            if not b:
-                ok = False
-                break
-            mat += inp["count"] * b[1]
-        if not ok:
-            continue
-        # insumo limpo? (só refinado básico, +farm se allow_farm)
-        clean = all(_input_is_clean(i["id"], farm_ids, allow_farm) for i in inputs)
-        rrr = craft.unified_rrr(vid, cat, bcity) if bcity else 0.0
-        out_qty = recipe.get("output", 1) or 1
-        eff_mat = mat * (1 - rrr)
-        margin = item_net * out_qty - eff_mat     # margem de craft (por craft)
-        n_sell_cities = sum(1 for c in cities if (price_q1.get((vid, c)) or 0) > 0)
-        price_ok = sell_ok(vid, raw_price)        # dentro da banda de VWAP?
-        eligible = (n_sell_cities >= 3 and price_ok
-                    and (clean or not refined_only))
-        cands.append({
-            "margin": margin, "vid": vid, "bcity": bcity,
-            "rrr_pct": round(rrr * 100, 1), "eff_mat": round(eff_mat),
-            "item_net": round(item_net), "item_city": item_city,
-            "n_cities": n_sell_cities, "price_ok": price_ok, "clean": clean,
-            "inputs": inputs, "eligible": eligible,
-        })
+    cands = _fill_candidates(fill["items"], price_q1, cities, premium, sell_mode,
+                             sell_ok=sell_ok, refined_only=refined_only,
+                             allow_farm=allow_farm, farm_ids=farm_ids)
     if not cands:
         return None
     pool = [c for c in cands if c["eligible"]]
@@ -510,3 +543,155 @@ def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
     rows.sort(key=lambda r: -r["lucro_alimentar_vendendo"])
     return {"available": True, "rows": rows[:limit] if limit else rows,
             "priced": len(rows)}
+
+
+# ------------------------------------ OTIMIZADOR de diversificação + produção
+def _worker_return(info, price_q1, cities, premium, sell_mode):
+    """Retorno do trabalhador por diário cheio = base_loot_amount × Σ_loot[
+    p(i) × amount(i) × venda_líq(loot_i) ]. Devolve (retorno, cobertura_peso%)."""
+    loot = info.get("loot") or []
+    total_w = sum(l.get("weight") or 0 for l in loot)
+    if total_w <= 0:
+        return 0.0, 0.0
+    ret, priced_w = 0.0, 0.0
+    for l in loot:
+        w = l.get("weight") or 0
+        if w <= 0:
+            continue
+        s = _best_sell(price_q1, _loot_id(l), cities, sell_mode, premium)
+        if not s:
+            continue
+        ret += (w / total_w) * (l.get("amount") or 0) * s[1]
+        priced_w += w
+    return ret * (info.get("base_loot_amount") or 0), 100 * priced_w / total_w
+
+
+def laborer_plan(price_q1, *, family, tier, n_laborers, journals_per_day=1,
+                 n_crafts=3, market_depth=0.2, station_fee=0, premium=True,
+                 sell_mode="order", cities=None, item_volumes=None,
+                 refined_only=True, allow_farm=True, farm_ids=None,
+                 fill_sell_ok=None):
+    """Otimizador de DIVERSIFICAÇÃO de fill + lista de produção p/ N trabalhadores.
+
+    Mecânica: 1 diário/dia por laborer (processa ~22h≈1d), n_crafts por diário.
+    Com muitos laborers da MESMA família, encher todos com o MESMO item de fill
+    derruba o preço dele — então diversificamos: aloca a produção entre vários
+    itens de fill elegíveis, cada um até ~market_depth (20%) do seu volume diário.
+
+    Passos:
+      1. Candidatos = itens de fill ELEGÍVEIS de (family,tier): refined-only +
+         >=3 cidades + banda VWAP (via _fill_candidates). Exige volume_diário>0
+         em item_volumes (sem volume não dá p/ vender — EXCLUI).
+      2. crafts_needed = n_laborers × journals_per_day × n_crafts.
+      3. cap_item = floor(market_depth × volume_diário) crafts/dia.
+      4. GULOSO por margem/un desc: enche cada item até seu cap até somar
+         crafts_needed. Se Σcaps < needed => market_limited.
+      5. Agrega material refinado/dia por família (net RRR) e a coleta bruta
+         (~1 bruto/refinado; estimativa).
+      6. lucro_dia = N_diários×retorno_trab + Σ(crafts×margem/un)
+                     − N_diários×vazio − crafts_alocados×station_fee.
+
+    Somente-leitura sobre price_q1 (dict); volumes e VWAP vêm de fora (sem SQL).
+    """
+    cities = cities or config.CITIES
+    fam = (family or "").upper()
+    empty = f"T{tier}_JOURNAL_{fam}_EMPTY"
+    info = (_load().get("laborers") or {}).get(empty)
+    if not info or not (info.get("fill") and info["fill"].get("items")):
+        return {"available": False, "reason": "família/tier sem diário de fabricação",
+                "family": fam, "tier": tier}
+    item_volumes = item_volumes or {}
+    farm_ids = farm_ids if farm_ids is not None else _farm_items()
+    cands = _fill_candidates(info["fill"]["items"], price_q1, cities, premium,
+                             sell_mode, sell_ok=fill_sell_ok,
+                             refined_only=refined_only, allow_farm=allow_farm,
+                             farm_ids=farm_ids)
+    # só elegíveis E com volume diário conhecido (>0) — sem volume não vende.
+    pool = []
+    for c in cands:
+        if not c["eligible"]:
+            continue
+        vol = item_volumes.get(c["vid"]) or 0
+        if vol <= 0:
+            continue
+        c = {**c, "volume": vol, "cap": int(market_depth * vol)}
+        if c["cap"] <= 0:
+            continue
+        pool.append(c)
+    pool.sort(key=lambda c: -c["margin"])   # guloso: melhor margem primeiro
+
+    crafts_needed = n_laborers * journals_per_day * n_crafts
+    basket, allocated = [], 0
+    for c in pool:
+        if allocated >= crafts_needed:
+            break
+        take = min(c["cap"], crafts_needed - allocated)
+        if take <= 0:
+            continue
+        allocated += take
+        basket.append({
+            "item": c["vid"], "crafts_dia": take, "cap": c["cap"],
+            "volume_dia": c["volume"],
+            "pct_mercado": round(100 * take / c["volume"], 1) if c["volume"] else None,
+            "margem_un": round(c["margin"]),
+            "sell_city": c["item_city"], "craft_city": c["bcity"],
+            "lucro_item_dia": round(take * c["margin"]),
+            "inputs": c["inputs"],
+            "_refined": c["refined_by_family"],
+        })
+    total_caps = sum(c["cap"] for c in pool)
+    market_limited = allocated < crafts_needed
+
+    # material refinado/dia por família (net RRR) + coleta bruta estimada (~1:1)
+    refined_day, raw_day = {}, {}
+    for b in basket:
+        for f, per_craft in b["_refined"].items():
+            qty = per_craft * b["crafts_dia"]
+            refined_day[f] = refined_day.get(f, 0.0) + qty
+            raw = _REFINED_TO_RAW.get(f)
+            if raw:
+                raw_day[raw] = raw_day.get(raw, 0.0) + qty   # ~1 bruto/refinado
+    for b in basket:
+        b.pop("_refined", None)
+
+    ret_per_journal, loot_cov = _worker_return(info, price_q1, cities, premium,
+                                               sell_mode)
+    buy = _best_buy(price_q1, empty, cities)
+    empty_price = buy[1] if buy else None
+    n_journals = n_laborers * journals_per_day
+    margin_total = sum(b["lucro_item_dia"] for b in basket)
+    ret_total = n_journals * ret_per_journal
+    empty_total = n_journals * (empty_price or 0)
+    fee_total = allocated * (station_fee or 0)
+    profit_day = ret_total + margin_total - empty_total - fee_total
+
+    laborers_feedable = (allocated // (journals_per_day * n_crafts)
+                         if journals_per_day * n_crafts else 0)
+    return {
+        "available": True,
+        "family": fam, "tier": tier,
+        "n_laborers": n_laborers, "journals_per_day": journals_per_day,
+        "n_crafts": n_crafts, "market_depth": market_depth,
+        "crafts_needed": crafts_needed, "crafts_allocated": allocated,
+        "market_capacity": total_caps,        # Σ caps (crafts/dia absorvíveis)
+        "market_limited": market_limited,
+        "laborers_feedable": laborers_feedable,   # quantos dá p/ alimentar de fato
+        "empty_missing": empty_price is None,
+        # cesta diversificada
+        "basket": basket,
+        # material & coleta por dia
+        "refined_per_day": {f: round(q) for f, q in refined_day.items()},
+        "raw_gather_per_day": {r: round(q) for r, q in raw_day.items()},
+        "raw_is_estimate": True,               # coleta ~1 bruto/refinado
+        # resumo do lucro (partes expostas)
+        "return_per_journal": round(ret_per_journal),
+        "loot_priced_weight_pct": round(loot_cov, 1),
+        "empty_price": round(empty_price) if empty_price is not None else None,
+        "station_fee": round(station_fee or 0),
+        "worker_return_total": round(ret_total),
+        "craft_margin_total": round(margin_total),
+        "empty_cost_total": round(empty_total),
+        "station_fee_total": round(fee_total),
+        "profit_day": round(profit_day),
+        "fill_cost_is_proxy": True,
+    }
