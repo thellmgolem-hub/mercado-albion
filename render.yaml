@@ -26,6 +26,11 @@ services:
       # Render serve HTTPS: cookie de sessão precisa do flag Secure.
       - key: ALBION_AUTH_COOKIE_SECURE
         value: "1"
+      # O proxy do Render ANEXA o IP real do cliente ao FIM do X-Forwarded-For
+      # — aqui é seguro confiar (o padrão do app é desligado: sem proxy à
+      # frente, o header seria forjável).
+      - key: ALBION_TRUST_PROXY
+        value: "1"
       # Defina como o nome do admin (ex.: admin) só na PRIMEIRA subida: cria a
       # conta e mostra a senha temporária no Log. Depois remova esta variável.
       - key: ALBION_BOOTSTRAP_ADMIN

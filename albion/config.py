@@ -173,7 +173,7 @@ AUTO_COLLECT_INTERVAL_MIN = 30
 
 # Webhook do Discord para `analyze.py report --discord` (cole a URL do canal:
 # Configurações do canal > Integrações > Webhooks > Novo webhook > Copiar URL)
-DISCORD_WEBHOOK_URL = ""
+DISCORD_WEBHOOK_URL = os.environ.get("ALBION_DISCORD_WEBHOOK", "")
 
 # API pública de kills/batalhas (killboard) — ver docs/SCHEMA_GAMEINFO.md
 GAMEINFO_BASES = {
@@ -202,9 +202,16 @@ AUTH_COOKIE_SECURE = os.environ.get("ALBION_AUTH_COOKIE_SECURE") == "1"
 AUTH_SESSION_COOKIE = "albion_session"
 AUTH_DEVICE_COOKIE = "albion_device"   # legado (não mais usado; vínculo é por IP)
 # Vínculo da conta agora é por IP: máx. de IPs em auth.MAX_IPS_PER_ACCOUNT.
-# Confia no X-Forwarded-For (proxy da nuvem, ex. Render) p/ achar o IP real do
-# cliente. Local não tem XFF e cai em request.client.host (127.0.0.1).
-AUTH_TRUST_PROXY = os.environ.get("ALBION_TRUST_PROXY", "1") == "1"
+# Confiança em headers de proxy é OPT-IN (padrão DESLIGADO): sem um proxy à
+# frente, X-Forwarded-For é forjável pelo cliente e burlaria o vínculo por IP.
+# Ligue ALBION_TRUST_PROXY=1 só atrás de proxy que ANEXA o IP real ao fim do
+# XFF (Render — já vem no render.yaml). Local sem proxy cai em
+# request.client.host (127.0.0.1).
+AUTH_TRUST_PROXY = os.environ.get("ALBION_TRUST_PROXY", "0") == "1"
+# Se houver CDN/borda que grava o IP real num header próprio (ex. Cloudflare),
+# nomeie-o aqui (ex.: "cf-connecting-ip"). Vazio = nenhum header de borda é
+# honrado — sem a borda na frente, qualquer cliente forjaria esse header.
+AUTH_EDGE_HEADER = os.environ.get("ALBION_EDGE_HEADER", "").strip().lower()
 # Máx. de itens por rodada de coleta. 2.300 itens ≈ 92 requisições à API
 # (2 × itens/50), ~40 s por rodada — confortável dentro de 150/min e 300/5min.
 COLLECT_MAX_ITEMS = 2500

@@ -68,8 +68,12 @@ acordado). Nada de cartão. Tempo: ~30–45 min.
 ## Acesso das contas (limite de IPs)
 - Cada conta é usável de no **máximo 2 IPs** diferentes (anti-compartilhamento).
   Um 3º IP é recusado no login. Para liberar, o admin clica **Liberar IPs** na aba
-  **Contas** (ou roda `manage_accounts.py reset-device <id>`). O IP real vem do
-  proxy do Render (X-Forwarded-For); nada a configurar.
+  **Contas** (ou roda `manage_accounts.py reset-device <id>`).
+- O IP real vem do proxy do Render: `ALBION_TRUST_PROXY=1` (já no `render.yaml`)
+  manda o app usar o último IP do `X-Forwarded-For` — o que o proxy anexou, o
+  único não-forjável. O padrão é **desligado**: sem proxy na frente, esse header
+  seria forjável. Se puser uma CDN na frente (ex. Cloudflare), defina também
+  `ALBION_EDGE_HEADER` com o header que ela grava (ex.: `cf-connecting-ip`).
 - O coletor automático local NÃO roda na nuvem (lá quem alimenta é o cron do
   passo 4). As "Recomendações" enchem conforme o sweep varre o mercado.
 

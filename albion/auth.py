@@ -276,6 +276,7 @@ class AuthManager:
     def __init__(self, con, lock):
         self.con = con
         self.lock = lock
+        self._last_cleanup = 0.0   # faxina periódica disparada pelo login()
         self._init_schema()
 
     @contextmanager
@@ -320,19 +321,30 @@ class AuthManager:
     def _revoke_legacy_devices(self):
         """Migração idempotente: registros LEGADOS de dispositivo (label não é um
         IP) seriam contados no limite de IPs e nunca casariam num login — revoga.
+        Também derruba as sessões e bumpa session_version da conta (espelha
+        reset_device): sem isso um cookie emitido no regime antigo seguiria
+        autenticando de qualquer IP até expirar.
         Numa base nova (nuvem) não há nada a fazer."""
         try:
             with self._tx() as con:
                 rows = con.execute(
-                    "SELECT id,label FROM auth_devices "
+                    "SELECT id,account_id,label FROM auth_devices "
                     "WHERE revoked_at IS NULL").fetchall()
                 now = time.time()
-                for rid, label in rows:
+                touched = set()
+                for rid, account_id, label in rows:
                     try:
                         ipaddress.ip_address((label or "").strip())
                     except ValueError:
                         con.execute("UPDATE auth_devices SET revoked_at=? "
                                     "WHERE id=?", [now, rid])
+                        touched.add(account_id)
+                for account_id in touched:
+                    con.execute("DELETE FROM auth_sessions WHERE account_id=?",
+                                [account_id])
+                    con.execute("UPDATE auth_accounts SET "
+                                "session_version=session_version+1,updated_at=? "
+                                "WHERE id=?", [now, account_id])
         except Exception:
             pass   # nunca derruba o boot por causa da migração
 
@@ -603,6 +615,12 @@ class AuthManager:
         """, [norm, failures, now + lock_seconds, now])
 
     def login(self, username, password, ip=None):
+        # Faxina periódica (sessões expiradas / throttle velho). Precisa rodar
+        # ANTES do _tx(): cleanup() abre a própria transação e o lock NÃO é
+        # reentrante — chamado lá dentro, deadlocka.
+        if time.time() - self._last_cleanup > 3600:
+            self._last_cleanup = time.time()
+            self.cleanup()
         try:
             norm = normalize_username(username)
         except AuthError:
@@ -712,11 +730,16 @@ class AuthManager:
             ips = con.execute(
                 "SELECT token_hash FROM auth_devices WHERE account_id=? "
                 "AND revoked_at IS NULL", [row[0]]).fetchall()
-            if ips:
-                supplied = _token_hash((ip or "0.0.0.0")[:45])   # default igual ao login()
-                if not any(hmac.compare_digest(d[0], supplied) for d in ips):
-                    raise AuthError("IP nao reconhecido para esta sessao. Entre "
-                                    "novamente.", "ip_unrecognized", 401)
+            # Fail-closed: todo login registra >=1 device; sessão válida SEM
+            # nenhum IP ativo é estado anômalo (ex.: migração revogou devices
+            # sem derrubar a sessão) — rejeita em vez de virar bearer puro.
+            if not ips:
+                raise AuthError("IP nao reconhecido para esta sessao. Entre "
+                                "novamente.", "ip_unrecognized", 401)
+            supplied = _token_hash((ip or "0.0.0.0")[:45])   # default igual ao login()
+            if not any(hmac.compare_digest(d[0], supplied) for d in ips):
+                raise AuthError("IP nao reconhecido para esta sessao. Entre "
+                                "novamente.", "ip_unrecognized", 401)
             if now - row[5] >= 300:
                 con.execute("UPDATE auth_sessions SET last_seen_at=?,"
                             "idle_expires_at=? WHERE token_hash=?",

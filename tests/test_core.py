@@ -801,6 +801,19 @@ class LogisticsTests(unittest.TestCase):
         self.assertEqual(out["Caerleon"]["sell_price_min"], 0)   # âncora zerada
         self.assertEqual(out["Martlock"]["sell_price_min"], 100)  # mantida
 
+    def test_clean_price_rows_preserves_black_market(self):
+        from albion.microstructure import clean_price_rows
+        # prêmio alto do BM é estrutural (ordem do sistema): NÃO pode ser
+        # zerado; a âncora royal continua caindo no corte transversal
+        rows = [row("T4_SWORD", c, 1, buy=b) for c, b in
+                [("Martlock", 900), ("Lymhurst", 950), ("Thetford", 880),
+                 ("Bridgewatch", 920), ("Caerleon", 40_000_000),
+                 ("Black Market", 25_000)]]
+        out = {r["city"]: r for r in clean_price_rows(rows)}
+        self.assertEqual(out["Black Market"]["buy_price_max"], 25_000)  # sobrevive
+        self.assertEqual(out["Caerleon"]["buy_price_max"], 0)   # âncora zerada
+        self.assertEqual(out["Martlock"]["buy_price_max"], 900)  # mantida
+
     def test_cargo_knapsack_respects_caps(self):
         from albion import logistics as logi
         flips = [
@@ -1698,20 +1711,43 @@ class AuthManagerTests(unittest.TestCase):
         self.assertEqual(app._normalize_ip("fe80::1%eth0"), "fe80::1")
         self.assertEqual(app._normalize_ip(" 200.0.0.9 "), "200.0.0.9")
 
-    def test_client_ip_edge_header_then_leftmost_xff(self):
+    def test_client_ip_rightmost_xff_and_optin_edge_header(self):
         import types
-        # header de borda não-forjável (Cloudflare/edge) tem prioridade
         req = types.SimpleNamespace(
             headers={"cf-connecting-ip": "203.0.113.7",
-                     "x-forwarded-for": "6.6.6.6, 10.0.0.1"},
+                     "x-forwarded-for": "6.6.6.6, 200.10.20.30"},
             client=types.SimpleNamespace(host="10.0.0.5"))
-        self.assertEqual(app._client_ip(req), "203.0.113.7")
-        # sem header de borda: o cliente ORIGINAL é o mais à ESQUERDA do XFF —
-        # o Render põe o IP real à esquerda; pegar o 'mais à direita' era inócuo
-        req2 = types.SimpleNamespace(
-            headers={"x-forwarded-for": "200.10.20.30, 10.0.0.1"},
-            client=types.SimpleNamespace(host="10.0.0.5"))
-        self.assertEqual(app._client_ip(req2), "200.10.20.30")
+        old_trust = app.config.AUTH_TRUST_PROXY
+        old_edge = app.config.AUTH_EDGE_HEADER
+        try:
+            # default: confiança em proxy DESLIGADA — todo header é ignorado
+            app.config.AUTH_TRUST_PROXY = False
+            app.config.AUTH_EDGE_HEADER = ""
+            self.assertEqual(app._client_ip(req), "10.0.0.5")
+
+            # proxy confiável: vale o token MAIS À DIREITA do XFF (o que o
+            # proxy imediato ANEXOU); os da esquerda vêm do cliente e são
+            # forjáveis. Header de borda SEM ALBION_EDGE_HEADER é ignorado.
+            app.config.AUTH_TRUST_PROXY = True
+            self.assertEqual(app._client_ip(req), "200.10.20.30")
+
+            # header de borda só é honrado quando nomeado em ALBION_EDGE_HEADER
+            app.config.AUTH_EDGE_HEADER = "cf-connecting-ip"
+            self.assertEqual(app._client_ip(req), "203.0.113.7")
+
+            # borda nomeada mas ausente na requisição: cai no XFF (direita)
+            req2 = types.SimpleNamespace(
+                headers={"x-forwarded-for": "6.6.6.6, 198.51.100.9"},
+                client=types.SimpleNamespace(host="10.0.0.5"))
+            self.assertEqual(app._client_ip(req2), "198.51.100.9")
+
+            # sem header nenhum: request.client.host
+            req3 = types.SimpleNamespace(
+                headers={}, client=types.SimpleNamespace(host="127.0.0.1"))
+            self.assertEqual(app._client_ip(req3), "127.0.0.1")
+        finally:
+            app.config.AUTH_TRUST_PROXY = old_trust
+            app.config.AUTH_EDGE_HEADER = old_edge
 
     def test_legacy_device_rows_revoked(self):
         import time as _t

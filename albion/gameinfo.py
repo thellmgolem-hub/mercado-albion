@@ -81,7 +81,8 @@ def _equipment_rows(server, event_id, role, actor, with_inventory=False):
 
 
 def _checkpoint(aodp, source):
-    with aodp.db_lock:
+    # leitura pura: _read encerra a transação (Postgres não fica idle)
+    with aodp._read():
         row = aodp.db.execute(
             "SELECT cursor_value FROM public_ingest_checkpoints"
             " WHERE server=? AND source=?", [aodp.server, source]).fetchone()

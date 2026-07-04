@@ -197,7 +197,10 @@ def clean_price_rows(rows, z_threshold=4.0):
     sell_price_min e buy_price_max entre as cidades e ZERA a ponta que for
     outlier (alta OU baixa) — uma ordem de 1 prata ou de 751 milhões numa única
     cidade deixa de contaminar qualquer análise que pegue o melhor/maior. Só
-    atua com >=3 cidades cotadas naquela ponta. Devolve cópias das linhas.
+    atua com >=3 cidades cotadas naquela ponta. O Mercado Negro fica FORA do
+    corte transversal: as ordens lá são do sistema (não são isca) e o prêmio
+    sobre as cidades royal é estrutural — zerá-lo censuraria justamente os
+    maiores prêmios de BM. Devolve cópias das linhas.
     """
     out = [dict(r) for r in rows]
     by_iq = {}
@@ -206,7 +209,8 @@ def clean_price_rows(rows, z_threshold=4.0):
     for idxs in by_iq.values():
         for field in ("sell_price_min", "buy_price_max"):
             vals = [(i, out[i].get(field) or 0) for i in idxs
-                    if (out[i].get(field) or 0) > 0]
+                    if out[i].get("city") != "Black Market"
+                    and (out[i].get(field) or 0) > 0]
             if len(vals) < 3:
                 continue
             zs = _robust_z([v for _, v in vals])

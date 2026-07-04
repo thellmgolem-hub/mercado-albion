@@ -4,6 +4,7 @@ import sqlite3
 import threading
 import time
 from collections import deque
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
@@ -253,10 +254,28 @@ class AODP:
             # p/ o SQLite local também (não só o Postgres, que já chamava acima).
             store.init_schema(self.db)
 
+    @contextmanager
+    def _read(self):
+        """Leitura que ENCERRA a transação implícita ao sair (espelha
+        auth.AuthManager._read). No Postgres (conexão gravável,
+        autocommit=False) um SELECT abre transação que ficaria 'idle in
+        transaction' até commit/rollback — retendo o backend do pooler
+        (Supabase) e podendo derrubar a sessão. Aqui damos rollback ao final
+        (sem efeito, é só-leitura). No SQLite, SELECT puro não abre
+        transação: rollback é no-op."""
+        with self.db_lock:
+            try:
+                yield self.db
+            finally:
+                try:
+                    self.db.rollback()
+                except Exception:
+                    pass
+
     def _fetch_ages(self, kind: str, keys: list[str]) -> dict[str, float]:
         """fetched_at por chave do fetch_log."""
         out = {}
-        with self.db_lock:
+        with self._read():
             for i in range(0, len(keys), 500):
                 chunk = keys[i:i + 500]
                 ph = ",".join("?" * len(chunk))
@@ -366,7 +385,7 @@ class AODP:
                     "prices", [f"{i}|{c}" for i in chunk for c in cities], fetched)
 
         out = []
-        with self.db_lock:
+        with self._read():
             for i in range(0, len(item_ids), 400):
                 chunk = item_ids[i:i + 400]
                 ph_i = ",".join("?" * len(chunk))
@@ -440,7 +459,7 @@ class AODP:
                     fetched)
 
         out = {}
-        with self.db_lock:
+        with self._read():
             for i in range(0, len(item_ids), 400):
                 chunk = item_ids[i:i + 400]
                 ph_i = ",".join("?" * len(chunk))
@@ -464,7 +483,7 @@ class AODP:
     def get_gold(self, count: int = 24,
                  max_age: int = config.GOLD_TTL) -> list[dict]:
         ages = self._fetch_ages("gold", ["gold"])
-        with self.db_lock:
+        with self._read():
             cached = self.db.execute(
                 "SELECT COUNT(*) FROM gold WHERE server=?",
                 [self.server]).fetchone()[0]
@@ -477,7 +496,7 @@ class AODP:
                               for r in rows], ["server", "ts"])
                 self.db.commit()
             self._mark_fetched("gold", ["gold"], fetched)
-        with self.db_lock:
+        with self._read():
             rows = self.db.execute(
                 "SELECT ts, price FROM gold WHERE server=?"
                 " ORDER BY ts DESC LIMIT ?", [self.server, count]).fetchall()
@@ -486,6 +505,9 @@ class AODP:
     # ---------------------------------------------------------------- watchlist
 
     def watch_add(self, item_ids: list[str]) -> int:
+        # watchlist/catálogo são exclusivos do SQLite local
+        if getattr(self.db, "backend", "sqlite") != "sqlite":
+            return 0
         with self.db_lock:
             self.db.executemany(
                 "INSERT OR IGNORE INTO watchlist VALUES (?,?,?)",
@@ -494,6 +516,9 @@ class AODP:
         return len(item_ids)
 
     def watch_remove(self, item_ids: list[str]) -> None:
+        # watchlist/catálogo são exclusivos do SQLite local
+        if getattr(self.db, "backend", "sqlite") != "sqlite":
+            return None
         with self.db_lock:
             self.db.executemany(
                 "DELETE FROM watchlist WHERE server=? AND item_id=?",
@@ -502,6 +527,9 @@ class AODP:
 
     def watch_replace(self, item_ids: list[str]) -> int:
         """Substitui a watchlist inteira por item_ids (rebuild priorizado)."""
+        # watchlist/catálogo são exclusivos do SQLite local
+        if getattr(self.db, "backend", "sqlite") != "sqlite":
+            return 0
         with self.db_lock:
             self.db.execute("DELETE FROM watchlist WHERE server=?", [self.server])
             self.db.executemany(
@@ -511,7 +539,10 @@ class AODP:
         return len(item_ids)
 
     def watch_list(self) -> list[dict]:
-        with self.db_lock:
+        # watchlist/catálogo são exclusivos do SQLite local
+        if getattr(self.db, "backend", "sqlite") != "sqlite":
+            return []
+        with self._read():
             rows = self.db.execute(
                 "SELECT item_id, added_at FROM watchlist WHERE server=?"
                 " ORDER BY item_id", [self.server]).fetchall()
@@ -604,6 +635,9 @@ class AODP:
 
     def sync_static_items(self, items: list[dict]) -> int:
         """Espelha o catálogo de itens no SQLite (joins do killboard etc.)."""
+        # watchlist/catálogo são exclusivos do SQLite local
+        if getattr(self.db, "backend", "sqlite") != "sqlite":
+            return 0
         with self.db_lock:
             n = self.db.execute(
                 "SELECT COUNT(*) FROM static_items").fetchone()[0]
@@ -661,7 +695,7 @@ class AODP:
              " FROM positions WHERE server=?")
         if not include_closed:
             q += " AND closed_at IS NULL"
-        with self.db_lock:
+        with self._read():
             rows = self.db.execute(q + " ORDER BY id", [self.server]).fetchall()
         cols = ["id", "item_id", "quality", "qty", "buy_price", "buy_city",
                 "opened_at", "sell_price", "sell_city", "closed_at", "note"]
@@ -670,7 +704,7 @@ class AODP:
     # ---------------------------------------------------------------- sweep
     def sweep_state(self) -> dict:
         """Cursor do sweep fatiado (offset no universo, ciclo, último lote)."""
-        with self.db_lock:
+        with self._read():
             row = self.db.execute(
                 "SELECT cursor, cycle, last_items, updated_at FROM sweep_state"
                 " WHERE server=?", [self.server]).fetchone()
