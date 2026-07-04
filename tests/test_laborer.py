@@ -410,5 +410,111 @@ class LaborerPlanTests(unittest.TestCase):
                          sum(b["lucro_item_dia"] for b in r["basket"]))
 
 
+class HappinessTests(unittest.TestCase):
+    """Felicidade/rendimento (cama+mesa+troféu). Cálculo puro, sem dump nem cache.
+
+    Cama/mesa = 50×tier; base = 100×tier do trabalhador; +0,5%/ponto acima da base,
+    teto +50% (precisa +100). Troféu geral +5, tipo +10 (fabricação só geral)."""
+
+    def test_furniture_happiness(self):
+        self.assertEqual(island.furniture_happiness(7), 350)          # só cama
+        self.assertEqual(island.furniture_happiness(7, 7), 700)       # cama+mesa
+        self.assertEqual(island.furniture_happiness(5, 6), 550)
+
+    def test_user_case_t5_with_t7_furniture_is_maxed(self):
+        # O caso do dono: trabalhador T5, cama+mesa T7 → teto +50%, zero troféu.
+        st = island.laborer_happiness(5, bed_tier=7, table_tier=7)
+        self.assertEqual(st["base"], 500)
+        self.assertEqual(st["total"], 700)
+        self.assertEqual(st["above_base"], 200)
+        self.assertEqual(st["yield_bonus_pct"], 50.0)
+        self.assertTrue(st["maxed"])
+        self.assertFalse(st["below_base"])
+        self.assertEqual(st["to_max_points"], 0)
+
+    def test_same_tier_furniture_equals_base(self):
+        # Cama+mesa do MESMO tier do trabalhador = base exata (0% de bônus).
+        st = island.laborer_happiness(7, bed_tier=7, table_tier=7)
+        self.assertEqual(st["total"], 700)
+        self.assertEqual(st["above_base"], 0)
+        self.assertEqual(st["yield_bonus_pct"], 0.0)
+        self.assertFalse(st["maxed"])
+        # T6 cama+mesa p/ um T5 (600) = exatamente o teto.
+        st2 = island.laborer_happiness(5, bed_tier=6, table_tier=6)
+        self.assertEqual(st2["total"], 600)
+        self.assertTrue(st2["maxed"])
+
+    def test_yield_is_linear_and_capped(self):
+        # +0,5% por ponto acima da base.
+        st = island.laborer_happiness(5, bed_tier=6, table_tier=5)  # 550, +50 acima
+        self.assertEqual(st["above_base"], 50)
+        self.assertEqual(st["yield_bonus_pct"], 25.0)
+        # Muito acima da base → o bônus satura em +50%.
+        st2 = island.laborer_happiness(5, bed_tier=8, table_tier=8)  # 800, +300
+        self.assertEqual(st2["yield_bonus_pct"], 50.0)
+        self.assertTrue(st2["maxed"])
+
+    def test_below_base(self):
+        st = island.laborer_happiness(5, bed_tier=5)   # só cama = 250 < 500
+        self.assertEqual(st["total"], 250)
+        self.assertEqual(st["above_base"], -250)
+        self.assertEqual(st["yield_bonus_pct"], 0.0)
+        self.assertTrue(st["below_base"])
+        self.assertEqual(st["to_max_points"], 350)     # 600 − 250
+
+    def test_trophy_happiness_from(self):
+        self.assertEqual(island.trophy_happiness_from(general_tiers=3), 15)
+        self.assertEqual(
+            island.trophy_happiness_from(general_tiers=3, typed_tiers=5,
+                                         family="ORE"), 15 + 50)
+        # Fabricação não tem troféu de tipo — tiers de tipo são ignorados.
+        self.assertEqual(
+            island.trophy_happiness_from(general_tiers=2, typed_tiers=5,
+                                         family="WARRIOR"), 10)
+        # Cap em 7 tiers (T2..T8).
+        self.assertEqual(island.trophy_happiness_from(general_tiers=99), 35)
+        self.assertEqual(
+            island.trophy_happiness_from(typed_tiers=99, family="ORE"), 70)
+
+    def test_trophy_happiness_max(self):
+        war = island.trophy_happiness_max("WARRIOR")
+        self.assertEqual(war, {"general_max": 35, "typed_max": 0,
+                               "total_max": 35, "has_typed": False})
+        ore = island.trophy_happiness_max("ORE")
+        self.assertEqual(ore, {"general_max": 35, "typed_max": 70,
+                               "total_max": 105, "has_typed": True})
+        self.assertTrue(island.trophy_happiness_max("MERCENARY")["has_typed"])
+
+    def test_advice_verdicts(self):
+        # maxed só com a mobília
+        a = island.happiness_advice(5, family="WARRIOR", bed_tier=7, table_tier=7)
+        self.assertEqual(a["verdict"], "maxed")
+        self.assertIn("mobília", a["hint"])
+        # fabricação T7 com mobília T7 = base: troféu (35) não cobre 100 → mobília
+        b = island.happiness_advice(7, family="WARRIOR", bed_tier=7, table_tier=7)
+        self.assertEqual(b["verdict"], "needs_furniture")
+        # coleta T7 com mobília T7: troféu de tipo cobre a lacuna
+        c = island.happiness_advice(7, family="ORE", bed_tier=7, table_tier=7)
+        self.assertEqual(c["verdict"], "needs_trophies")
+        # abaixo da base
+        d = island.happiness_advice(5, family="WARRIOR", bed_tier=5)
+        self.assertEqual(d["verdict"], "below_base")
+        # maxed graças ao troféu (mobília sozinha não maxa) → dica diferente
+        e = island.happiness_advice(7, family="ORE", bed_tier=7, table_tier=7,
+                                    trophy_happiness=100)
+        self.assertEqual(e["verdict"], "maxed")
+        self.assertIn("troféu", e["hint"])
+
+    def test_advice_trophy_headroom(self):
+        # Troféu de tipo JÁ no máximo (105 p/ ORE, headroom 0) e a mobília ainda não
+        # maxa → tem de ser 'needs_furniture' (não 'needs_trophies': não há mais
+        # troféu a comprar). Regressão do bug de contar o teto de troféu em dobro.
+        a = island.happiness_advice(7, family="ORE", bed_tier=7, table_tier=6,
+                                    trophy_happiness=105)
+        self.assertEqual(a["total"], 755)          # 650 mobília + 105 troféu
+        self.assertEqual(a["to_max_points"], 45)   # 800 − 755
+        self.assertEqual(a["verdict"], "needs_furniture")
+
+
 if __name__ == "__main__":
     unittest.main()

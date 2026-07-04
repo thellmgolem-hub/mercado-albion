@@ -695,3 +695,146 @@ def laborer_plan(price_q1, *, family, tier, n_laborers, journals_per_day=1,
         "profit_day": round(profit_day),
         "fill_cost_is_proxy": True,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Felicidade / rendimento do trabalhador (mecânica confirmada: items.json + wiki)
+#
+# Cama e mesa dão 50 × tier de felicidade CADA (verificado no dump: T3=150, T4=200,
+# … T8=400). A cama cobre 1 trabalhador; a mesa cobre vários (labourersperfurnitureitem)
+# e CADA trabalhador coberto recebe o valor CHEIO — não é dividido. A felicidade-base
+# do trabalhador = 100 × tier DO TRABALHADOR (T5=500). Cada ponto ACIMA da base dá
+# +0,5% de rendimento, até o teto de +50% (precisa de +100 acima da base). Por isso
+# cama+mesa do MESMO tier do trabalhador = 100×tier = exatamente a base (0% de bônus),
+# e mobília de tier mais alto já entrega o bônus sem troféu.
+#
+# Troféu completa esse +100: geral = +5, do mesmo TIPO do trabalhador = +10 (valor
+# fixo, NÃO escala com o tier). Mesmo tipo E mesmo tier não empilham; tiers diferentes
+# (T2..T8 = 7 tiers) empilham. Troféu de tipo só existe p/ COLETA (wood/ore/stone/hide/
+# fiber/fisherman) + mercenary; a fabricação WARRIOR/MAGE/HUNTER/TOOLMAKER só usa o
+# geral (teto de +35 por troféu → não maxa um laborer de tier alto só com troféu).
+FURNITURE_HAPPINESS_PER_TIER = 50     # cama e mesa: 50 × tier
+LABORER_BASE_PER_TIER = 100           # base do trabalhador: 100 × tier
+YIELD_PCT_PER_POINT = 0.5             # +0,5% de rendimento por ponto acima da base
+YIELD_CAP_PCT = 50.0                  # teto do bônus
+_HAPPINESS_TO_MAX = 100               # pontos acima da base p/ atingir o teto (+50%)
+_TROPHY_GENERAL = 5                   # troféu geral (afeta todos)
+_TROPHY_TYPED = 10                    # troféu do mesmo tipo do trabalhador
+_TROPHY_TIERS = 7                     # T2..T8: só 1 por (tipo, tier) conta p/ 1 laborer
+# Famílias de laborer que TÊM troféu de tipo (+10); as demais (fabricação de gear:
+# WARRIOR/MAGE/HUNTER/TOOLMAKER) só têm o geral.
+_FAMILY_HAS_TYPED_TROPHY = frozenset(
+    {"WOOD", "ORE", "STONE", "HIDE", "FIBER", "FISHERMAN", "MERCENARY"})
+
+
+def furniture_happiness(bed_tier, table_tier=None):
+    """Felicidade que a cama (+mesa) entregam a UM trabalhador que elas cobrem."""
+    h = FURNITURE_HAPPINESS_PER_TIER * int(bed_tier or 0)
+    if table_tier:
+        h += FURNITURE_HAPPINESS_PER_TIER * int(table_tier)
+    return h
+
+
+def _yield_bonus_pct(above_base):
+    """% de bônus de rendimento dado quantos pontos a felicidade passou da base."""
+    return max(0.0, min(YIELD_CAP_PCT, above_base * YIELD_PCT_PER_POINT))
+
+
+def trophy_happiness_from(*, general_tiers=0, typed_tiers=0, family=None):
+    """Soma de felicidade de troféu dado quantos TIERS de cada tipo (0..7).
+
+    Geral = +5/tier; tipo = +10/tier, mas só se a família tem troféu de tipo
+    (senão os tiers de tipo são ignorados). Limita cada um a 7 tiers (T2..T8)."""
+    g = _TROPHY_GENERAL * min(max(0, int(general_tiers)), _TROPHY_TIERS)
+    has_typed = (family or "").upper() in _FAMILY_HAS_TYPED_TROPHY
+    t = (_TROPHY_TYPED * min(max(0, int(typed_tiers)), _TROPHY_TIERS)
+         if has_typed else 0)
+    return g + t
+
+
+def trophy_happiness_max(family):
+    """Teto de felicidade por troféu p/ UM trabalhador da família (7 tiers): geral
+    (+35) e, se a família tem troféu de tipo, +70 — total possível."""
+    has_typed = (family or "").upper() in _FAMILY_HAS_TYPED_TROPHY
+    general = _TROPHY_GENERAL * _TROPHY_TIERS                 # 35
+    typed = _TROPHY_TYPED * _TROPHY_TIERS if has_typed else 0  # 70 ou 0
+    return {"general_max": general, "typed_max": typed,
+            "total_max": general + typed, "has_typed": has_typed}
+
+
+def laborer_happiness(laborer_tier, *, bed_tier, table_tier=None,
+                      trophy_happiness=0):
+    """Felicidade e % de rendimento de UM trabalhador.
+
+    `laborer_tier` é o tier do TRABALHADOR (não do diário — o diário só define o
+    tier do RETORNO). `trophy_happiness` é a soma de felicidade dos troféus que o
+    cobrem (use trophy_happiness_from). Devolve base, mobília, total, acima-da-base,
+    bônus %, se está no teto (+50%), se está abaixo da base e quanto falta."""
+    base = LABORER_BASE_PER_TIER * int(laborer_tier)
+    furniture = furniture_happiness(bed_tier, table_tier)
+    total = furniture + max(0, int(trophy_happiness))
+    above = total - base
+    need = base + _HAPPINESS_TO_MAX                # felicidade p/ o teto (+50%)
+    return {
+        "laborer_tier": int(laborer_tier),
+        "base": base,
+        "furniture_happiness": furniture,
+        "trophy_happiness": max(0, int(trophy_happiness)),
+        "total": total,
+        "above_base": above,
+        "yield_bonus_pct": round(_yield_bonus_pct(above), 1),
+        "maxed": total >= need,
+        "below_base": total < base,                # rende ABAIXO do piso
+        "to_max_points": max(0, need - total),     # felicidade que ainda falta
+    }
+
+
+def happiness_advice(laborer_tier, *, family=None, bed_tier=None,
+                     table_tier=None, trophy_happiness=0):
+    """Diagnóstico + recomendação p/ chegar ao teto de +50% de rendimento.
+
+    Cruza o estado atual (laborer_happiness) com o teto de troféu da família e
+    devolve um veredicto: 'maxed' (mobília já satura — nenhum troféu), 'needs_trophies'
+    (o troféu disponível cobre a lacuna) ou 'needs_furniture' (nem o troféu máximo
+    cobre → subir cama/mesa). Inclui um 'hint' em PT-BR pronto p/ exibir."""
+    st = laborer_happiness(laborer_tier, bed_tier=bed_tier, table_tier=table_tier,
+                           trophy_happiness=trophy_happiness)
+    tmax = trophy_happiness_max(family)
+    gap = st["to_max_points"]
+    advice = {**st, "family": (family or "").upper(), "trophy_ceiling": tmax}
+    if st["maxed"]:
+        advice["verdict"] = "maxed"
+        if st["furniture_happiness"] >= st["base"] + _HAPPINESS_TO_MAX:
+            advice["hint"] = ("Já no teto (+50%) só com a mobília — nenhum troféu "
+                              "necessário.")
+        else:
+            advice["hint"] = "No teto (+50%) com a mobília + troféu atuais."
+        return advice
+    if st["below_base"]:
+        advice["verdict"] = "below_base"
+        advice["hint"] = (
+            f"Mobília ABAIXO da base ({st['total']} < {st['base']}): o trabalhador "
+            "rende MENOS que o piso. Suba o tier da cama/mesa (cada tier = "
+            f"+{FURNITURE_HAPPINESS_PER_TIER}) antes de pensar em bônus.")
+        return advice
+    # headroom = teto de troféu MENOS o já aplicado (gap já é líquido do troféu,
+    # pois total inclui trophy_happiness); comparar o teto absoluto contaria o
+    # troféu em dobro e mandaria comprar troféu inexistente.
+    reachable = (tmax["total_max"] - st["trophy_happiness"]) >= gap
+    if reachable:
+        advice["verdict"] = "needs_trophies"
+        advice["hint"] = (
+            f"Faltam {gap} de felicidade p/ o teto. Cobre com troféu — "
+            + (f"até {tmax['typed_max']} de troféu de TIPO ({advice['family']}) + "
+               if tmax["has_typed"] else "")
+            + f"até {tmax['general_max']} de troféu GERAL (1 por tier T2..T8; "
+              "mesmo tipo+tier não empilha).")
+    else:
+        advice["verdict"] = "needs_furniture"
+        advice["hint"] = (
+            f"Faltam {gap} de felicidade e o troféu cobre no máx {tmax['total_max']} "
+            + ("(esta família NÃO tem troféu de tipo — só geral) "
+               if not tmax["has_typed"] else "")
+            + f"→ suba a cama/mesa (+{FURNITURE_HAPPINESS_PER_TIER} por tier de cada) "
+              "até chegar ao teto.")
+    return advice
