@@ -470,6 +470,163 @@ CREATE INDEX IF NOT EXISTS idx_production_chains_owner
 """
 
 
+# --------------------------------------------------- tributo da guild (dual)
+# Núcleo web-first do plano Discord (docs/PLANO_DISCORD_GUILD.md §3.2),
+# adaptado ao multi-inquilino: org_id INTEGER referencia orgs.id (o snowflake
+# do Discord mora em orgs.discord_guild_id p/ o futuro). Timestamps de evento
+# são REAL unix (a aritmética do relógio roda em Python, nunca no SQL);
+# week_start é texto ISO da segunda-feira, comparado com >= quando preciso.
+# Sem FOREIGN KEY declarada, como o resto do store — integridade no código.
+_TRIBUTE_SQLITE = """
+CREATE TABLE IF NOT EXISTS weekly_assignments (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  org_id        INTEGER NOT NULL,
+  account_id    INTEGER NOT NULL,
+  week_start    TEXT NOT NULL,
+  item_id       TEXT NOT NULL,
+  qty_target    INTEGER NOT NULL,
+  sector        TEXT,
+  from_chain_id INTEGER,
+  note          TEXT,
+  created_at    REAL NOT NULL,
+  created_by    INTEGER NOT NULL,
+  UNIQUE (org_id, account_id, week_start, item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_assign_week
+  ON weekly_assignments (org_id, week_start);
+CREATE INDEX IF NOT EXISTS idx_assign_member
+  ON weekly_assignments (org_id, account_id, week_start);
+CREATE TABLE IF NOT EXISTS member_reports (
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  org_id             INTEGER NOT NULL,
+  account_id         INTEGER NOT NULL,
+  assignment_id      INTEGER,
+  item_id            TEXT NOT NULL,
+  qty_reported       INTEGER NOT NULL,
+  status             TEXT NOT NULL DEFAULT 'pending',
+  reported_at        REAL NOT NULL,
+  auditor_account_id INTEGER,
+  audit_note         TEXT,
+  processed_at       REAL,
+  discord_message_id INTEGER,
+  created_at         REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_reports_pending
+  ON member_reports (org_id, status, reported_at);
+CREATE INDEX IF NOT EXISTS idx_reports_member
+  ON member_reports (org_id, account_id, status);
+CREATE TABLE IF NOT EXISTS member_clock (
+  org_id          INTEGER NOT NULL,
+  account_id      INTEGER NOT NULL,
+  state           TEXT NOT NULL DEFAULT 'em_dia',
+  anchor_ts       REAL NOT NULL,
+  paused_ts       REAL,
+  clock_days      INTEGER NOT NULL DEFAULT 0,
+  tools_revoked   INTEGER NOT NULL DEFAULT 0,
+  dismissed_at    REAL,
+  reactivated_at  REAL,
+  updated_at      REAL NOT NULL,
+  PRIMARY KEY (org_id, account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_clock_state
+  ON member_clock (org_id, state);
+CREATE TABLE IF NOT EXISTS guild_audit_log (
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  org_id            INTEGER NOT NULL,
+  actor_account_id  INTEGER,
+  action            TEXT NOT NULL,
+  target_account_id INTEGER,
+  details_json      TEXT,
+  created_at        REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_guild_audit_time
+  ON guild_audit_log (org_id, created_at DESC);
+"""
+
+# Postgres: SERIAL nos ids, DOUBLE PRECISION nos timestamps, BIGINT só no
+# discord_message_id (snowflake 64-bit estoura int4).
+_TRIBUTE_PG = """
+CREATE TABLE IF NOT EXISTS weekly_assignments (
+  id            SERIAL PRIMARY KEY,
+  org_id        INTEGER NOT NULL,
+  account_id    INTEGER NOT NULL,
+  week_start    TEXT NOT NULL,
+  item_id       TEXT NOT NULL,
+  qty_target    INTEGER NOT NULL,
+  sector        TEXT,
+  from_chain_id INTEGER,
+  note          TEXT,
+  created_at    DOUBLE PRECISION NOT NULL,
+  created_by    INTEGER NOT NULL,
+  UNIQUE (org_id, account_id, week_start, item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_assign_week
+  ON weekly_assignments (org_id, week_start);
+CREATE INDEX IF NOT EXISTS idx_assign_member
+  ON weekly_assignments (org_id, account_id, week_start);
+CREATE TABLE IF NOT EXISTS member_reports (
+  id                 SERIAL PRIMARY KEY,
+  org_id             INTEGER NOT NULL,
+  account_id         INTEGER NOT NULL,
+  assignment_id      INTEGER,
+  item_id            TEXT NOT NULL,
+  qty_reported       INTEGER NOT NULL,
+  status             TEXT NOT NULL DEFAULT 'pending',
+  reported_at        DOUBLE PRECISION NOT NULL,
+  auditor_account_id INTEGER,
+  audit_note         TEXT,
+  processed_at       DOUBLE PRECISION,
+  discord_message_id BIGINT,
+  created_at         DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_reports_pending
+  ON member_reports (org_id, status, reported_at);
+CREATE INDEX IF NOT EXISTS idx_reports_member
+  ON member_reports (org_id, account_id, status);
+CREATE TABLE IF NOT EXISTS member_clock (
+  org_id          INTEGER NOT NULL,
+  account_id      INTEGER NOT NULL,
+  state           TEXT NOT NULL DEFAULT 'em_dia',
+  anchor_ts       DOUBLE PRECISION NOT NULL,
+  paused_ts       DOUBLE PRECISION,
+  clock_days      INTEGER NOT NULL DEFAULT 0,
+  tools_revoked   INTEGER NOT NULL DEFAULT 0,
+  dismissed_at    DOUBLE PRECISION,
+  reactivated_at  DOUBLE PRECISION,
+  updated_at      DOUBLE PRECISION NOT NULL,
+  PRIMARY KEY (org_id, account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_clock_state
+  ON member_clock (org_id, state);
+CREATE TABLE IF NOT EXISTS guild_audit_log (
+  id                SERIAL PRIMARY KEY,
+  org_id            INTEGER NOT NULL,
+  actor_account_id  INTEGER,
+  action            TEXT NOT NULL,
+  target_account_id INTEGER,
+  details_json      TEXT,
+  created_at        DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_guild_audit_time
+  ON guild_audit_log (org_id, created_at DESC);
+"""
+
+
+def init_tribute_schema(conn) -> None:
+    """Cria as tabelas do tributo da guild (idempotente, dual).
+
+    Chamada por init_schema (nuvem) e pelo TributeStore no boot (local/testes),
+    no mesmo molde do ChainStore: quem usa garante o próprio schema.
+    """
+    if getattr(conn, "backend", "sqlite") == "sqlite":
+        conn.executescript(_TRIBUTE_SQLITE)
+    else:
+        for stmt in _TRIBUTE_PG.split(";"):
+            if stmt.strip():
+                conn.execute(stmt)
+    conn.commit()
+
+
 def _has_column(conn, table: str, col: str) -> bool:
     """True se `table.col` existe no backend ativo."""
     if getattr(conn, "backend", "sqlite") == "postgres":
@@ -560,3 +717,4 @@ def init_schema(conn):
                  "ON production_chains (org_id, owner_user_id)")
     conn.commit()
     ensure_default_org(conn)
+    init_tribute_schema(conn)   # tributo da guild (idempotente, dual)
