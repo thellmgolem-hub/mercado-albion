@@ -20,6 +20,8 @@ const state = {
   scanItemsTotal: 0,
   scanRows: [],
   dashRecs: [],
+  dashParams: null,   // últimos filtros da Descoberta (refresh de fundo respeita)
+  dashSeq: 0,         // sequência compartilhada Início/Descoberta: o último pedido vence
   hidden: new Set(JSON.parse(localStorage.getItem('hiddenFlips') || '[]')),
 };
 
@@ -44,6 +46,11 @@ async function apiError(res) {
   const error = new Error(msg);
   error.status = res.status;
   error.code = code;
+  // sessão expirada no meio do uso: volta pra tela de login (o gate na classe
+  // evita interferir no próprio fluxo de login; showLogin é idempotente)
+  if (res.status === 401 && document.body.classList.contains('authenticated')) {
+    showLogin('Sessão expirada. Entre novamente.');
+  }
   return error;
 }
 
@@ -54,19 +61,6 @@ async function api(path, params = {}) {
   }
   const res = await fetch(path + (usp.toString() ? '?' + usp : ''), {
     credentials: 'same-origin',
-  });
-  if (!res.ok) throw await apiError(res);
-  return res.json();
-}
-
-async function apiSend(path, method = 'POST', params = {}) {
-  const usp = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== null && v !== undefined && v !== '') usp.set(k, v);
-  }
-  const headers = state.csrf ? {'X-CSRF-Token': state.csrf} : {};
-  const res = await fetch(path + (usp.toString() ? '?' + usp : ''), {
-    method, headers, credentials: 'same-origin',
   });
   if (!res.ok) throw await apiError(res);
   return res.json();
@@ -191,6 +185,8 @@ function applyAuth(payload) {
   $('accountOpen').hidden = false;
   $('accountOpen').textContent = accountLabel(state.auth);
   $('adminTabButton').hidden = state.auth.role !== 'admin';
+  // aba Guild (tributo): só operador enxerga — membro comum usa o futuro bot
+  $('guildTabButton').hidden = !OPERATOR_ROLES.has(state.auth.role);
   $('accountSummary').innerHTML = `<div class="account-summary">
     <div><span>Usuário</span>${esc(state.auth.username)}</div>
     <div><span>Papel</span>${esc(state.roles[state.auth.role] || state.auth.role)}</div>
@@ -632,7 +628,7 @@ function makeChips(containerId, options, { selected = [], multi = true, onChange
 }
 
 // tabela genérica ordenável
-function renderTable(containerId, columns, rows, { sortKey = null, sortDir = -1, rowAttrs = null } = {}) {
+function renderTable(containerId, columns, rows, { sortKey = null, sortDir = -1 } = {}) {
   const box = $(containerId);
   let sk = sortKey, sd = sortDir;
 
@@ -651,7 +647,7 @@ function renderTable(containerId, columns, rows, { sortKey = null, sortDir = -1,
       columns.map((c) => `<th class="${c.align || ''} ${c.key === sk ? 'sorted' : ''}" data-k="${c.key}"${c.title ? ` title="${esc(c.title)}"` : ''}>${
         esc(c.label)}${c.key === sk ? (sd < 0 ? ' ▼' : ' ▲') : ''}</th>`).join('')
     }</tr></thead><tbody>${
-      sorted.map((r, i) => `<tr data-i="${i}" ${rowAttrs ? rowAttrs(r) : ''}>${
+      sorted.map((r, i) => `<tr data-i="${i}">${
         columns.map((c) => `<td class="${c.align || ''}">${c.html(r)}</td>`).join('')
       }</tr>`).join('')
     }</tbody></table>`;
@@ -891,6 +887,12 @@ document.querySelectorAll('#tabs button').forEach((b) => {
       state.prodLineLoaded = true;
       initProdLine();
     }
+    // o picker da meta precisa de state.meta — se o init ainda não terminou,
+    // tenta de novo no próximo clique (sem marcar como carregada)
+    if (b.dataset.tab === 'guild' && !state.guildLoaded && state.meta) {
+      state.guildLoaded = true;
+      initGuildTab();
+    }
     if (b.dataset.tab === 'consultor') advisorInit();
     // o gráfico do ouro precisa do canvas VISÍVEL para dimensionar — carrega
     // ao abrir a aba (não no init, quando a aba está oculta)
@@ -916,12 +918,19 @@ $('premiumToggle').addEventListener('change', (e) => {
   // está à vista (Item, Avançado, recomendações e mapa de rotas do Início)
   state.itemLoadedFor = {};
   state.avSubLoaded = {};
+  state.islSubLoaded = {};
+  const ap = $('advisorPremium');
+  if (ap) ap.checked = state.premium;   // o Consultor segue o toggle global
   if (state.item && document.getElementById('tab-item').classList.contains('active')) {
     loadItemSub(activeItemSub(), true);
   }
   if (document.getElementById('tab-avancado').classList.contains('active')) {
     const a = document.querySelector('#avSubtabs button.active');
     if (a) showAvSub(a.dataset.av);
+  }
+  if (state.islandLoaded) {
+    const i = document.querySelector('#islandSubtabs button.active');
+    if (i) showIslandSub(i.dataset.isl);
   }
   loadDashboardRecommendations();
   if (state.prodLine && document.getElementById('tab-linhaProducao').classList.contains('active')) {
@@ -1051,17 +1060,25 @@ async function loadDashboardRecommendations() {
   st.className = 'status';
   st.textContent = 'calculando recomendações…';
   $('dashRecsRefresh').disabled = true;
-  try {
-    const res = await api('/api/recommendations', {
-      premium: state.premium,
+  // respeita os últimos filtros aplicados na Descoberta (senão o refresh de
+  // fundo sobrescrevia a pesquisa do usuário com os padrões do Início);
+  // premium/fused sempre refletem o estado atual dos toggles
+  const params = {
+    ...(state.dashParams || {
       min_daily_volume: 20,
       min_active_days: 2,
       max_age_buy: 720,
       max_age_sell: 720,
       min_profit: 0,
-      fused: $('dashFused') && $('dashFused').checked,
       limit: 10,
-    });
+    }),
+    premium: state.premium,
+    fused: $('dashFused') && $('dashFused').checked,
+  };
+  const seq = ++state.dashSeq;
+  try {
+    const res = await api('/api/recommendations', params);
+    if (seq !== state.dashSeq) return;   // resposta obsoleta — o último pedido vence
     state.dashRecs = res.opportunities || [];
     renderRecommendationTable('dashRecsTable', 'dashRecsStatus', state.dashRecs, res,
       'sem recomendações com os filtros atuais');
@@ -1076,6 +1093,7 @@ async function loadDashboardRecommendations() {
       state.dashRetries = 0;
     }
   } catch (e) {
+    if (seq !== state.dashSeq) return;   // erro de pedido obsoleto — não sobrescreve
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
   } finally {
@@ -1119,12 +1137,19 @@ async function runDiscover() {
   st.className = 'status';
   st.textContent = 'pesquisando oportunidades no cache…';
   $('discoverRun').disabled = true;
+  // memoriza os filtros p/ os refreshes de fundo não voltarem aos padrões,
+  // e cancela o retry automático do Início (senão ele atropelava a pesquisa)
+  state.dashParams = discoveryParams();
+  clearTimeout(state.dashRetryTimer);
+  const seq = ++state.dashSeq;
   try {
-    const res = await api('/api/recommendations', discoveryParams());
+    const res = await api('/api/recommendations', state.dashParams);
+    if (seq !== state.dashSeq) return;   // resposta obsoleta — o último clique vence
     state.dashRecs = res.opportunities || [];
     renderRecommendationTable('dashRecsTable', 'dashRecsStatus', state.dashRecs, res,
       'nenhuma oportunidade com os filtros atuais');
   } catch (e) {
+    if (seq !== state.dashSeq) return;   // erro de pedido obsoleto — não sobrescreve
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
   } finally {
@@ -1147,6 +1172,7 @@ async function loadPrecos(fresh = false) {
       qualities: precosQuals.get().join(','),
       max_age: fresh ? 0 : undefined,
     });
+    if (!state.item || state.item.id !== it.id) return;   // resposta obsoleta
     const cityOrder = state.meta.cities;
     rows.sort((a, b) => cityOrder.indexOf(a.city) - cityOrder.indexOf(b.city)
       || a.quality - b.quality);
@@ -1176,6 +1202,7 @@ async function loadPrecos(fresh = false) {
     renderTable('precosTable', cols, rows, { sortKey: 'city', sortDir: 1 });
     st.textContent = `${rows.length} linhas (cidade × qualidade)`;
   } catch (e) {
+    delete state.itemLoadedFor.precos;   // permite tentar de novo ao voltar à sub-aba
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
   }
@@ -1251,6 +1278,7 @@ async function loadCraft() {
       station_fee: +($('craftFee').value || 0),
       same_city: !sourcing,
     });
+    if (!state.item || state.item.id !== it.id) return;   // resposta obsoleta
     const rows = res.rows || [];
     if (!rows.length) {
       st.textContent = res.category
@@ -1309,6 +1337,7 @@ async function loadCraft() {
     ];
     renderTable('craftTable', cols, rows.map((r) => ({ ...r, _copy: it.pt })), { sortKey: 'margin' });
   } catch (e) {
+    delete state.itemLoadedFor.craft;   // permite tentar de novo ao voltar à sub-aba
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
   }
@@ -1347,7 +1376,7 @@ async function navigateToItem(id) {
       if (it) { selectItem(it); showItemSub('cadeia'); return; }
     }
     toast('item não encontrado: ' + id);
-  } catch (e) { /* ignora */ }
+  } catch (e) { toast('erro ao buscar item: ' + e.message); }
 }
 
 async function loadWiki() {
@@ -1422,6 +1451,7 @@ async function loadWiki() {
     const rawTxt = t.raw_cost != null ? fmt(t.raw_cost) + ' prata' : '—';
     st.textContent = `${(res.shopping || []).length} recursos brutos · matéria-prima p/ ${fmt(t.target_qty)} un. ≈ ${rawTxt}${t.unpriced && t.unpriced.length ? ` (parcial: ${fmt(t.unpriced.length)} sem cotação)` : ''} · sem desconto de RRR`;
   } catch (e) {
+    delete state.itemLoadedFor.cadeia;   // permite tentar de novo ao voltar à sub-aba
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
     $('wikiTreeMeta').textContent = '';
@@ -1444,6 +1474,7 @@ async function loadOrigin() {
   st.textContent = 'consultando fontes…';
   try {
     const res = await api('/api/origin', { item: it.id });
+    if (!state.item || state.item.id !== it.id) return;   // resposta obsoleta
     const srcs = res.sources || [];
     if (!srcs.length) {
       st.textContent = `${it.pt} não tem fonte de drop conhecida — é craftado/refinado, não dropado por mob.`;
@@ -1459,6 +1490,7 @@ async function loadOrigin() {
     renderTable('origemTable', cols, srcs, { sortKey: 'fame' });
     st.textContent = `${srcs.length} fontes de drop (ordenadas por fama do mob)`;
   } catch (e) {
+    delete state.itemLoadedFor.origem;   // permite tentar de novo ao voltar à sub-aba
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
   }
@@ -1473,6 +1505,7 @@ async function loadRisco() {
   st.textContent = 'analisando risco e previsão…';
   try {
     const res = await api('/api/item_signals', { item: it.id });
+    if (!state.item || state.item.id !== it.id) return;   // resposta obsoleta
     const body = $('riscoBody');
     if (!res.available) {
       body.innerHTML = '';
@@ -1526,6 +1559,7 @@ async function loadRisco() {
     body.innerHTML = html;
     st.textContent = `Melhor série: ${esc(res.city)} · ${res.points} dias`;
   } catch (e) {
+    delete state.itemLoadedFor.risco;   // permite tentar de novo ao voltar à sub-aba
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
   }
@@ -1533,14 +1567,19 @@ async function loadRisco() {
 
 // favoritos e atalhos abrem a aba Item já na sub-aba certa
 function selectPrecosItem(it) {
-  api('/api/search', { q: it.id, limit: 1 }).then((r) => {
+  const open = (item) => {
     activateTab('item');
     document.querySelectorAll('#itemSubtabs button').forEach((b) =>
       b.classList.toggle('active', b.dataset.sub === 'precos'));
     document.querySelectorAll('#tab-item .subtab').forEach((s) =>
       s.classList.toggle('active', s.id === 'sub-precos'));
-    selectItem(r[0] || it);
-  });
+    selectItem(item);
+  };
+  // enriquece o item pelo id (favoritos guardam só id+nome); match EXATO —
+  // a busca pode devolver outro item primeiro. Falhou? abre com o que temos.
+  api('/api/search', { q: it.id, limit: 1 })
+    .then((r) => open(r.find((x) => x.id === it.id) || it))
+    .catch(() => open(it));
 }
 
 // ============================================================ aba FLIPS
@@ -1884,6 +1923,7 @@ async function loadVender(fresh = false) {
       premium: state.premium,
       max_age: fresh ? 0 : undefined,
     });
+    if (!state.item || state.item.id !== it.id) return;   // resposta obsoleta
     const rows = [];
     for (const r of res) {
       for (const o of r.options) {
@@ -1910,6 +1950,7 @@ async function loadVender(fresh = false) {
     renderTable('venderTable', cols, rows, { sortKey: 'net' });
     st.textContent = `${rows.length} opções de venda (imposto ${state.premium ? '4%' : '8%'})`;
   } catch (e) {
+    delete state.itemLoadedFor.vender;   // permite tentar de novo ao voltar à sub-aba
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
   }
@@ -1985,6 +2026,7 @@ async function runHist() {
       days: $('histDays').value,
       cache_only: cacheOnly,
     });
+    if (!state.item || state.item.id !== it.id) return;   // resposta obsoleta
     const analysis = await api('/api/item-analysis', {
       item: it.id,
       cities: histCities.get().join(','),
@@ -1993,6 +2035,7 @@ async function runHist() {
       days: $('histDays').value,
       cache_only: true,
     });
+    if (!state.item || state.item.id !== it.id) return;   // resposta obsoleta
     renderItemLab(analysis);
     const allTs = [...new Set(series.flatMap((s) => s.data.map((p) => p.ts)))].sort();
     const fmtTs = (ts) => {
@@ -2037,6 +2080,7 @@ async function runHist() {
     });
     st.textContent = `${series.length} séries · ${allTs.length} pontos`;
   } catch (e) {
+    delete state.itemLoadedFor.lab;   // permite tentar de novo ao voltar à sub-aba
     st.className = 'status err';
     st.textContent = 'erro: ' + e.message;
   } finally {
@@ -2479,7 +2523,73 @@ function showIslandSub(view) {
 
 const islItemCell = (id, pt) => `<div class="cell-item">${iconImg(id)}<div class="nm">${esc(pt || id)}</div></div>`;
 
+// famílias de laborer + rótulo PT; as com troféu de TIPO (+10) vs só geral (+5)
+const HAPPY_FAMILIES = [
+  ['WARRIOR', 'Ferreiro (WARRIOR)'], ['HUNTER', 'Flecheiro (HUNTER)'],
+  ['MAGE', 'Imbuidor (MAGE)'], ['TOOLMAKER', 'Funileiro (TOOLMAKER)'],
+  ['MERCENARY', 'Mercenário (MERCENARY)'], ['ORE', 'Prospector (ORE)'],
+  ['WOOD', 'Lenhador (WOOD)'], ['HIDE', 'Guarda-caça (HIDE)'],
+  ['FIBER', 'Lavrador (FIBER)'], ['STONE', 'Canteiro (STONE)'],
+  ['FISHERMAN', 'Pescador (FISHERMAN)'],
+];
+const HAPPY_TYPED = new Set(
+  ['WOOD', 'ORE', 'STONE', 'HIDE', 'FIBER', 'FISHERMAN', 'MERCENARY']);
+let happySeq = 0;   // sequência p/ descartar respostas fora de ordem
+
+function initHappyCalc() {
+  if (state.happyInit) return;
+  state.happyInit = true;
+  const opts = (from, sel) => Array.from({ length: 8 - from + 1 }, (_, i) => from + i)
+    .map((t) => `<option value="${t}"${t === sel ? ' selected' : ''}>T${t}</option>`).join('');
+  $('happyLabTier').innerHTML = opts(1, 5);   // padrão: o cenário do dono
+  $('happyBed').innerHTML = opts(1, 7);
+  $('happyTable').innerHTML = '<option value="">sem mesa</option>' + opts(1, 7);
+  $('happyFamily').innerHTML = HAPPY_FAMILIES
+    .map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  ['happyLabTier', 'happyFamily', 'happyBed', 'happyTable', 'happyGen', 'happyTyped']
+    .forEach((id) => { $(id).addEventListener('input', calcHappy); });
+  calcHappy();
+}
+
+async function calcHappy() {
+  const out = $('happyOut');
+  const fam = $('happyFamily').value;
+  // desabilita "troféu de tipo" p/ famílias sem troféu de tipo (fabricação)
+  const typed = HAPPY_TYPED.has(fam);
+  $('happyTyped').disabled = !typed;
+  if (!typed) $('happyTyped').value = 0;
+  $('happyTypedField').style.opacity = typed ? '1' : '0.45';
+  const q = {
+    laborer_tier: +$('happyLabTier').value,
+    bed: +$('happyBed').value,
+    family: fam,
+    general_tiers: +$('happyGen').value || 0,
+    typed_tiers: +$('happyTyped').value || 0,
+  };
+  if ($('happyTable').value) q.table = +$('happyTable').value;
+  out.className = 'status';
+  out.textContent = 'calculando…';
+  const seq = ++happySeq;
+  try {
+    const r = await api('/api/laborer-happiness', q);
+    if (seq !== happySeq) return;   // chegou uma resposta mais nova — descarta esta
+    const cls = r.maxed ? 'profit-pos' : (r.below_base ? 'profit-neg' : '');
+    const tail = r.maxed
+      ? '<b>no teto</b>'
+      : `faltam <b>${r.to_max_points}</b> de felicidade`;
+    out.innerHTML =
+      `<b class="${cls}" style="font-size:1.05rem">Rendimento +${r.yield_bonus_pct}%</b> · `
+      + `felicidade <b>${r.total}</b> (base ${r.base}, mobília ${r.furniture_happiness}, `
+      + `troféu ${r.trophy_happiness}) · ${tail}`
+      + `<div class="hint" style="margin-top:5px">${esc(r.hint)}</div>`;
+  } catch (e) {
+    if (seq !== happySeq) return;
+    out.className = 'status err'; out.textContent = 'erro: ' + e.message;
+  }
+}
+
 async function loadIsland(view) {
+  if (view === 'laborers') initHappyCalc();
   const map = {
     laborers: { st: 'islLaborStatus', tbl: 'islLaborTable' },
     crops: { st: 'islCropStatus', tbl: 'islCropTable' },
@@ -2760,6 +2870,8 @@ function prodLayout() {
 
 async function prodFetchGraph() {
   const pl = state.prodLine;
+  // guarda de corrida: só a resposta da última chamada (e da mesma linha) escreve
+  const seq = (prodFetchGraph._seq = (prodFetchGraph._seq || 0) + 1);
   if (!pl.roots.length) {
     pl.graph = { nodes: {}, cities: [], sell_mode: 'order' }; pl.calc = null;
     prodRenderProducts(); prodRenderResult(null); prodRenderShopping(null);
@@ -2768,6 +2880,7 @@ async function prodFetchGraph() {
   $('plStatus').className = 'status'; $('plStatus').textContent = 'montando cadeia…';
   try {
     const g = await api('/api/prodchain', { item: pl.roots.join(','), premium: state.premium });
+    if (seq !== prodFetchGraph._seq || pl !== state.prodLine) return;   // resposta obsoleta
     pl.graph = g;
     for (const it in g.nodes) if (!pl.ns[it]) pl.ns[it] = prodDefaultState(it);
     for (const it of Object.keys(pl.ns)) if (!g.nodes[it]) delete pl.ns[it];
@@ -2777,7 +2890,10 @@ async function prodFetchGraph() {
     prodRenderProducts();
     prodRecompute();
     $('plStatus').textContent = '';
-  } catch (e) { $('plStatus').className = 'status err'; $('plStatus').textContent = 'erro: ' + e.message; }
+  } catch (e) {
+    if (seq !== prodFetchGraph._seq || pl !== state.prodLine) return;   // resposta obsoleta
+    $('plStatus').className = 'status err'; $('plStatus').textContent = 'erro: ' + e.message;
+  }
 }
 
 function prodRecompute() {
@@ -3248,6 +3364,338 @@ function initProdLine() {
   prodRenderShopping(null);
   prodRenderChainView();
   prodLoadList();
+}
+
+// ============================================================ aba Guild (tributo)
+// Console do operador (OPERATOR_ROLES): metas semanais, fila de auditoria e o
+// relógio de 14 dias. A org é sempre a do ator (implícita no backend).
+const guildSeq = { members: 0, assignments: 0, pending: 0, clock: 0 };
+let guildAssignItem = null;   // item escolhido no picker da meta
+
+const GUILD_STATE_LABEL = {
+  em_dia: 'em dia', pendente: 'pendente',
+  atrasado: 'atrasado', desligado: 'desligado',
+};
+// chips coloridos reutilizando as pílulas .age (verde/âmbar/vermelho/cinza)
+const GUILD_STATE_CLS = {
+  em_dia: 'age-good', pendente: 'age-warn',
+  atrasado: 'age-bad', desligado: 'age-none',
+};
+const guildStateChip = (s) =>
+  `<span class="age ${GUILD_STATE_CLS[s] || 'age-none'}">${esc(GUILD_STATE_LABEL[s] || s)}</span>`;
+
+const guildMemberName = (id) =>
+  state.guildMembersById?.[id]?.username || `conta #${id}`;
+
+const guildItemCell = (id) =>
+  `<div class="cell-item">${iconImg(id)}<div class="nm">${esc(id)}</div></div>`;
+
+// normaliza qualquer data p/ a SEGUNDA-FEIRA da semana dela (UTC), espelhando
+// week_start_iso do backend — metas da mesma semana compartilham a chave
+function guildWeekMonday(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  if (Number.isNaN(d.getTime())) return null;
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
+async function loadGuildMembers() {
+  const seq = ++guildSeq.members;
+  try {
+    const res = await api('/api/guild/members');
+    if (seq !== guildSeq.members) return;
+    state.guildMembersById = {};
+    for (const m of res.members || []) state.guildMembersById[m.id] = m;
+    $('guildAssignMember').innerHTML = (res.members || []).map((m) =>
+      `<option value="${m.id}">${esc(m.username)} (${esc(state.roles[m.role] || m.role)})</option>`).join('');
+  } catch (e) {
+    if (seq !== guildSeq.members) return;
+    const st = $('guildAssignStatus');
+    st.className = 'status err';
+    st.textContent = 'erro ao listar membros: ' + e.message;
+  }
+}
+
+async function loadGuildAssignments() {
+  const st = $('guildAssignStatus');
+  st.className = 'status';
+  st.textContent = 'carregando metas…';
+  const seq = ++guildSeq.assignments;
+  try {
+    const res = await api('/api/guild/assignments');
+    if (seq !== guildSeq.assignments) return;
+    const rows = res.assignments || [];
+    const weekNow = res.week_now;
+    st.className = 'status';
+    st.textContent = (rows.length
+      ? `${rows.length} meta(s)` : 'nenhuma meta atribuída')
+      + ` · semana atual começa em ${weekNow}`;
+    renderTable('guildAssignTable', [
+      {
+        key: 'member', label: 'Membro', align: 'l',
+        value: (r) => guildMemberName(r.account_id),
+        html: (r) => `<b>${esc(guildMemberName(r.account_id))}</b>`,
+      },
+      {
+        key: 'item', label: 'Item', align: 'l',
+        value: (r) => r.item_id,
+        html: (r) => guildItemCell(r.item_id),
+      },
+      { key: 'qty', label: 'Meta', value: (r) => r.qty_target, html: (r) => fmt(r.qty_target) },
+      {
+        key: 'week', label: 'Semana', align: 'l',
+        value: (r) => r.week_start,
+        html: (r) => r.week_start === weekNow
+          ? `<b>${esc(r.week_start)}</b> <small class="muted">(atual)</small>`
+          : esc(r.week_start),
+      },
+      {
+        key: 'sector', label: 'Setor', align: 'l',
+        value: (r) => r.sector || '',
+        html: (r) => esc(r.sector || '—'),
+      },
+      {
+        key: 'note', label: 'Nota', align: 'l',
+        value: (r) => r.note || '',
+        html: (r) => esc(r.note || '—'),
+      },
+      {
+        key: 'act', label: 'Ações', align: 'l', value: () => 0,
+        html: (r) => `<button type="button" class="mini-btn" data-guild-action="deliver"
+          data-assignment-id="${r.id}" data-account-id="${r.account_id}"
+          data-item-id="${esc(r.item_id)}" data-qty="${r.qty_target}"
+          title="registra o reporte em nome do membro e já aprova (zera o relógio)">Registrar entrega</button>`,
+      },
+    ], rows, { sortKey: 'week' });
+  } catch (e) {
+    if (seq !== guildSeq.assignments) return;
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  }
+}
+
+async function loadGuildPending() {
+  const st = $('guildPendingStatus');
+  st.className = 'status';
+  st.textContent = 'carregando fila…';
+  const seq = ++guildSeq.pending;
+  try {
+    const res = await api('/api/guild/pending');
+    if (seq !== guildSeq.pending) return;
+    const rows = res.pending || [];
+    st.className = 'status';
+    st.textContent = rows.length
+      ? `${rows.length} reporte(s) aguardando auditoria`
+      : 'fila vazia — nenhum reporte pendente';
+    // sem sortKey: preserva a ordem do servidor (mais antigo primeiro)
+    renderTable('guildPendingTable', [
+      {
+        key: 'member', label: 'Membro', align: 'l',
+        value: (r) => guildMemberName(r.account_id),
+        html: (r) => `<b>${esc(guildMemberName(r.account_id))}</b>`,
+      },
+      {
+        key: 'item', label: 'Item', align: 'l',
+        value: (r) => r.item_id,
+        html: (r) => guildItemCell(r.item_id),
+      },
+      { key: 'qty', label: 'Qtd. reportada', value: (r) => r.qty_reported, html: (r) => fmt(r.qty_reported) },
+      {
+        key: 'meta', label: 'Meta', value: (r) => r.assignment_id || 0,
+        html: (r) => r.assignment_id
+          ? `#${r.assignment_id}` : '<span class="muted">bônus</span>',
+      },
+      {
+        key: 'when', label: 'Reportado em',
+        value: (r) => r.reported_at,
+        html: (r) => esc(formatAccountDate(r.reported_at)),
+      },
+      {
+        key: 'act', label: 'Ações', align: 'l', value: () => 0,
+        html: (r) => `<div class="account-actions">
+          <button type="button" class="mini-btn" data-guild-action="approve" data-report-id="${r.id}">Aprovar</button>
+          <button type="button" class="mini-btn" data-guild-action="reject" data-report-id="${r.id}">Rejeitar</button>
+        </div>`,
+      },
+    ], rows);
+  } catch (e) {
+    if (seq !== guildSeq.pending) return;
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  }
+}
+
+async function loadGuildClock() {
+  const st = $('guildClockStatus');
+  st.className = 'status';
+  st.textContent = 'carregando relógios…';
+  const seq = ++guildSeq.clock;
+  try {
+    const res = await api('/api/guild/member-status');
+    if (seq !== guildSeq.clock) return;
+    const rows = res.members || [];
+    st.className = 'status';
+    st.textContent = rows.length
+      ? `${rows.length} membro(s) no ciclo de tributo`
+      : 'nenhum membro no ciclo ainda — o relógio nasce no primeiro reporte';
+    renderTable('guildClockTable', [
+      {
+        key: 'member', label: 'Membro', align: 'l',
+        value: (r) => guildMemberName(r.account_id),
+        html: (r) => `<b>${esc(guildMemberName(r.account_id))}</b>`,
+      },
+      {
+        key: 'state', label: 'Estado', align: 'l',
+        value: (r) => r.state,
+        html: (r) => guildStateChip(r.state)
+          + (r.paused ? ' <small class="muted" title="reporte pendente: o relógio não anda até o auditor decidir">(pausado)</small>' : ''),
+      },
+      { key: 'days', label: 'Relógio (dias)', value: (r) => r.clock_days, html: (r) => fmt(r.clock_days) },
+      {
+        key: 'left', label: 'Dias restantes', value: (r) => r.days_left,
+        html: (r) => r.state === 'desligado'
+          ? '<span class="muted">—</span>'
+          : `<span class="${r.days_left <= 2 ? 'profit-neg' : ''}">${fmt(r.days_left)}</span>`,
+      },
+      {
+        key: 'tools', label: 'Ferramentas', align: 'l',
+        value: (r) => (r.tools_revoked ? 1 : 0),
+        html: (r) => r.tools_revoked
+          ? '<span class="profit-neg">removidas</span>'
+          : '<span class="profit-pos">liberadas</span>',
+      },
+    ], rows, { sortKey: 'left', sortDir: 1 });
+  } catch (e) {
+    if (seq !== guildSeq.clock) return;
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  }
+}
+
+function loadGuildAll() {
+  loadGuildMembers();
+  loadGuildAssignments();
+  loadGuildPending();
+  loadGuildClock();
+}
+
+async function guildAssignSubmit() {
+  const st = $('guildAssignStatus');
+  const accountId = +$('guildAssignMember').value;
+  if (!accountId) {
+    st.className = 'status err';
+    st.textContent = 'escolha um membro';
+    return;
+  }
+  if (!guildAssignItem) {
+    st.className = 'status err';
+    st.textContent = 'escolha o item da meta no campo de busca';
+    return;
+  }
+  const qty = Math.floor(+$('guildAssignQty').value);
+  if (!Number.isFinite(qty) || qty <= 0) {
+    st.className = 'status err';
+    st.textContent = 'quantidade deve ser um inteiro positivo';
+    return;
+  }
+  const body = { account_id: accountId, item_id: guildAssignItem.id, qty_target: qty };
+  if ($('guildAssignWeek').value) {
+    const monday = guildWeekMonday($('guildAssignWeek').value);
+    if (!monday) {
+      st.className = 'status err';
+      st.textContent = 'semana inválida';
+      return;
+    }
+    body.week_start = monday;
+  }
+  const note = $('guildAssignNote').value.trim();
+  if (note) body.note = note;
+  $('guildAssignBtn').disabled = true;
+  st.className = 'status';
+  st.textContent = 'salvando meta…';
+  try {
+    const res = await apiJson('/api/guild/assign', 'POST', body);
+    toast(res.created
+      ? `meta criada — semana ${res.week_start}`
+      : `meta atualizada — semana ${res.week_start}`);
+    $('guildAssignNote').value = '';
+    loadGuildAssignments();
+    loadGuildClock();
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  } finally {
+    $('guildAssignBtn').disabled = false;
+  }
+}
+
+async function guildApprove(reportId) {
+  try {
+    const res = await apiJson('/api/guild/approve', 'POST', { report_id: reportId });
+    toast(res.reactivated
+      ? 'reporte aprovado — membro reativado'
+      : 'reporte aprovado — relógio zerado');
+  } catch (e) { toast('erro: ' + e.message); }
+  loadGuildPending();
+  loadGuildClock();
+}
+
+async function guildReject(reportId) {
+  if (!confirm('Rejeitar este reporte? O relógio do membro retoma a contagem do marco antigo (vira atrasado).')) return;
+  try {
+    const res = await apiJson('/api/guild/reject', 'POST', { report_id: reportId });
+    toast('reporte rejeitado — membro ' + (GUILD_STATE_LABEL[res.state] || res.state || 'sem relógio'));
+  } catch (e) { toast('erro: ' + e.message); }
+  loadGuildPending();
+  loadGuildClock();
+}
+
+// fluxo interino do auditor: reporta em nome do membro e aprova em seguida
+async function guildDeliver(btn) {
+  const accountId = +btn.dataset.accountId;
+  const itemId = btn.dataset.itemId;
+  const raw = prompt(
+    `Quantidade entregue de ${itemId} por ${guildMemberName(accountId)}:`,
+    btn.dataset.qty || '1');
+  if (raw === null) return;
+  const qty = Math.floor(+raw);
+  if (!Number.isFinite(qty) || qty <= 0) { toast('quantidade inválida'); return; }
+  try {
+    const rep = await apiJson('/api/guild/report', 'POST', {
+      item_id: itemId, qty,
+      assignment_id: +btn.dataset.assignmentId || null,
+      member_id: accountId,
+    });
+    const res = await apiJson('/api/guild/approve', 'POST', { report_id: rep.id });
+    toast(res.reactivated
+      ? 'entrega registrada e aprovada — membro reativado'
+      : 'entrega registrada e aprovada — relógio zerado');
+  } catch (e) { toast('erro: ' + e.message); }
+  // se o approve falhou depois do report, o reporte aparece na fila p/ decidir
+  loadGuildPending();
+  loadGuildClock();
+}
+
+function initGuildTab() {
+  makeItemPicker('guildAssignPicker', (it) => {
+    guildAssignItem = it;
+    // realimenta o input com o id concreto p/ o operador ver o que será gravado
+    const inp = $('guildAssignPicker').querySelector('input');
+    if (inp) inp.value = `${it.pt} · ${it.id}`;
+  }, 'buscar item da meta… ex.: tábua 4, algodão');
+  $('guildAssignBtn').addEventListener('click', guildAssignSubmit);
+  $('guildReload').addEventListener('click', loadGuildAll);
+  $('guildPendingTable').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-guild-action]');
+    if (!btn) return;
+    if (btn.dataset.guildAction === 'approve') guildApprove(+btn.dataset.reportId);
+    else if (btn.dataset.guildAction === 'reject') guildReject(+btn.dataset.reportId);
+  });
+  $('guildAssignTable').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-guild-action="deliver"]');
+    if (btn) guildDeliver(btn);
+  });
+  loadGuildAll();
 }
 
 // ============================================================ init

@@ -43,6 +43,7 @@
   <button data-tab="avancado">Avançado</button>
   <button data-tab="ilha">Ilha</button>
   <button data-tab="linhaProducao">Linha de Produção</button>
+  <button data-tab="guild" id="guildTabButton" hidden>Guild</button>
   <button data-tab="admin" id="adminTabButton" hidden>Contas</button>
 </nav>
 
@@ -731,6 +732,26 @@
         mercado paga pela sua fama, comparado em <b>todas as cidades</b>. Mostra também o recurso
         que o trabalhador daquela linha entrega e onde vendê-lo melhor.</div>
     </div></div>
+
+    <!-- calculadora de felicidade / rendimento (mecânica do dump+wiki) -->
+    <div class="section-head" style="margin:4px 0 0"><div>
+      <h2 style="margin:0;font-size:1.05rem">Felicidade &amp; rendimento</h2>
+      <div class="sub">Cama/mesa = <b>50×tier</b> · base do trabalhador = <b>100×tier</b> · cada ponto
+        acima da base = +0,5% de rendimento, teto <b>+50%</b> (precisa +100). Troféu completa: geral +5,
+        do mesmo tipo +10 — a fabricação (WARRIOR/MAGE/HUNTER/TOOLMAKER) só tem o geral.</div>
+    </div></div>
+    <div class="controls" id="happyControls">
+      <div class="field"><label>Trabalhador</label><select id="happyLabTier"></select></div>
+      <div class="field"><label>Família</label><select id="happyFamily"></select></div>
+      <div class="field"><label>Cama</label><select id="happyBed"></select></div>
+      <div class="field"><label>Mesa</label><select id="happyTable"></select></div>
+      <div class="field"><label>Troféu geral (tiers)</label>
+        <input type="number" id="happyGen" value="0" min="0" max="7" step="1"></div>
+      <div class="field" id="happyTypedField"><label>Troféu de tipo (tiers)</label>
+        <input type="number" id="happyTyped" value="0" min="0" max="7" step="1"></div>
+    </div>
+    <div class="status" id="happyOut"></div>
+
     <div class="status" id="islLaborStatus"></div>
     <div class="table-wrap" id="islLaborTable"></div>
     <p class="hint">Como agir: <b>margem</b> alta = vale encher e vender o diário cheio naquela cidade.
@@ -836,6 +857,73 @@
   </div>
 </section>
 
+<!-- ===================== GUILD (TRIBUTO SEMANAL) ====================== -->
+<section class="tab" id="tab-guild">
+  <div class="section-head">
+    <div>
+      <h1>Guild — tributo semanal</h1>
+      <div class="sub">Metas de entrega por membro, fila de auditoria e o relógio de cobrança.
+        Reporte pendente <b>pausa</b> o relógio; aprovação <b>zera</b>; 7 dias sem cumprir =
+        <b>atrasado</b>, 14 dias = <b>desligado</b> (ferramentas removidas).</div>
+    </div>
+    <button class="btn secondary" id="guildReload" type="button">Atualizar</button>
+  </div>
+
+  <!-- card: atribuir meta -->
+  <div class="section-head" style="margin:4px 0 0"><div>
+    <h2 style="margin:0;font-size:1.05rem">Atribuir meta</h2>
+    <div class="sub">Mesmo membro + item na mesma semana <b>atualiza</b> a meta existente
+      (não duplica).</div>
+  </div></div>
+  <div class="controls">
+    <div class="field">
+      <label>Membro</label>
+      <select id="guildAssignMember"></select>
+    </div>
+    <div class="field item-search-field" style="flex:1">
+      <label>Item da meta</label>
+      <div class="picker" id="guildAssignPicker"></div>
+    </div>
+    <div class="field">
+      <label>Quantidade</label>
+      <input type="number" id="guildAssignQty" value="100" min="1" step="1">
+    </div>
+    <div class="field">
+      <label title="Vazio = semana atual. Qualquer data escolhida é normalizada para a segunda-feira da semana dela.">Semana (opc.)</label>
+      <input type="date" id="guildAssignWeek">
+    </div>
+    <div class="field">
+      <label>Nota (opc.)</label>
+      <input type="text" id="guildAssignNote" maxlength="280" placeholder="—">
+    </div>
+    <button class="btn" id="guildAssignBtn" type="button">Atribuir meta</button>
+  </div>
+  <div class="status" id="guildAssignStatus"></div>
+  <div class="table-wrap" id="guildAssignTable"></div>
+  <p class="hint"><b>Registrar entrega</b> lança o reporte em nome do membro e já aprova
+     (zera o relógio) — fluxo interino do auditor enquanto o bot do Discord não existe.</p>
+
+  <!-- card: fila de auditoria -->
+  <div class="section-head" style="margin:4px 0 0"><div>
+    <h2 style="margin:0;font-size:1.05rem">Fila de auditoria</h2>
+    <div class="sub">Reportes aguardando validação, mais antigo primeiro. <b>Aprovar</b> zera o
+      relógio do membro; <b>Rejeitar</b> retoma a contagem do marco antigo (vira atrasado).</div>
+  </div></div>
+  <div class="status" id="guildPendingStatus"></div>
+  <div class="table-wrap" id="guildPendingTable"></div>
+
+  <!-- card: estado dos membros -->
+  <div class="section-head" style="margin:4px 0 0"><div>
+    <h2 style="margin:0;font-size:1.05rem">Estado dos membros</h2>
+    <div class="sub">Relógio de cobrança por membro — dias calculados ao vivo. Pendente =
+      congelado à espera do auditor.</div>
+  </div></div>
+  <div class="status" id="guildClockStatus"></div>
+  <div class="table-wrap" id="guildClockTable"></div>
+  <p class="hint">Como agir: <b>dias restantes</b> baixos = cobre a entrega antes do desligamento
+     automático. O relógio nasce no primeiro reporte do membro e só zera com aprovação.</p>
+</section>
+
 <!-- ============================ CONTAS ============================ -->
 <section class="tab" id="tab-admin">
   <div class="section-head">
@@ -930,6 +1018,6 @@
   </div>
 </div>
 <script src="vendor/chart.umd.min.js"></script>
-<script src="app.js?v=20260621-lpv2d-advisor"></script>
+<script src="app.js?v=20260704-guild-tributo"></script>
 </body>
 </html>

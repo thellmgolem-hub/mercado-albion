@@ -31,6 +31,50 @@ DEPLOY.md). Mudanças estruturais em relação ao app local:
 - Módulos pvp/backtest/survival/orders permanecem no repo mas estão FORA do
   piloto (não rodam na nuvem); CLI/testes ainda os exercitam no SQLite local.
 
+## Multi-inquilino Fase 1 (branch multi-inquilino-fase1) — APLICADA
+
+A plataforma virou multi-org (SaaS p/ outras guilds + assinantes analytics-only):
+- **Tabelas** (store.py, dual): `orgs` (id=1 = org padrão, criada por
+  ensure_default_org; `discord_guild_id` BIGINT único p/ mapear servidor Discord→org),
+  `org_entitlements`, `account_entitlements`. Colunas novas SEMPRE no FIM
+  (store.add_column faz a migração; índice de org criado APÓS o add_column).
+- **Contas** (auth.py): `org_id` + `is_super` no fim de auth_accounts; o admin mais
+  antigo vira super no boot (_migrate_org_columns); create_account herda a org do ator.
+  `is_super` = dono da plataforma (cross-org); admin comum só manda na própria org.
+- **Guardas** (app.py): `_actor_org(request)` (org do ator), `_require_role(...,
+  org=...)` (papel + escopo de org), `_require_entitlement` (gate de plano;
+  account_entitlements ainda sem consumidor ativo). ChainStore/production_chains
+  são org-scoped (org_id + owner).
+- **PENDÊNCIA ALTA-1 (deliberada)**: /api/admin/* ainda NÃO é org-scoped — corrigir
+  ANTES de aceitar a 2ª guild (junto: username_norm global vs por-org; org nova
+  nasce inactive). Testes: MultiTenantIsolationTests em tests/test_core.py.
+
+## Auditoria 2026-07-02
+
+Relatório completo (22 achados verificados + roadmap produto/Discord) em
+docs/AUDITORIA_2026-07-02.md. Higiene conhecida: retenção do cache automatizada no
+coletor, backup via tools/backup_db.py, CI em .github/workflows/tests.yml.
+
+## Tributo da guild (núcleo web-first) + Discord Fase 0
+
+- **Tributo** (albion/tribute.py + tabelas duais em store.py: weekly_assignments,
+  member_reports, member_clock, guild_audit_log — org_id INTEGER, nunca snowflake):
+  máquina de estados do PLANO_DISCORD_GUILD.md §5.2 (reporte PAUSA o relógio,
+  aprovação ZERA, rejeição RETOMA — mas só se não houver OUTRO pendente —, 14d
+  desliga; relógio 100% injetável via `now`). Endpoints /api/guild/assign|
+  assignments|report|pending|approve|reject|member-status|members (todos com
+  _require_entitlement("operacao") + papel + org) e /api/guild/clock-tick
+  (token ALBION_GUILD_TOKEN, fail-closed fora do sqlite/localhost). week_start
+  normaliza p/ SEGUNDA-FEIRA no backend E no cliente. Aba **Guild** na web
+  (operador/admin; guildTabButton). Testes: tests/test_tribute.py (20).
+- **Discord Fase 0** (sem bot): `analyze.py report --discord` e
+  `analyze.py digest --view report|ilha|laborers|advisor [--budget N] --discord`
+  postam no webhook (env ALBION_DISCORD_WEBHOOK; helper _post_discord fatia em
+  1900 chars). Agendamento Windows: tools/discord_daily.bat (schtasks;
+  PYTHONIOENCODING=utf-8 obrigatório — stdout cp1252 estoura em ▲/▼).
+  Próximas fases (bot gateway, vínculo membro→conta, tributo via Discord):
+  docs/AUDITORIA_2026-07-02.md seção Discord.
+
 ## Para fazer análises mercadológicas (pedido comum do usuário)
 
 Use a CLI — ela cuida de cache, throttle e taxas:

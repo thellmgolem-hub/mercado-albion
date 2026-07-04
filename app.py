@@ -151,6 +151,7 @@ def _start_auto_collector():
             print("[auto-collect] seed falhou:", repr(e)[:200], flush=True)
         time.sleep(4)   # deixa o servidor subir antes de bater na API
         CHUNK = 150
+        last_prune = 0.0   # monotonic da última poda (0 = poda já no 1º ciclo)
         while True:
             try:
                 items = _prioritize_watch([w["item_id"] for w in aodp.watch_list()])
@@ -167,6 +168,25 @@ def _start_auto_collector():
                 print("[auto-collect] erro:", repr(e)[:200], flush=True)
             finally:
                 _autocollect_progress["running"] = False
+            # Poda DIÁRIA do cache — a mesma do CLI `prune` (agrega snapshots
+            # além da retenção em price_snapshots_daily e apaga os brutos);
+            # sem ela o cache.db cresce sem fim. Só no SQLite local. SEM
+            # VACUUM (seguraria o lock do banco grande por minutos); o
+            # wal_checkpoint(TRUNCATE) ao menos recolhe o -wal.
+            if (store.backend() == "sqlite"
+                    and (last_prune == 0.0
+                         or time.monotonic() - last_prune >= 86400)):
+                try:
+                    res = aodp.snapshot_prune(vacuum=False)
+                    with aodp.db_lock:
+                        aodp.db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                    print(f"[auto-collect] prune: "
+                          f"{res.get('deleted_rows', 0)} snapshots brutos "
+                          "agregados e removidos.", flush=True)
+                except Exception as e:
+                    print("[auto-collect] prune falhou:", repr(e)[:200],
+                          flush=True)
+                last_prune = time.monotonic()
             time.sleep(max(60, config.AUTO_COLLECT_INTERVAL_MIN * 60))
 
     threading.Thread(target=loop, daemon=True, name="auto-collect").start()
@@ -246,29 +266,26 @@ def _normalize_ip(s: str) -> str:
         return (s[:45] or "0.0.0.0")
 
 
-# Headers que a borda/CDN define com o IP REAL do cliente e que o cliente NÃO
-# consegue forjar ATRAVÉS da borda (Cloudflare e afins os sobrescrevem).
-_TRUSTED_CLIENT_IP_HEADERS = ("cf-connecting-ip", "true-client-ip")
-
-
 def _client_ip(request: Request) -> str:
     """IP real do cliente atrás de proxy de confiança (Render/CDN).
 
-    Ordem: (1) header de borda não-forjável (CF-Connecting-IP/True-Client-IP);
-    (2) o item MAIS À ESQUERDA do X-Forwarded-For — o cliente ORIGINAL na
-    convenção padrão em que cada proxy anexa (o Render põe o IP real à esquerda;
-    pegar o 'mais à direita' era ERRADO e tornava o vínculo por IP inócuo na
-    nuvem, além de poder expulsar usuário legítimo); (3) request.client.host
-    (local, sem proxy). Vínculo por IP é defesa-em-profundidade sobre a sessão;
-    AUTH_TRUST_PROXY=0 ignora os headers de proxy."""
+    TODO header HTTP chega forjável pelo cliente; só é confiável o que o
+    PRÓPRIO proxy à nossa frente escreve. Por isso, com AUTH_TRUST_PROXY
+    ligado (opt-in; default desligado): (1) um header de borda
+    (CF-Connecting-IP e afins) só é honrado se ALBION_EDGE_HEADER o nomear —
+    a borda o sobrescreve, mas sem borda na frente ele seria forjável;
+    (2) do X-Forwarded-For usa-se o token MAIS À DIREITA, o que o proxy
+    imediato ANEXOU — os da esquerda vêm do cliente e são forjáveis.
+    Sem proxy (local), request.client.host. Vínculo por IP é
+    defesa-em-profundidade sobre a sessão."""
     if config.AUTH_TRUST_PROXY:
-        for h in _TRUSTED_CLIENT_IP_HEADERS:
-            v = request.headers.get(h)
+        if config.AUTH_EDGE_HEADER:
+            v = request.headers.get(config.AUTH_EDGE_HEADER)
             if v:
                 return _normalize_ip(v.split(",")[0])
         xff = request.headers.get("x-forwarded-for")
         if xff:
-            return _normalize_ip(xff.split(",")[0])
+            return _normalize_ip(xff.split(",")[-1])
     return _normalize_ip(request.client.host if request.client else "0.0.0.0")
 
 
@@ -666,9 +683,10 @@ def _sweep_token(request: Request, token: str) -> str:
 
 
 def _check_sweep_token(token: str):
-    """Gate dos endpoints de sweep: fail-closed em prod sem token; comparação em
-    tempo constante por BYTES (str não-ASCII em compare_digest levantaria 500)."""
-    if store.backend() != "sqlite" and not config.SWEEP_TOKEN:
+    """Gate dos endpoints de sweep: fail-closed sem token em prod E no SQLite
+    exposto à LAN (SERVE_LAN); comparação em tempo constante por BYTES (str
+    não-ASCII em compare_digest levantaria 500)."""
+    if not config.SWEEP_TOKEN and (store.backend() != "sqlite" or config.SERVE_LAN):
         raise HTTPException(503, "sweep desabilitado: defina ALBION_SWEEP_TOKEN")
     if config.SWEEP_TOKEN and not hmac.compare_digest(
             token.encode("utf-8", "ignore"),
@@ -1659,7 +1677,8 @@ def demand_view(view: str = "burn", days: float = Query(7, ge=0.25, le=45),
                                         limit=limit)
         else:  # burn
             price_item = _cheapest_by_item(q1)
-            vol = _market_volume(con, days=7)
+            # mesma janela nos dois lados (queima do killboard vs volume AODP)
+            vol = _market_volume(con, days=days)
             rows = dm.consumable_burn(con, aodp.server, days=days,
                                       price_of=price_item.get, vol_of=vol.get,
                                       premium=premium, limit=limit)
@@ -1713,6 +1732,31 @@ def island_view(view: str = "laborers", premium: bool = True,
         return res
     finally:
         con.close()
+
+
+@app.get("/api/laborer-happiness")
+def laborer_happiness_view(laborer_tier: int, bed: int,
+                           table: int = None, family: str = None,
+                           general_tiers: int = 0, typed_tiers: int = 0,
+                           trophy_happiness: int = None):
+    """Calculadora de FELICIDADE/rendimento do trabalhador (mecânica do dump+wiki).
+
+    Puro cálculo — NÃO toca o cache nem os preços. Cama/mesa = 50×tier; base =
+    100×tier DO TRABALHADOR; +0,5% de rendimento por ponto acima da base, teto +50%
+    (precisa +100). Troféu completa: geral +5/tier, tipo +10/tier (a fabricação
+    WARRIOR/MAGE/HUNTER/TOOLMAKER só tem geral). Devolve o veredicto (maxed /
+    needs_trophies / needs_furniture / below_base) e uma dica em PT-BR."""
+    from albion import island as isl
+    if not (1 <= laborer_tier <= 8) or not (1 <= bed <= 8):
+        raise HTTPException(status_code=400,
+                            detail="laborer_tier e bed devem ser 1..8")
+    if table is not None and not (1 <= table <= 8):
+        raise HTTPException(status_code=400, detail="table deve ser 1..8")
+    th = (max(0, trophy_happiness) if trophy_happiness is not None
+          else isl.trophy_happiness_from(general_tiers=general_tiers,
+                                          typed_tiers=typed_tiers, family=family))
+    return isl.happiness_advice(laborer_tier, family=family, bed_tier=bed,
+                                table_tier=table, trophy_happiness=th)
 
 
 _ENCH_RE = re.compile(r"^(.*)@(\d+)$")
@@ -2082,6 +2126,223 @@ def item_signals(item: str, days: int = Query(180, ge=30, le=400)):
     }
 
 
+# ------------------------------------------- tributo da guild (núcleo web)
+# Metas semanais + reportes + relógio de 14 dias (docs/PLANO_DISCORD_GUILD.md
+# §5, adaptado ao multi-inquilino: org_id no lugar do guild_id do Discord).
+# As rotas têm paths próprios (/api/guild/assign etc.) — o GET /api/guild
+# analítico acima segue intocado.
+from albion import tribute as _tribute  # noqa: E402
+tribute_store = _tribute.TributeStore(aodp.db, aodp.db_lock)
+
+# /api/guild/clock-tick é tocado por cron externo (sem sessão), protegido por
+# ALBION_GUILD_TOKEN — mesmo molde fail-closed do /api/sweep.
+PUBLIC_AUTH_PATHS.add("/api/guild/clock-tick")
+
+
+class GuildAssignBody(BaseModel):
+    account_id: int
+    item_id: str = Field(min_length=1, max_length=64)
+    qty_target: int = Field(gt=0, le=_tribute.QTY_MAX)
+    week_start: str | None = Field(default=None, max_length=10)
+    sector: str | None = Field(default=None, max_length=16)
+    from_chain_id: int | None = None
+    note: str | None = Field(default=None, max_length=280)
+
+
+class GuildReportBody(BaseModel):
+    item_id: str = Field(min_length=1, max_length=64)
+    qty: int = Field(gt=0, le=_tribute.QTY_MAX)
+    assignment_id: int | None = None
+    member_id: int | None = None   # operador reportando em nome do membro
+    note: str | None = Field(default=None, max_length=280)
+
+
+class GuildAuditBody(BaseModel):
+    report_id: int
+    note: str | None = Field(default=None, max_length=280)
+
+
+def _guild_account(request: Request) -> dict:
+    """Conta autenticada do solicitante (qualquer papel). Modo local = admin."""
+    if not config.AUTH_REQUIRED:
+        return {"id": 0, "username": "local", "role": "admin",
+                "org_id": 1, "is_super": True}
+    account = getattr(request.state, "auth", {}).get("account")
+    if not account:
+        raise AuthError("Autenticacao ausente.", "auth_missing", 401)
+    return account
+
+
+def _member_in_org(org: int, account_id: int) -> bool:
+    """True se a conta existe, está ativa e pertence à org (isolamento)."""
+    if not config.AUTH_REQUIRED:
+        return True
+    with aodp.db_lock:
+        try:
+            row = aodp.db.execute(
+                "SELECT org_id FROM auth_accounts WHERE id=? AND active=1",
+                [account_id]).fetchone()
+        finally:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    return bool(row and int(row[0] or 1) == int(org))
+
+
+def _check_guild_token(token: str):
+    """Gate do clock-tick: fail-closed sem token em prod E no SQLite exposto à
+    LAN (SERVE_LAN); comparação em tempo constante por BYTES — mesmo molde do
+    _check_sweep_token. Lê a env na hora p/ permitir rotação sem reboot."""
+    secret = os.environ.get("ALBION_GUILD_TOKEN", "")
+    if not secret and (store.backend() != "sqlite" or config.SERVE_LAN):
+        raise HTTPException(503,
+                            "clock-tick desabilitado: defina ALBION_GUILD_TOKEN")
+    if secret and not hmac.compare_digest(
+            token.encode("utf-8", "ignore"), secret.encode("utf-8")):
+        raise HTTPException(403, "token de guild invalido")
+
+
+@app.post("/api/guild/assign")
+def guild_assign(body: GuildAssignBody, request: Request):
+    """Cria/atualiza meta semanal (membro+item+qtd). Operador da própria org."""
+    _require_entitlement(request, "operacao")
+    actor = _require_role(request, OPERATOR_ROLES)
+    org = _actor_org(request)
+    if not _member_in_org(org, body.account_id):
+        raise HTTPException(404, "membro não encontrado nesta organização")
+    try:
+        res = tribute_store.assign(
+            org, body.account_id, body.item_id, body.qty_target,
+            week_start=body.week_start, sector=body.sector,
+            from_chain_id=body.from_chain_id, note=body.note,
+            created_by=int(actor.get("id") or 0))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return {"ok": True, **res}
+
+
+@app.get("/api/guild/assignments")
+def guild_assignments(request: Request, week_start: str | None = None,
+                      account_id: int | None = None):
+    """Metas da org. Operador vê todas (filtros opcionais); membro só as suas."""
+    _require_entitlement(request, "operacao")
+    account = _guild_account(request)
+    org = _actor_org(request)
+    if account.get("role") not in OPERATOR_ROLES:
+        account_id = int(account.get("id") or 0)   # membro: só as próprias
+    return {"week_now": _tribute.week_start_iso(),
+            "assignments": tribute_store.assignments(
+                org, week_start=week_start, account_id=account_id)}
+
+
+@app.post("/api/guild/report")
+def guild_report(body: GuildReportBody, request: Request):
+    """Membro alega entrega (relógio PAUSA). Sem member_id = auto-reporte de
+    qualquer conta da org; com member_id = operador em nome do membro."""
+    _require_entitlement(request, "operacao")
+    account = _guild_account(request)
+    org = _actor_org(request)
+    actor_id = int(account.get("id") or 0)
+    member_id = body.member_id if body.member_id is not None else actor_id
+    if member_id != actor_id:
+        _require_role(request, OPERATOR_ROLES)
+        if not _member_in_org(org, member_id):
+            raise HTTPException(404, "membro não encontrado nesta organização")
+    try:
+        res = tribute_store.report(
+            org, member_id, body.item_id, body.qty,
+            assignment_id=body.assignment_id, note=body.note,
+            actor_id=actor_id)
+    except KeyError:
+        raise HTTPException(404, "meta não encontrada")
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return {"ok": True, **res}
+
+
+@app.get("/api/guild/pending")
+def guild_pending(request: Request, limit: int = Query(200, ge=1, le=500)):
+    """Fila de auditoria (reportes pendentes). Operador da própria org."""
+    _require_entitlement(request, "operacao")
+    _require_role(request, OPERATOR_ROLES)
+    return {"pending": tribute_store.pending(_actor_org(request), limit=limit)}
+
+
+@app.post("/api/guild/approve")
+def guild_approve(body: GuildAuditBody, request: Request):
+    """Aprova um reporte: relógio ZERA; se estava desligado, reativa."""
+    _require_entitlement(request, "operacao")
+    actor = _require_role(request, OPERATOR_ROLES)
+    try:
+        res = tribute_store.approve(_actor_org(request), body.report_id,
+                                    int(actor.get("id") or 0), note=body.note)
+    except KeyError:
+        raise HTTPException(404, "reporte não encontrado")
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+    return {"ok": True, **res}
+
+
+@app.post("/api/guild/reject")
+def guild_reject(body: GuildAuditBody, request: Request):
+    """Rejeita um reporte: relógio RETOMA a contagem do mesmo marco."""
+    _require_entitlement(request, "operacao")
+    actor = _require_role(request, OPERATOR_ROLES)
+    try:
+        res = tribute_store.reject(_actor_org(request), body.report_id,
+                                   int(actor.get("id") or 0), note=body.note)
+    except KeyError:
+        raise HTTPException(404, "reporte não encontrado")
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+    return {"ok": True, **res}
+
+
+@app.get("/api/guild/member-status")
+def guild_member_status(request: Request, account_id: int | None = None):
+    """Relógio por membro (dias ao vivo). Operador vê todos; membro só o seu."""
+    _require_entitlement(request, "operacao")
+    account = _guild_account(request)
+    org = _actor_org(request)
+    if account.get("role") not in OPERATOR_ROLES:
+        account_id = int(account.get("id") or 0)
+    return {"members": tribute_store.member_status(org, account_id=account_id)}
+
+
+@app.get("/api/guild/members")
+def guild_members(request: Request):
+    """Contas ativas da org do ator (id/username/role) — p/ o form de
+    atribuição. NÃO reusa /api/admin/accounts (que expõe muito mais)."""
+    _require_entitlement(request, "operacao")
+    _require_role(request, OPERATOR_ROLES)
+    org = _actor_org(request)
+    with aodp.db_lock:
+        try:
+            rows = aodp.db.execute(
+                "SELECT id, username, role FROM auth_accounts "
+                "WHERE org_id=? AND active=1 ORDER BY username",
+                [org]).fetchall()
+        finally:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    return {"members": [{"id": r[0], "username": r[1], "role": r[2]}
+                        for r in rows]}
+
+
+@app.get("/api/guild/clock-tick")
+@app.post("/api/guild/clock-tick")
+def guild_clock_tick(request: Request, token: str = ""):
+    """Tick diário do relógio (cron): transições por tempo, idempotente.
+
+    Protegido por ALBION_GUILD_TOKEN (header X-Guild-Token ou ?token=),
+    isento de sessão — mesmo padrão do /api/sweep. Varre TODAS as orgs."""
+    _check_guild_token(request.headers.get("x-guild-token") or token or "")
+    return {"ok": True, **tribute_store.clock_tick()}
+
+
 # ------------------------------------------------------- coleta automática
 # ---------------------------------------------------------------- ícones
 # O serviço de render (render.albiononline.com) bloqueia clientes com TLS do
@@ -2101,6 +2362,25 @@ _ICON_ID_RE = re.compile(r"^[A-Za-z0-9_@\-\.]+$")
 _icon_sem = threading.Semaphore(4)
 _BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                " (KHTML, like Gecko) Chrome/125.0 Safari/537.36")
+# Cache NEGATIVO em memória: falha de download vale por 5 min. Sem ele, cada
+# <img> quebrado no frontend dispararia um novo download (PowerShell + rede)
+# a cada refresh — amplificação de falha contra o serviço de render e contra
+# a própria máquina quando o Cloudflare bloqueia.
+_ICON_NEG_TTL = 300.0
+_icon_neg_cache: dict[tuple[str, int, int], float] = {}  # chave -> expiry (monotonic)
+_ICON_LOG_MAX_BYTES = 5 * 1024 * 1024
+
+
+def _log_icon_error(b: bytes):
+    """Anexa ao icon_errors.log, truncando o arquivo acima de 5 MB — uma falha
+    persistente (ex. bloqueio do Cloudflare) não pode encher o disco."""
+    p = ICONS_DIR / "icon_errors.log"
+    try:
+        if p.exists() and p.stat().st_size > _ICON_LOG_MAX_BYTES:
+            p.unlink()
+        p.open("ab").write(b)
+    except OSError:
+        pass  # log de erro nunca derruba o handler
 
 
 def _download_icon(url: str, dest: Path) -> bool:
@@ -2122,9 +2402,8 @@ def _download_icon(url: str, dest: Path) -> bool:
              f" -UserAgent '{_BROWSER_UA}' -TimeoutSec 20 -UseBasicParsing"],
             capture_output=True, timeout=30)
         if r.returncode != 0:
-            (ICONS_DIR / "icon_errors.log").open("ab").write(
-                b"rc=%d url=%s\n" % (r.returncode, url.encode())
-                + r.stderr[:2000] + b"\n---\n")
+            _log_icon_error(b"rc=%d url=%s\n" % (r.returncode, url.encode())
+                            + r.stderr[:2000] + b"\n---\n")
         if tmp.exists() and tmp.read_bytes()[:4] == b"\x89PNG":
             tmp.replace(dest)
             return True
@@ -2132,8 +2411,8 @@ def _download_icon(url: str, dest: Path) -> bool:
     except (subprocess.SubprocessError, OSError) as e:
         # nunca usar print aqui: mensagens do Windows em PT-BR têm acentos e
         # console cp1252 lançaria UnicodeEncodeError dentro do handler
-        (ICONS_DIR / "icon_errors.log").open("ab").write(
-            ("exc url=%s: %r\n---\n" % (url, e)).encode("utf-8", "replace"))
+        _log_icon_error(("exc url=%s: %r\n---\n" % (url, e))
+                        .encode("utf-8", "replace"))
     return False
 
 
@@ -2144,10 +2423,23 @@ def icon(item_id: str, quality: int = Query(0, ge=0, le=5),
         raise HTTPException(400, "id de item inválido")
     dest = ICONS_DIR / f"{item_id}_q{quality}_s{size}.png"
     if not dest.exists():
+        # falha recente? devolve 404 direto sem tentar baixar de novo
+        key = (item_id, quality, size)
+        exp = _icon_neg_cache.get(key)
+        if exp is not None:
+            if exp > time.monotonic():
+                return Response(status_code=404)
+            _icon_neg_cache.pop(key, None)   # expirou: pode tentar de novo
         url = (f"https://render.albiononline.com/v1/item/{quote(item_id)}.png"
                f"?size={size}" + (f"&quality={quality}" if quality > 1 else ""))
         with _icon_sem:
             if not dest.exists() and not _download_icon(url, dest):
+                if len(_icon_neg_cache) > 4096:   # não crescer sem limite
+                    now = time.monotonic()
+                    for k in [k for k, v in list(_icon_neg_cache.items())
+                              if v <= now]:
+                        _icon_neg_cache.pop(k, None)
+                _icon_neg_cache[key] = time.monotonic() + _ICON_NEG_TTL
                 return Response(status_code=404)
     return FileResponse(dest, media_type="image/png",
                         headers={"Cache-Control": "public, max-age=604800"})
