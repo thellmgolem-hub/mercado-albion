@@ -113,10 +113,10 @@ def fmt_cell(v) -> str:
     return str(v)
 
 
-def render_table(rows: list[dict], cols: list[tuple[str, str]]):
+def table_lines(rows: list[dict], cols: list[tuple[str, str]]) -> list[str]:
+    """Tabela alinhada como lista de linhas (reuso: render_table e digest)."""
     if not rows:
-        print("Nenhum resultado.")
-        return
+        return ["Nenhum resultado."]
     headers = [h for _, h in cols]
     numeric = []
     for k, _ in cols:
@@ -127,16 +127,20 @@ def render_table(rows: list[dict], cols: list[tuple[str, str]]):
     grid = [[fmt_cell(r.get(k)) for k, _ in cols] for r in rows]
     widths = [max(len(headers[i]), *(len(g[i]) for g in grid))
               for i in range(len(cols))]
-    line = "  ".join(
+    out = ["  ".join(
         h.rjust(w) if num else h.ljust(w)
-        for h, w, num in zip(headers, widths, numeric))
-    print(line.rstrip())
-    print("  ".join("-" * w for w in widths))
+        for h, w, num in zip(headers, widths, numeric)).rstrip()]
+    out.append("  ".join("-" * w for w in widths))
     for g in grid:
-        line = "  ".join(
+        out.append("  ".join(
             c.rjust(w) if num else c.ljust(w)
-            for c, w, num in zip(g, widths, numeric))
-        print(line.rstrip())
+            for c, w, num in zip(g, widths, numeric)).rstrip())
+    return out
+
+
+def render_table(rows: list[dict], cols: list[tuple[str, str]]):
+    for line in table_lines(rows, cols):
+        print(line)
 
 
 def emit(rows: list[dict], cols: list[tuple[str, str]], fmt: str):
@@ -748,6 +752,9 @@ def cmd_collect(args, fmt):
 
 def cmd_recommend(args, fmt):
     from app import recommendations  # carrega o app (ItemDB + AODP) sob demanda
+    # C4: normaliza rótulos PT ("Mercado Negro") p/ nomes da API antes de passar
+    buy_cities = parse_cities(args.buy_cities)
+    sell_cities = parse_cities(args.sell_cities)
     res = recommendations(
         cat=args.cat, sub=args.sub, tier_min=args.tier_min,
         tier_max=args.tier_max, qualities=args.qualities or "1",
@@ -755,7 +762,8 @@ def cmd_recommend(args, fmt):
         min_roi=args.min_roi, min_daily_volume=args.min_volume,
         min_active_days=args.min_active_days, history_days=args.history_days,
         max_age_buy=args.max_age_buy, max_age_sell=args.max_age_sell,
-        buy_cities=args.buy_cities, sell_cities=args.sell_cities,
+        buy_cities=",".join(buy_cities) if buy_cities else None,
+        sell_cities=",".join(sell_cities) if sell_cities else None,
         capture_rate=config.CAPTURE_RATE, limit=args.limit)
     cov = res.get("coverage", {})
     info(f"{res.get('items_considered', 0)} itens avaliados · cobertura: "
@@ -845,7 +853,10 @@ def cmd_advisor(args, fmt):
 
 def cmd_lab(args, fmt):
     from app import item_analysis
-    res = item_analysis(item=args.item, cities=args.cities,
+    # C4: normaliza rótulos PT ("Mercado Negro") p/ nomes da API antes de passar
+    cities = parse_cities(args.cities)
+    res = item_analysis(item=args.item,
+                        cities=",".join(cities) if cities else None,
                         quality=args.quality, time_scale=args.scale,
                         days=args.days, max_age=config.HISTORY_TTL,
                         cache_only=not args.fetch)
@@ -970,14 +981,35 @@ def _movers_24h(limit=5):
     return movers[:limit * 2]
 
 
-def cmd_report(args, fmt):
-    """Relatório do dia: recomendações, backtest, movers e cobertura."""
+def _print_safe(text):
+    """print() blindado contra UnicodeEncodeError (console Windows cp1252)."""
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        print(text.encode("ascii", "replace").decode())
+
+
+def _post_discord(text):
+    """Publica `text` no webhook do Discord, fatiado em blocos de 1900 chars
+    (limite de 2000 por mensagem, com folga)."""
+    url = config.DISCORD_WEBHOOK_URL
+    if not url:
+        die("DISCORD_WEBHOOK_URL vazio — defina a env ALBION_DISCORD_WEBHOOK "
+            "(ou cole a URL em albion/config.py) e tente de novo.")
+    import httpx
+    for i in range(0, len(text), 1900):
+        r = httpx.post(url, json={"content": text[i:i + 1900]}, timeout=20)
+        r.raise_for_status()
+
+
+def _report_text(top=8, premium=True):
+    """Texto do relatório do dia (compartilhado por `report` e `digest`)."""
     from app import recommendations
     db = ItemDB()
     # chamada direta à função do app: todos os defaults Query() precisam
     # ser passados explicitamente
     rec = recommendations(
-        limit=args.top, premium=args.premium, max_age_buy=720,
+        limit=top, premium=premium, max_age_buy=720,
         max_age_sell=720, min_daily_volume=20, min_active_days=2,
         history_days=7, capture_rate=config.CAPTURE_RATE)
     cov = rec.get("coverage", {})
@@ -987,7 +1019,7 @@ def cmd_report(args, fmt):
                  f"watchlist coletada a cada "
                  f"{config.AUTO_COLLECT_INTERVAL_MIN} min")
 
-    opps = rec.get("opportunities", [])[:args.top]
+    opps = rec.get("opportunities", [])[:top]
     if opps:
         lines.append("")
         lines.append(f"**Top {len(opps)} oportunidades agora** "
@@ -1021,7 +1053,7 @@ def cmd_report(args, fmt):
         try:
             metas = {i["id"]: i for i in db.items}
             bt = backtest_mod.signal_backtest(con, config.DEFAULT_SERVER,
-                                              metas, premium=args.premium)
+                                              metas, premium=premium)
         finally:
             con.close()
         ov = bt.get("overall", {})
@@ -1033,18 +1065,135 @@ def cmd_report(args, fmt):
     except sqlite3.Error:
         pass
 
-    text = "\n".join(lines)
-    print(text)
+    return "\n".join(lines)
+
+
+def cmd_report(args, fmt):
+    """Relatório do dia: recomendações, backtest, movers e cobertura."""
+    text = _report_text(top=args.top, premium=args.premium)
+    _print_safe(text)
     if args.discord:
-        url = config.DISCORD_WEBHOOK_URL
-        if not url:
-            die("DISCORD_WEBHOOK_URL vazio em albion/config.py — cole a URL "
-                "do webhook do canal e tente de novo.")
-        import httpx
-        for i in range(0, len(text), 1900):
-            r = httpx.post(url, json={"content": text[i:i + 1900]}, timeout=20)
-            r.raise_for_status()
+        _post_discord(text)
         info("Relatório publicado no Discord.")
+
+
+def _fence(lines):
+    """Bloco de código do Discord (tabela monospace)."""
+    return "```\n" + "\n".join(lines) + "\n```"
+
+
+def _digest_ilha():
+    """View ilha: top margens de diário (flip) + top culturas, do cache."""
+    from albion import island
+    md = _laborer_market_data(30)
+    if md is None:
+        die("Cache vazio — rode 'collect' antes.")
+    db = ItemDB()
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid) if iid else "-"
+    parts = ["**Ilha — digest do dia** (Américas)"]
+    lab = island.laborer_economy(md["q1"]).get("rows", [])[:8]
+    if lab:
+        rows = [{"diario": name(r["empty"]), "t": r["tier"],
+                 "margem": r["margin"],
+                 "rota": f"{city_pt(r['buy_city'])}→{city_pt(r['sell_city'])}"}
+                for r in lab]
+        parts.append("Top margens de diário (vazio→cheio):")
+        parts.append(_fence(table_lines(rows, [
+            ("diario", "Diário"), ("t", "T"), ("margem", "Margem"),
+            ("rota", "Compra→Venda")])))
+    crops = island.crop_economy(md["q1"]).get("rows", [])[:8]
+    if crops:
+        rows = [{"cultura": name(r["crop"]), "sem_foco": r["per_day_no_focus"],
+                 "com_foco": r["per_day_focus"], "venda": city_pt(r["sell_city"])}
+                for r in crops]
+        parts.append("Top culturas (lucro por canteiro/dia):")
+        parts.append(_fence(table_lines(rows, [
+            ("cultura", "Cultura"), ("sem_foco", "Dia s/foco"),
+            ("com_foco", "Dia c/foco"), ("venda", "Onde vender")])))
+    if len(parts) == 1:
+        parts.append("Sem dados precificados no cache — rode 'collect'.")
+    return "\n".join(parts)
+
+
+def _digest_laborers():
+    """View laborers: top 8 trabalhadores de fabricação (mesmo caminho do
+    comando `laborers`, defaults do dono: refined-only + farm)."""
+    from albion import island
+    md = _laborer_market_data(30)
+    if md is None:
+        die("Cache vazio — rode 'collect' antes.")
+    db = ItemDB()
+    name = lambda iid: (db.get(iid) or {}).get("pt", iid) if iid else "-"
+    res = island.crafting_laborer_economy(
+        md["q1"], premium=True, sell_mode="order", cities=None, limit=None,
+        station_fee=0, fill_sell_ok=md["fill_sell_ok"])
+    top = res.get("rows", [])[:8]
+    if not top:
+        return ("**Trabalhadores — digest**\nNenhum trabalhador de fabricação "
+                "precificado no cache — rode 'collect'.")
+    rows = [{"diario": name(r["empty"]), "t": r["tier"],
+             "encher": name(r["fill_item"]),
+             "alim": r["lucro_alimentar_vendendo"], "flip": r["lucro_flip"]}
+            for r in top]
+    parts = ["**Trabalhadores de fabricação — top 8** (lucro alimentar "
+             "vendendo; taxa de estação 0)",
+             _fence(table_lines(rows, [
+                 ("diario", "Diário"), ("t", "T"), ("encher", "Encher com"),
+                 ("alim", "Lucro alim."), ("flip", "Lucro flip")]))]
+    return "\n".join(parts)
+
+
+def _digest_advisor(budget, city):
+    """View advisor: top compras do flip-advisor p/ o orçamento (reusa
+    albion.advisor.advise, cache-only)."""
+    from albion import advisor, store
+    db = ItemDB()
+    con = store.connect(readonly=True)
+    if con is None:
+        die("Cache vazio — rode 'collect' antes.")
+    try:
+        res = advisor.advise(con, config.DEFAULT_SERVER, db,
+                             budget=budget, city=city)
+    finally:
+        con.close()
+    s = res["summary"]
+    parts = [f"**Flip advisor — {fmt_int(budget)} prata em "
+             f"{city_pt(res['city'])}**",
+             f"Gasta {fmt_int(s['orcamento_usado'])} · sobra "
+             f"{fmt_int(s['orcamento_restante'])} · lucro estimado "
+             f"{fmt_int(s['lucro_total_estimado'])} (ROI {s['roi_total_pct']}%)"]
+    rows = []
+    for l in res["shopping_list"][:10]:
+        bm = " [BM]" if l["sell_city"] == "Black Market" else ""
+        rows.append({
+            "item": f"{l['name_pt']} T{l['tier']}.{l['ench']}",
+            "rota": f"{city_pt(l['buy_city'])}→{city_pt(l['sell_city'])}{bm}",
+            "unid": l["units"], "lucro": l["lucro_liquido"],
+            "conf": l["confidence_label"]})
+    if rows:
+        parts.append(_fence(table_lines(rows, [
+            ("item", "Item"), ("rota", "Compra→Venda"), ("unid", "Unid"),
+            ("lucro", "Lucro"), ("conf", "Conf")])))
+    else:
+        parts.append("Nenhuma opção confiável no orçamento agora.")
+    return "\n".join(parts)
+
+
+def cmd_digest(args, fmt):
+    """Digest compacto p/ Discord (Fase 0): report | ilha | laborers | advisor."""
+    if args.view == "report":
+        text = _report_text()
+    elif args.view == "ilha":
+        text = _digest_ilha()
+    elif args.view == "laborers":
+        text = _digest_laborers()
+    else:  # advisor
+        cities = parse_cities(args.city)
+        text = _digest_advisor(args.budget, cities[0] if cities else "Caerleon")
+    _print_safe(text)
+    if args.discord:
+        _post_discord(text)
+        info("Digest publicado no Discord.")
 
 
 REFINED_BY_FAMILY = {"WOOD": "PLANKS", "ORE": "METALBAR", "FIBER": "CLOTH",
@@ -1528,6 +1677,50 @@ def cmd_laborplan(args, fmt):
              f"--market-depth com cautela, ou reduza os laborers.")
     elif res["empty_missing"]:
         info("Diário vazio sem cotação de compra — custo do vazio entrou como 0.")
+
+
+def cmd_laborhappy(args, fmt):
+    """Felicidade e % de rendimento de um trabalhador dada cama/mesa/troféu.
+
+    Puro cálculo (mecânica do dump+wiki): NÃO toca o cache. Cama/mesa = 50×tier;
+    base = 100×tier DO TRABALHADOR; +0,5%/ponto acima da base, teto +50% (precisa
+    +100). Troféu completa: geral +5, tipo +10 (fabricação WARRIOR/MAGE/HUNTER/
+    TOOLMAKER só tem geral). Diz se já satura só com a mobília, se falta troféu ou
+    se convém subir a cama/mesa."""
+    from albion import island
+    if not (1 <= args.laborer_tier <= 8) or not (1 <= args.bed <= 8):
+        die("--laborer-tier e --bed devem ser 1..8")
+    if args.table is not None and not (1 <= args.table <= 8):
+        die("--table deve ser 1..8")
+    if args.trophy_happiness is not None:
+        th = max(0, args.trophy_happiness)
+    else:
+        th = island.trophy_happiness_from(
+            general_tiers=args.general_tiers, typed_tiers=args.typed_tiers,
+            family=args.family)
+    adv = island.happiness_advice(
+        args.laborer_tier, family=args.family, bed_tier=args.bed,
+        table_tier=args.table, trophy_happiness=th)
+    if fmt == "json":
+        print(json.dumps(adv, ensure_ascii=False, indent=2))
+        return
+    fam = f" ({adv['family']})" if adv["family"] else ""
+    mob = (f"cama T{args.bed}"
+           + (f" + mesa T{args.table}" if args.table else " (sem mesa)"))
+    sign = "+" if adv["above_base"] >= 0 else ""
+    info(f"Trabalhador T{adv['laborer_tier']}{fam}: base {adv['base']}, mobília "
+         f"{adv['furniture_happiness']} ({mob}), troféu {adv['trophy_happiness']}"
+         f" → total {adv['total']} = base {sign}{adv['above_base']}.")
+    rows = [
+        {"campo": "Felicidade total", "valor": adv["total"]},
+        {"campo": "Base (100×tier)", "valor": adv["base"]},
+        {"campo": "Acima da base", "valor": adv["above_base"]},
+        {"campo": "Rendimento (bônus)", "valor": f"+{adv['yield_bonus_pct']:g}%"},
+        {"campo": "No teto (+50%)?", "valor": "sim" if adv["maxed"] else "não"},
+        {"campo": "Falta p/ teto", "valor": adv["to_max_points"]},
+    ]
+    emit(rows, [("campo", "Campo"), ("valor", "Valor")], fmt)
+    info(adv["hint"])
 
 
 def cmd_backtest(args, fmt):
@@ -2453,7 +2646,13 @@ def cmd_risk(args, fmt):
         if not args.itens:
             die("size exige um item e --capital.")
         it = resolve_item(db, " ".join(args.itens))
-        prices = [p for i, c, d, p in rows if i == it["id"]]
+        # C2: vol sobre a MAIOR série de UMA cidade — concatenar cidades cria
+        # saltos falsos nas fronteiras (mesmo critério do /api/risk em app.py).
+        by_city = {}
+        for i, c, _d, p in rows:
+            if i == it["id"]:
+                by_city.setdefault(c, []).append(p)
+        prices = max(by_city.values(), key=len) if by_city else []
         rp = risk.risk_profile(prices, min_points=args.min_points)
         vol = (rp or {}).get("vol_annual_pct", 0) / 100
         con = sqlite3.connect(f"{db_path.as_uri()}?mode=ro", uri=True)
@@ -3061,6 +3260,23 @@ def build_parser():
                    default=True)
     p.set_defaults(func=cmd_laborplan)
 
+    p = sub.add_parser("laborhappy", parents=[common],
+                       help="felicidade/rendimento do trabalhador (cama+mesa+troféu)")
+    p.add_argument("--laborer-tier", type=int, required=True,
+                   help="tier do TRABALHADOR (não do diário); base = 100×tier")
+    p.add_argument("--bed", type=int, required=True, help="tier da cama (50×tier)")
+    p.add_argument("--table", type=int, help="tier da mesa (50×tier; opcional)")
+    p.add_argument("--family", help="família p/ saber se tem troféu de tipo "
+                   "(WARRIOR/MAGE/HUNTER/TOOLMAKER não têm; coleta+MERCENARY têm)")
+    p.add_argument("--general-tiers", type=int, default=0,
+                   help="quantos tiers de troféu GERAL (0..7, +5 cada)")
+    p.add_argument("--typed-tiers", type=int, default=0,
+                   help="quantos tiers de troféu de TIPO (0..7, +10 cada; ignorado "
+                        "se a família não tem troféu de tipo)")
+    p.add_argument("--trophy-happiness", type=int,
+                   help="felicidade de troféu já somada (sobrepõe general/typed)")
+    p.set_defaults(func=cmd_laborhappy)
+
     p = sub.add_parser("report", parents=[common],
                        help="relatório do dia (opcional: publica no Discord)")
     p.add_argument("--top", type=int, default=8,
@@ -3070,6 +3286,19 @@ def build_parser():
     p.add_argument("--discord", action="store_true",
                    help="publica via webhook (config.DISCORD_WEBHOOK_URL)")
     p.set_defaults(func=cmd_report)
+
+    p = sub.add_parser("digest", parents=[common],
+                       help="digest compacto p/ Discord: report|ilha|laborers|advisor")
+    p.add_argument("--view", choices=("report", "ilha", "laborers", "advisor"),
+                   default="report",
+                   help="qual digest gerar (padrão: report)")
+    p.add_argument("--budget", type=float, default=500000,
+                   help="prata p/ a view advisor (padrão: 500.000)")
+    p.add_argument("--city", default="Caerleon",
+                   help="cidade de compra p/ a view advisor (padrão: Caerleon)")
+    p.add_argument("--discord", action="store_true",
+                   help="publica via webhook (env ALBION_DISCORD_WEBHOOK)")
+    p.set_defaults(func=cmd_digest)
 
     p = sub.add_parser("backtest", parents=[common],
                        help="valida o sinal: lucro prometido vs realizado")
