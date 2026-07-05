@@ -5,6 +5,7 @@ Rodar:  python app.py        (abre o navegador em http://127.0.0.1:8528)
 """
 import hmac
 import ipaddress
+import logging
 import os
 import re
 import sqlite3
@@ -13,7 +14,9 @@ import sys
 import threading
 import time
 import webbrowser
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from urllib.parse import quote
 
@@ -35,7 +38,52 @@ from albion.items import ItemDB
 ROOT = Path(__file__).resolve().parent
 HOST, PORT = "127.0.0.1", 8528
 
-app = FastAPI(title="Mercado Albion — Américas")
+
+def _setup_logging():
+    """Logging leve: arquivo rotativo data/server.log + avisos no console.
+
+    Os prints de UX existentes (senha do BOOTSTRAP, progresso da coleta)
+    continuam indo direto ao console; o logger cobre erros/avisos — que saem
+    no console (stderr usa backslashreplace, então acentos não estouram no
+    cp1252 do Windows) E ficam no arquivo p/ diagnóstico pós-mortem."""
+    log_path = ROOT / "data" / "server.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    # delay=True: só abre o arquivo no 1º registro emitido. Sem isso, a CLI
+    # (analyze.py importa app p/ recommendations) abriria server.log só por
+    # importar e, no Windows, o handle extra faz o doRollover do servidor
+    # falhar com WinError 32 (rename de arquivo aberto) — traceback no stderr
+    # a cada registro e rodízio de log quebrado enquanto os dois vivem.
+    file_h = RotatingFileHandler(log_path, maxBytes=5 * 1024 * 1024,
+                                 backupCount=3, encoding="utf-8", delay=True)
+    file_h.setFormatter(logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    console_h = logging.StreamHandler()
+    console_h.setLevel(logging.WARNING)   # console só vê warning/error
+    console_h.setFormatter(logging.Formatter(
+        "%(levelname)s %(name)s: %(message)s"))
+    logging.basicConfig(level=logging.INFO, handlers=[file_h, console_h])
+    # httpx loga CADA request em INFO — na coleta automática isso inundaria o
+    # arquivo (milhares de linhas/ciclo). Só warnings dele interessam.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
+
+_setup_logging()
+log = logging.getLogger("albion.app")
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    """Sobe/desce do servidor (substitui @app.on_event('startup'), deprecado).
+
+    TestClient dispara o lifespan ao entrar no context manager — mesmo gatilho
+    dos antigos eventos de startup, comportamento preservado."""
+    log.info("servidor iniciando (backend=%s)", store.backend())
+    _start_auto_collector()   # no-op na nuvem/testes (guardas internas)
+    yield
+    # nada a desligar: o coletor local é thread daemon
+
+
+app = FastAPI(title="Mercado Albion — Américas", lifespan=_lifespan)
 db = ItemDB()
 aodp = AODP(server=config.DEFAULT_SERVER)
 auth_manager = AuthManager(aodp.db, aodp.db_lock)
@@ -148,7 +196,7 @@ def _start_auto_collector():
                 print(f"[auto-collect] watchlist: +{len(novos)} itens "
                       f"(total {len(existing) + len(novos)}).", flush=True)
         except Exception as e:
-            print("[auto-collect] seed falhou:", repr(e)[:200], flush=True)
+            log.warning("[auto-collect] seed falhou: %s", repr(e)[:200])
         time.sleep(4)   # deixa o servidor subir antes de bater na API
         CHUNK = 150
         last_prune = 0.0   # monotonic da última poda (0 = poda já no 1º ciclo)
@@ -165,7 +213,7 @@ def _start_auto_collector():
                     print(f"[auto-collect] {done}/{len(items)} itens coletados.",
                           flush=True)
             except Exception as e:
-                print("[auto-collect] erro:", repr(e)[:200], flush=True)
+                log.error("[auto-collect] erro: %s", repr(e)[:200])
             finally:
                 _autocollect_progress["running"] = False
             # Poda DIÁRIA do cache — a mesma do CLI `prune` (agrega snapshots
@@ -184,19 +232,14 @@ def _start_auto_collector():
                           f"{res.get('deleted_rows', 0)} snapshots brutos "
                           "agregados e removidos.", flush=True)
                 except Exception as e:
-                    print("[auto-collect] prune falhou:", repr(e)[:200],
-                          flush=True)
+                    log.warning("[auto-collect] prune falhou: %s",
+                                repr(e)[:200])
                 last_prune = time.monotonic()
             time.sleep(max(60, config.AUTO_COLLECT_INTERVAL_MIN * 60))
 
     threading.Thread(target=loop, daemon=True, name="auto-collect").start()
     print("[auto-collect] coletor local ligado "
           f"(a cada {config.AUTO_COLLECT_INTERVAL_MIN} min).", flush=True)
-
-
-@app.on_event("startup")
-def _on_startup():
-    _start_auto_collector()
 
 
 @app.get("/api/collect-status")
@@ -327,16 +370,29 @@ def _actor_org(request: Request) -> int:
     return int(acct.get("org_id") or 1)
 
 
-def _require_entitlement(request: Request, scope: str):
-    """Gate da superfície operacional pelo DIREITO do inquilino.
+def _require_service_scope(request: Request, scope: str):
+    """Gate dos endpoints de bot: exige ctx de SERVIÇO com o escopo dado.
 
-    Fase 1: a org nº 1 nasce com o direito ativo e sem prazo (permissivo) e o
-    modo local libera — a trava real (cobrança) morde na Fase 2. Lê
-    org_entitlements do inquilino do solicitante; fail-closed se não houver
-    registro, para não vazar a superfície."""
+    Humano com sessão não tem escopos -> 403 (endpoints /api/discord/* são
+    exclusivos do bot); token sem o escopo -> 403. Modo local libera."""
     if not config.AUTH_REQUIRED:
-        return
-    org = _actor_org(request)
+        return {"service": True, "name": "local", "scopes": [scope],
+                "account": None}
+    ctx = getattr(request.state, "auth", {}) or {}
+    if not ctx.get("service"):
+        raise AuthError("Endpoint exclusivo de servico (X-Service-Token).",
+                        "service_required", 403)
+    if scope not in (ctx.get("scopes") or []):
+        raise AuthError("Token de servico sem o escopo necessario.",
+                        "service_scope", 403)
+    return ctx
+
+
+def _org_entitlement(org: int, scope: str):
+    """Checagem crua do direito do inquilino (fail-closed sem registro).
+
+    Usada pela web (org do ator) E pelos endpoints de bot, onde a org vem do
+    MEMBRO vinculado — nunca do servidor Discord."""
     with aodp.db_lock:
         try:
             row = aodp.db.execute(
@@ -357,6 +413,24 @@ def _require_entitlement(request: Request, scope: str):
                         "entitlement_expired", 403)
 
 
+def _require_entitlement(request: Request, scope: str):
+    """Gate da superfície operacional pelo DIREITO do inquilino.
+
+    Fase 1: a org nº 1 nasce com o direito ativo e sem prazo (permissivo) e o
+    modo local libera — a trava real (cobrança) morde na Fase 2. Lê
+    org_entitlements do inquilino do solicitante; fail-closed se não houver
+    registro, para não vazar a superfície. Contexto de SERVIÇO é barrado aqui:
+    o bot só fala com /api/discord/* (escopos próprios); sem isto um token
+    resolveria _actor_org p/ a org 1 e leria cadeias/metas de console."""
+    if not config.AUTH_REQUIRED:
+        return
+    ctx = getattr(request.state, "auth", {}) or {}
+    if ctx.get("service"):
+        raise AuthError("Endpoint de console exige conta humana "
+                        "(nao token de servico).", "account_required", 403)
+    _org_entitlement(_actor_org(request), scope)
+
+
 @app.middleware("http")
 async def _auth_guard(request: Request, call_next):
     path = request.url.path
@@ -368,24 +442,35 @@ async def _auth_guard(request: Request, call_next):
                 raise AuthError(
                     "Nenhum administrador configurado. Execute "
                     "manage_accounts.py bootstrap.", "bootstrap_required", 503)
-            ctx = auth_manager.authenticate(
-                request.cookies.get(config.AUTH_SESSION_COOKIE),
-                ip=_client_ip(request))
-            request.state.auth = ctx
-            password_paths = {
-                "/api/auth/me", "/api/auth/logout",
-                "/api/auth/change-password",
-            }
-            if (ctx["account"]["must_change_password"]
-                    and path not in password_paths):
-                raise AuthError(
-                    "Troque a senha temporaria antes de usar a plataforma.",
-                    "password_change_required", 403)
-            if request.method not in ("GET", "HEAD", "OPTIONS"):
-                csrf = request.headers.get("x-csrf-token")
-                if not auth_manager.verify_csrf(ctx, csrf):
-                    raise AuthError("Token CSRF ausente ou invalido.",
-                                    "csrf_invalid", 403)
+            service_token = request.headers.get("x-service-token")
+            if service_token:
+                # Token de SERVIÇO (bot): caminho paralelo à sessão — sem
+                # conta, sem vínculo de IP e sem CSRF. O ctx sem 'account'
+                # barra o console (_require_role) por construção.
+                ctx = auth_manager.authenticate_service(service_token)
+                if ctx is None:
+                    raise AuthError("Token de servico invalido ou revogado.",
+                                    "service_invalid", 401)
+                request.state.auth = ctx
+            else:
+                ctx = auth_manager.authenticate(
+                    request.cookies.get(config.AUTH_SESSION_COOKIE),
+                    ip=_client_ip(request))
+                request.state.auth = ctx
+                password_paths = {
+                    "/api/auth/me", "/api/auth/logout",
+                    "/api/auth/change-password",
+                }
+                if (ctx["account"]["must_change_password"]
+                        and path not in password_paths):
+                    raise AuthError(
+                        "Troque a senha temporaria antes de usar a plataforma.",
+                        "password_change_required", 403)
+                if request.method not in ("GET", "HEAD", "OPTIONS"):
+                    csrf = request.headers.get("x-csrf-token")
+                    if not auth_manager.verify_csrf(ctx, csrf):
+                        raise AuthError("Token CSRF ausente ou invalido.",
+                                        "csrf_invalid", 403)
         except AuthError as exc:
             return _auth_json(exc)
     response = await call_next(request)
@@ -1759,6 +1844,96 @@ def laborer_happiness_view(laborer_tier: int, bed: int,
                                 table_tier=table, trophy_happiness=th)
 
 
+# famílias com diário de FABRICAÇÃO (enchem craftando — únicas com laborplan)
+_LABORPLAN_FAMILIES = ("WARRIOR", "HUNTER", "MAGE", "TOOLMAKER", "MERCENARY")
+
+
+def _history_vwap_volumes(con, days=30.0):
+    """VWAP por item (Σ preço×volume / Σ volume) e volume DIÁRIO (Σ volume/dias)
+    do histórico q1/24h — espelha analyze._laborer_market_data. Corte por texto
+    ISO via store.cutoff_iso (portável SQLite/Postgres; nunca date('now'))."""
+    rows = con.execute(
+        """SELECT item_id, avg_price, item_count FROM history
+           WHERE server=? AND time_scale=24 AND quality=1
+             AND avg_price>0 AND ts >= ?""",
+        [aodp.server, store.cutoff_iso(days)]).fetchall()
+    num, den = {}, {}
+    for r in rows:
+        iid, avg, cnt = r["item_id"], r["avg_price"] or 0, r["item_count"] or 0
+        if avg <= 0 or cnt <= 0:
+            continue
+        num[iid] = num.get(iid, 0) + avg * cnt
+        den[iid] = den.get(iid, 0) + cnt
+    vwap = {i: num[i] / den[i] for i in den if den[i] > 0}
+    days = max(days, 1)
+    volumes = {i: den[i] / days for i in den}     # unidades negociadas/dia
+    return vwap, volumes
+
+
+@app.get("/api/laborplan")
+def laborplan_view(family: str, tier: int, laborers: int,
+                   journals_per_day: int = 1, market_depth: float = 0.2,
+                   station_fee: float = 0.0, premium: bool = True,
+                   sell_mode: str = "order"):
+    """Plano de produção p/ N trabalhadores de FABRICAÇÃO (island.laborer_plan).
+
+    Diversifica o item de fill entre os candidatos elegíveis (cada um até
+    market_depth do volume diário dele) e devolve a cesta + material/dia +
+    resumo/dia. Leitura-só do cache: q1 saneado (_price_lookups, anti-âncora)
+    + VWAP/volume do histórico com a banda anti-isca 0,35..3× do VWAP — os
+    mesmos insumos que a CLI monta em analyze._laborer_market_data."""
+    fam = (family or "").strip().upper()
+    if fam not in _LABORPLAN_FAMILIES:
+        raise HTTPException(status_code=400,
+                            detail="family deve ser "
+                                   + "|".join(_LABORPLAN_FAMILIES))
+    if not (2 <= tier <= 8):
+        raise HTTPException(status_code=400, detail="tier deve ser 2..8")
+    if not (1 <= laborers <= 500):
+        raise HTTPException(status_code=400, detail="laborers deve ser 1..500")
+    if not (1 <= journals_per_day <= 10):
+        raise HTTPException(status_code=400,
+                            detail="journals_per_day deve ser 1..10")
+    if not (0 < market_depth <= 1):
+        raise HTTPException(status_code=400,
+                            detail="market_depth deve ser fração em (0, 1]")
+    if station_fee < 0:
+        raise HTTPException(status_code=400, detail="station_fee deve ser >= 0")
+    if sell_mode not in ("instant", "order"):
+        raise HTTPException(status_code=400,
+                            detail="sell_mode deve ser instant ou order")
+    from albion import island as isl
+    con = _cache_connection()
+    if con is None:
+        return {"available": False, "reason": "cache de preços vazio",
+                "family": fam, "tier": tier}
+    try:
+        q1, _ = _price_lookups(con)
+        vwap, volumes = _history_vwap_volumes(con, days=30)
+    finally:
+        con.close()
+
+    def fill_sell_ok(item_id, price):
+        # banda anti-isca do item de FILL: sem VWAP => rejeita (nunca negociou);
+        # com VWAP, exige 0,35×VWAP <= preço <= 3×VWAP (mesma régua da CLI)
+        v = vwap.get(item_id)
+        if not v:
+            return False
+        return 0.35 * v <= price <= 3.0 * v
+
+    res = isl.laborer_plan(
+        q1, family=fam, tier=tier, n_laborers=laborers,
+        journals_per_day=journals_per_day, market_depth=market_depth,
+        station_fee=station_fee, premium=premium, sell_mode=sell_mode,
+        item_volumes=volumes, fill_sell_ok=fill_sell_ok)
+    name = lambda i: (db.get(i) or {}).get("pt", i)
+    for b in res.get("basket", []):
+        b["item_pt"] = name(b["item"])
+        for inp in b.get("inputs", []):
+            inp["name_pt"] = name(inp["id"])
+    return res
+
+
 _ENCH_RE = re.compile(r"^(.*)@(\d+)$")
 
 
@@ -1822,11 +1997,45 @@ def _chain_owner(request: Request) -> int:
     return int(acct.get("id", 0) or 0)
 
 
+def _chain_as_operator(request: Request) -> bool:
+    """Operador/admin pode editar/apagar cadeia alheia DA MESMA org (o
+    escopo de org já é o do próprio ator via _actor_org). Modo local libera."""
+    if not config.AUTH_REQUIRED:
+        return True
+    acct = (getattr(request.state, "auth", {}) or {}).get("account") or {}
+    return acct.get("role") in OPERATOR_ROLES
+
+
+def _chain_owner_names(ids):
+    """Mapa owner_user_id -> username (p/ rotular o dono no quadro da org)."""
+    ids = sorted({int(i) for i in ids if i})
+    if not ids:
+        return {}
+    marks = ",".join("?" * len(ids))
+    with aodp.db_lock:
+        try:
+            rows = aodp.db.execute(
+                "SELECT id, username FROM auth_accounts "
+                f"WHERE id IN ({marks})", ids).fetchall()
+        except Exception:
+            rows = []
+        finally:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    return {r[0]: r[1] for r in rows}
+
+
 @app.get("/api/prodchain/chains")
 def prodchain_chains_list(request: Request):
+    """Quadro vivo: TODAS as cadeias da org do ator (mine marca as dele)."""
     _require_entitlement(request, "operacao")
-    return {"chains": chain_store.list(_actor_org(request),
-                                       _chain_owner(request))}
+    chains = chain_store.list(_actor_org(request), _chain_owner(request))
+    names = _chain_owner_names(c["owner_user_id"] for c in chains)
+    for c in chains:
+        c["owner_username"] = names.get(c["owner_user_id"]) or "local"
+    return {"chains": chains}
 
 
 @app.post("/api/prodchain/chains")
@@ -1834,9 +2043,14 @@ def prodchain_chains_save(body: ChainSaveBody, request: Request):
     _require_entitlement(request, "operacao")
     try:
         cid = chain_store.save(_actor_org(request), _chain_owner(request),
-                               body.name, body.payload, body.id)
+                               body.name, body.payload, body.id,
+                               as_operator=_chain_as_operator(request))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except PermissionError:
+        raise HTTPException(status_code=403,
+                            detail="cadeia de outro dono (só ele ou um "
+                                   "operador/admin da org editam)")
     except KeyError:
         raise HTTPException(status_code=404, detail="cadeia não encontrada")
     return {"id": cid, "ok": True}
@@ -1844,17 +2058,27 @@ def prodchain_chains_save(body: ChainSaveBody, request: Request):
 
 @app.get("/api/prodchain/chains/{cid}")
 def prodchain_chains_get(cid: int, request: Request):
+    """Cadeia de QUALQUER dono da org do ator (read-only p/ não-donos)."""
     _require_entitlement(request, "operacao")
     ch = chain_store.get(_actor_org(request), _chain_owner(request), cid)
     if not ch:
         raise HTTPException(status_code=404, detail="cadeia não encontrada")
+    ch["owner_username"] = (_chain_owner_names([ch["owner_user_id"]])
+                            .get(ch["owner_user_id"]) or "local")
     return {"chain": ch}
 
 
 @app.delete("/api/prodchain/chains/{cid}")
 def prodchain_chains_delete(cid: int, request: Request):
     _require_entitlement(request, "operacao")
-    if not chain_store.delete(_actor_org(request), _chain_owner(request), cid):
+    try:
+        ok = chain_store.delete(_actor_org(request), _chain_owner(request),
+                                cid, as_operator=_chain_as_operator(request))
+    except PermissionError:
+        raise HTTPException(status_code=403,
+                            detail="cadeia de outro dono (só ele ou um "
+                                   "operador/admin da org excluem)")
+    if not ok:
         raise HTTPException(status_code=404, detail="cadeia não encontrada")
     return {"ok": True}
 
@@ -2269,9 +2493,40 @@ def guild_pending(request: Request, limit: int = Query(200, ge=1, le=500)):
     return {"pending": tribute_store.pending(_actor_org(request), limit=limit)}
 
 
+def _apply_report_to_chain(org, res, actor_id):
+    """Ponte tributo→quadro vivo: soma a entrega aprovada ao estoque do nó.
+
+    Se a meta nasceu de uma cadeia (from_chain_id), o stock do nó com o item
+    da meta cresce qty_reported — a Linha de Produção da org reflete a entrega
+    na hora. Falha NUNCA quebra o approve: cadeia apagada/nó ausente viram
+    entrada 'chain_bridge_fail' (com detail) no guild_audit_log."""
+    cid = res.get("from_chain_id")
+    item = res.get("item_id")
+    qty = int(res.get("qty_reported") or 0)
+    if not cid or not item or qty <= 0:
+        return
+    detail = {"report_id": res.get("id"), "chain_id": cid,
+              "item_id": item, "qty": qty}
+    try:
+        # atômico no ChainStore: get+update na MESMA transação — aprovações
+        # concorrentes não se perdem e o save do dono não é sobrescrito.
+        chain_store.add_stock(org, cid, item, qty)
+    except Exception as exc:                   # noqa: BLE001 — auditada
+        detail["reason"] = str(exc) or type(exc).__name__
+        try:
+            tribute_store.audit_event(org, actor_id, "chain_bridge_fail",
+                                      target=res.get("account_id"),
+                                      details=detail)
+        except Exception:
+            pass                               # auditoria nunca derruba o approve
+
+
 @app.post("/api/guild/approve")
 def guild_approve(body: GuildAuditBody, request: Request):
-    """Aprova um reporte: relógio ZERA; se estava desligado, reativa."""
+    """Aprova um reporte: relógio ZERA; se estava desligado, reativa.
+
+    Se a meta veio de uma cadeia da Linha de Produção (from_chain_id), a
+    entrega aprovada é somada ao estoque do nó (ponte tributo→quadro)."""
     _require_entitlement(request, "operacao")
     actor = _require_role(request, OPERATOR_ROLES)
     try:
@@ -2281,6 +2536,8 @@ def guild_approve(body: GuildAuditBody, request: Request):
         raise HTTPException(404, "reporte não encontrado")
     except ValueError as exc:
         raise HTTPException(409, str(exc))
+    _apply_report_to_chain(_actor_org(request), res,
+                           int(actor.get("id") or 0))
     return {"ok": True, **res}
 
 
@@ -2341,6 +2598,71 @@ def guild_clock_tick(request: Request, token: str = ""):
     isento de sessão — mesmo padrão do /api/sweep. Varre TODAS as orgs."""
     _check_guild_token(request.headers.get("x-guild-token") or token or "")
     return {"ok": True, **tribute_store.clock_tick()}
+
+
+# ------------------- Discord Fase 1: API para o bot (token de serviço) ----
+# O bot autentica com o header X-Service-Token (ctx de serviço, SEM conta) e
+# só enxerga dados do MEMBRO vinculado em auth_discord_links. A org usada é
+# SEMPRE a do membro (auth_accounts.org_id) — nunca o snowflake do servidor.
+
+
+class DiscordLinkBody(BaseModel):
+    code: str = Field(min_length=4, max_length=16)
+    discord_user_id: int = Field(gt=0)
+
+
+def _discord_member(discord_user_id: int) -> dict:
+    """Conta ativa vinculada ao snowflake, ou 404 (nunca dados de terceiros)."""
+    account = auth_manager.get_account_by_discord_id(discord_user_id)
+    if not account:
+        raise HTTPException(404, "vinculo Discord nao encontrado")
+    return account
+
+
+@app.post("/api/discord/link")
+def discord_link(body: DiscordLinkBody, request: Request):
+    """Consome o código gerado na console (/vincular do bot) e grava o
+    vínculo Discord -> conta. Escopo: discord_link."""
+    _require_service_scope(request, "discord_link")
+    account = auth_manager.link_discord(body.code, body.discord_user_id)
+    return {"ok": True, "account_id": account["id"],
+            "username": account["username"], "role": account["role"],
+            "org_id": account["org_id"]}
+
+
+@app.get("/api/discord/whoami")
+def discord_whoami(request: Request, discord_user_id: int = Query(gt=0)):
+    """Resolve snowflake -> conta vinculada. Escopo: discord_read."""
+    _require_service_scope(request, "discord_read")
+    a = _discord_member(discord_user_id)
+    return {"account_id": a["id"], "username": a["username"],
+            "role": a["role"], "org_id": a["org_id"]}
+
+
+@app.get("/api/discord/my-assignments")
+def discord_my_assignments(request: Request,
+                           discord_user_id: int = Query(gt=0),
+                           week_start: str | None = None):
+    """Metas SÓ do membro vinculado, na org DELE. Escopo: discord_read.
+    Org sem entitlement 'operacao' -> 403, igual à web."""
+    _require_service_scope(request, "discord_read")
+    a = _discord_member(discord_user_id)
+    org = int(a.get("org_id") or 1)
+    _org_entitlement(org, "operacao")
+    return {"week_now": _tribute.week_start_iso(),
+            "assignments": tribute_store.assignments(
+                org, week_start=week_start, account_id=int(a["id"]))}
+
+
+@app.get("/api/discord/my-status")
+def discord_my_status(request: Request, discord_user_id: int = Query(gt=0)):
+    """Relógio de tributo SÓ do membro vinculado. Escopo: discord_read."""
+    _require_service_scope(request, "discord_read")
+    a = _discord_member(discord_user_id)
+    org = int(a.get("org_id") or 1)
+    _org_entitlement(org, "operacao")
+    rows = tribute_store.member_status(org, account_id=int(a["id"]))
+    return {"status": rows[0] if rows else None}
 
 
 # ------------------------------------------------------- coleta automática

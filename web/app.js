@@ -2588,8 +2588,110 @@ async function calcHappy() {
   }
 }
 
+// plano de produção (laborplan): diversifica o item de fill p/ N trabalhadores
+// (só famílias de FABRICAÇÃO — as de coleta enchem coletando, não craftando)
+const PLAN_FAMILY_SET = new Set(
+  ['WARRIOR', 'HUNTER', 'MAGE', 'TOOLMAKER', 'MERCENARY']);
+const PLAN_FAMILIES = HAPPY_FAMILIES.filter(([v]) => PLAN_FAMILY_SET.has(v));
+// refinado -> recurso bruto coletável (espelha island._REFINED_TO_RAW)
+const PLAN_REFINED_TO_RAW = {
+  PLANKS: 'WOOD', METALBAR: 'ORE', LEATHER: 'HIDE',
+  CLOTH: 'FIBER', STONEBLOCK: 'ROCK',
+};
+let planSeq = 0;   // sequência p/ descartar respostas fora de ordem (padrão happySeq)
+
+function initLaborPlan() {
+  if (state.planInit) return;
+  state.planInit = true;
+  $('planFamily').innerHTML = PLAN_FAMILIES
+    .map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join('');
+  $('planTier').innerHTML = Array.from({ length: 7 }, (_, i) => i + 2)
+    .map((t) => `<option value="${t}"${t === 4 ? ' selected' : ''}>T${t}</option>`).join('');
+  $('planRun').addEventListener('click', runLaborPlan);
+}
+
+async function runLaborPlan() {
+  const laborers = +$('planLaborers').value;
+  if (!laborers || laborers < 1) { toast('informe quantos trabalhadores'); return; }
+  const st = $('planStatus');
+  st.className = 'status';
+  st.textContent = 'montando o plano…';
+  $('planRun').disabled = true;
+  ['planBasketTable', 'planMatTable', 'planSummaryTable']
+    .forEach((id) => { $(id).innerHTML = ''; });
+  const seq = ++planSeq;
+  try {
+    const res = await api('/api/laborplan', {
+      family: $('planFamily').value,
+      tier: +$('planTier').value,
+      laborers,
+      station_fee: +$('planFee').value || 0,
+      market_depth: (+$('planDepth').value || 20) / 100,
+      premium: state.premium,
+      sell_mode: 'order',
+    });
+    if (seq !== planSeq) return;   // chegou uma resposta mais nova — descarta esta
+    if (!res.available) {
+      st.className = 'status warn';
+      st.textContent = 'sem plano: '
+        + (res.reason || 'família/tier sem diário de fabricação');
+      return;
+    }
+    // (a) CESTA diversificada
+    renderTable('planBasketTable', [
+      { key: 'item', label: 'Item de fill', align: 'l', value: (o) => o.item_pt, html: (o) => islItemCell(o.item, o.item_pt) },
+      { key: 'crafts', label: 'Craftar/dia', value: (o) => o.crafts_dia, html: (o) => fmt(o.crafts_dia) },
+      { key: 'pct', label: '% mercado', value: (o) => o.pct_mercado, html: (o) => o.pct_mercado == null ? '—' : fmtPct(o.pct_mercado) },
+      { key: 'rota', label: 'Craft → Venda', align: 'l', value: (o) => o.sell_city, html: (o) => `${o.craft_city ? cityHtml(o.craft_city) : '—'} <span class="arr">→</span> ${cityHtml(o.sell_city)}` },
+      { key: 'mg', label: 'Margem/un', value: (o) => o.margem_un, html: (o) => `<span class="silver ${o.margem_un >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(o.margem_un)}</span>` },
+      { key: 'ld', label: 'Lucro item/dia', value: (o) => o.lucro_item_dia, html: (o) => `<span class="silver">${fmt(o.lucro_item_dia)}</span>` },
+    ], res.basket || [], { sortKey: 'ld' });
+    // (b) MATERIAL/dia por família refinada + coleta bruta estimada
+    const matRows = Object.entries(res.refined_per_day || {}).map(([f, q]) => ({
+      familia: f,
+      refinado_dia: q,
+      raw: PLAN_REFINED_TO_RAW[f] || null,
+      coleta: (res.raw_gather_per_day || {})[PLAN_REFINED_TO_RAW[f]],
+    }));
+    renderTable('planMatTable', [
+      { key: 'fam', label: 'Refinado', align: 'l', value: (o) => o.familia, html: (o) => esc(o.familia) },
+      { key: 'ref', label: 'Refinado/dia (net RRR)', value: (o) => o.refinado_dia, html: (o) => fmt(o.refinado_dia) },
+      { key: 'raw', label: 'Coleta bruta/dia (est.)', align: 'l', value: (o) => o.coleta == null ? null : o.coleta, html: (o) => o.coleta == null ? '—' : `~${fmt(o.coleta)} ${esc(o.raw)}` },
+    ], matRows, { sortKey: 'ref' });
+    // (c) RESUMO/dia
+    const resumo = [
+      { parte: 'Retorno dos trabalhadores (+)', valor: res.worker_return_total },
+      { parte: 'Margem de craft do fill (+)', valor: res.craft_margin_total },
+      { parte: 'Custo dos diários vazios (−)', valor: -res.empty_cost_total || 0 },
+      { parte: `Taxa de estação (−, ${fmt(res.station_fee)}/craft)`, valor: -res.station_fee_total || 0 },
+      { parte: '= LUCRO/DIA', valor: res.profit_day },
+    ];
+    renderTable('planSummaryTable', [
+      { key: 'parte', label: 'Parte', align: 'l', value: (o) => o.parte, html: (o) => esc(o.parte) },
+      { key: 'valor', label: 'Prata/dia', value: (o) => o.valor, html: (o) => `<span class="silver ${o.valor >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(o.valor)}</span>` },
+    ], resumo, {});
+    const bits = [
+      `${fmt(res.crafts_allocated)}/${fmt(res.crafts_needed)} crafts/dia alocados`,
+      `retorno/diário ${fmt(res.return_per_journal)} (loot ${fmtDec(res.loot_priced_weight_pct, 1)}% precificado)`,
+      res.empty_missing ? 'vazio sem cotação (custo 0)' : `vazio ${fmt(res.empty_price)}`,
+      'fama/craft é proxy',
+    ];
+    if (res.market_limited) {
+      st.className = 'status warn';
+      bits.unshift(`⚠ mercado satura em ${fmt(res.market_capacity)} crafts/dia — alimenta ~${fmt(res.laborers_feedable)} trabalhadores`);
+    }
+    st.textContent = bits.join(' · ');
+  } catch (e) {
+    if (seq !== planSeq) return;
+    st.className = 'status err';
+    st.textContent = 'erro: ' + e.message;
+  } finally {
+    $('planRun').disabled = false;
+  }
+}
+
 async function loadIsland(view) {
-  if (view === 'laborers') initHappyCalc();
+  if (view === 'laborers') { initHappyCalc(); initLaborPlan(); }
   const map = {
     laborers: { st: 'islLaborStatus', tbl: 'islLaborTable' },
     crops: { st: 'islCropStatus', tbl: 'islCropTable' },
@@ -2728,6 +2830,27 @@ function plRrr(it) {
   return ((state.prodLine.ns[it] || {}).focus ? band.f : band.nf) || 0;
 }
 function plFocusEff(base) { return (base || 0) * Math.pow(0.5, (state.prodLine.specFce || 0) / 10000); }
+
+// -------- QUADRO VIVO: estado por nó (persiste no payload salvo, dentro de ns)
+// etapa (a-fazer|em-andamento|feito), foco_gasto (pontos já queimados),
+// prov (proveniência do insumo) + de_quem (texto livre). Sem CSS novo:
+// emojis + cor inline discreta por proveniência.
+const PL_ETAPA_IC = { 'a-fazer': '⏳', 'em-andamento': '⚙', 'feito': '✔' };
+const PL_ETAPA_LBL = { 'a-fazer': 'a fazer', 'em-andamento': 'em andamento', 'feito': 'feito' };
+const PL_PROV_COLOR = { comprado: '#8ab4f8', coletado: '#81c995', plantado: '#c5e1a5', entregue: '#fdd663' };
+function plEtapa(it) { const e = (state.prodLine.ns[it] || {}).etapa; return PL_ETAPA_IC[e] ? e : 'a-fazer'; }
+function plProv(it) { const p = (state.prodLine.ns[it] || {}).prov; return PL_PROV_COLOR[p] ? p : ''; }
+function plFocoGasto(it) { const v = +((state.prodLine.ns[it] || {}).foco_gasto || 0); return (v > 0 && isFinite(v)) ? v : 0; }
+function plFocoGastoTotal() { let t = 0; for (const it in state.prodLine.ns) t += plFocoGasto(it); return t; }
+function plStateBadges(it) {          // badges do quadro (etapa + proveniência)
+  const e = plEtapa(it), p = plProv(it), s = state.prodLine.ns[it] || {};
+  let h = `<span title="etapa: ${PL_ETAPA_LBL[e]}">${PL_ETAPA_IC[e]}</span>`;
+  if (p) h += ` <span style="color:${PL_PROV_COLOR[p]}" title="proveniência: ${p}${s.de_quem ? ' — de ' + esc(String(s.de_quem)) : ''}">● ${p}</span>`;
+  const fg = plFocoGasto(it);
+  if (fg) h += ` <span title="foco já gasto nesta etapa">${fmt(fg)} pts</span>`;
+  return `<span class="muted" style="font-size:.85em;white-space:nowrap">${h}</span>`;
+}
+
 function plSellNet(node) {
   if (!node || !node.sell_gross) return null;
   const tax = state.premium ? 0.04 : 0.08;
@@ -2903,6 +3026,9 @@ function prodRecompute() {
   prodRenderResult(state.prodLine.calc);
   prodRenderShopping(state.prodLine.calc);
   prodRenderChainView();
+  // totalizador do QUADRO no rodapé: foco já gasto declarado por etapa
+  const fs = $('plFocusSpent'), tot = plFocoGastoTotal();
+  if (fs) fs.textContent = tot ? `foco gasto: ${fmt(tot)} pts` : '';
 }
 
 function prodNodeHtml(it, demand, crafts) {
@@ -2939,9 +3065,11 @@ function prodNodeHtml(it, demand, crafts) {
       (verdict.savings != null ? ` · economia ${fmt(verdict.savings)}/un` : '');
     badge = `<span class="pl-badge ${verdict.verdict}" title="${esc(tip)}">${txt}${verdict.savings != null ? ' ' + fmt(verdict.savings) : ''}</span>`;
   }
+  // badges do quadro vivo (⏳/⚙/✔ + proveniência) só em nó que FABRICA
+  const stBadges = (!buy && !n.is_raw && n.recipe) ? plStateBadges(it) : '';
   return `<div class="pl-node ${buy ? 'mode-buy' : 'mode-make'} ${isRoot ? 'is-root' : ''} ${active ? '' : 'inactive'}" style="left:${s.x || 0}px;top:${s.y || 0}px" data-id="${esc(it)}">
     <div class="pl-node-head" data-drag="1">${iconImg(it)}<div class="pl-nm">${esc(n.name_pt || it)}<span class="pl-te">${te}</span></div>${isRoot ? `<button class="pl-rm" data-rm="${esc(it)}" title="remover produto final">×</button>` : ''}</div>
-    <div class="pl-node-qty">${qtyHtml}${badge}</div>
+    <div class="pl-node-qty">${qtyHtml}${badge}${stBadges}</div>
     <div class="pl-node-cost">${costLine}</div>
     <div class="pl-node-ctrl">${ctrl}</div>
   </div>`;
@@ -3158,11 +3286,19 @@ function prodRenderStepsList() {
       const isRoot = pl.roots.includes(it), canCraft = !(n.is_raw || !n.recipe);
       const st = (pl.stock || {})[it] || 0, covered = (gross[it] || 0) > 0 && dem === 0;
       const te = `T${n.tier || '?'}${n.enchant ? '.' + n.enchant : ''}`;
+      const s = pl.ns[it] || {}, isMake = canCraft && !buy;
+      // QUADRO VIVO: nó de fabricação ganha etapa/proveniência/foco gasto/de quem
+      const boardCtrl = isMake ? `<div class="pl-rowctrl" style="margin-top:4px;flex-wrap:wrap;gap:4px">
+          <select class="pl-etapa-sel" data-id="${esc(it)}" title="etapa desta fabricação no quadro">${Object.keys(PL_ETAPA_IC).map((k) => `<option value="${k}" ${plEtapa(it) === k ? 'selected' : ''}>${PL_ETAPA_IC[k]} ${PL_ETAPA_LBL[k]}</option>`).join('')}</select>
+          <select class="pl-prov-sel" data-id="${esc(it)}" title="proveniência do insumo desta etapa"><option value="">proveniência…</option>${Object.keys(PL_PROV_COLOR).map((k) => `<option value="${k}" ${plProv(it) === k ? 'selected' : ''}>${k}</option>`).join('')}</select>
+          <input type="number" class="pl-focog-in" data-id="${esc(it)}" min="0" style="width:86px" value="${plFocoGasto(it) || ''}" placeholder="foco gasto" title="pontos de foco já gastos nesta etapa">
+          <input type="text" class="pl-dequem-in" data-id="${esc(it)}" maxlength="40" style="width:110px" value="${esc(String(s.de_quem || ''))}" placeholder="de quem" title="quem forneceu/entregou (membro, mercado…)">
+        </div>` : '';
       const ctrl = canCraft ? `<div class="pl-rowctrl">
           <button class="pl-tg ${buy ? '' : 'on'}" data-act="make" data-id="${esc(it)}">Fabricar</button>
           <button class="pl-tg ${buy ? 'on' : ''}" data-act="buy" data-id="${esc(it)}">Comprar</button>
           <label class="pl-foco-chk" title="usar foco nesta etapa"><input type="checkbox" data-act="focus" data-id="${esc(it)}" ${(pl.ns[it] || {}).focus ? 'checked' : ''} ${buy ? 'disabled' : ''}> foco</label>
-        </div>` : '<span class="pl-tag-buy">adquirir</span>';
+        </div>${boardCtrl}` : '<span class="pl-tag-buy">adquirir</span>';
       let costCell = '';
       if (show) {
         const v = (pl.verdict || {})[it], sh = (calc.shopping || {})[it];
@@ -3172,7 +3308,7 @@ function prodRenderStepsList() {
         costCell = `<td class="l">${rec}</td><td>${c}</td>`;
       }
       return `<tr class="${isRoot ? 'pl-row-root' : ''} ${covered ? 'pl-covered-row' : ''}">
-        <td class="l"><div class="cell-item">${iconImg(it)}<div class="nm">${esc(n.name_pt || it)} <span class="muted">${te}</span></div></div></td>
+        <td class="l"><div class="cell-item">${iconImg(it)}<div class="nm">${esc(n.name_pt || it)} <span class="muted">${te}</span>${isMake ? ' ' + plStateBadges(it) : ''}</div></div></td>
         <td class="pl-qty">${covered ? '<span class="pl-covered">✓ em estoque</span>' : '<b>×' + fmt(dem) + '</b>'}</td>
         <td class="pl-stock"><input type="number" class="pl-stock-in" data-id="${esc(it)}" min="0" value="${st || ''}" placeholder="tenho 0" title="quanto você já tem em estoque"></td>
         <td class="l">${ctrl}</td>${costCell}</tr>`;
@@ -3194,6 +3330,27 @@ function prodRenderStepsList() {
   el.querySelectorAll('.pl-stock-in').forEach((inp) => inp.addEventListener('change', (e) => {
     const it = e.target.dataset.id, v = Math.max(0, +e.target.value || 0);
     if (v) state.prodLine.stock[it] = v; else delete state.prodLine.stock[it];
+    prodRecompute();
+  }));
+  // QUADRO VIVO: etapa / proveniência / foco gasto / de quem (persistem em ns)
+  const plNs = (it) => state.prodLine.ns[it] || (state.prodLine.ns[it] = prodDefaultState(it));
+  el.querySelectorAll('.pl-etapa-sel').forEach((sel) => sel.addEventListener('change', () => {
+    plNs(sel.dataset.id).etapa = PL_ETAPA_IC[sel.value] ? sel.value : 'a-fazer';
+    prodRecompute();
+  }));
+  el.querySelectorAll('.pl-prov-sel').forEach((sel) => sel.addEventListener('change', () => {
+    const s = plNs(sel.dataset.id);
+    if (PL_PROV_COLOR[sel.value]) s.prov = sel.value; else delete s.prov;
+    prodRecompute();
+  }));
+  el.querySelectorAll('.pl-focog-in').forEach((inp) => inp.addEventListener('change', () => {
+    const s = plNs(inp.dataset.id), v = Math.max(0, +inp.value || 0);
+    if (v) s.foco_gasto = v; else delete s.foco_gasto;
+    prodRecompute();
+  }));
+  el.querySelectorAll('.pl-dequem-in').forEach((inp) => inp.addEventListener('change', () => {
+    const s = plNs(inp.dataset.id), v = (inp.value || '').trim().slice(0, 40);
+    if (v) s.de_quem = v; else delete s.de_quem;
     prodRecompute();
   }));
 }
@@ -3273,8 +3430,9 @@ async function prodLoadList() {
   const sel = $('plSavedSel'); if (!sel) return;
   try {
     const r = await api('/api/prodchain/chains');
+    // quadro vivo: a lista traz a org inteira; cadeia alheia mostra o dono
     sel.innerHTML = '<option value="">— abrir cadeia salva —</option>' +
-      (r.chains || []).map((c) => `<option value="${c.id}" ${c.id === state.prodLine.savedId ? 'selected' : ''}>${esc(c.name)}</option>`).join('');
+      (r.chains || []).map((c) => `<option value="${c.id}" ${c.id === state.prodLine.savedId ? 'selected' : ''}>${esc(c.name)}${c.mine === false ? ' — de ' + esc(c.owner_username || '?') : ''}</option>`).join('');
   } catch (e) { /* sem login/sem acesso: ignora silenciosamente */ }
 }
 async function prodLoadChain(id) {
@@ -3300,6 +3458,10 @@ async function prodLoadChain(id) {
     if ($('plFocusPrice')) $('plFocusPrice').value = pl.focusPrice;
     if ($('plQty')) $('plQty').value = pl.qtyDefault;
     await prodFetchGraph();
+    if (r.chain.mine === false) {          // quadro vivo: cadeia de colega
+      $('plStatus').className = 'status';
+      $('plStatus').textContent = `cadeia de ${r.chain.owner_username || 'outro membro'} — só o dono (ou operador/admin) salva alterações`;
+    }
   } catch (e) { toast('erro ao abrir: ' + e.message); }
 }
 async function prodDeleteSelected() {

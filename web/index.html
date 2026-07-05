@@ -752,6 +752,32 @@
     </div>
     <div class="status" id="happyOut"></div>
 
+    <!-- plano de produção (laborplan): diversifica o fill p/ N trabalhadores -->
+    <div class="section-head" style="margin:4px 0 0"><div>
+      <h2 style="margin:0;font-size:1.05rem">Plano de produção (laborplan)</h2>
+      <div class="sub">Encher todos os trabalhadores com o <b>mesmo</b> item derruba o preço dele.
+        O plano diversifica a <b>cesta de fill</b> entre itens elegíveis — cada um até a
+        <b>profundidade</b> do volume diário — e soma retorno, margem de craft, vazios e taxa.</div>
+    </div></div>
+    <div class="controls" id="planControls">
+      <div class="field"><label>Família</label><select id="planFamily"></select></div>
+      <div class="field"><label>Tier</label><select id="planTier"></select></div>
+      <div class="field"><label>Trabalhadores</label>
+        <input type="number" id="planLaborers" value="9" min="1" max="500" step="1"></div>
+      <div class="field"><label title="Taxa do NPC da estação de craft, prata por CRAFT (varia por cidade/dia)">Taxa de estação</label>
+        <input type="number" id="planFee" value="0" min="0" step="10"></div>
+      <div class="field"><label title="Fração do volume diário de cada item que a sua produção pode absorver sem derrubar o preço">Profundidade (%)</label>
+        <input type="number" id="planDepth" value="20" min="1" max="100" step="1"></div>
+      <button class="btn" id="planRun">Calcular plano</button>
+    </div>
+    <div class="status" id="planStatus"></div>
+    <div class="table-wrap" id="planBasketTable"></div>
+    <div class="table-wrap" id="planMatTable"></div>
+    <div class="table-wrap" id="planSummaryTable"></div>
+    <p class="hint">Como agir: crie ordens de venda de cada item da cesta na cidade indicada, sem
+       passar do <b>craftar/dia</b> — o teto evita saturar o mercado. A coleta bruta é estimada
+       (~1 bruto por refinado) e a fama/craft é proxy do dump.</p>
+
     <div class="status" id="islLaborStatus"></div>
     <div class="table-wrap" id="islLaborTable"></div>
     <p class="hint">Como agir: <b>margem</b> alta = vale encher e vender o diário cheio naquela cidade.
@@ -854,6 +880,7 @@
     <select id="plSavedSel"><option value="">abrir cadeia salva…</option></select>
     <button class="btn secondary" id="plDelBtn">Excluir</button>
     <button class="btn secondary" id="plClearBtn">Limpar tudo</button>
+    <span class="hint" id="plFocusSpent" title="soma do foco já gasto declarado por etapa (quadro vivo)"></span>
   </div>
 </section>
 
