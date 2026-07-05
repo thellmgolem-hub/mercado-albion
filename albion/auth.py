@@ -53,6 +53,15 @@ PROFILES = {
 OPERATOR_ROLES = {"admin", "guild_leader", "economic_officer", "treasurer"}
 ADMIN_ROLES = {"admin"}
 
+# Escopos válidos para tokens de serviço (bot). Cada endpoint de bot exige o
+# seu; um token só carrega os escopos que o admin concedeu na criação.
+SERVICE_SCOPES = {"discord_link", "discord_read", "guild_report", "guild_audit"}
+SERVICE_TOKEN_PREFIX = "svc_"
+LINK_CODE_TTL_S = 900          # código de vínculo Discord: 15 min, 1 uso
+LINK_CODE_LEN = 8
+# base32 sem caracteres ambíguos (sem 0/O e 1/I/L): digitável sem erro
+LINK_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
+
 USERNAME_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{2,31}$")
 PASSWORD_MIN = 12
 PASSWORD_MAX = 128
@@ -215,6 +224,35 @@ CREATE TABLE IF NOT EXISTS auth_audit (
 );
 CREATE INDEX IF NOT EXISTS idx_auth_audit_time
   ON auth_audit (created_at DESC);
+-- Vínculo Discord <-> conta (1:1 forte). A ORG vem SEMPRE de
+-- auth_accounts.org_id (nunca do snowflake); a resolução servidor
+-- Discord -> org usa orgs.discord_guild_id (store.py).
+CREATE TABLE IF NOT EXISTS auth_discord_links (
+  account_id INTEGER PRIMARY KEY,
+  discord_user_id INTEGER NOT NULL UNIQUE,
+  linked_at REAL NOT NULL,
+  unlinked_at REAL
+);
+CREATE INDEX IF NOT EXISTS idx_discord_links_user
+  ON auth_discord_links (discord_user_id);
+-- Códigos de vínculo (gerados na console, consumidos no Discord; 15 min, 1 uso)
+CREATE TABLE IF NOT EXISTS auth_discord_link_codes (
+  code TEXT PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  expires_at REAL NOT NULL,
+  used_at REAL,
+  created_at REAL NOT NULL
+);
+-- Tokens de serviço (bot -> API). Não é sessão: sem IP e sem CSRF.
+CREATE TABLE IF NOT EXISTS auth_service_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  label TEXT NOT NULL UNIQUE,
+  token_hash TEXT NOT NULL UNIQUE,
+  scopes_json TEXT NOT NULL,
+  created_at REAL NOT NULL,
+  last_used_at REAL,
+  revoked_at REAL
+);
 """
 
 # Mesmo esquema em Postgres: SERIAL no lugar de AUTOINCREMENT, REAL->DOUBLE
@@ -269,6 +307,30 @@ CREATE TABLE IF NOT EXISTS auth_audit (
 );
 CREATE INDEX IF NOT EXISTS idx_auth_audit_time
   ON auth_audit (created_at DESC);
+CREATE TABLE IF NOT EXISTS auth_discord_links (
+  account_id INTEGER PRIMARY KEY,
+  discord_user_id BIGINT NOT NULL UNIQUE,
+  linked_at DOUBLE PRECISION NOT NULL,
+  unlinked_at DOUBLE PRECISION
+);
+CREATE INDEX IF NOT EXISTS idx_discord_links_user
+  ON auth_discord_links (discord_user_id);
+CREATE TABLE IF NOT EXISTS auth_discord_link_codes (
+  code TEXT PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  expires_at DOUBLE PRECISION NOT NULL,
+  used_at DOUBLE PRECISION,
+  created_at DOUBLE PRECISION NOT NULL
+);
+CREATE TABLE IF NOT EXISTS auth_service_tokens (
+  id SERIAL PRIMARY KEY,
+  label TEXT NOT NULL UNIQUE,
+  token_hash TEXT NOT NULL UNIQUE,
+  scopes_json TEXT NOT NULL,
+  created_at DOUBLE PRECISION NOT NULL,
+  last_used_at DOUBLE PRECISION,
+  revoked_at DOUBLE PRECISION
+);
 """
 
 
@@ -819,3 +881,197 @@ class AuthManager:
                         "OR idle_expires_at<=?", [now, now])
             con.execute("DELETE FROM auth_login_throttle "
                         "WHERE updated_at<?", [now - 7 * 86400])
+            # códigos de vínculo Discord vencidos/consumidos há mais de 1 dia
+            con.execute("DELETE FROM auth_discord_link_codes "
+                        "WHERE expires_at<? OR used_at<?",
+                        [now - 86400, now - 86400])
+
+    # ---------------- tokens de serviço (bot) e vínculo Discord (Fase 1) ----
+
+    def create_service_token(self, name, scopes, actor_id=None):
+        """Cria token de serviço; o segredo PLANO só aparece neste retorno
+        (o banco guarda o sha-256 + escopos). Formato svc_<base64url>."""
+        label = _clean_text(name, 64)
+        if not label:
+            raise AuthError("Nome do token obrigatorio.", "invalid_label", 400)
+        scope_set = sorted(set(scopes or []))
+        invalid = [s for s in scope_set if s not in SERVICE_SCOPES]
+        if not scope_set or invalid:
+            raise AuthError(
+                "Escopos validos: " + ", ".join(sorted(SERVICE_SCOPES)),
+                "invalid_scope", 400)
+        token = SERVICE_TOKEN_PREFIX + secrets.token_urlsafe(32)
+        now = time.time()
+        with self._tx() as con:
+            try:
+                token_id = self._insert_id(con, """
+                    INSERT INTO auth_service_tokens
+                      (label,token_hash,scopes_json,created_at)
+                    VALUES (?,?,?,?)
+                """, [label, _token_hash(token),
+                       json.dumps(scope_set), now])
+            except Exception as exc:
+                s = str(exc).upper()
+                if "UNIQUE" in s or "DUPLICATE KEY" in s:
+                    raise AuthError("Ja existe token de servico com esse nome.",
+                                    "label_exists", 409) from exc
+                raise
+            self._audit(con, "service_token_created", actor_id,
+                        details={"label": label, "scopes": scope_set})
+        return {"id": token_id, "name": label, "scopes": scope_set,
+                "token": token}
+
+    def authenticate_service(self, token):
+        """Contexto de SERVIÇO {service, name, scopes, account=None} ou None.
+
+        Sem 'account', o _require_role do app barra o console por construção;
+        sem sessão, não há IP nem CSRF a checar."""
+        if not token or not str(token).startswith(SERVICE_TOKEN_PREFIX):
+            return None
+        now = time.time()
+        with self._tx() as con:
+            row = con.execute(
+                "SELECT id,label,scopes_json FROM auth_service_tokens "
+                "WHERE token_hash=? AND revoked_at IS NULL",
+                [_token_hash(token)]).fetchone()
+            if not row:
+                return None
+            con.execute("UPDATE auth_service_tokens SET last_used_at=? "
+                        "WHERE id=?", [now, row[0]])
+        try:
+            scopes = json.loads(row[2] or "[]")
+        except ValueError:
+            scopes = []
+        return {"service": True, "name": row[1], "scopes": scopes,
+                "account": None}
+
+    def revoke_service_token(self, token_id, actor_id=None) -> bool:
+        with self._tx() as con:
+            cur = con.execute(
+                "UPDATE auth_service_tokens SET revoked_at=? "
+                "WHERE id=? AND revoked_at IS NULL",
+                [time.time(), int(token_id)])
+            ok = (cur.rowcount or 0) > 0
+            if ok:
+                self._audit(con, "service_token_revoked", actor_id,
+                            details={"id": int(token_id)})
+        return ok
+
+    def list_service_tokens(self):
+        """Metadados dos tokens (NUNCA o segredo nem o hash)."""
+        with self._read() as con:
+            rows = con.execute(
+                "SELECT id,label,scopes_json,created_at,last_used_at,revoked_at "
+                "FROM auth_service_tokens ORDER BY id").fetchall()
+        return [{"id": r[0], "name": r[1],
+                 "scopes": json.loads(r[2] or "[]"), "created_at": r[3],
+                 "last_used_at": r[4], "revoked_at": r[5]} for r in rows]
+
+    def gen_link_code(self, account_id, ttl=LINK_CODE_TTL_S, actor_id=None):
+        """Código de vínculo Discord: 8 chars base32 sem ambíguos, 1 uso,
+        expira em ttl segundos (15 min por padrão)."""
+        now = time.time()
+        with self._tx() as con:
+            if not con.execute(
+                    "SELECT 1 FROM auth_accounts WHERE id=? AND active=1",
+                    [account_id]).fetchone():
+                raise AuthError("Conta nao encontrada.", "not_found", 404)
+            # pré-checa colisão via SELECT (um INSERT falho abortaria a
+            # transação inteira no Postgres)
+            for _ in range(8):
+                code = "".join(secrets.choice(LINK_CODE_ALPHABET)
+                               for _ in range(LINK_CODE_LEN))
+                if not con.execute(
+                        "SELECT 1 FROM auth_discord_link_codes WHERE code=?",
+                        [code]).fetchone():
+                    break
+            else:   # 8 colisões seguidas em 31^8 combinações: estado anômalo
+                raise AuthError("Nao foi possivel gerar o codigo.",
+                                "link_code_collision", 500)
+            con.execute(
+                "INSERT INTO auth_discord_link_codes "
+                "(code,account_id,expires_at,created_at) VALUES (?,?,?,?)",
+                [code, account_id, now + float(ttl), now])
+            self._audit(con, "link_code_created", actor_id, account_id)
+        return code
+
+    @staticmethod
+    def _discord_id(value):
+        try:
+            value = int(value)
+        except (TypeError, ValueError):
+            raise AuthError("discord_user_id invalido.",
+                            "invalid_discord_id", 400)
+        if value <= 0:
+            raise AuthError("discord_user_id invalido.",
+                            "invalid_discord_id", 400)
+        return value
+
+    def link_discord(self, code, discord_user_id):
+        """Consome o código (marca used_at) e grava o vínculo 1:1.
+
+        Erros: código inexistente (404), já usado (409), expirado (410),
+        snowflake já vinculado a OUTRA conta (409). Devolve a conta."""
+        code = str(code or "").strip().upper()
+        discord_user_id = self._discord_id(discord_user_id)
+        now = time.time()
+        with self._tx() as con:
+            row = con.execute(
+                "SELECT account_id,expires_at,used_at "
+                "FROM auth_discord_link_codes WHERE code=?", [code]).fetchone()
+            if not row:
+                raise AuthError("Codigo de vinculo invalido.",
+                                "link_code_invalid", 404)
+            account_id, expires_at, used_at = row[0], row[1], row[2]
+            if used_at is not None:
+                raise AuthError("Codigo ja utilizado. Gere outro na console.",
+                                "link_code_used", 409)
+            if float(expires_at) <= now:
+                raise AuthError("Codigo expirado. Gere outro na console.",
+                                "link_code_expired", 410)
+            if not con.execute(
+                    "SELECT 1 FROM auth_accounts WHERE id=? AND active=1",
+                    [account_id]).fetchone():
+                raise AuthError("Conta nao encontrada.", "not_found", 404)
+            other = con.execute(
+                "SELECT account_id FROM auth_discord_links "
+                "WHERE discord_user_id=? AND unlinked_at IS NULL",
+                [discord_user_id]).fetchone()
+            if other and int(other[0]) != int(account_id):
+                raise AuthError("Este Discord ja esta vinculado a outra conta.",
+                                "discord_already_linked", 409)
+            con.execute("UPDATE auth_discord_link_codes SET used_at=? "
+                        "WHERE code=?", [now, code])
+            # vínculos DESFEITOS deste snowflake sairiam no UNIQUE — remove
+            con.execute("DELETE FROM auth_discord_links "
+                        "WHERE discord_user_id=? AND unlinked_at IS NOT NULL",
+                        [discord_user_id])
+            con.execute("""
+                INSERT INTO auth_discord_links
+                  (account_id,discord_user_id,linked_at,unlinked_at)
+                VALUES (?,?,?,NULL)
+                ON CONFLICT(account_id) DO UPDATE SET
+                  discord_user_id=excluded.discord_user_id,
+                  linked_at=excluded.linked_at, unlinked_at=NULL
+            """, [account_id, discord_user_id, now])
+            self._audit(con, "discord_linked", account_id, account_id,
+                        {"discord_user_id": str(discord_user_id)})
+        return self.get_account(account_id)
+
+    def get_account_by_discord_id(self, discord_user_id):
+        """Conta ATIVA vinculada ao snowflake, ou None (sem vazamento)."""
+        try:
+            discord_user_id = self._discord_id(discord_user_id)
+        except AuthError:
+            return None
+        with self._read() as con:
+            row = con.execute(
+                "SELECT account_id FROM auth_discord_links "
+                "WHERE discord_user_id=? AND unlinked_at IS NULL",
+                [discord_user_id]).fetchone()
+            if not row:
+                return None
+            arow = con.execute(
+                self._account_select() + " WHERE id=? AND active=1",
+                [row[0]]).fetchone()
+            return self._account_dict(con, arow)

@@ -60,6 +60,22 @@ def main(argv=None):
     p.add_argument("account_id", type=int)
     p.add_argument("role", choices=ROLES)
 
+    p = sub.add_parser(
+        "service-token",
+        help="tokens de servico do bot Discord (create|list|revoke)")
+    p.add_argument("action", choices=["create", "list", "revoke"])
+    p.add_argument("--label", help="nome unico do token (create)")
+    p.add_argument("--scopes", default="",
+                   help="escopos separados por virgula, ex.: "
+                        "discord_link,discord_read")
+    p.add_argument("--id", type=int, dest="token_id",
+                   help="id do token (revoke; veja em list)")
+
+    p = sub.add_parser(
+        "link-code",
+        help="gera codigo de vinculo Discord da conta (15 min, 1 uso)")
+    p.add_argument("account_id", type=int)
+
     args = parser.parse_args(argv)
     client, manager = _manager()
     try:
@@ -67,9 +83,27 @@ def main(argv=None):
             out = manager.bootstrap_admin(args.username, args.display_name)
         elif args.command == "list":
             out = manager.list_accounts()
+        elif args.command == "service-token" and args.action == "list":
+            out = manager.list_service_tokens()
         else:
             actor = _actor_id(manager)
-            if args.command == "create":
+            if args.command == "service-token":
+                if args.action == "create":
+                    if not args.label:
+                        parser.error("--label e obrigatorio em create")
+                    out = manager.create_service_token(
+                        args.label, _profiles(args.scopes), actor_id=actor)
+                else:   # revoke
+                    if args.token_id is None:
+                        parser.error("--id e obrigatorio em revoke")
+                    out = {"ok": manager.revoke_service_token(
+                        args.token_id, actor_id=actor)}
+            elif args.command == "link-code":
+                out = {"account_id": args.account_id,
+                       "code": manager.gen_link_code(
+                           args.account_id, actor_id=actor),
+                       "expires_in_s": 900}
+            elif args.command == "create":
                 out = manager.create_account(
                     actor, args.username, role=args.role,
                     profiles=_profiles(args.profiles),
@@ -90,6 +124,9 @@ def main(argv=None):
         print(json.dumps(out, ensure_ascii=False, indent=2))
         if isinstance(out, dict) and out.get("temporary_password"):
             print("\nATENCAO: anote a senha temporaria agora; ela nao sera exibida de novo.")
+        if isinstance(out, dict) and out.get("token"):
+            print("\nATENCAO: anote o token de servico agora; o banco guarda "
+                  "so o hash e ele nao sera exibido de novo.")
         return 0
     except AuthError as exc:
         print(f"erro [{exc.code}]: {exc.message}", file=sys.stderr)
