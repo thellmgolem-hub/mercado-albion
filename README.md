@@ -1,202 +1,162 @@
 # Mercado Albion — Américas
 
-App **local** de consulta de preços e cálculo de flips do mercado do Albion Online
-(servidor das **Américas**), com interface em português e uma CLI para análises
-mercadológicas. Os dados vêm do [Albion Online Data Project](https://www.albion-online-data.com/)
-(crowdsourced: os preços só atualizam quando algum jogador com o cliente de
-coleta abre aquele mercado no jogo).
+Plataforma de inteligência de mercado do Albion Online (servidor das **Américas**),
+com interface web em português e CLI de análise. Cobre consulta de preços e flips,
+consultor por orçamento, scanner de categorias, análises avançadas (microestrutura,
+produção, logística, risco, demanda por killboard), economia da ilha (trabalhadores,
+agricultura, pecuária), planejamento de linha de produção da guild e gestão do
+tributo semanal. Roda **local** (SQLite, coleta automática) ou como **piloto na
+nuvem** (Render + Supabase, multi-organização). Os preços vêm do
+[Albion Online Data Project](https://www.albion-online-data.com/) — dados
+crowdsourced: só atualizam quando algum jogador com o cliente de coleta abre
+aquele mercado no jogo.
 
 ## Como rodar
 
 Requisitos: Python 3.11+ e internet.
 
 ```
-pip install -r requirements.txt   (só na primeira vez)
+pip install -r requirements.txt        (só na primeira vez)
+python app.py                          (ou dois cliques em run.bat)
 ```
 
-Depois é só dar dois cliques em **`run.bat`** (ou rodar `python app.py`).
-O navegador abre sozinho em `http://127.0.0.1:8528`.
+O navegador abre sozinho em `http://127.0.0.1:8528`. Com o servidor aberto, a
+watchlist é coletada automaticamente a cada 30 min (semeada com itens líquidos
+no primeiro uso) — quanto mais tempo aberto, melhores as análises.
 
-## As abas
-
-São quatro abas no topo. A aba **Item** reúne, num inspetor único com um só
-campo de busca, cinco sub-abas para o item selecionado.
-
-| Aba | O que faz |
-|---|---|
-| **Início** | Abre com o **Mercado de moedas — Ouro & Prata**: gráfico da cotação do ouro (prata por 1 ouro) e do valor da prata em ouro, com janelas de 48 h a 30 dias e painel de análise (atual, variação, mín/máx, média, volatilidade/dia, tendência). Abaixo: recomendações automáticas (score 0–100 absoluto, selos executar/monitorar/cautela; **Coletar watchlist**), persistência das ordens, mapa de rotas, demanda por destruição (killboard), divergência demanda×preço, guerra & risco e ordens de serviço. |
-| **Item** | Inspetor de um item com sub-abas (ver tabela abaixo). |
-| **Flips** | "Descobrir flips" por características do mercado + cálculo para itens específicos, com os 4 modos de compra/venda e lucro líquido já descontadas as taxas. |
-| **Scanner** | Varre uma categoria inteira (até 800 itens) atrás de oportunidades, com presets de um clique: **Reais → Mercado Negro**, **Entre cidades reais** e **Market making** (ordem → ordem na mesma cidade). Mostra volume diário, potencial de lucro/dia e lucro por kg. Exporta CSV. |
-
-### Sub-abas do inspetor de Item
-
-| Sub-aba | O que faz |
-|---|---|
-| **Preços por cidade** | Preço de venda mín. e ordem de compra máx. em todas as cidades, por qualidade, com idade dos dados em cores (verde < 30 min, amarelo < 2 h, vermelho mais velho). |
-| **Onde vender** | Você já tem o item? Mostra a melhor cidade e método (venda instantânea × ordem) pelo valor **líquido**. |
-| **Craft / Refino** | Margem de fabricar/refinar o item por cidade, usando o **retorno de recursos (RRR) real do jogo** derivado do dump — marca a cidade-bônus da categoria (★), opção **usar foco** (RRR maior + prata por foco) e escolha do modo de venda. |
-| **De onde vem** | Fontes de drop do item (mobs/baús) ordenadas por fama, do grafo mob→loot do dump — para saber onde farmar a oferta. |
-| **Item Lab** | Estatística por item/cidade: VWAP, mediana, z-score **sobre resíduos da tendência**, z robusto (MAD), momentum, volatilidade, qualidade do dado e previsão baseline com intervalo (~68%). Use "buscar da API" para coletar dados novos e **+ watchlist** para vigiar o item. |
-
-### Como ler o score e a confiança
-
-- **Score (0–100, régua absoluta)**: 30% potencial/dia + 25% frescor + 20% ROI +
-  15% liquidez + 10% lucro/unidade, com âncoras fixas em escala log (lucro 50k,
-  potencial 1M/dia, liquidez 200/dia ⇒ 100 pontos). O score de uma oportunidade
-  **não depende** das outras da lista — dá para comparar entre dias e consultas.
-- **Conf.** = frescor das duas pontas, **limitado pela liquidez** (item que vende
-  < 5/dia nunca passa de "média"; < 1/dia, "baixa").
-- **Pot./dia já vem com haircut**: lucro × liquidez × taxa de captura de 20%
-  (o teto teórico fica no tooltip). O volume da AODP é um piso — só conta
-  quando alguém abre o mercado com o cliente de coleta.
-- **Persistência das ordens** (aba Início): % de vezes que a ordem do topo
-  ainda existia na coleta seguinte, por idade da ordem — medida nos seus
-  próprios snapshots. É a régua empírica do "flip fantasma".
-- **Coleta automática**: com o servidor aberto, a watchlist é coletada a cada
-  30 min (configurável em `albion/config.py`, registrada em `collection_runs`).
-  Quanto mais itens vigiados e mais tempo de coleta, melhores as análises.
-
-Dicas da interface:
-- Busque por nome em português, inglês ou id. Atalhos: `t6` (tier), `4.1`
-  (tier 4 encanto 1), `@2` (encanto 2). Ex.: `bolsa 5.0`, `elmo soldado t6`.
-- Clique numa linha de flip para **copiar o nome do item** e colar na busca do
-  mercado dentro do jogo.
-- O **✕** oculta um flip que você já executou.
-- A **☆** no card do item salva favoritos.
-- O toggle **Premium** muda o imposto entre 4% e 8% em todos os cálculos.
-
-## As taxas (verificadas no wiki oficial)
-
-- **Imposto de venda**: 4% com premium / 8% sem — cobrado do vendedor em toda
-  venda, inclusive no Mercado Negro.
-- **Taxa de anúncio**: 2,5% — cobrada ao criar (e a cada edição de) ordem de
-  venda **ou** de compra; não é reembolsada nem se a ordem expirar.
-- **Compra instantânea**: zero taxas para o comprador.
-
-| Modo | Fórmula do líquido |
-|---|---|
-| Compra instantânea | custo = preço |
-| Ordem de compra | custo = preço × 1,025 |
-| Venda instantânea | receita = preço × (1 − imposto) |
-| Ordem de venda | receita = preço × (1 − imposto − 0,025) |
-
-**Mercado Negro** (Caerleon): só compra equipamento de combate, só por ordens do
-sistema (você vende instantâneo nelas) e aceita item de qualidade **igual ou
-maior** que a da ordem — o app já explora isso automaticamente.
-
-## CLI de análise (`analyze.py`)
-
-Para análises rápidas no terminal — e é por aqui que o Claude consulta os dados
-quando você pedir uma análise de mercado:
-
-```
-python analyze.py search bolsa --limit 5
-python analyze.py prices T4_BAG --qualities 1
-python analyze.py flips T5_BAG --min-profit 1000
-python analyze.py scan --cat bags --tier-min 4 --min-profit 5000 --volume
-python analyze.py sell "Elmo de Soldado do Mestre" --qualities 1
-python analyze.py history T4_BAG --cities Caerleon --days 30
-python analyze.py gold --count 24
-python analyze.py status --detail
-python analyze.py recommend --cat weapons --min-volume 10        # score absoluto
-python analyze.py lab T4_BAG --cities Caerleon,Lymhurst --fetch  # Item Lab
-python analyze.py watch add "Bolsa do Adepto,T5_BAG"             # vigiar itens
-python analyze.py collect                                        # coleta a watchlist
-python analyze.py collect --cat crafting --sub resources --tier-min 4
-python analyze.py survival                                       # persistência das ordens (flip fantasma)
-python analyze.py backtest                                       # lucro prometido vs realizado
-python analyze.py journals --tier-min 5                          # margem de diários vazio->cheio
-python analyze.py report --discord                               # relatório do dia no Discord
-python analyze.py refine hide --tier 6 --ench 2 --rrr 53.9       # margem de refino por cidade
-python analyze.py craft "Arco do Adepto" --focus                 # margem de craft (RRR real)
-python analyze.py origin "Arco do Adepto"                        # de onde o item dropa
-python analyze.py micro spread --min-volume 20                   # market-making intra-cidade
-python analyze.py micro capital --capital 2000000               # alocar capital por velocidade
-python analyze.py prod focus                                     # ranking prata/foco (refino+craft)
-python analyze.py prod chain "T5_METALBAR"                       # PnL make-vs-buy da cadeia
-python analyze.py logi cargo --buy-city Caerleon --sell-city Martlock --kg 1500  # carga ótima
-python analyze.py logi restock --days 7                          # reposição (killboard × mercado)
-python analyze.py risk profile --cat bags                        # vol/drawdown/VaR por item
-python analyze.py risk size T5_BAG --capital 1000000             # quanto comprar (ajustado a risco)
-python analyze.py fc revert --cat crafting --sub refinedresources --signals  # reversão à média
-python analyze.py fc pair T5_METALBAR                            # par trading entre cidades
-python analyze.py demand burn                                    # giro de consumíveis (killboard)
-python analyze.py guild watch                                    # o que adicionar à watchlist
-python analyze.py guild makeorbuy                                # fazer vs comprar (guild)
-python analyze.py pos add T4_BAG --qty 10 --price 4000           # portfolio: PnL real da guild
-python analyze.py indexes --cat crafting --sub resources         # índice de preço (base 100)
-python analyze.py intel collect                                  # ingere killboard público
-python analyze.py intel top --days 1 --inventory                 # demanda por destruição
-python analyze.py prune                                          # compacta snapshots antigos
-python analyze.py sql "SELECT COUNT(*) FROM prices"
-python analyze.py --format json scan --cat weapons --tier-min 6   (json/csv/table)
-```
-
-Todos os preços consultados ficam cacheados em `data/cache.db` (SQLite) — o
-comando `sql` permite qualquer consulta somente-leitura sobre esse histórico.
-Além da tabela rápida `prices`, novas consultas de preço também alimentam
-`price_snapshots`, uma tabela append-only para análises futuras e backtesting.
-
-## Acesso pela rede local (guild)
-
-O app exige conta por padrão. Para criar o primeiro administrador:
+O app exige conta por padrão. Primeiro administrador:
 
 ```powershell
 .\.venv\Scripts\python.exe -B manage_accounts.py bootstrap --username admin
 ```
 
-A senha temporária aparece uma única vez e deve ser trocada no primeiro login.
-Depois, a aba **Contas** permite criar usuários pseudônimos, definir papel e
-perfis econômicos, desativar acesso e liberar a troca de dispositivo. Não são
-coletados e-mail, IP ou identidade real. A recuperação de emergência também
-fica disponível pela CLI (`manage_accounts.py --help`).
+Para desenvolver **sem login** na própria máquina: `python tools/run_local.py`
+(liga `ALBION_AUTH_DISABLED=1`; nunca use na nuvem).
 
-Em `albion/config.py`, defina `SERVE_LAN = True` para atender a rede local em
-`http://SEU_IP:8528`. Em hospedagem HTTPS, configure
-`ALBION_AUTH_COOKIE_SECURE=1`; nunca exponha este servidor diretamente à
-internet sem HTTPS, proxy reverso, backups e limitação de tráfego.
+## As abas
 
-O vínculo de um dispositivo usa um cookie secreto revogável: desestimula o
-compartilhamento casual, mas não é impressão digital de hardware e não resiste
-a malware ou à cópia deliberada do perfil do navegador.
+| Aba | O que faz |
+|---|---|
+| **Início** | Recomendações automáticas de flip (score 0–100 em régua absoluta, selos executar/monitorar/cautela), com filtros de descoberta (categoria, tier, volume, ROI…) e o **escore composto** opcional, que funde risco, reversão à média e divergência de demanda ao ranking. |
+| **Moedas** | Cotação do ouro (prata por 1 ouro) e o valor da prata em ouro, em janelas de 48 h a 30 dias, com tendência, volatilidade e extremos do período. |
+| **Item** | Inspetor de um item com 7 sub-abas: preços por cidade (idade dos dados em cores), onde vender (líquido), craft/refino (RRR real do dump, cidade-bônus, foco), cadeia/wiki, de onde vem (mobs que dropam), risco & previsão e Item Lab (VWAP, z-score sobre resíduos, momentum). |
+| **Flips** | Cálculo de rotas de lucro líquido para itens específicos, nos 4 modos de compra/venda, taxas já descontadas. |
+| **Consultor** | Diga quanta prata você tem e em que cidade está — devolve a melhor combinação de compras para revender que cabe no orçamento, limitada pela liquidez real (Mercado Negro opcional). |
+| **Scanner** | Varre uma categoria inteira (até 800 itens) com presets de um clique: Reais → Mercado Negro, entre cidades reais e market making. Volume diário, potencial/dia e lucro por kg; exporta CSV. |
+| **Avançado** | 6 painéis analíticos sobre o cache: **Microestrutura** (spread intra-cidade, alocação de capital), **Produção** (prata por foco, refinar vs vender), **Guild** (fazer vs comprar, ranking de destruição, cesta de regear), **Logística** (prêmio do Mercado Negro, escada de qualidade, mapa de reposição), **Demanda** (giro de consumíveis e qualidade destruída, via killboard) e **Risco** (volatilidade, VaR, correlação). |
+| **Ilha** | Economia da ilha pessoal: **Trabalhadores** (margem do diário vazio→cheio + calculadora de felicidade/rendimento), **Agricultura** (lucro por ciclo; o foco vale a semente economizada) e **Pecuária** (lucro firme sem foco; prole extra do foco sai como estimativa). |
+| **Linha de Produção** | Planejador da cadeia de produção da guild: escolha os produtos finais e a árvore de receita se expande até o recurso bruto, com quantidades propagadas, RRR por cidade, fazer-vs-comprar por etapa, foco por nó, diagrama arrastável e **lista de compras**. Cadeias salvas por conta. |
+| **Guild** | Tributo semanal (operador/admin): metas de entrega por membro, fila de auditoria e relógio de cobrança — reporte pendente pausa, aprovação zera, 14 dias sem cumprir desliga. |
+| **Contas** | Administração de usuários pseudônimos: papéis, perfis econômicos, senha temporária exibida uma única vez, limite de 2 IPs por conta e trilha de auditoria de segurança. Sem e-mail nem identidade real. |
 
-## Guia de análises econômicas
+### Taxas usadas em todos os cálculos (verificadas no wiki oficial)
 
-O arquivo [`docs/GUIA_ANALISES_ECONOMICAS.md`](docs/GUIA_ANALISES_ECONOMICAS.md)
-lista as análises possíveis hoje e as próximas camadas de inteligência:
-arbitragem, Mercado Negro, market making, craft/refino, logística, risco,
-backtesting, livro de ordens e score de oportunidades.
+Imposto de venda **4%** com premium / **8%** sem (toggle na interface); taxa de
+anúncio **2,5%** ao criar ordem de compra ou de venda (não reembolsável); compra
+instantânea sem taxa. **Mercado Negro** (só Caerleon): venda instantânea contra
+ordens do sistema, sem taxa de anúncio, e aceita qualidade igual ou maior que a
+da ordem — o app explora isso automaticamente.
 
-## Atualizar o banco de itens
+## CLI de análise (`analyze.py`)
 
-Quando o jogo ganhar itens novos (patch grande):
+Para análises no terminal — é por aqui que o Claude consulta os dados. Os 10
+comandos mais usados:
 
 ```
-python scripts/build_items_db.py --refresh
+python analyze.py search bolsa                    # achar o id do item
+python analyze.py prices T4_BAG --qualities 1     # preços atuais por cidade
+python analyze.py flips T5_BAG --min-profit 1000  # rotas de lucro líquido
+python analyze.py sell T5_BAG                     # melhor cidade/método p/ vender
+python analyze.py scan --cat bags --tier-min 4 --volume   # varrer categoria
+python analyze.py history T4_BAG --days 30        # preço médio + volume/dia
+python analyze.py recommend --cat weapons         # recomendações (score absoluto)
+python analyze.py lab T4_BAG --fetch              # VWAP, z residual, momentum
+python analyze.py collect                         # coleta a watchlist agora
+python analyze.py status --detail                 # cobertura do cache local
 ```
+
+A lista completa (~40 comandos: refino/craft, microestrutura, produção,
+logística, risco, previsão, demanda, guild, portfolio, killboard, SQL
+somente-leitura…) está no [`CLAUDE.md`](CLAUDE.md). Tudo opera sobre o cache
+em `data/cache.db` — cheque a cobertura com `status --detail` antes de analisar.
+
+## Discord — Fase 0 (webhook, sem bot)
+
+Relatórios diários direto num canal do Discord, sem hospedar nada:
+
+1. No canal, crie um webhook e exporte `ALBION_DISCORD_WEBHOOK=<url>`.
+2. `python analyze.py report --discord` posta o relatório do dia;
+   `python analyze.py digest --view report|ilha|laborers|advisor [--budget N] --discord`
+   posta a visão escolhida (mensagens fatiadas em 1900 chars).
+3. Agendamento no Windows: `tools/discord_daily.bat` (usa `schtasks`;
+   `PYTHONIOENCODING=utf-8` é obrigatório — o console cp1252 quebra em ▲/▼).
+
+Bot de gateway, vínculo membro→conta e tributo via Discord são fases futuras
+(plano em `docs/AUDITORIA_2026-07-02.md`, seção Discord).
+
+## Piloto na nuvem
+
+Guia completo em [`DEPLOY.md`](DEPLOY.md): Render (app) + Supabase (Postgres) +
+cron-job.org (sweep do mercado a cada 1 min e killboard a cada 10 min), tudo
+grátis e sem cartão. A camada de dados é dual (`albion/store.py`): SQLite local
+ou Postgres na nuvem, escolhido pela env `DATABASE_URL`. Na nuvem não há coletor
+sempre-ligado — o cron toca `/api/sweep` (varre os ~10,4 mil itens em ~2 h) e
+`/api/intel-sweep` (agregado diário de destruição), ambos protegidos por
+`ALBION_SWEEP_TOKEN`.
+
+A plataforma é **multi-organização** (Fase 1 aplicada): tabelas `orgs` e
+entitlements por org/conta, papéis com escopo de org e cadeias de produção
+isoladas por org. Pendência conhecida e deliberada: `/api/admin/*` ainda não é
+org-scoped — corrigir antes de aceitar uma segunda guild
+(`docs/AUDITORIA_2026-07-02.md`).
+
+## Testes e CI
+
+```
+python -m unittest tests.test_core tests.test_laborer tests.test_advisor tests.test_tribute
+```
+
+Sem rede externa nos testes (SQLite temporário e fixtures locais). No Windows,
+rode com `PYTHONIOENCODING=utf-8` e `ALBION_NO_AUTOCOLLECT=1`. O CI
+(`.github/workflows/tests.yml`) roda a suíte a cada push/PR. O dialeto Postgres
+tem validador próprio: `python tools/check_pg.py` (exige `DATABASE_URL`).
 
 ## Estrutura
 
 ```
-app.py                  servidor FastAPI (porta 8528) + proxy de ícones
-albion/config.py        cidades, taxas, limites da API
-albion/client.py        cliente AODP com throttle (180/min e 300/5min) e cache SQLite
-albion/flips.py         motor de flips e "onde vender"
-albion/items.py         busca de itens PT-BR/EN
+app.py                  servidor FastAPI (porta 8528) + API web + proxy de ícones
 analyze.py              CLI de análise
-web/                    interface (HTML/CSS/JS + Chart.js local)
-data/items_db.json      12 mil itens com nomes PT-BR, categoria, peso
-data/cache.db           cache de preços/histórico (SQLite)
+manage_accounts.py      contas via terminal (bootstrap, reset, recuperação)
+albion/                 módulos: client (AODP c/ throttle), store (SQLite/Postgres),
+                        flips, advisor, island, prodchain, tribute, auth,
+                        microstructure, production, logistics, risk, forecast,
+                        demand, guild, gameinfo (killboard)…
+web/                    frontend vanilla JS (sem build step)
+data/                   items_db.json (~12 mil itens PT-BR), cache.db (SQLite),
+                        island_data.json, craft/supply do dump oficial
+db/schema_pg.sql        schema do Postgres (piloto)
+scripts/                geradores do banco de itens/receitas (rodar após patch)
+tools/                  run_local.py (dev sem login), check_pg.py, backup_db.py,
+                        discord_daily.bat
+tests/                  suíte unittest
+docs/                   auditoria, planos e guia de análises econômicas
 ```
+
+Itens novos após patch grande: `python scripts/build_items_db.py --refresh`,
+depois os demais `scripts/build_*.py` (receitas, craft, oferta).
 
 ## Limitações conhecidas
 
 - Os dados são da comunidade: uma "oportunidade" com idade alta provavelmente é
-  um **flip fantasma** (a ordem já foi consumida). Use os filtros de idade máxima.
-- Ordens de venda absurdas (ex.: 999.999 numa bolsa T5) aparecem como dado real
-  da API; o volume diário ajuda a identificar essas armadilhas.
-- A API é limitada a 180 req/min — escanear 800 itens leva ~30 s na primeira vez
-  (depois o cache de 5 min responde na hora).
+  um **flip fantasma** (a ordem já foi consumida). Use os filtros de idade e a
+  persistência de ordens medida nos próprios snapshots.
+- Ordens-isca (preços absurdos) existem; as análises avançadas saneiam
+  preços-âncora automaticamente, mas confira o volume diário antes de agir.
+- O volume da AODP é um **piso censurado** — só conta quando alguém abre o
+  mercado com o cliente de coleta; o potencial/dia já aplica haircut de 20%.
+- A API é limitada a 180 req/min e 300/5 min — escanear 800 itens leva ~30 s na
+  primeira vez (depois o cache de 5 min responde na hora).
+- Análises que dependem de série longa ou de posições saem como "provisórias"
+  até a coleta acumular.
 - Os ícones vêm do serviço oficial de render; se o Cloudflare bloquear, o app
-  tenta um proxy local e, em último caso, esconde o ícone (nada quebra).
+  usa proxy local com cache e, em último caso, esconde o ícone (nada quebra).
