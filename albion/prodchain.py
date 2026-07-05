@@ -432,9 +432,12 @@ class ChainStore:
 
     Espelha o padrão do AuthManager: cria o próprio schema (idempotente), _tx
     para escrita (commit/rollback) e _read que encerra a transação no Postgres
-    (evita 'idle in transaction' no pooler). Toda operação é escopada por
-    (org_id, owner_user_id) — uma guilda nunca enxerga/edita a cadeia de outra,
-    e um dono nunca a de outro dono.
+    (evita 'idle in transaction' no pooler). Isolamento ENTRE orgs é absoluto
+    (org_id em TODA query). DENTRO da org a cadeia é um QUADRO VIVO: list/get
+    enxergam as cadeias da org inteira (read-only p/ quem não é o dono — cada
+    linha marca owner_user_id/mine), mas save/delete seguem do dono: cadeia
+    alheia levanta PermissionError (403), salvo `as_operator=True`
+    (operador/admin da org, ou a ponte do tributo→quadro).
     """
 
     def __init__(self, con, lock):
@@ -487,19 +490,22 @@ class ChainStore:
         return con.execute(sql + " RETURNING id", params).fetchone()[0]
 
     def list(self, org, owner):
+        """Todas as cadeias da ORG (quadro vivo); `mine` marca as do ator."""
         with self._read() as con:
             rows = con.execute(
-                "SELECT id,name,updated_at FROM production_chains "
-                "WHERE org_id=? AND owner_user_id=? ORDER BY updated_at DESC",
-                [org, owner]).fetchall()
-        return [{"id": r[0], "name": r[1], "updated_at": r[2]} for r in rows]
+                "SELECT id,name,updated_at,owner_user_id FROM production_chains "
+                "WHERE org_id=? ORDER BY updated_at DESC",
+                [org]).fetchall()
+        return [{"id": r[0], "name": r[1], "updated_at": r[2],
+                 "owner_user_id": r[3], "mine": r[3] == owner} for r in rows]
 
     def get(self, org, owner, cid):
+        """Lê qualquer cadeia DA MESMA org (read-only p/ não-donos)."""
         with self._read() as con:
             row = con.execute(
-                "SELECT id,name,payload,updated_at FROM production_chains "
-                "WHERE id=? AND org_id=? AND owner_user_id=?",
-                [cid, org, owner]).fetchone()
+                "SELECT id,name,payload,updated_at,owner_user_id "
+                "FROM production_chains WHERE id=? AND org_id=?",
+                [cid, org]).fetchone()
         if not row:
             return None
         try:
@@ -507,13 +513,15 @@ class ChainStore:
         except (ValueError, TypeError):
             payload = {}
         return {"id": row[0], "name": row[1], "payload": payload,
-                "updated_at": row[3]}
+                "updated_at": row[3], "owner_user_id": row[4],
+                "mine": row[4] == owner}
 
-    def save(self, org, owner, name, payload, cid=None):
+    def save(self, org, owner, name, payload, cid=None, *, as_operator=False):
         """Cria ou atualiza. Sem cid: upsert por (owner,name). Devolve o id.
 
-        Escopado por (org_id, owner_user_id): um cid de outra org/dono não é
-        confiado — o WHERE não casa e a atualização levanta KeyError (404).
+        Com cid: só o DONO edita (PermissionError p/ colega da mesma org →
+        403; operador/admin passa com as_operator=True, mantendo o dono
+        original). cid de OUTRA org nunca casa → KeyError (404).
         """
         name = (name or "").strip()[:80] or "Sem nome"
         body = json.dumps(payload, ensure_ascii=False)
@@ -522,11 +530,19 @@ class ChainStore:
         now = time.time()
         with self._tx() as con:
             if cid is not None:
-                cur = con.execute(
-                    "UPDATE production_chains SET name=?,payload=?,updated_at=? "
-                    "WHERE id=? AND org_id=? AND owner_user_id=?",
-                    [name, body, now, cid, org, owner])
+                sql = ("UPDATE production_chains SET name=?,payload=?,"
+                       "updated_at=? WHERE id=? AND org_id=?")
+                params = [name, body, now, cid, org]
+                if not as_operator:
+                    sql += " AND owner_user_id=?"
+                    params.append(owner)
+                cur = con.execute(sql, params)
                 if not cur.rowcount:
+                    # distingue 403 (existe na org, dono é outro) de 404
+                    if con.execute(
+                            "SELECT 1 FROM production_chains "
+                            "WHERE id=? AND org_id=?", [cid, org]).fetchone():
+                        raise PermissionError("cadeia de outro dono")
                     raise KeyError("cadeia não encontrada")
                 return cid
             existing = con.execute(
@@ -544,10 +560,60 @@ class ChainStore:
                 "VALUES (?,?,?,?,?)",
                 [org, owner, name, body, now])
 
-    def delete(self, org, owner, cid):
+    def add_stock(self, org, cid, item, qty):
+        """Soma `qty` ao stock[item] ATOMICAMENTE (get+update na MESMA
+        transação/lock — a ponte tributo→quadro não perde incrementos
+        concorrentes nem sobrescreve edição recém-salva do dono).
+
+        LookupError se a cadeia sumiu ou o item não é nó da cadeia (ns/roots);
+        o chamador audita. Só o campo stock é reescrito (name fica intacto)."""
         with self._tx() as con:
-            cur = con.execute(
-                "DELETE FROM production_chains "
-                "WHERE id=? AND org_id=? AND owner_user_id=?",
-                [cid, org, owner])
-            return bool(cur.rowcount)
+            sql = ("SELECT payload FROM production_chains "
+                   "WHERE id=? AND org_id=?")
+            if getattr(con, "backend", "sqlite") != "sqlite":
+                sql += " FOR UPDATE"    # PG multi-worker: trava a linha
+            row = con.execute(sql, [cid, org]).fetchone()
+            if not row:
+                raise LookupError("cadeia não encontrada (apagada?)")
+            try:
+                payload = json.loads(row[0])
+            except (ValueError, TypeError):
+                raise LookupError("payload da cadeia ilegível")
+            known = set(payload.get("ns") or {}) | set(payload.get("roots") or [])
+            if item not in known:
+                raise LookupError("nó do item ausente na cadeia")
+            stock = payload.get("stock")
+            if not isinstance(stock, dict):
+                stock = payload["stock"] = {}
+            try:
+                cur = int(stock.get(item) or 0)
+            except (TypeError, ValueError):
+                cur = 0
+            stock[item] = max(0, cur) + int(qty)
+            body = json.dumps(payload, ensure_ascii=False)
+            if len(body) > MAX_PAYLOAD:
+                raise LookupError("cadeia grande demais para atualizar")
+            con.execute(
+                "UPDATE production_chains SET payload=?,updated_at=? "
+                "WHERE id=? AND org_id=?", [body, time.time(), cid, org])
+            return stock[item]
+
+    def delete(self, org, owner, cid, *, as_operator=False):
+        """Apaga cadeia do dono (operador/admin da org: as_operator=True).
+
+        Cadeia de OUTRO dono da mesma org → PermissionError (403); cadeia
+        inexistente (ou de outra org) → False (404 no endpoint)."""
+        with self._tx() as con:
+            sql = "DELETE FROM production_chains WHERE id=? AND org_id=?"
+            params = [cid, org]
+            if not as_operator:
+                sql += " AND owner_user_id=?"
+                params.append(owner)
+            cur = con.execute(sql, params)
+            if not cur.rowcount:
+                if con.execute(
+                        "SELECT 1 FROM production_chains "
+                        "WHERE id=? AND org_id=?", [cid, org]).fetchone():
+                    raise PermissionError("cadeia de outro dono")
+                return False
+            return True

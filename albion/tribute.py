@@ -297,11 +297,20 @@ class TributeStore:
 
         Se o membro estava desligado, REATIVA (tools_revoked=0, reactivated_at)
         e o chamador recebe reactivated=True (p/ devolver o cargo no Discord,
-        quando existir).
+        quando existir). O retorno leva também item_id/qty_reported/
+        from_chain_id (este da META, se o reporte referencia uma) — insumo da
+        ponte tributo→quadro: a Linha de Produção soma a entrega aprovada ao
+        estoque do nó da cadeia de origem.
         """
         ts = _ts(now)
         with self._tx() as con:
             member = self._take_report(con, org, report_id)
+            # dados da ponte (LEFT JOIN: reporte-bônus não tem meta/cadeia)
+            brow = con.execute(
+                "SELECT r.item_id, r.qty_reported, a.from_chain_id "
+                "FROM member_reports r LEFT JOIN weekly_assignments a "
+                "ON a.id = r.assignment_id AND a.org_id = r.org_id "
+                "WHERE r.id=?", [report_id]).fetchone()
             con.execute(
                 "UPDATE member_reports SET status='approved', "
                 "auditor_account_id=?, audit_note=?, processed_at=? WHERE id=?",
@@ -330,7 +339,17 @@ class TributeStore:
                 self._audit(con, org, auditor_id, "restore", member,
                             {"report_id": report_id}, ts)
         return {"id": report_id, "account_id": member, "state": STATE_OK,
-                "reactivated": reactivated}
+                "reactivated": reactivated,
+                "item_id": brow[0] if brow else None,
+                "qty_reported": brow[1] if brow else 0,
+                "from_chain_id": brow[2] if brow else None}
+
+    def audit_event(self, org, actor_id, action, *, target=None, details=None,
+                    now=None):
+        """Registro avulso na pista de auditoria (ex.: ponte tributo→quadro
+        que falhou fora da transação do approve — nunca quebra o chamador)."""
+        with self._tx() as con:
+            self._audit(con, org, actor_id, action, target, details, _ts(now))
 
     def reject(self, org, report_id, auditor_id, *, note=None, now=None):
         """Auditor rejeita: o relógio RETOMA do MESMO anchor_ts (-> atrasado).

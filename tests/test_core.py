@@ -1785,8 +1785,9 @@ class AuthManagerTests(unittest.TestCase):
 class MultiTenantIsolationTests(unittest.TestCase):
     """Isolamento entre inquilinos no ChainStore (o que check_pg.py NÃO cobre).
 
-    O enforcement real é o Store que injeta org_id em TODA query; aqui provamos
-    que uma org/dono nunca alcança o recurso de outro (lê, apaga ou sobrescreve).
+    ENTRE orgs o isolamento é absoluto (org_id em toda query). DENTRO da org a
+    semântica é QUADRO VIVO: colegas VEEM (read-only) as cadeias uns dos
+    outros, mas só o dono (ou operador/admin, via as_operator) edita/apaga.
     """
 
     def setUp(self):
@@ -1800,7 +1801,7 @@ class MultiTenantIsolationTests(unittest.TestCase):
     def test_chain_isolated_by_org_and_owner(self):
         cid_a = self.store.save(1, 10, "cadeia A", {"x": 1})   # org 1, dono 10
         cid_b = self.store.save(2, 20, "cadeia B", {"y": 2})   # org 2, dono 20
-        # B não LÊ a cadeia de A
+        # B (outra ORG) não LÊ a cadeia de A
         self.assertIsNone(self.store.get(2, 20, cid_a))
         self.assertEqual([r["id"] for r in self.store.list(2, 20)], [cid_b])
         # B não APAGA a de A
@@ -1808,10 +1809,44 @@ class MultiTenantIsolationTests(unittest.TestCase):
         # B não SOBRESCREVE a de A por cid (não encontrada -> KeyError -> 404)
         with self.assertRaises(KeyError):
             self.store.save(2, 20, "hijack", {"z": 3}, cid=cid_a)
+        # cross-org nem com as_operator (o escopo de org é intransponível)
+        with self.assertRaises(KeyError):
+            self.store.save(2, 20, "hijack", {"z": 3}, cid=cid_a,
+                            as_operator=True)
+        self.assertFalse(self.store.delete(2, 20, cid_a, as_operator=True))
         # A segue intacta e legível pelo dono certo
         self.assertEqual(self.store.get(1, 10, cid_a)["payload"], {"x": 1})
         # org errada mesmo com o owner certo: o filtro org_id barra
         self.assertIsNone(self.store.get(2, 10, cid_a))
+
+    def test_chain_shared_read_only_within_org(self):
+        """Quadro vivo intra-org: colega VÊ, mas não edita nem apaga."""
+        cid = self.store.save(1, 10, "linha da guild", {"x": 1})
+        # colega (dono 11) da MESMA org lista e lê, marcado como não-dele
+        rows = self.store.list(1, 11)
+        self.assertEqual([r["id"] for r in rows], [cid])
+        self.assertFalse(rows[0]["mine"])
+        self.assertEqual(rows[0]["owner_user_id"], 10)
+        ch = self.store.get(1, 11, cid)
+        self.assertEqual(ch["payload"], {"x": 1})
+        self.assertFalse(ch["mine"])
+        # ... mas NÃO sobrescreve nem apaga (PermissionError -> 403)
+        with self.assertRaises(PermissionError):
+            self.store.save(1, 11, "hijack", {"z": 3}, cid=cid)
+        with self.assertRaises(PermissionError):
+            self.store.delete(1, 11, cid)
+        self.assertEqual(self.store.get(1, 10, cid)["payload"], {"x": 1})
+        # operador/admin da org edita e apaga (as_operator preserva o dono)
+        self.store.save(1, 11, "ajustada", {"x": 2}, cid=cid, as_operator=True)
+        ch = self.store.get(1, 10, cid)
+        self.assertEqual(ch["payload"], {"x": 2})
+        self.assertEqual(ch["owner_user_id"], 10)   # dono original mantido
+        self.assertTrue(self.store.delete(1, 11, cid, as_operator=True))
+        # o dono também segue mandando na própria cadeia
+        cid2 = self.store.save(1, 10, "outra", {"y": 1})
+        self.assertEqual(self.store.save(1, 10, "outra", {"y": 2}, cid=cid2),
+                         cid2)
+        self.assertTrue(self.store.delete(1, 10, cid2))
 
     def test_local_mode_org_and_owner_defaults(self):
         import types
@@ -1823,6 +1858,101 @@ class MultiTenantIsolationTests(unittest.TestCase):
             self.assertEqual(app._chain_owner(req), 0)  # single-user
         finally:
             app.config.AUTH_REQUIRED = old
+
+
+class TributeChainBridgeTests(unittest.TestCase):
+    """Ponte tributo→quadro vivo (app._apply_report_to_chain): a aprovação de
+    um reporte cuja meta nasceu de uma cadeia soma qty_reported ao stock do nó
+    da cadeia; falha (cadeia apagada/nó ausente) é auditada e NUNCA levanta.
+    """
+
+    NOW = "2026-07-01T12:00:00Z"
+
+    def setUp(self):
+        from albion import prodchain, tribute
+        self.con = sqlite3.connect(":memory:", check_same_thread=False)
+        lock = threading.Lock()
+        self.chains = prodchain.ChainStore(self.con, lock)
+        self.trib = tribute.TributeStore(self.con, lock)
+        # aponta os stores do app p/ os in-memory (a ponte usa os globais)
+        self._old = (app.chain_store, app.tribute_store)
+        app.chain_store, app.tribute_store = self.chains, self.trib
+
+    def tearDown(self):
+        app.chain_store, app.tribute_store = self._old
+        self.con.close()
+
+    def _approved(self, from_chain_id, item="T4_ORE", qty=30):
+        """Meta (com cadeia de origem) -> reporte -> approve; devolve o res."""
+        a = self.trib.assign(1, 42, item, 100, from_chain_id=from_chain_id,
+                             created_by=7, now=self.NOW)
+        rep = self.trib.report(1, 42, item, qty, assignment_id=a["id"],
+                               now=self.NOW)
+        return self.trib.approve(1, rep["id"], 7, now=self.NOW)
+
+    def test_approved_report_adds_stock_to_chain_node(self):
+        cid = self.chains.save(1, 10, "linha da guild", {
+            "v": 1, "roots": ["T4_METALBAR"],
+            "ns": {"T4_METALBAR": {"mode": "make"}, "T4_ORE": {"mode": "buy"}},
+            "stock": {"T4_ORE": 5}})
+        res = self._approved(cid)
+        # o approve carrega o insumo da ponte
+        self.assertEqual(res["item_id"], "T4_ORE")
+        self.assertEqual(res["qty_reported"], 30)
+        self.assertEqual(res["from_chain_id"], cid)
+        app._apply_report_to_chain(1, res, 7)
+        ch = self.chains.get(1, 10, cid)
+        self.assertEqual(ch["payload"]["stock"]["T4_ORE"], 35)   # 5 + 30
+        # dono da cadeia preservado (a ponte salva com as_operator)
+        self.assertEqual(ch["owner_user_id"], 10)
+        # nada de chain_bridge_fail no log
+        acts = [e["action"] for e in self.trib.audit_log(1)]
+        self.assertNotIn("chain_bridge_fail", acts)
+
+    def test_bridge_without_chain_is_noop(self):
+        """Meta sem from_chain_id: a ponte não faz nada (nem audita)."""
+        a = self.trib.assign(1, 42, "T4_ORE", 100, created_by=7, now=self.NOW)
+        rep = self.trib.report(1, 42, "T4_ORE", 10, assignment_id=a["id"],
+                               now=self.NOW)
+        res = self.trib.approve(1, rep["id"], 7, now=self.NOW)
+        self.assertIsNone(res["from_chain_id"])
+        app._apply_report_to_chain(1, res, 7)   # não levanta
+        acts = [e["action"] for e in self.trib.audit_log(1)]
+        self.assertNotIn("chain_bridge_fail", acts)
+
+    def test_bridge_missing_chain_audited_never_breaks_approve(self):
+        res = self._approved(99999)             # cadeia apagada/inexistente
+        app._apply_report_to_chain(1, res, 7)   # não levanta
+        log = self.trib.audit_log(1)
+        fail = [e for e in log if e["action"] == "chain_bridge_fail"]
+        self.assertEqual(len(fail), 1)
+        self.assertEqual(fail[0]["details"]["chain_id"], 99999)
+        self.assertIn("cadeia", fail[0]["details"]["reason"])
+
+    def test_bridge_missing_node_audited(self):
+        cid = self.chains.save(1, 10, "sem o nó", {
+            "v": 1, "roots": ["T4_METALBAR"],
+            "ns": {"T4_METALBAR": {"mode": "make"}}, "stock": {}})
+        res = self._approved(cid, item="T5_ORE", qty=12)   # item fora da cadeia
+        app._apply_report_to_chain(1, res, 7)
+        ch = self.chains.get(1, 10, cid)
+        self.assertEqual(ch["payload"]["stock"], {})       # intacta
+        fail = [e for e in self.trib.audit_log(1)
+                if e["action"] == "chain_bridge_fail"]
+        self.assertEqual(len(fail), 1)
+        self.assertIn("nó", fail[0]["details"]["reason"])
+
+    def test_bridge_ignores_cross_org_chain(self):
+        """Cadeia de OUTRA org nunca é tocada (org-scoped) — falha auditada."""
+        cid = self.chains.save(2, 20, "de outra org", {
+            "v": 1, "roots": ["T4_METALBAR"],
+            "ns": {"T4_ORE": {}}, "stock": {}})
+        res = self._approved(cid)               # meta na org 1 aponta p/ ela
+        app._apply_report_to_chain(1, res, 7)
+        self.assertEqual(self.chains.get(2, 20, cid)["payload"]["stock"], {})
+        fail = [e for e in self.trib.audit_log(1)
+                if e["action"] == "chain_bridge_fail"]
+        self.assertEqual(len(fail), 1)
 
 
 class IslandTests(unittest.TestCase):
