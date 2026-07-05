@@ -1514,6 +1514,51 @@ def _laborer_market_data(vwap_days):
             "fill_sell_ok": fill_sell_ok}
 
 
+def _rank_fill_rows(row, md, args, cities, name):
+    """Ranking top-N dos produtos de fill ELEGÍVEIS de UM diário (--rank-fill).
+
+    Reusa island._fill_candidates com os MESMOS parâmetros da tabela principal
+    (premium/sell-mode/cidades/banda VWAP/refined-only/farm), então o topo do
+    ranking coincide com o 'Encher com' da tabela. Por candidato:
+      lucro/diário = retorno + n_crafts × margem − taxa estação − vazio
+    (a mesma conta do lucro alimentar vendendo, trocando o item escolhido pelo
+    candidato); % mercado = n_crafts/dia ÷ volume diário do item (1 diário/dia
+    por laborer). Devolve (rows, cols, header) p/ o emit existente."""
+    from albion import island
+    jinfo = (island._load().get("laborers") or {}).get(row["empty"]) or {}
+    ids = (jinfo.get("fill") or {}).get("items") or []
+    cands = island._fill_candidates(
+        ids, md["q1"], cities or config.CITIES, args.premium, args.sell_mode,
+        sell_ok=md["fill_sell_ok"], refined_only=args.fill_refined_only,
+        allow_farm=args.allow_farm)
+    elig = sorted((c for c in cands if c["eligible"]),
+                  key=lambda c: -c["margin"])
+    crafts = row["crafts_to_fill"]
+    rows = []
+    for c in elig[:args.rank_fill]:
+        lucro = (row["retorno_por_diario"] + crafts * c["margin"]
+                 - row["custo_taxa_estacao"] - row["vazio"])
+        vol = md["volumes"].get(c["vid"], 0) or 0
+        rows.append({
+            "item_id": c["vid"],
+            "produto": name(c["vid"]) or c["vid"],
+            "margem_un": round(c["margin"]),
+            "lucro_diario": round(lucro),
+            "vol_dia": round(vol),
+            "pct_mercado": f"{100 * crafts / vol:.1f}%" if vol else "s/vol",
+        })
+    header = (f"RANK-FILL {row['family']} T{row['tier']}: {len(cands)} produtos "
+              f"avaliados, {len(elig)} elegíveis (refinado + >=3 cidades + banda "
+              f"VWAP). Lucro/diário = retorno ({row['retorno_por_diario']}) + "
+              f"{crafts:g}×margem − taxa estação ({row['custo_taxa_estacao']}) − "
+              f"vazio ({row['vazio']}); % mercado = {crafts:g} crafts/dia ÷ "
+              f"vol/dia.")
+    cols = [("produto", "Produto de fill"), ("margem_un", "Margem/un"),
+            ("lucro_diario", "Lucro/diário"), ("vol_dia", "Vol/dia"),
+            ("pct_mercado", "% mercado")]
+    return rows, cols, header
+
+
 def cmd_laborers(args, fmt):
     """Trabalhador de FABRICAÇÃO completo: encher craftando + o RETORNO dele.
 
@@ -1525,8 +1570,12 @@ def cmd_laborers(args, fmt):
     DEVOLVE loot (lootlist ponderada por peso). Play B (alimentar, vendendo os
     itens) = retorno + n_crafts × margem_craft − vazio; Play A (flipar) = cheio −
     vazio. A coluna 'descart.' mantém o pessimista (item jogado fora). Ordena por
-    lucro alimentar vendendo. Lê o cache (store, RO) e monta price_q1."""
+    lucro alimentar vendendo. Com --rank-fill N (exige --family+--tier, ou seja,
+    UM diário), imprime também o ranking dos N melhores produtos de fill
+    elegíveis daquele diário. Lê o cache (store, RO) e monta price_q1."""
     from albion import island
+    if args.rank_fill is not None and not (args.family and args.tier):
+        die("--rank-fill exige --family E --tier (para apontar UM diário).")
     db = ItemDB()
     name = lambda iid: (db.get(iid) or {}).get("pt", iid) if iid else None
     md = _laborer_market_data(args.vwap_days)
@@ -1557,8 +1606,16 @@ def cmd_laborers(args, fmt):
         r["insumos_fill"] = ", ".join(
             f"{i['count']}×{name(i['id']) or i['id']}"
             for i in (r.get("fill_item_inputs") or []))
+    # --rank-fill: com family+tier o filtro deixa (no máximo) UM diário — o
+    # ranking reusa o retorno/vazio/taxa dessa linha p/ o lucro por candidato.
+    rank = (_rank_fill_rows(out[0], md, args, cities, name)
+            if args.rank_fill is not None and out else None)
     if fmt == "json":
-        emit(out, [], fmt)
+        if rank is not None:
+            print(json.dumps({"laborers": out, "rank_fill": rank[0]},
+                             ensure_ascii=False, indent=2))
+        else:
+            emit(out, [], fmt)
         return
     if not out:
         info("Nenhum trabalhador de fabricação precificado no cache "
@@ -1590,6 +1647,10 @@ def cmd_laborers(args, fmt):
           ("lucro_alimentar_descartando", "Lucro alim. (descart.)"),
           ("lucro_flip", "Lucro flip")],
          fmt)
+    if rank is not None:
+        rank_rows, rank_cols, rank_hdr = rank
+        info(rank_hdr)
+        emit(rank_rows, rank_cols, fmt)
 
 
 def cmd_laborplan(args, fmt):
@@ -3237,6 +3298,10 @@ def build_parser():
     p.add_argument("--premium", action=argparse.BooleanOptionalAction,
                    default=True)
     p.add_argument("--limit", type=int, default=60)
+    p.add_argument("--rank-fill", type=int, metavar="N",
+                   help="com --family E --tier (um diário): ranqueia os N "
+                        "melhores produtos de fill elegíveis (margem/un, "
+                        "lucro/diário, vol/dia, %% do mercado)")
     p.set_defaults(func=cmd_laborers)
 
     p = sub.add_parser("laborplan", parents=[common],
