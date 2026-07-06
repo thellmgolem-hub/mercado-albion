@@ -2532,56 +2532,108 @@ const HAPPY_FAMILIES = [
   ['FIBER', 'Lavrador (FIBER)'], ['STONE', 'Canteiro (STONE)'],
   ['FISHERMAN', 'Pescador (FISHERMAN)'],
 ];
+// famílias de COLETA (+mercenário): as únicas com troféu de TIPO (+10/tier)
 const HAPPY_TYPED = new Set(
-  ['WOOD', 'ORE', 'STONE', 'HIDE', 'FIBER', 'FISHERMAN', 'MERCENARY']);
+  ['ORE', 'WOOD', 'HIDE', 'FIBER', 'STONE', 'FISHERMAN', 'MERCENARY']);
 let happySeq = 0;   // sequência p/ descartar respostas fora de ordem
+
+// número no formato do jogo (112,5) — vírgula decimal, sem zeros à toa
+const happyNum = (x) => String(Math.round(x * 10) / 10).replace('.', ',');
 
 function initHappyCalc() {
   if (state.happyInit) return;
   state.happyInit = true;
   const opts = (from, sel) => Array.from({ length: 8 - from + 1 }, (_, i) => from + i)
     .map((t) => `<option value="${t}"${t === sel ? ' selected' : ''}>T${t}</option>`).join('');
-  $('happyLabTier').innerHTML = opts(1, 5);   // padrão: o cenário do dono
-  $('happyBed').innerHTML = opts(1, 7);
-  $('happyTable').innerHTML = '<option value="">sem mesa</option>' + opts(1, 7);
+  // padrão = o caso do dono: Ferreiro T6, GH T7, 15 trabalhadores,
+  // 15 camas T7, 3 mesas T7, troféus gerais T2..T7 → painel 430/500, T4=115%
+  $('happyLabTier').innerHTML = opts(2, 6);
+  $('happyBuilding').innerHTML = opts(1, 7);
+  $('happyBedTier').innerHTML = opts(1, 7);
+  $('happyTableTier').innerHTML = opts(1, 7);
   $('happyFamily').innerHTML = HAPPY_FAMILIES
-    .map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
-  ['happyLabTier', 'happyFamily', 'happyBed', 'happyTable', 'happyGen', 'happyTyped']
+    .map(([v, l]) => `<option value="${v}"${v === 'WARRIOR' ? ' selected' : ''}>${l}</option>`).join('');
+  $('happyGen').innerHTML = Array.from({ length: 7 }, (_, i) => i + 2)
+    .map((t) => `<label style="font-weight:400"><input type="checkbox" `
+      + `class="happyGenT" value="${t}"${t <= 7 ? ' checked' : ''}> T${t}</label>`).join('');
+  $('happyTyped').innerHTML = Array.from({ length: 7 }, (_, i) => i + 2)
+    .map((t) => `<label style="font-weight:400"><input type="checkbox" `
+      + `class="happyTypedT" value="${t}"> T${t}</label>`).join('');
+  ['happyLabTier', 'happyFamily', 'happyBuilding', 'happyN', 'happyBeds',
+   'happyBedTier', 'happyTables', 'happyTableTier', 'happyGen', 'happyTyped',
+   'happyShark']
     .forEach((id) => { $(id).addEventListener('input', calcHappy); });
   calcHappy();
 }
 
 async function calcHappy() {
   const out = $('happyOut');
+  const bld = +$('happyBuilding').value;
+  // o prédio tranca mobília e troféus de tier maior — clampa em vez de errar
+  ['happyBedTier', 'happyTableTier'].forEach((id) => {
+    const el = $(id);
+    if (+el.value > bld) el.value = String(bld);
+  });
+  document.querySelectorAll('.happyGenT').forEach((cb) => {
+    const locked = +cb.value > bld;
+    cb.disabled = locked;
+    if (locked) cb.checked = false;
+  });
+  // troféu de TIPO: só coleta/mercenário tem — fabricação fica travada
   const fam = $('happyFamily').value;
-  // desabilita "troféu de tipo" p/ famílias sem troféu de tipo (fabricação)
-  const typed = HAPPY_TYPED.has(fam);
-  $('happyTyped').disabled = !typed;
-  if (!typed) $('happyTyped').value = 0;
-  $('happyTypedField').style.opacity = typed ? '1' : '0.45';
+  const hasTyped = HAPPY_TYPED.has(fam);
+  $('happyTypedField').style.opacity = hasTyped ? '1' : '0.45';
+  document.querySelectorAll('.happyTypedT').forEach((cb) => {
+    const locked = !hasTyped || +cb.value > bld;
+    cb.disabled = locked;
+    if (locked) cb.checked = false;
+  });
+  const shark = $('happyShark');
+  shark.disabled = bld < 8;
+  if (bld < 8) shark.checked = false;
+  const gen = Array.from(document.querySelectorAll('.happyGenT'))
+    .filter((cb) => cb.checked).map((cb) => cb.value).join(',');
+  const typed = Array.from(document.querySelectorAll('.happyTypedT'))
+    .filter((cb) => cb.checked).map((cb) => cb.value).join(',');
   const q = {
     laborer_tier: +$('happyLabTier').value,
-    bed: +$('happyBed').value,
+    building_tier: bld,
+    n_laborers: +$('happyN').value || 1,
+    beds: +$('happyBeds').value || 0,
+    bed_tier: +$('happyBedTier').value,
+    tables: +$('happyTables').value || 0,
+    table_tier: +$('happyTableTier').value,
+    general_tiers: gen,
     family: fam,
-    general_tiers: +$('happyGen').value || 0,
-    typed_tiers: +$('happyTyped').value || 0,
   };
-  if ($('happyTable').value) q.table = +$('happyTable').value;
+  if (typed) q.typed_tiers = typed;
+  if (shark.checked) q.shark = true;
   out.className = 'status';
   out.textContent = 'calculando…';
   const seq = ++happySeq;
   try {
     const r = await api('/api/laborer-happiness', q);
     if (seq !== happySeq) return;   // chegou uma resposta mais nova — descarta esta
-    const cls = r.maxed ? 'profit-pos' : (r.below_base ? 'profit-neg' : '');
-    const tail = r.maxed
-      ? '<b>no teto</b>'
-      : `faltam <b>${r.to_max_points}</b> de felicidade`;
+    const box = (label, s) =>
+      `<span style="display:inline-block;margin-right:14px">${esc(label)} `
+      + `<b class="${s.score >= s.cap ? 'profit-pos' : ''}">${happyNum(s.score)}/${s.cap}</b></span>`;
+    const full = r.total >= r.total_max;
+    const yields = (r.yield_por_diario || [])
+      .map((y) => `T${y.diario_tier} <b class="${y.yield_pct > 100 ? 'profit-pos' : ''}">`
+        + `${happyNum(y.yield_pct)}%</b>`).join(' · ');
+    const hints = (r.hints || []).slice(0, 4).map((h) => `· ${esc(h)}`);
+    const locked = (r.trancados || []).slice(0, 3).map((h) => `× ${esc(h)}`);
     out.innerHTML =
-      `<b class="${cls}" style="font-size:1.05rem">Rendimento +${r.yield_bonus_pct}%</b> · `
-      + `felicidade <b>${r.total}</b> (base ${r.base}, mobília ${r.furniture_happiness}, `
-      + `troféu ${r.trophy_happiness}) · ${tail}`
-      + `<div class="hint" style="margin-top:5px">${esc(r.hint)}</div>`;
+      `<div style="font-size:1.05rem">${box('Camas', r.camas)}${box('Mesas', r.mesas)}`
+      + `${box('Troféus', r.trofeus)}<span style="display:inline-block">Total `
+      + `<b class="${full ? 'profit-pos' : ''}">${happyNum(r.total)}/${r.total_max}</b></span>`
+      + `${r.estimado ? ' <span class="hint">(parte proporcional = estimativa)</span>' : ''}</div>`
+      + `<div style="margin-top:5px">Rendimento por diário: ${yields}</div>`
+      + `<div style="margin-top:3px" class="hint">alcançável nesta config: total `
+      + `${happyNum(r.alcancavel.total)}/${r.total_max} (troféus ${r.alcancavel.trofeus}/100)</div>`
+      + (hints.length || locked.length
+        ? `<div class="hint" style="margin-top:5px">${hints.concat(locked).join('<br>')}</div>`
+        : '');
   } catch (e) {
     if (seq !== happySeq) return;
     out.className = 'status err'; out.textContent = 'erro: ' + e.message;

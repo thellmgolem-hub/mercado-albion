@@ -1820,28 +1820,54 @@ def island_view(view: str = "laborers", premium: bool = True,
 
 
 @app.get("/api/laborer-happiness")
-def laborer_happiness_view(laborer_tier: int, bed: int,
-                           table: int = None, family: str = None,
-                           general_tiers: int = 0, typed_tiers: int = 0,
-                           trophy_happiness: int = None):
-    """Calculadora de FELICIDADE/rendimento do trabalhador (mecânica do dump+wiki).
+def laborer_happiness_view(laborer_tier: int, building_tier: int = 8,
+                           n_laborers: int = 1, beds: int = None,
+                           bed_tier: int = None, tables: int = None,
+                           table_tier: int = None, general_tiers: str = "",
+                           typed_tiers: str = "", family: str = None,
+                           shark: bool = False, spyglass: bool = False):
+    """PAINEL de felicidade do trabalhador — modelo REAL do jogo (calibrado
+    2026-07-05 com screenshot ao vivo). Puro cálculo, NÃO toca o cache.
 
-    Puro cálculo — NÃO toca o cache nem os preços. Cama/mesa = 50×tier; base =
-    100×tier DO TRABALHADOR; +0,5% de rendimento por ponto acima da base, teto +50%
-    (precisa +100). Troféu completa: geral +5/tier, tipo +10/tier (a fabricação
-    WARRIOR/MAGE/HUNTER/TOOLMAKER só tem geral). Devolve o veredicto (maxed /
-    needs_trophies / needs_furniture / below_base) e uma dica em PT-BR."""
+    Teto do painel = 100×L−100 (camas/mesas 50×L−100 cada + troféus 100 fixo);
+    rendimento por diário T_J = clamp(100 + 0,5×(total − 100×J), 100, 150).
+    general_tiers/typed_tiers: CSV de tiers de troféu COM cobertura (ex.:
+    "2,3,4,5,6,7"); typed é ignorado p/ fabricação (WARRIOR/MAGE/HUNTER/
+    TOOLMAKER — sem troféu de tipo). Prédio tranca mobília/troféu de tier maior
+    (geral T8 e tubarão só em prédio T8). Defaults: beds = n_laborers,
+    tables = ceil(n_laborers/6), tiers de mobília = tier do prédio.
+    Resposta = island.happiness_advice completo: painel (camas/mesas/trofeus/
+    total/total_max), yield_por_diario (T2..L, atual e alcançável), hints,
+    trancados e alcancavel."""
     from albion import island as isl
-    if not (1 <= laborer_tier <= 8) or not (1 <= bed <= 8):
-        raise HTTPException(status_code=400,
-                            detail="laborer_tier e bed devem ser 1..8")
-    if table is not None and not (1 <= table <= 8):
-        raise HTTPException(status_code=400, detail="table deve ser 1..8")
-    th = (max(0, trophy_happiness) if trophy_happiness is not None
-          else isl.trophy_happiness_from(general_tiers=general_tiers,
-                                          typed_tiers=typed_tiers, family=family))
-    return isl.happiness_advice(laborer_tier, family=family, bed_tier=bed,
-                                table_tier=table, trophy_happiness=th)
+
+    def _csv(s, name):
+        if not s:
+            return ()
+        try:
+            return tuple(int(x) for x in s.replace(" ", "").split(",") if x)
+        except ValueError:
+            raise HTTPException(status_code=400,
+                                detail=f"{name} deve ser CSV de tiers (2,3,4)")
+
+    n = max(1, n_laborers)
+    if beds is None:
+        beds = n
+    if bed_tier is None:
+        bed_tier = building_tier
+    if tables is None:
+        tables = -(-n // isl._TABLE_COVERS)
+    if table_tier is None:
+        table_tier = building_tier
+    try:
+        return isl.happiness_advice(
+            laborer_tier, building_tier=building_tier, n_laborers=n,
+            beds=beds, bed_tier=bed_tier, tables=tables, table_tier=table_tier,
+            general_tiers=_csv(general_tiers, "general_tiers"),
+            typed_tiers=_csv(typed_tiers, "typed_tiers"),
+            family=family, shark=shark, spyglass=spyglass)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 # famílias com diário de FABRICAÇÃO (enchem craftando — únicas com laborplan)

@@ -1740,48 +1740,70 @@ def cmd_laborplan(args, fmt):
         info("Diário vazio sem cotação de compra — custo do vazio entrou como 0.")
 
 
-def cmd_laborhappy(args, fmt):
-    """Felicidade e % de rendimento de um trabalhador dada cama/mesa/troféu.
+def _parse_tier_csv(s, opt):
+    """CSV de tiers ("2,3,4") -> tupla de ints; vazio/None -> ()."""
+    if not s:
+        return ()
+    try:
+        return tuple(int(x) for x in str(s).replace(" ", "").split(",") if x)
+    except ValueError:
+        die(f"{opt} deve ser CSV de tiers, ex.: 2,3,4,5,6,7")
 
-    Puro cálculo (mecânica do dump+wiki): NÃO toca o cache. Cama/mesa = 50×tier;
-    base = 100×tier DO TRABALHADOR; +0,5%/ponto acima da base, teto +50% (precisa
-    +100). Troféu completa: geral +5, tipo +10 (fabricação WARRIOR/MAGE/HUNTER/
-    TOOLMAKER só tem geral). Diz se já satura só com a mobília, se falta troféu ou
-    se convém subir a cama/mesa."""
+
+def cmd_laborhappy(args, fmt):
+    """Painel de FELICIDADE do trabalhador — modelo REAL do jogo (calibrado
+    2026-07-05). Puro cálculo, NÃO toca o cache. Teto do painel = 100×L−100
+    (camas/mesas 50×L−100 cada + troféus 100 fixo); rendimento por diário T_J =
+    clamp(100 + 0,5×(total − 100×J), 100, 150). Imprime o painel igual ao jogo
+    (Camas x/cap · Mesas x/cap · Troféus x/100 · Total x/max), a tabela de
+    rendimento por tier de diário e o diagnóstico (alcançável vs trancado)."""
     from albion import island
-    if not (1 <= args.laborer_tier <= 8) or not (1 <= args.bed <= 8):
-        die("--laborer-tier e --bed devem ser 1..8")
-    if args.table is not None and not (1 <= args.table <= 8):
-        die("--table deve ser 1..8")
-    if args.trophy_happiness is not None:
-        th = max(0, args.trophy_happiness)
-    else:
-        th = island.trophy_happiness_from(
-            general_tiers=args.general_tiers, typed_tiers=args.typed_tiers,
-            family=args.family)
-    adv = island.happiness_advice(
-        args.laborer_tier, family=args.family, bed_tier=args.bed,
-        table_tier=args.table, trophy_happiness=th)
+    n = max(1, args.laborers)
+    beds = args.beds if args.beds is not None else n
+    bed_tier = args.bed_tier if args.bed_tier is not None else args.building_tier
+    tables = (args.tables if args.tables is not None
+              else -(-n // island._TABLE_COVERS))
+    table_tier = (args.table_tier if args.table_tier is not None
+                  else args.building_tier)
+    if args.journal is not None and not (2 <= args.journal <= args.laborer_tier):
+        die("--journal deve ser 2..tier do trabalhador")
+    try:
+        adv = island.happiness_advice(
+            args.laborer_tier, building_tier=args.building_tier, n_laborers=n,
+            beds=beds, bed_tier=bed_tier, tables=tables, table_tier=table_tier,
+            general_tiers=_parse_tier_csv(args.general_tiers, "--general-tiers"),
+            typed_tiers=_parse_tier_csv(args.typed_tiers, "--typed-tiers"),
+            family=args.family, shark=args.shark, spyglass=args.spyglass)
+    except ValueError as e:
+        die(str(e))
     if fmt == "json":
         print(json.dumps(adv, ensure_ascii=False, indent=2))
         return
     fam = f" ({adv['family']})" if adv["family"] else ""
-    mob = (f"cama T{args.bed}"
-           + (f" + mesa T{args.table}" if args.table else " (sem mesa)"))
-    sign = "+" if adv["above_base"] >= 0 else ""
-    info(f"Trabalhador T{adv['laborer_tier']}{fam}: base {adv['base']}, mobília "
-         f"{adv['furniture_happiness']} ({mob}), troféu {adv['trophy_happiness']}"
-         f" → total {adv['total']} = base {sign}{adv['above_base']}.")
-    rows = [
-        {"campo": "Felicidade total", "valor": adv["total"]},
-        {"campo": "Base (100×tier)", "valor": adv["base"]},
-        {"campo": "Acima da base", "valor": adv["above_base"]},
-        {"campo": "Rendimento (bônus)", "valor": f"+{adv['yield_bonus_pct']:g}%"},
-        {"campo": "No teto (+50%)?", "valor": "sim" if adv["maxed"] else "não"},
-        {"campo": "Falta p/ teto", "valor": adv["to_max_points"]},
-    ]
-    emit(rows, [("campo", "Campo"), ("valor", "Valor")], fmt)
-    info(adv["hint"])
+    info(f"Trabalhador T{adv['laborer_tier']}{fam} em prédio "
+         f"T{adv['building_tier']} · {adv['n_laborers']} trabalhador(es) · "
+         f"{beds} cama(s) T{bed_tier} · {tables} mesa(s) T{table_tier}.")
+    c, m, t = adv["camas"], adv["mesas"], adv["trofeus"]
+    est = " (parte proporcional = estimativa)" if adv["estimado"] else ""
+    info(f"PAINEL: Camas {c['score']:g}/{c['cap']} · Mesas {m['score']:g}/"
+         f"{m['cap']} · Troféus {t['score']}/{t['cap']} · Total "
+         f"{adv['total']:g}/{adv['total_max']}{est}")
+    rows = [{"diario": f"T{y['diario_tier']}",
+             "rendimento": f"{y['yield_pct']:g}%",
+             "alcancavel": f"{y['yield_alcancavel_pct']:g}%"}
+            for y in adv["yield_por_diario"]
+            if args.journal is None or y["diario_tier"] == args.journal]
+    emit(rows, [("diario", "Diário"), ("rendimento", "Rendimento"),
+                ("alcancavel", "Alcançável")], fmt)
+    a = adv["alcancavel"]
+    info(f"Alcançável nesta config: total {a['total']:g}/{adv['total_max']} "
+         f"(troféus {a['trofeus']}/{island.TROPHY_CAP}).")
+    for h in adv["hints"]:
+        info(f"  · {h}")
+    if adv["trancados"]:
+        info("Trancado:")
+        for h in adv["trancados"]:
+            info(f"  × {h}")
 
 
 def cmd_backtest(args, fmt):
@@ -3326,20 +3348,37 @@ def build_parser():
     p.set_defaults(func=cmd_laborplan)
 
     p = sub.add_parser("laborhappy", parents=[common],
-                       help="felicidade/rendimento do trabalhador (cama+mesa+troféu)")
+                       help="painel de felicidade do trabalhador (modelo real "
+                            "do jogo: camas/mesas/troféus + rendimento/diário)")
     p.add_argument("--laborer-tier", type=int, required=True,
-                   help="tier do TRABALHADOR (não do diário); base = 100×tier")
-    p.add_argument("--bed", type=int, required=True, help="tier da cama (50×tier)")
-    p.add_argument("--table", type=int, help="tier da mesa (50×tier; opcional)")
-    p.add_argument("--family", help="família p/ saber se tem troféu de tipo "
-                   "(WARRIOR/MAGE/HUNTER/TOOLMAKER não têm; coleta+MERCENARY têm)")
-    p.add_argument("--general-tiers", type=int, default=0,
-                   help="quantos tiers de troféu GERAL (0..7, +5 cada)")
-    p.add_argument("--typed-tiers", type=int, default=0,
-                   help="quantos tiers de troféu de TIPO (0..7, +10 cada; ignorado "
-                        "se a família não tem troféu de tipo)")
-    p.add_argument("--trophy-happiness", type=int,
-                   help="felicidade de troféu já somada (sobrepõe general/typed)")
+                   help="tier do TRABALHADOR (teto do painel = 100×tier − 100)")
+    p.add_argument("--building-tier", type=int, default=8,
+                   help="tier do PRÉDIO (tranca mobília/troféu acima; padrão 8)")
+    p.add_argument("--laborers", type=int, default=1,
+                   help="nº de trabalhadores no prédio (cobertura de cama/mesa/"
+                        "troféu; padrão 1)")
+    p.add_argument("--beds", type=int,
+                   help="nº de camas (1 cobre 1; padrão = nº de trabalhadores)")
+    p.add_argument("--bed-tier", type=int,
+                   help="tier das camas (padrão = tier do prédio)")
+    p.add_argument("--tables", type=int,
+                   help="nº de mesas (1 cobre 6; padrão = ceil(laborers/6))")
+    p.add_argument("--table-tier", type=int,
+                   help="tier das mesas (padrão = tier do prédio)")
+    p.add_argument("--general-tiers", default="",
+                   help="tiers de troféu GERAL com cobertura, CSV (ex.: "
+                        "2,3,4,5,6,7; +5 cada; 1 cópia cobre 3)")
+    p.add_argument("--typed-tiers", default="",
+                   help="tiers de troféu de TIPO com cobertura, CSV (+10 cada; "
+                        "só coleta+MERCENARY — ignorado p/ fabricação)")
+    p.add_argument("--family", help="família do trabalhador (WARRIOR/MAGE/"
+                   "HUNTER/TOOLMAKER = fabricação, sem troféu de tipo)")
+    p.add_argument("--shark", action="store_true",
+                   help="tubarão T8 com cobertura (+5; só em prédio T8)")
+    p.add_argument("--spyglass", action="store_true",
+                   help="Spyglass do fundador com cobertura (+5; inobtenível)")
+    p.add_argument("--journal", type=int,
+                   help="mostra só o rendimento deste tier de diário (2..L)")
     p.set_defaults(func=cmd_laborhappy)
 
     p = sub.add_parser("report", parents=[common],

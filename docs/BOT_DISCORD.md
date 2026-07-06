@@ -97,7 +97,7 @@ nunca do servidor Discord de onde o comando foi digitado.
 | `/buscar <termo>` | `GET /api/search?group=true` | pública |
 | `/flip <orçamento> [cidade]` | `GET /api/flip-advisor` | pública |
 | `/ilha` | `GET /api/island?view=laborers` (top 5) | pública |
-| `/felicidade <tier> <cama> [mesa] [família]` | `GET /api/laborer-happiness` | pública |
+| `/felicidade <tier> [prédio] [trabalhadores] [família]` | `GET /api/laborer-happiness` (painel do jogo + rendimento por diário; assume mobília/troféus ideais = teto da config) | pública |
 | `/vincular <código>` | `POST /api/discord/link` | **efêmera** |
 | `/minhas-metas` | `GET /api/discord/my-assignments` | **efêmera** |
 | `/meu-status` | `GET /api/discord/my-status` | **efêmera** |

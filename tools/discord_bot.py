@@ -264,31 +264,36 @@ async def handle_ilha(api) -> str:
     return code_block("\n".join(lines))
 
 
-async def handle_felicidade(api, tier_trabalhador: int, cama: int,
-                            mesa=None, familia=None) -> str:
-    """/felicidade — diagnóstico de felicidade/rendimento do trabalhador."""
-    params = {"laborer_tier": tier_trabalhador, "bed": cama}
-    if mesa is not None:
-        params["table"] = mesa
+async def handle_felicidade(api, tier_trabalhador: int, predio: int = 8,
+                            trabalhadores: int = 1, familia=None) -> str:
+    """/felicidade — painel do jogo (camas/mesas/troféus) + rendimento por diário.
+
+    Assume o CENÁRIO IDEAL da configuração: mobília suficiente no tier do prédio
+    e todos os troféus gerais colocáveis — mostra o TETO alcançável (o painel
+    real do jogador só fica abaixo se faltar peça)."""
+    gen = ",".join(str(t) for t in range(2, min(8, predio) + 1))
+    params = {"laborer_tier": tier_trabalhador, "building_tier": predio,
+              "n_laborers": trabalhadores, "general_tiers": gen}
     if familia:
         params["family"] = familia
     res = await api.get("/api/laborer-happiness", params=params)
-    verdict_pt = {"maxed": "NO TETO (+50%)",
-                  "needs_trophies": "FALTA TROFÉU",
-                  "needs_furniture": "FALTA MOBÍLIA",
-                  "below_base": "ABAIXO DA BASE"}
+    num = lambda x: f"{x:g}".replace(".", ",")
+    pan = (f"Camas {num(res['camas']['score'])}/{res['camas']['cap']} | "
+           f"Mesas {num(res['mesas']['score'])}/{res['mesas']['cap']} | "
+           f"Trofeus {num(res['trofeus']['score'])}/100 | "
+           f"Total {num(res['total'])}/{res['total_max']}")
+    yields = " | ".join(f"T{y['diario_tier']} {num(y['yield_pct'])}%"
+                        for y in res.get("yield_por_diario") or [])
     lines = [
-        f"Trabalhador T{res['laborer_tier']}"
-        + (f" ({res['family']})" if res.get("family") else ""),
-        f"felicidade: {res['total']} (base {res['base']} | "
-        f"mobília {res['furniture_happiness']} | troféu {res['trophy_happiness']})",
-        f"rendimento: +{res['yield_bonus_pct']}%"
-        + (f" | faltam {res['to_max_points']} p/ o teto"
-           if res.get("to_max_points") else ""),
-        "",
-        f"[{verdict_pt.get(res.get('verdict'), res.get('verdict', '?'))}] "
-        f"{res.get('hint', '')}",
+        f"Trabalhador T{res['laborer_tier']} em prédio T{res['building_tier']}"
+        + (f" ({res['family']})" if res.get("family") else "")
+        + f" — teto da configuração ({trabalhadores} trab.)",
+        pan,
+        f"rendimento por diário: {yields}",
     ]
+    extras = (res.get("hints") or [])[:2] + (res.get("trancados") or [])[:2]
+    if extras:
+        lines += [""] + [f"- {h}" for h in extras]
     return code_block("\n".join(lines))
 
 
@@ -420,21 +425,22 @@ def build_bot(api: ApiClient):
         await _respond(interaction, handle_ilha(api))
 
     @tree.command(name="felicidade",
-                  description="Felicidade/rendimento de um trabalhador da ilha")
+                  description="Painel de felicidade + rendimento por diário (teto da config)")
     @app_commands.describe(
-        tier_trabalhador="Tier do TRABALHADOR (1-8)",
-        cama="Tier da cama (1-8)",
-        mesa="Tier da mesa (1-8, opcional)",
-        familia="Família do trabalhador (define o troféu de tipo)")
+        tier_trabalhador="Tier do TRABALHADOR (2-8)",
+        predio="Tier do PRÉDIO (casa/guild hall, 2-8; tranca mobília/troféus)",
+        trabalhadores="Quantos trabalhadores dividem o prédio (padrão 1)",
+        familia="Família (fabricação não tem troféu de tipo)")
     @app_commands.choices(familia=[app_commands.Choice(name=f, value=f)
                                    for f in LABORER_FAMILIES])
     async def felicidade_cmd(interaction: discord.Interaction,
-                             tier_trabalhador: app_commands.Range[int, 1, 8],
-                             cama: app_commands.Range[int, 1, 8],
-                             mesa: app_commands.Range[int, 1, 8] = None,
+                             tier_trabalhador: app_commands.Range[int, 2, 8],
+                             predio: app_commands.Range[int, 2, 8] = 8,
+                             trabalhadores: app_commands.Range[int, 1, 99] = 1,
                              familia: str = None):
         await _respond(interaction, handle_felicidade(
-            api, tier_trabalhador, cama, mesa=mesa, familia=familia))
+            api, tier_trabalhador, predio, trabalhadores=trabalhadores,
+            familia=familia))
 
     # ------------------------------------- comandos do membro (EFÊMEROS)
     @tree.command(name="vincular",

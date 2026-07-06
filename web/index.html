@@ -733,22 +733,33 @@
         que o trabalhador daquela linha entrega e onde vendê-lo melhor.</div>
     </div></div>
 
-    <!-- calculadora de felicidade / rendimento (mecânica do dump+wiki) -->
+    <!-- painel de felicidade (modelo REAL do jogo, calibrado 2026-07-05) -->
     <div class="section-head" style="margin:4px 0 0"><div>
       <h2 style="margin:0;font-size:1.05rem">Felicidade &amp; rendimento</h2>
-      <div class="sub">Cama/mesa = <b>50×tier</b> · base do trabalhador = <b>100×tier</b> · cada ponto
-        acima da base = +0,5% de rendimento, teto <b>+50%</b> (precisa +100). Troféu completa: geral +5,
-        do mesmo tipo +10 — a fabricação (WARRIOR/MAGE/HUNTER/TOOLMAKER) só tem o geral.</div>
+      <div class="sub">Espelha o <b>painel do jogo</b>: teto = <b>100×tier − 100</b>
+        (camas e mesas <b>50×tier − 100</b> cada + troféus <b>100</b> fixo). Rendimento do diário
+        T<sub>J</sub> = 100% + 0,5%×(total − 100×J), entre <b>100%</b> e <b>150%</b>. Troféu geral +5
+        por tier coberto (1 cópia cobre 3); a fabricação (WARRIOR/MAGE/HUNTER/TOOLMAKER) não tem
+        troféu de tipo. Prédio tranca mobília/troféu de tier maior.</div>
     </div></div>
     <div class="controls" id="happyControls">
       <div class="field"><label>Trabalhador</label><select id="happyLabTier"></select></div>
       <div class="field"><label>Família</label><select id="happyFamily"></select></div>
-      <div class="field"><label>Cama</label><select id="happyBed"></select></div>
-      <div class="field"><label>Mesa</label><select id="happyTable"></select></div>
-      <div class="field"><label>Troféu geral (tiers)</label>
-        <input type="number" id="happyGen" value="0" min="0" max="7" step="1"></div>
-      <div class="field" id="happyTypedField"><label>Troféu de tipo (tiers)</label>
-        <input type="number" id="happyTyped" value="0" min="0" max="7" step="1"></div>
+      <div class="field"><label>Prédio</label><select id="happyBuilding"></select></div>
+      <div class="field"><label>Trabalhadores</label>
+        <input type="number" id="happyN" value="15" min="1" max="99" step="1"></div>
+      <div class="field"><label>Camas</label>
+        <input type="number" id="happyBeds" value="15" min="0" max="99" step="1"></div>
+      <div class="field"><label>Tier cama</label><select id="happyBedTier"></select></div>
+      <div class="field"><label>Mesas</label>
+        <input type="number" id="happyTables" value="3" min="0" max="99" step="1"></div>
+      <div class="field"><label>Tier mesa</label><select id="happyTableTier"></select></div>
+      <div class="field"><label>Troféu geral (tiers cobertos)</label>
+        <div id="happyGen" style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0"></div></div>
+      <div class="field" id="happyTypedField"><label>Troféu de TIPO (+10/tier, só coleta)</label>
+        <div id="happyTyped" style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0"></div></div>
+      <div class="field"><label>Tubarão T8</label>
+        <label style="font-weight:400"><input type="checkbox" id="happyShark"> coberto (+5)</label></div>
     </div>
     <div class="status" id="happyOut"></div>
 

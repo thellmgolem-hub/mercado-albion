@@ -304,6 +304,25 @@ class CraftingLaborerTests(unittest.TestCase):
             self.RECIPES.clear(); self.RECIPES.update(orig_recipes)
             self.PRICES.clear(); self.PRICES.update(orig_prices)
 
+    def test_yield_pct_multiplies_worker_return(self):
+        # yield_pct (felicidade, journal_yield) multiplica SÓ o retorno do
+        # trabalhador; default None = comportamento atual (loot pleno = 100%).
+        base = self._row()
+        r150 = island.crafting_laborer_economy(
+            self._q1(), premium=True, sell_mode="order",
+            yield_pct=150)["rows"][0]
+        self.assertEqual(r150["retorno_por_diario"],
+                         round(base["retorno_por_diario"] * 1.5))
+        # custo de encher e vazio NÃO mudam — só o retorno
+        self.assertEqual(r150["custo_encher_vendendo"],
+                         base["custo_encher_vendendo"])
+        self.assertEqual(r150["vazio"], base["vazio"])
+        r100 = island.crafting_laborer_economy(
+            self._q1(), premium=True, sell_mode="order",
+            yield_pct=100)["rows"][0]
+        self.assertEqual(r100["retorno_por_diario"],
+                         base["retorno_por_diario"])
+
     def test_partial_loot_pricing_is_conservative(self):
         # sem preço p/ a variante encantada: ela contribui 0 e a cobertura cai
         orig = dict(self.PRICES)
@@ -409,111 +428,155 @@ class LaborerPlanTests(unittest.TestCase):
         self.assertEqual(r["craft_margin_total"],
                          sum(b["lucro_item_dia"] for b in r["basket"]))
 
+    def test_yield_pct_multiplies_return_per_journal(self):
+        # yield_pct multiplica o retorno/diário do plano (default None = pleno)
+        vols = {"SYN_PRICEY": 20, "SYN_CHEAP": 50}
+        base = self._plan(vols, n=3)
+        r = self._plan(vols, n=3, yield_pct=150)
+        self.assertEqual(r["return_per_journal"],
+                         round(base["return_per_journal"] * 1.5))
+        # e o lucro/dia continua sendo a soma das partes (com o retorno novo)
+        self.assertEqual(
+            r["profit_day"],
+            r["worker_return_total"] + r["craft_margin_total"]
+            - r["empty_cost_total"] - r["station_fee_total"])
+        # a cesta/margens não mudam — só o retorno do trabalhador
+        self.assertEqual(r["craft_margin_total"], base["craft_margin_total"])
+
 
 class HappinessTests(unittest.TestCase):
-    """Felicidade/rendimento (cama+mesa+troféu). Cálculo puro, sem dump nem cache.
+    """Painel de felicidade — modelo REAL do jogo (calibrado 2026-07-05 com
+    screenshot ao vivo: Ferreiro T6 em GH T7 → Camas 200/200 · Mesas 200/200 ·
+    Troféus 25/100 · Total 425/500; diários T2=150%, T3=150%, T4=112,5%).
+    Cálculo puro, sem dump nem cache."""
 
-    Cama/mesa = 50×tier; base = 100×tier do trabalhador; +0,5%/ponto acima da base,
-    teto +50% (precisa +100). Troféu geral +5, tipo +10 (fabricação só geral)."""
+    # o cenário do dono (verdade-base do screenshot), como kwargs reutilizáveis
+    OWNER = dict(building_tier=7, n_laborers=15, beds=15, bed_tier=7,
+                 tables=3, table_tier=7, family="WARRIOR")
 
-    def test_furniture_happiness(self):
-        self.assertEqual(island.furniture_happiness(7), 350)          # só cama
-        self.assertEqual(island.furniture_happiness(7, 7), 700)       # cama+mesa
-        self.assertEqual(island.furniture_happiness(5, 6), 550)
+    def test_a_screenshot_panel_425(self):
+        # (a) caso do print: gerais 2..7 MENOS um tier (5 cobertos) → 425/500
+        p = island.happiness_panel(6, general_tiers=(2, 3, 4, 5, 7),
+                                   **self.OWNER)
+        self.assertEqual(p["camas"], {"score": 200, "cap": 200,
+                                      "estimado": False})
+        self.assertEqual(p["mesas"], {"score": 200, "cap": 200,
+                                      "estimado": False})
+        self.assertEqual(p["trofeus"]["score"], 25)
+        self.assertEqual(p["trofeus"]["cap"], 100)
+        self.assertEqual(p["total"], 425)
+        self.assertEqual(p["total_max"], 500)
+        self.assertFalse(p["estimado"])            # painel maxado = calibrado
+        # rendimento por tier de diário — EXATAMENTE o painel do jogo
+        self.assertEqual(island.journal_yield(425, 2), 150.0)
+        self.assertEqual(island.journal_yield(425, 3), 150.0)
+        self.assertEqual(island.journal_yield(425, 4), 112.5)
+        # o tier que falta aparece como hint alcançável, citando o ponto
+        adv = island.happiness_advice(6, general_tiers=(2, 3, 4, 5, 7),
+                                      **self.OWNER)
+        self.assertTrue(any("troféu geral T6 sem cobertura: +5" in h
+                            for h in adv["hints"]))
 
-    def test_user_case_t5_with_t7_furniture_is_maxed(self):
-        # O caso do dono: trabalhador T5, cama+mesa T7 → teto +50%, zero troféu.
-        st = island.laborer_happiness(5, bed_tier=7, table_tier=7)
-        self.assertEqual(st["base"], 500)
-        self.assertEqual(st["total"], 700)
-        self.assertEqual(st["above_base"], 200)
-        self.assertEqual(st["yield_bonus_pct"], 50.0)
-        self.assertTrue(st["maxed"])
-        self.assertFalse(st["below_base"])
-        self.assertEqual(st["to_max_points"], 0)
+    def test_b_owner_full_generals_430(self):
+        # (b) gerais 2..7 completos → 430/500 e diário T4 = 115%
+        adv = island.happiness_advice(6, general_tiers=(2, 3, 4, 5, 6, 7),
+                                      **self.OWNER)
+        self.assertEqual(adv["total"], 430)
+        ys = {y["diario_tier"]: y["yield_pct"] for y in adv["yield_por_diario"]}
+        self.assertEqual(ys[2], 150.0)
+        self.assertEqual(ys[3], 150.0)
+        self.assertEqual(ys[4], 115.0)
+        self.assertEqual(ys[5], 100.0)             # piso (calibrado-parcial)
+        self.assertEqual(ys[6], 100.0)
 
-    def test_same_tier_furniture_equals_base(self):
-        # Cama+mesa do MESMO tier do trabalhador = base exata (0% de bônus).
-        st = island.laborer_happiness(7, bed_tier=7, table_tier=7)
-        self.assertEqual(st["total"], 700)
-        self.assertEqual(st["above_base"], 0)
-        self.assertEqual(st["yield_bonus_pct"], 0.0)
-        self.assertFalse(st["maxed"])
-        # T6 cama+mesa p/ um T5 (600) = exatamente o teto.
-        st2 = island.laborer_happiness(5, bed_tier=6, table_tier=6)
-        self.assertEqual(st2["total"], 600)
-        self.assertTrue(st2["maxed"])
+    def test_c_t4_laborer_caps_100_100_100(self):
+        # (c) confirmação independente do fórum: T4 = "300/300", troféu 100 fixo
+        p = island.happiness_panel(4, building_tier=7, n_laborers=1, beds=1,
+                                   bed_tier=7, tables=1, table_tier=7)
+        self.assertEqual(p["camas"]["cap"], 100)
+        self.assertEqual(p["mesas"]["cap"], 100)
+        self.assertEqual(p["camas"]["score"], 100)
+        self.assertEqual(p["mesas"]["score"], 100)
+        self.assertEqual(p["trofeus"]["cap"], 100)
+        self.assertEqual(p["total_max"], 300)
 
-    def test_yield_is_linear_and_capped(self):
-        # +0,5% por ponto acima da base.
-        st = island.laborer_happiness(5, bed_tier=6, table_tier=5)  # 550, +50 acima
-        self.assertEqual(st["above_base"], 50)
-        self.assertEqual(st["yield_bonus_pct"], 25.0)
-        # Muito acima da base → o bônus satura em +50%.
-        st2 = island.laborer_happiness(5, bed_tier=8, table_tier=8)  # 800, +300
-        self.assertEqual(st2["yield_bonus_pct"], 50.0)
-        self.assertTrue(st2["maxed"])
+    def test_d_gathering_typed_saturates_trophy_100(self):
+        # (d) coleta ORE em prédio T8: gerais 2..8 (35) + tipo 2..8 (70) + tubarão
+        # (5) = 110 bruto → satura no cap 100
+        p = island.happiness_panel(6, building_tier=8, n_laborers=3, beds=3,
+                                   bed_tier=8, tables=1, table_tier=8,
+                                   general_tiers=range(2, 9),
+                                   typed_tiers=range(2, 9), family="ORE",
+                                   shark=True)
+        self.assertEqual(p["trofeus"]["bruto"], 110)
+        self.assertEqual(p["trofeus"]["score"], 100)
+        self.assertEqual(p["total"], 500)          # 200+200+100 = teto do T6
 
-    def test_below_base(self):
-        st = island.laborer_happiness(5, bed_tier=5)   # só cama = 250 < 500
-        self.assertEqual(st["total"], 250)
-        self.assertEqual(st["above_base"], -250)
-        self.assertEqual(st["yield_bonus_pct"], 0.0)
-        self.assertTrue(st["below_base"])
-        self.assertEqual(st["to_max_points"], 350)     # 600 − 250
+    def test_e_crafting_trophy_ceiling_and_best_yield(self):
+        # (e) fabricação NÃO tem troféu de tipo: mesmo com TUDO (prédio T8,
+        # gerais 2..8, tubarão) o troféu para em 40; +5 do Spyglass inobtenível
+        # → teto ABSOLUTO 45. Nunca chega perto dos 100.
+        base = dict(building_tier=8, n_laborers=1, beds=1, bed_tier=8,
+                    tables=1, table_tier=8, general_tiers=range(2, 9),
+                    family="WARRIOR", shark=True)
+        p = island.happiness_panel(8, **base)
+        self.assertEqual(p["trofeus"]["score"], 40)          # sem spyglass
+        p_abs = island.happiness_panel(8, spyglass=True, **base)
+        self.assertEqual(p_abs["trofeus"]["score"], 45)      # teto absoluto
+        self.assertLess(p_abs["trofeus"]["score"], 100)      # nunca fecha 100
+        # teto do painel p/ L=8: mobília 600 + troféu 45 = 645 → o MELHOR diário
+        # acima do piso é o T6 (=L−2): 100 + 0,5×(645−600) = 122,5%; o T7 (=L−1)
+        # já cai no piso de 100%
+        self.assertEqual(p_abs["total"], 645)
+        self.assertEqual(island.journal_yield(645, 6), 122.5)
+        self.assertEqual(island.journal_yield(645, 7), 100.0)
+        # advice deixa o trancado explícito
+        adv = island.happiness_advice(8, **base)
+        self.assertEqual(adv["alcancavel"]["trofeus"], 40)
+        self.assertTrue(any("FABRICAÇÃO" in h for h in adv["trancados"]))
+        self.assertTrue(any("Spyglass" in h for h in adv["trancados"]))
 
-    def test_trophy_happiness_from(self):
-        self.assertEqual(island.trophy_happiness_from(general_tiers=3), 15)
-        self.assertEqual(
-            island.trophy_happiness_from(general_tiers=3, typed_tiers=5,
-                                         family="ORE"), 15 + 50)
-        # Fabricação não tem troféu de tipo — tiers de tipo são ignorados.
-        self.assertEqual(
-            island.trophy_happiness_from(general_tiers=2, typed_tiers=5,
-                                         family="WARRIOR"), 10)
-        # Cap em 7 tiers (T2..T8).
-        self.assertEqual(island.trophy_happiness_from(general_tiers=99), 35)
-        self.assertEqual(
-            island.trophy_happiness_from(typed_tiers=99, family="ORE"), 70)
+    def test_f_validations(self):
+        # (f1) mobília acima do tier do prédio → erro
+        with self.assertRaises(ValueError):
+            island.happiness_panel(6, building_tier=7, n_laborers=1, beds=1,
+                                   bed_tier=8, tables=0, table_tier=None)
+        # troféu geral acima do prédio → erro; tubarão em prédio < T8 → erro
+        with self.assertRaises(ValueError):
+            island.happiness_panel(6, building_tier=7, n_laborers=1, beds=1,
+                                   bed_tier=7, tables=0, table_tier=None,
+                                   general_tiers=(8,))
+        with self.assertRaises(ValueError):
+            island.happiness_panel(6, building_tier=7, n_laborers=1, beds=1,
+                                   bed_tier=7, tables=0, table_tier=None,
+                                   shark=True)
+        # (f2) typed em família de FABRICAÇÃO é IGNORADO (não soma, não erra)
+        kw = dict(building_tier=7, n_laborers=1, beds=1, bed_tier=7,
+                  tables=1, table_tier=7, general_tiers=(2, 3),
+                  family="WARRIOR")
+        with_typed = island.happiness_panel(6, typed_tiers=(2, 3, 4), **kw)
+        without = island.happiness_panel(6, **kw)
+        self.assertEqual(with_typed["trofeus"]["score"],
+                         without["trofeus"]["score"])
+        self.assertEqual(with_typed["trofeus"]["tipo"], 0)
 
-    def test_trophy_happiness_max(self):
-        war = island.trophy_happiness_max("WARRIOR")
-        self.assertEqual(war, {"general_max": 35, "typed_max": 0,
-                               "total_max": 35, "has_typed": False})
-        ore = island.trophy_happiness_max("ORE")
-        self.assertEqual(ore, {"general_max": 35, "typed_max": 70,
-                               "total_max": 105, "has_typed": True})
-        self.assertTrue(island.trophy_happiness_max("MERCENARY")["has_typed"])
+    def test_g_yield_floor_100(self):
+        # (g) piso: total 430 num diário T5 → 100% (nunca abaixo do piso)
+        self.assertEqual(island.journal_yield(430, 5), 100.0)
+        self.assertEqual(island.journal_yield(0, 8), 100.0)
+        # e o teto: nunca acima de 150%
+        self.assertEqual(island.journal_yield(10_000, 2), 150.0)
 
-    def test_advice_verdicts(self):
-        # maxed só com a mobília
-        a = island.happiness_advice(5, family="WARRIOR", bed_tier=7, table_tier=7)
-        self.assertEqual(a["verdict"], "maxed")
-        self.assertIn("mobília", a["hint"])
-        # fabricação T7 com mobília T7 = base: troféu (35) não cobre 100 → mobília
-        b = island.happiness_advice(7, family="WARRIOR", bed_tier=7, table_tier=7)
-        self.assertEqual(b["verdict"], "needs_furniture")
-        # coleta T7 com mobília T7: troféu de tipo cobre a lacuna
-        c = island.happiness_advice(7, family="ORE", bed_tier=7, table_tier=7)
-        self.assertEqual(c["verdict"], "needs_trophies")
-        # abaixo da base
-        d = island.happiness_advice(5, family="WARRIOR", bed_tier=5)
-        self.assertEqual(d["verdict"], "below_base")
-        # maxed graças ao troféu (mobília sozinha não maxa) → dica diferente
-        e = island.happiness_advice(7, family="ORE", bed_tier=7, table_tier=7,
-                                    trophy_happiness=100)
-        self.assertEqual(e["verdict"], "maxed")
-        self.assertIn("troféu", e["hint"])
-
-    def test_advice_trophy_headroom(self):
-        # Troféu de tipo JÁ no máximo (105 p/ ORE, headroom 0) e a mobília ainda não
-        # maxa → tem de ser 'needs_furniture' (não 'needs_trophies': não há mais
-        # troféu a comprar). Regressão do bug de contar o teto de troféu em dobro.
-        a = island.happiness_advice(7, family="ORE", bed_tier=7, table_tier=6,
-                                    trophy_happiness=105)
-        self.assertEqual(a["total"], 755)          # 650 mobília + 105 troféu
-        self.assertEqual(a["to_max_points"], 45)   # 800 − 755
-        self.assertEqual(a["verdict"], "needs_furniture")
+    def test_partial_furniture_is_proportional_estimate(self):
+        # abaixo do maxado a pontuação cai (média/cobertura) e vira ESTIMATIVA
+        p = island.happiness_panel(6, building_tier=7, n_laborers=15, beds=5,
+                                   bed_tier=7, tables=3, table_tier=3)
+        self.assertAlmostEqual(p["camas"]["score"], 200 * (5 / 15), places=1)
+        self.assertTrue(p["camas"]["estimado"])
+        # mesa T3 p/ trabalhador T6: qualidade 3/6 = metade do cap
+        self.assertEqual(p["mesas"]["score"], 100)
+        self.assertTrue(p["mesas"]["estimado"])
+        self.assertTrue(p["estimado"])
 
 
 if __name__ == "__main__":

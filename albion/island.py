@@ -424,7 +424,7 @@ def _fill_plan(info, price_q1, cities, premium, sell_mode, sell_ok=None,
 def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
                              cities=None, limit=60, station_fee=0,
                              fill_sell_ok=None, refined_only=True,
-                             allow_farm=True):
+                             allow_farm=True, yield_pct=None):
     """Modelo COMPLETO do trabalhador de FABRICAÇÃO (diário que enche craftando).
 
     Diferente de laborer_economy (que só mede a margem de FLIP do diário
@@ -459,6 +459,9 @@ def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
     elegível se TODOS os insumos diretos forem refinado básico (+farm se
     allow_farm); item com componente especial (skillbook/artefato/runa/…) é
     excluído. fill_item_inputs no retorno deixa isso auditável.
+    yield_pct (default None = loot pleno): % de rendimento de FELICIDADE
+    (island.journal_yield, 100..150) que multiplica o retorno_por_diario.
+    Ainda SEM consumidor na CLI/endpoint — integração de UX fica p/ depois.
 
     Só diários com fill.items (enchem craftando: HUNTER/MAGE/MERCENARY/TOOLMAKER/
     WARRIOR). Coleta/pesca enchem coletando e ficam de fora. Ordena por
@@ -492,6 +495,9 @@ def crafting_laborer_economy(price_q1, premium=True, sell_mode="order",
             if top is None or contrib > top[0]:
                 top = (contrib, l["item"], s[0], round(s[1]))
         ret_per_full *= info.get("base_loot_amount") or 0
+        if yield_pct is not None:
+            # rendimento de FELICIDADE (journal_yield): 100 = loot pleno
+            ret_per_full *= float(yield_pct) / 100.0
         buy = _best_buy(price_q1, empty, cities)
         sell = _best_sell(price_q1, info["full"], cities, sell_mode, premium)
         fp = _fill_plan(info, price_q1, cities, premium, sell_mode,
@@ -570,7 +576,7 @@ def laborer_plan(price_q1, *, family, tier, n_laborers, journals_per_day=1,
                  n_crafts=3, market_depth=0.2, station_fee=0, premium=True,
                  sell_mode="order", cities=None, item_volumes=None,
                  refined_only=True, allow_farm=True, farm_ids=None,
-                 fill_sell_ok=None):
+                 fill_sell_ok=None, yield_pct=None):
     """Otimizador de DIVERSIFICAÇÃO de fill + lista de produção p/ N trabalhadores.
 
     Mecânica: 1 diário/dia por laborer (processa ~22h≈1d), n_crafts por diário.
@@ -592,6 +598,9 @@ def laborer_plan(price_q1, *, family, tier, n_laborers, journals_per_day=1,
                      − N_diários×vazio − crafts_alocados×station_fee.
 
     Somente-leitura sobre price_q1 (dict); volumes e VWAP vêm de fora (sem SQL).
+    yield_pct (default None = loot pleno): % de rendimento de FELICIDADE
+    (island.journal_yield, 100..150) que multiplica o retorno do trabalhador.
+    Ainda SEM consumidor na CLI/endpoint — integração de UX fica p/ depois.
     """
     cities = cities or config.CITIES
     fam = (family or "").upper()
@@ -656,6 +665,9 @@ def laborer_plan(price_q1, *, family, tier, n_laborers, journals_per_day=1,
 
     ret_per_journal, loot_cov = _worker_return(info, price_q1, cities, premium,
                                                sell_mode)
+    if yield_pct is not None:
+        # rendimento de FELICIDADE (journal_yield): 100 = loot pleno
+        ret_per_journal *= float(yield_pct) / 100.0
     buy = _best_buy(price_q1, empty, cities)
     empty_price = buy[1] if buy else None
     n_journals = n_laborers * journals_per_day
@@ -698,143 +710,284 @@ def laborer_plan(price_q1, *, family, tier, n_laborers, journals_per_day=1,
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Felicidade / rendimento do trabalhador (mecânica confirmada: items.json + wiki)
+# Felicidade do trabalhador — MODELO REAL DO PAINEL do jogo (calibrado em
+# 2026-07-05 com screenshot ao vivo: Ferreiro T6 em Guild Hall T7 → painel
+# "Camas 200/200 · Mesas 200/200 · Troféus 25/100 · Total 425/500" e rendimento
+# por tier de diário T2=150%, T3=150%, T4=112,5%).
 #
-# Cama e mesa dão 50 × tier de felicidade CADA (verificado no dump: T3=150, T4=200,
-# … T8=400). A cama cobre 1 trabalhador; a mesa cobre vários (labourersperfurnitureitem)
-# e CADA trabalhador coberto recebe o valor CHEIO — não é dividido. A felicidade-base
-# do trabalhador = 100 × tier DO TRABALHADOR (T5=500). Cada ponto ACIMA da base dá
-# +0,5% de rendimento, até o teto de +50% (precisa de +100 acima da base). Por isso
-# cama+mesa do MESMO tier do trabalhador = 100×tier = exatamente a base (0% de bônus),
-# e mobília de tier mais alto já entrega o bônus sem troféu.
-#
-# Troféu completa esse +100: geral = +5, do mesmo TIPO do trabalhador = +10 (valor
-# fixo, NÃO escala com o tier). Mesmo tipo E mesmo tier não empilham; tiers diferentes
-# (T2..T8 = 7 tiers) empilham. Troféu de tipo só existe p/ COLETA (wood/ore/stone/hide/
-# fiber/fisherman) + mercenary; a fabricação WARRIOR/MAGE/HUNTER/TOOLMAKER só usa o
-# geral (teto de +35 por troféu → não maxa um laborer de tier alto só com troféu).
-FURNITURE_HAPPINESS_PER_TIER = 50     # cama e mesa: 50 × tier
-LABORER_BASE_PER_TIER = 100           # base do trabalhador: 100 × tier
-YIELD_PCT_PER_POINT = 0.5             # +0,5% de rendimento por ponto acima da base
-YIELD_CAP_PCT = 50.0                  # teto do bônus
-_HAPPINESS_TO_MAX = 100               # pontos acima da base p/ atingir o teto (+50%)
-_TROPHY_GENERAL = 5                   # troféu geral (afeta todos)
-_TROPHY_TYPED = 10                    # troféu do mesmo tipo do trabalhador
-_TROPHY_TIERS = 7                     # T2..T8: só 1 por (tipo, tier) conta p/ 1 laborer
-# Famílias de laborer que TÊM troféu de tipo (+10); as demais (fabricação de gear:
-# WARRIOR/MAGE/HUNTER/TOOLMAKER) só têm o geral.
+# 1. Teto do painel por tier L do TRABALHADOR: total_max = 100×L − 100.
+#    Split: cap_camas = cap_mesas = (total_max − 100)/2 = 50×L − 100;
+#    cap_trofeus = 100 (FIXO). Confirmação independente: T4 antigo = "300/300"
+#    com troféu "100/100" (fórum) → 100+100+100.
+# 2. Camas/mesas pontuam o CAP quando há peças de tier >= L em quantidade
+#    suficiente (1 cama cobre 1 trabalhador; 1 mesa cobre 6). Abaixo disso a
+#    pontuação cai — modelamos score = cap × min(1, tier/L) × min(1, cobertura)
+#    e marcamos como ESTIMATIVA (só o caso "maxado" está calibrado com o jogo).
+# 3. Troféus (0..100): +5 por TIER de troféu GERAL com cobertura (T2..T8; mesmo
+#    tier não empilha; cada cópia cobre 3 → ceil(N/3) cópias p/ N trabalhadores);
+#    +10 por tier de troféu de TIPO — só COLETA (WOOD/ORE/STONE/HIDE/FIBER/
+#    FISHERMAN) + MERCENARY; tubarão T8 +5 (cobre 10); Spyglass do fundador +5
+#    (cobre 3; INOBTENÍVEL). Fabricação (WARRIOR/MAGE/HUNTER/TOOLMAKER) NÃO tem
+#    troféu de tipo → nunca fecha os 100 de troféu.
+# 4. RENDIMENTO por tier J do DIÁRIO:
+#    yield% = clamp(100 + 0,5 × (total − 100×J), 100, 150).
+#    Verificado no print: total 425 → T2 150, T3 150, T4 112,5. O PISO de 100%
+#    (total <= 100×J) é calibrado-PARCIAL (previsão; aguarda confirmação visual).
+# 5. Restrição de prédio: mobília e troféu só cabem com tier <= tier do prédio
+#    (prédio T7 tranca troféu geral T8 e o tubarão).
+TROPHY_CAP = 100                      # cap FIXO da linha "Troféus x/100"
+_TROPHY_GENERAL = 5                   # +5 por tier de troféu GERAL coberto
+_TROPHY_TYPED = 10                    # +10 por tier de troféu de TIPO coberto
+_TROPHY_SHARK = 5                     # tubarão T8 (+5; 1 cobre 10)
+_TROPHY_SPYGLASS = 5                  # Spyglass do fundador (+5; inobtenível)
+_TROPHY_TIER_MIN, _TROPHY_TIER_MAX = 2, 8
+_TABLE_COVERS = 6                     # 1 mesa cobre 6 trabalhadores
+_GENERAL_COVERS = 3                   # 1 cópia de troféu geral cobre 3
+_SHARK_COVERS = 10                    # 1 tubarão cobre 10
+YIELD_FLOOR_PCT = 100.0               # piso do rendimento (calibrado-parcial)
+YIELD_CEIL_PCT = 150.0                # teto do rendimento (verificado no print)
+# Famílias de laborer que TÊM troféu de tipo (+10); as demais (fabricação de
+# gear: WARRIOR/MAGE/HUNTER/TOOLMAKER) só têm o geral.
 _FAMILY_HAS_TYPED_TROPHY = frozenset(
     {"WOOD", "ORE", "STONE", "HIDE", "FIBER", "FISHERMAN", "MERCENARY"})
 
 
-def furniture_happiness(bed_tier, table_tier=None):
-    """Felicidade que a cama (+mesa) entregam a UM trabalhador que elas cobrem."""
-    h = FURNITURE_HAPPINESS_PER_TIER * int(bed_tier or 0)
-    if table_tier:
-        h += FURNITURE_HAPPINESS_PER_TIER * int(table_tier)
-    return h
+def happiness_total_max(laborer_tier):
+    """Teto do painel ("Total x/MAX") p/ trabalhador de tier L: 100×L − 100."""
+    return 100 * int(laborer_tier) - 100
 
 
-def _yield_bonus_pct(above_base):
-    """% de bônus de rendimento dado quantos pontos a felicidade passou da base."""
-    return max(0.0, min(YIELD_CAP_PCT, above_base * YIELD_PCT_PER_POINT))
+def furniture_cap(laborer_tier):
+    """Cap de camas (= cap de mesas) no painel: 50×L − 100."""
+    return 50 * int(laborer_tier) - 100
 
 
-def trophy_happiness_from(*, general_tiers=0, typed_tiers=0, family=None):
-    """Soma de felicidade de troféu dado quantos TIERS de cada tipo (0..7).
-
-    Geral = +5/tier; tipo = +10/tier, mas só se a família tem troféu de tipo
-    (senão os tiers de tipo são ignorados). Limita cada um a 7 tiers (T2..T8)."""
-    g = _TROPHY_GENERAL * min(max(0, int(general_tiers)), _TROPHY_TIERS)
-    has_typed = (family or "").upper() in _FAMILY_HAS_TYPED_TROPHY
-    t = (_TROPHY_TYPED * min(max(0, int(typed_tiers)), _TROPHY_TIERS)
-         if has_typed else 0)
-    return g + t
-
-
-def trophy_happiness_max(family):
-    """Teto de felicidade por troféu p/ UM trabalhador da família (7 tiers): geral
-    (+35) e, se a família tem troféu de tipo, +70 — total possível."""
-    has_typed = (family or "").upper() in _FAMILY_HAS_TYPED_TROPHY
-    general = _TROPHY_GENERAL * _TROPHY_TIERS                 # 35
-    typed = _TROPHY_TYPED * _TROPHY_TIERS if has_typed else 0  # 70 ou 0
-    return {"general_max": general, "typed_max": typed,
-            "total_max": general + typed, "has_typed": has_typed}
+def _clean_trophy_tiers(tiers, building_tier, kind):
+    """Normaliza um iterável de tiers de troféu COM COBERTURA: dedup, ordena e
+    valida 2..8 e tier <= prédio (prédio tranca troféu acima do próprio tier)."""
+    out = set()
+    for t in tiers or ():
+        t = int(t)
+        if not (_TROPHY_TIER_MIN <= t <= _TROPHY_TIER_MAX):
+            raise ValueError(f"troféu {kind} T{t}: tier deve ser "
+                             f"{_TROPHY_TIER_MIN}..{_TROPHY_TIER_MAX}")
+        if t > int(building_tier):
+            raise ValueError(f"troféu {kind} T{t} não cabe em prédio "
+                             f"T{int(building_tier)}")
+        out.add(t)
+    return tuple(sorted(out))
 
 
-def laborer_happiness(laborer_tier, *, bed_tier, table_tier=None,
-                      trophy_happiness=0):
-    """Felicidade e % de rendimento de UM trabalhador.
+def happiness_panel(laborer_tier, *, building_tier, n_laborers, beds, bed_tier,
+                    tables, table_tier, general_tiers=(), typed_tiers=(),
+                    family=None, shark=False, spyglass=False):
+    """Espelha o PAINEL de felicidade do jogo p/ trabalhadores de tier L.
 
-    `laborer_tier` é o tier do TRABALHADOR (não do diário — o diário só define o
-    tier do RETORNO). `trophy_happiness` é a soma de felicidade dos troféus que o
-    cobrem (use trophy_happiness_from). Devolve base, mobília, total, acima-da-base,
-    bônus %, se está no teto (+50%), se está abaixo da base e quanto falta."""
-    base = LABORER_BASE_PER_TIER * int(laborer_tier)
-    furniture = furniture_happiness(bed_tier, table_tier)
-    total = furniture + max(0, int(trophy_happiness))
-    above = total - base
-    need = base + _HAPPINESS_TO_MAX                # felicidade p/ o teto (+50%)
+    general_tiers/typed_tiers são ITERÁVEIS de tiers de troféu presentes COM
+    COBERTURA (ex.: (2,3,4,5,6,7)); typed é IGNORADO p/ família de fabricação
+    (não existe troféu de tipo). Valida mobília/troféu <= tier do prédio.
+    Devolve {camas: {score, cap, estimado}, mesas: {...}, trofeus: {score,
+    cap: 100, ...}, total, total_max, detalhe}. A parte PROPORCIONAL de camas/
+    mesas (tier < L ou cobertura < 100%) é estimativa — só o caso maxado foi
+    calibrado no jogo."""
+    L, B, n = int(laborer_tier), int(building_tier), int(n_laborers)
+    if not (2 <= L <= 8):
+        raise ValueError("laborer_tier deve ser 2..8")
+    if not (1 <= B <= 8):
+        raise ValueError("building_tier deve ser 1..8")
+    if n < 1:
+        raise ValueError("n_laborers deve ser >= 1")
+    beds, tables = int(beds or 0), int(tables or 0)
+    if beds < 0 or tables < 0:
+        raise ValueError("beds/tables devem ser >= 0")
+    cap = furniture_cap(L)
+
+    def _furniture(count, tier, what, covers=1):
+        """Score de camas/mesas: cap × min(1, tier/L) × min(1, cobertura)."""
+        if count <= 0:
+            return 0.0, count > 0
+        if tier is None:
+            raise ValueError(f"informe o tier da {what}")
+        tier = int(tier)
+        if not (1 <= tier <= 8):
+            raise ValueError(f"tier da {what} deve ser 1..8")
+        if tier > B:
+            raise ValueError(f"{what} T{tier} não cabe em prédio T{B} "
+                             "(mobília <= tier do prédio)")
+        quality = min(1.0, tier / L)
+        coverage = min(1.0, count * covers / n)
+        return cap * quality * coverage, (quality < 1.0 or coverage < 1.0)
+
+    bed_score, bed_est = _furniture(beds, bed_tier, "cama")
+    tbl_score, tbl_est = _furniture(tables, table_tier, "mesa",
+                                    covers=_TABLE_COVERS)
+    bed_est = bed_est or beds < n           # sem cama tb. é "abaixo do maxado"
+    tbl_est = tbl_est or tables * _TABLE_COVERS < n
+
+    fam = (family or "").upper() or ""
+    has_typed = fam in _FAMILY_HAS_TYPED_TROPHY
+    gset = _clean_trophy_tiers(general_tiers, B, "geral")
+    tset = _clean_trophy_tiers(typed_tiers, B, "de tipo") if has_typed else ()
+    if shark and B < 8:
+        raise ValueError(f"tubarão é troféu T8 — não cabe em prédio T{B}")
+    g = _TROPHY_GENERAL * len(gset)
+    ty = _TROPHY_TYPED * len(tset)
+    sh = _TROPHY_SHARK if shark else 0
+    sp = _TROPHY_SPYGLASS if spyglass else 0
+    raw = g + ty + sh + sp
+    tscore = min(TROPHY_CAP, raw)
+
+    total = round(bed_score + tbl_score + tscore, 1)
     return {
-        "laborer_tier": int(laborer_tier),
-        "base": base,
-        "furniture_happiness": furniture,
-        "trophy_happiness": max(0, int(trophy_happiness)),
+        "laborer_tier": L, "building_tier": B, "n_laborers": n, "family": fam,
+        "camas": {"score": round(bed_score, 1), "cap": cap, "estimado": bed_est},
+        "mesas": {"score": round(tbl_score, 1), "cap": cap, "estimado": tbl_est},
+        "trofeus": {"score": tscore, "cap": TROPHY_CAP, "geral": g, "tipo": ty,
+                    "tubarao": sh, "spyglass": sp, "bruto": raw,
+                    "has_typed": has_typed, "geral_tiers": list(gset),
+                    "tipo_tiers": list(tset)},
         "total": total,
-        "above_base": above,
-        "yield_bonus_pct": round(_yield_bonus_pct(above), 1),
-        "maxed": total >= need,
-        "below_base": total < base,                # rende ABAIXO do piso
-        "to_max_points": max(0, need - total),     # felicidade que ainda falta
+        "total_max": happiness_total_max(L),
+        "estimado": bed_est or tbl_est,     # parte proporcional não calibrada
+        "detalhe": {
+            "camas_cobertura": f"{beds} cama(s) p/ {n} trabalhador(es) "
+                               "(1 cama cobre 1)",
+            "mesas_cobertura": f"{tables} mesa(s) cobrem "
+                               f"{tables * _TABLE_COVERS} (1 mesa cobre "
+                               f"{_TABLE_COVERS})",
+            "trofeu_geral_copias_para_cobrir": -(-n // _GENERAL_COVERS),
+            "tubarao_copias_para_cobrir": -(-n // _SHARK_COVERS),
+            "calibracao": "caso maxado calibrado com o jogo (2026-07-05); a "
+                          "parte proporcional de camas/mesas e o piso de 100% "
+                          "do rendimento são estimativa",
+        },
     }
 
 
-def happiness_advice(laborer_tier, *, family=None, bed_tier=None,
-                     table_tier=None, trophy_happiness=0):
-    """Diagnóstico + recomendação p/ chegar ao teto de +50% de rendimento.
+def journal_yield(total, journal_tier):
+    """% de rendimento do diário de tier J dado o TOTAL do painel:
+    clamp(100 + 0,5 × (total − 100×J), 100, 150). Verificado (total 425):
+    T2=150, T3=150, T4=112,5. O piso de 100% é calibrado-parcial."""
+    y = 100.0 + 0.5 * (float(total) - 100.0 * int(journal_tier))
+    return max(YIELD_FLOOR_PCT, min(YIELD_CEIL_PCT, y))
 
-    Cruza o estado atual (laborer_happiness) com o teto de troféu da família e
-    devolve um veredicto: 'maxed' (mobília já satura — nenhum troféu), 'needs_trophies'
-    (o troféu disponível cobre a lacuna) ou 'needs_furniture' (nem o troféu máximo
-    cobre → subir cama/mesa). Inclui um 'hint' em PT-BR pronto p/ exibir."""
-    st = laborer_happiness(laborer_tier, bed_tier=bed_tier, table_tier=table_tier,
-                           trophy_happiness=trophy_happiness)
-    tmax = trophy_happiness_max(family)
-    gap = st["to_max_points"]
-    advice = {**st, "family": (family or "").upper(), "trophy_ceiling": tmax}
-    if st["maxed"]:
-        advice["verdict"] = "maxed"
-        if st["furniture_happiness"] >= st["base"] + _HAPPINESS_TO_MAX:
-            advice["hint"] = ("Já no teto (+50%) só com a mobília — nenhum troféu "
-                              "necessário.")
-        else:
-            advice["hint"] = "No teto (+50%) com a mobília + troféu atuais."
-        return advice
-    if st["below_base"]:
-        advice["verdict"] = "below_base"
-        advice["hint"] = (
-            f"Mobília ABAIXO da base ({st['total']} < {st['base']}): o trabalhador "
-            "rende MENOS que o piso. Suba o tier da cama/mesa (cada tier = "
-            f"+{FURNITURE_HAPPINESS_PER_TIER}) antes de pensar em bônus.")
-        return advice
-    # headroom = teto de troféu MENOS o já aplicado (gap já é líquido do troféu,
-    # pois total inclui trophy_happiness); comparar o teto absoluto contaria o
-    # troféu em dobro e mandaria comprar troféu inexistente.
-    reachable = (tmax["total_max"] - st["trophy_happiness"]) >= gap
-    if reachable:
-        advice["verdict"] = "needs_trophies"
-        advice["hint"] = (
-            f"Faltam {gap} de felicidade p/ o teto. Cobre com troféu — "
-            + (f"até {tmax['typed_max']} de troféu de TIPO ({advice['family']}) + "
-               if tmax["has_typed"] else "")
-            + f"até {tmax['general_max']} de troféu GERAL (1 por tier T2..T8; "
-              "mesmo tipo+tier não empilha).")
-    else:
-        advice["verdict"] = "needs_furniture"
-        advice["hint"] = (
-            f"Faltam {gap} de felicidade e o troféu cobre no máx {tmax['total_max']} "
-            + ("(esta família NÃO tem troféu de tipo — só geral) "
-               if not tmax["has_typed"] else "")
-            + f"→ suba a cama/mesa (+{FURNITURE_HAPPINESS_PER_TIER} por tier de cada) "
-              "até chegar ao teto.")
-    return advice
+
+def trophy_ceiling(family=None, building_tier=8, *, spyglass=False):
+    """Teto de TROFÉU alcançável p/ a família no prédio dado (tiers <= prédio;
+    tubarão só em T8+; Spyglass do fundador só entra se spyglass=True — é
+    inobtenível). Fabricação não tem troféu de tipo → nunca fecha os 100."""
+    B = int(building_tier)
+    fam = (family or "").upper() or ""
+    has_typed = fam in _FAMILY_HAS_TYPED_TROPHY
+    n_tiers = max(0, min(_TROPHY_TIER_MAX, B) - _TROPHY_TIER_MIN + 1)
+    general = _TROPHY_GENERAL * n_tiers
+    typed = _TROPHY_TYPED * n_tiers if has_typed else 0
+    shark = _TROPHY_SHARK if B >= 8 else 0
+    sp = _TROPHY_SPYGLASS if spyglass else 0
+    return {"general_max": general, "typed_max": typed, "shark_max": shark,
+            "spyglass": sp, "has_typed": has_typed,
+            "total_max": min(TROPHY_CAP, general + typed + shark + sp)}
+
+
+def happiness_advice(laborer_tier, *, building_tier, n_laborers, beds, bed_tier,
+                     tables, table_tier, general_tiers=(), typed_tiers=(),
+                     family=None, shark=False, spyglass=False):
+    """Painel + rendimento por tier de diário (2..L) + diagnóstico em PT-BR.
+
+    Devolve o painel (happiness_panel) e mais:
+    - yield_por_diario: [{diario_tier, yield_pct, yield_alcancavel_pct}] p/ os
+      diários T2..L (alcançável = com o painel no máximo ALCANÇÁVEL, não no teto
+      teórico — fabricação nunca fecha os 100 de troféu; prédio < T8 tranca o
+      geral T8 e o tubarão; Spyglass inobtenível fica FORA a menos que já o tenha).
+    - hints: o que falta e é ALCANÇÁVEL, citando os pontos exatos.
+    - trancados: o que NÃO é alcançável (e por quê).
+    - alcancavel: {camas, mesas, trofeus, total} máximos reais desta config."""
+    panel = happiness_panel(
+        laborer_tier, building_tier=building_tier, n_laborers=n_laborers,
+        beds=beds, bed_tier=bed_tier, tables=tables, table_tier=table_tier,
+        general_tiers=general_tiers, typed_tiers=typed_tiers, family=family,
+        shark=shark, spyglass=spyglass)
+    L, B, n = panel["laborer_tier"], panel["building_tier"], panel["n_laborers"]
+    fam = panel["family"]
+    cap = panel["camas"]["cap"]
+    beds, tables = int(beds or 0), int(tables or 0)
+    hints, locked = [], []
+
+    # mobília: alcançável = cap se o prédio permite peça de tier >= L
+    furn_reach = round(cap * min(1.0, B / L), 1)
+    if B < L:
+        locked.append(
+            f"prédio T{B} < trabalhador T{L}: cama/mesa não chegam ao cap "
+            f"{cap} (máx ~{furn_reach:g} cada — estimativa)")
+    if beds < n:
+        hints.append(f"faltam {n - beds} cama(s) p/ {n} trabalhador(es): "
+                     f"camas {panel['camas']['score']:g}/{cap}")
+    if beds and bed_tier is not None and int(bed_tier) < L and B >= L:
+        hints.append(f"cama T{int(bed_tier)} abaixo do tier do trabalhador "
+                     f"(T{L}): suba p/ T{L}+ p/ fechar o cap {cap}")
+    need_tables = -(-n // _TABLE_COVERS)
+    if tables < need_tables:
+        hints.append(f"mesas cobrem {tables * _TABLE_COVERS} de {n} "
+                     f"trabalhador(es) (1 mesa cobre {_TABLE_COVERS}): precisa "
+                     f"de {need_tables} mesa(s)")
+    if tables and table_tier is not None and int(table_tier) < L and B >= L:
+        hints.append(f"mesa T{int(table_tier)} abaixo do tier do trabalhador "
+                     f"(T{L}): suba p/ T{L}+ p/ fechar o cap {cap}")
+
+    # troféus: o que falta (alcançável) vs o que o prédio/família tranca
+    tinfo = panel["trofeus"]
+    got_g, got_t = set(tinfo["geral_tiers"]), set(tinfo["tipo_tiers"])
+    copies = -(-n // _GENERAL_COVERS)
+    for t in range(_TROPHY_TIER_MIN, min(_TROPHY_TIER_MAX, B) + 1):
+        if t not in got_g:
+            hints.append(f"troféu geral T{t} sem cobertura: +{_TROPHY_GENERAL} "
+                         f"({copies} cópia(s) p/ cobrir {n})")
+    for t in range(max(B + 1, _TROPHY_TIER_MIN), _TROPHY_TIER_MAX + 1):
+        locked.append(f"troféu geral T{t}: +{_TROPHY_GENERAL} trancado pelo "
+                      f"prédio T{B}")
+    if tinfo["has_typed"]:
+        for t in range(_TROPHY_TIER_MIN, min(_TROPHY_TIER_MAX, B) + 1):
+            if t not in got_t:
+                hints.append(f"troféu de tipo ({fam}) T{t} sem cobertura: "
+                             f"+{_TROPHY_TYPED}")
+        for t in range(max(B + 1, _TROPHY_TIER_MIN), _TROPHY_TIER_MAX + 1):
+            locked.append(f"troféu de tipo ({fam}) T{t}: +{_TROPHY_TYPED} "
+                          f"trancado pelo prédio T{B}")
+    if B >= 8 and not shark:
+        hints.append(f"tubarão T8 sem cobertura: +{_TROPHY_SHARK} "
+                     f"(1 cobre {_SHARK_COVERS})")
+    elif B < 8:
+        locked.append(f"tubarão T8: +{_TROPHY_SHARK} trancado pelo prédio T{B}")
+    if not spyglass:
+        locked.append(f"Spyglass do fundador: +{_TROPHY_SPYGLASS} (inobtenível "
+                      "— fora do alcançável)")
+
+    ceiling = trophy_ceiling(fam, B, spyglass=spyglass)
+    trophy_reach = ceiling["total_max"]
+    if fam and not tinfo["has_typed"]:
+        locked.append(
+            f"família {fam} é de FABRICAÇÃO: não existe troféu de tipo — o "
+            f"troféu satura em {trophy_reach}/{TROPHY_CAP} neste prédio "
+            f"(T{B}); 'Troféus 100/100' é inalcançável")
+
+    total_reach = round(2 * furn_reach + trophy_reach, 1)
+    yields = []
+    for j in range(_TROPHY_TIER_MIN, L + 1):
+        yields.append({
+            "diario_tier": j,
+            "yield_pct": journal_yield(panel["total"], j),
+            "yield_alcancavel_pct": journal_yield(total_reach, j),
+        })
+    if panel["total"] >= total_reach:
+        hints.append("painel no MÁXIMO alcançável desta configuração — o que "
+                     "resta está trancado (veja 'trancados')")
+
+    return {
+        **panel,
+        "yield_por_diario": yields,
+        "hints": hints,
+        "trancados": locked,
+        "trophy_ceiling": ceiling,
+        "alcancavel": {"camas": furn_reach, "mesas": furn_reach,
+                       "trofeus": trophy_reach, "total": total_reach},
+    }
