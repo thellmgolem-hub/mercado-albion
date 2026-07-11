@@ -480,6 +480,9 @@ tbody tr:nth-child(even):hover { background: rgba(212, 168, 67, 0.08); }
   object-fit: contain;
 }
 .cell-item .nm { line-height: 1.2; }
+/* célula de item clicável: abre a ficha (aba Item) em qualquer tabela */
+.cell-item.item-link { cursor: pointer; }
+.cell-item.item-link:hover .nm { text-decoration: underline; color: var(--gold); }
 .cell-item .nm small { display: block; color: var(--muted); font-size: 0.74rem; }
 .te-badge { color: var(--gold); font-weight: 600; }
 

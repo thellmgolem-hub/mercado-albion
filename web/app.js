@@ -659,6 +659,18 @@ function renderTable(containerId, columns, rows, { sortKey = null, sortDir = -1 
     }));
     box.querySelectorAll('tbody tr').forEach((tr) => {
       const r = sorted[+tr.dataset.i];
+      // clicar no ITEM (ícone+nome) abre a ficha dele (aba Item → preços por
+      // cidade/lab) — em QUALQUER tabela da plataforma; o resto da linha copia.
+      const cell = tr.querySelector('.cell-item');
+      const iid = cell ? rowItemId(r) : null;
+      if (cell && iid) {
+        cell.classList.add('item-link');
+        cell.title = 'abrir a ficha do item';
+        cell.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          navigateToItem(iid, 'precos');
+        });
+      }
       tr.addEventListener('click', (ev) => {
         if (ev.target.closest('.x-btn')) return;
         if (ev.target.closest('.hist-btn')) return;
@@ -1364,7 +1376,7 @@ function treeNodeHtml(node, root = false) {
   return `<div class="chain-leaf">${head}${node.is_raw ? ' <span class="te-badge">bruto</span>' : ''}</div>`;
 }
 
-async function navigateToItem(id) {
+async function navigateToItem(id, sub = 'cadeia') {
   // alias de refinado encantado X@n -> id real X_LEVELn@n (navegável/buscável)
   const m = id.match(/^(.+)@([1-9]\d*)$/);
   const cand = (m && !/_LEVEL\d/.test(m[1])) ? [id, `${m[1]}_LEVEL${m[2]}@${m[2]}`] : [id];
@@ -1372,11 +1384,25 @@ async function navigateToItem(id) {
     for (const q of cand) {
       const r = await api('/api/search', { q });
       const list = Array.isArray(r) ? r : (r.results || r.items || []);
-      const it = list.find((x) => x.id === q);   // só match EXATO (nada de list[0])
-      if (it) { selectItem(it); showItemSub('cadeia'); return; }
+      let it = list.find((x) => x.id === q);   // só match EXATO (nada de list[0])
+      if (!it && m) {
+        // encantado sem entrada própria no catálogo (ex.: T6_BAG@1): abre o base
+        const rb = await api('/api/search', { q: m[1] });
+        const lb = Array.isArray(rb) ? rb : (rb.results || rb.items || []);
+        it = lb.find((x) => x.id === m[1]);
+      }
+      if (it) { selectItem(it); showItemSub(sub); return; }
     }
     toast('item não encontrado: ' + id);
   } catch (e) { toast('erro ao buscar item: ' + e.message); }
+}
+
+// id do item de uma linha de tabela, qualquer que seja o motor que a gerou
+// (flips/recomendações usam item_id; ilha usa empty/crop/grown; laborplan usa
+// item; prodchain usa id). Devolve null se a linha não referencia item.
+function rowItemId(r) {
+  const iid = r.item_id || r.empty || r.crop || r.grown || r.item || r.id;
+  return (typeof iid === 'string' && /^T\d|^UNIQUE|^QUESTITEM/.test(iid)) ? iid : null;
 }
 
 async function loadWiki() {
