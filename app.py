@@ -2691,6 +2691,157 @@ def discord_my_status(request: Request, discord_user_id: int = Query(gt=0)):
     return {"status": rows[0] if rows else None}
 
 
+class DiscordReportBody(BaseModel):
+    discord_user_id: int = Field(gt=0)
+    item_id: str = Field(min_length=1, max_length=64)
+    qty: int = Field(gt=0, le=_tribute.QTY_MAX)
+    assignment_id: int | None = None
+    note: str | None = Field(default=None, max_length=280)
+
+
+class DiscordAuditBody(BaseModel):
+    discord_user_id: int = Field(gt=0)
+    report_id: int
+    note: str | None = Field(default=None, max_length=280)
+
+
+def _discord_operator(discord_user_id: int) -> tuple[dict, int]:
+    """Gate DUPLO da auditoria via bot: além do ESCOPO do token (checado no
+    endpoint), o HUMANO vinculado precisa ser operador na org DELE — um token
+    guild_audit apontado p/ um membro comum não aprova nada. 404 sem vínculo,
+    403 sem entitlement da org ou sem papel."""
+    a = _discord_member(discord_user_id)
+    org = int(a.get("org_id") or 1)
+    _org_entitlement(org, "operacao")
+    if a.get("role") not in OPERATOR_ROLES:
+        raise AuthError("Conta vinculada sem papel de operador.",
+                        "forbidden", 403)
+    return a, org
+
+
+@app.post("/api/discord/report")
+def discord_report(body: DiscordReportBody, request: Request):
+    """Membro reporta entrega PELO BOT (relógio PAUSA). Escopo: guild_report.
+
+    Auto-reporte sempre: actor_id = a própria conta vinculada (o bot nunca
+    reporta 'em nome de' — isso é da web). Respostas iguais ao /api/guild/report."""
+    _require_service_scope(request, "guild_report")
+    a = _discord_member(body.discord_user_id)
+    org = int(a.get("org_id") or 1)
+    _org_entitlement(org, "operacao")
+    member_id = int(a["id"])
+    try:
+        res = tribute_store.report(
+            org, member_id, body.item_id, body.qty,
+            assignment_id=body.assignment_id, note=body.note,
+            actor_id=member_id)
+    except KeyError:
+        raise HTTPException(404, "meta não encontrada")
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return {"ok": True, **res}
+
+
+@app.get("/api/discord/pending")
+def discord_pending(request: Request, discord_user_id: int = Query(gt=0),
+                    limit: int = Query(200, ge=1, le=500)):
+    """Fila de auditoria da org do OPERADOR vinculado. Escopo: guild_audit
+    + papel operador (gate duplo em _discord_operator)."""
+    _require_service_scope(request, "guild_audit")
+    _, org = _discord_operator(discord_user_id)
+    return {"pending": tribute_store.pending(org, limit=limit)}
+
+
+@app.post("/api/discord/approve")
+def discord_approve(body: DiscordAuditBody, request: Request):
+    """Aprova reporte pelo bot: relógio ZERA; auditoria no nome do HUMANO
+    vinculado (nunca do bot). Escopo: guild_audit + papel operador. Passa
+    pela MESMA ponte tributo->quadro do endpoint web."""
+    _require_service_scope(request, "guild_audit")
+    a, org = _discord_operator(body.discord_user_id)
+    actor_id = int(a["id"])
+    try:
+        res = tribute_store.approve(org, body.report_id, actor_id,
+                                    note=body.note)
+    except KeyError:
+        raise HTTPException(404, "reporte não encontrado")
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+    _apply_report_to_chain(org, res, actor_id)
+    return {"ok": True, **res}
+
+
+@app.post("/api/discord/reject")
+def discord_reject(body: DiscordAuditBody, request: Request):
+    """Rejeita reporte pelo bot: relógio RETOMA. Escopo: guild_audit + papel
+    operador; auditoria no nome do humano vinculado."""
+    _require_service_scope(request, "guild_audit")
+    a, org = _discord_operator(body.discord_user_id)
+    try:
+        res = tribute_store.reject(org, body.report_id, int(a["id"]),
+                                   note=body.note)
+    except KeyError:
+        raise HTTPException(404, "reporte não encontrado")
+    except ValueError as exc:
+        raise HTTPException(409, str(exc))
+    return {"ok": True, **res}
+
+
+@app.get("/api/discord/board")
+def discord_board(request: Request, discord_user_id: int = Query(gt=0)):
+    """Quadro da SEMANA ATUAL da org do membro vinculado (qualquer papel).
+
+    Escopo: discord_read. Por membro ativo da org: metas da semana com
+    qty_aprovada (soma dos reportes 'approved' ligados à meta) e o estado do
+    relógio. SQL só com placeholders (semana calculada em Python — nada de
+    funções de data no SQL); roda na MESMA conexão do TributeStore p/ os
+    testes injetarem o banco. Nunca vaza outra org (org_id em toda query)."""
+    _require_service_scope(request, "discord_read")
+    a = _discord_member(discord_user_id)
+    org = int(a.get("org_id") or 1)
+    _org_entitlement(org, "operacao")
+    week = _tribute.week_start_iso()
+    con, lock = tribute_store.con, tribute_store.lock
+    with lock:
+        try:
+            accounts = con.execute(
+                "SELECT id, username FROM auth_accounts "
+                "WHERE org_id=? AND active=1 ORDER BY username",
+                [org]).fetchall()
+            metas = con.execute(
+                "SELECT id, account_id, item_id, qty_target "
+                "FROM weekly_assignments WHERE org_id=? AND week_start=? "
+                "ORDER BY account_id, item_id", [org, week]).fetchall()
+            approved = con.execute(
+                "SELECT r.assignment_id, SUM(r.qty_reported) "
+                "FROM member_reports r JOIN weekly_assignments a "
+                "ON a.id = r.assignment_id AND a.org_id = r.org_id "
+                "WHERE r.org_id=? AND r.status='approved' AND a.week_start=? "
+                "GROUP BY r.assignment_id", [org, week]).fetchall()
+        finally:
+            try:
+                con.rollback()
+            except Exception:
+                pass
+    ok_by_meta = {r[0]: int(r[1] or 0) for r in approved}
+    metas_by_member: dict[int, list] = {}
+    for m in metas:
+        metas_by_member.setdefault(int(m[1]), []).append(
+            {"assignment_id": m[0], "item_id": m[2], "qty_target": m[3],
+             "qty_aprovada": ok_by_meta.get(m[0], 0)})
+    # member_status pega o MESMO lock: chamar fora do bloco acima (não-reentrante)
+    clocks = {s["account_id"]: s for s in tribute_store.member_status(org)}
+    members = []
+    for acc_id, username in accounts:
+        st = clocks.get(acc_id) or {}
+        members.append({
+            "account_id": acc_id, "username": username,
+            "state": st.get("state"), "clock_days": st.get("clock_days"),
+            "days_left": st.get("days_left"), "paused": st.get("paused"),
+            "metas": metas_by_member.get(int(acc_id), [])})
+    return {"week_start": week, "org_id": org, "members": members}
+
+
 # ------------------------------------------------------- coleta automática
 # ---------------------------------------------------------------- ícones
 # O serviço de render (render.albiononline.com) bloqueia clientes com TLS do
