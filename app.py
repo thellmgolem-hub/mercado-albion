@@ -3,6 +3,7 @@
 
 Rodar:  python app.py        (abre o navegador em http://127.0.0.1:8528)
 """
+import asyncio
 import hmac
 import ipaddress
 import logging
@@ -71,6 +72,46 @@ _setup_logging()
 log = logging.getLogger("albion.app")
 
 
+async def _run_discord_bot_inproc():
+    """Bot Discord DENTRO do processo do servidor (nuvem free: 1 serviço só).
+
+    Liga quando DISCORD_BOT_TOKEN existe e discord.py está instalado. Provisiona
+    o PRÓPRIO token de serviço (label 'inproc-bot', rotacionado a cada boot —
+    nunca precisa de env de token de serviço) e fala com a API via loopback.
+    O cron de 1 min que mantém o Render acordado mantém o bot online 24/7.
+    Qualquer falha loga e desiste — jamais derruba o servidor."""
+    token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
+    if not token:
+        return
+    try:
+        import discord  # noqa: F401
+    except ImportError:
+        log.warning("DISCORD_BOT_TOKEN definido mas discord.py não instalado "
+                    "(pip install discord.py) — bot embarcado desligado.")
+        return
+    try:
+        import sys as _sys
+        tools_dir = str(Path(__file__).resolve().parent / "tools")
+        if tools_dir not in _sys.path:
+            _sys.path.insert(0, tools_dir)
+        import discord_bot as _dbot
+
+        label = "inproc-bot"
+        for t in auth_manager.list_service_tokens():
+            if t.get("name") == label and not t.get("revoked_at"):
+                auth_manager.revoke_service_token(t["id"])
+        svc = auth_manager.create_service_token(
+            label, ["discord_link", "discord_read",
+                    "guild_report", "guild_audit"])["token"]
+        port = os.environ.get("PORT", str(PORT))   # PORT do módulo (local 8528)
+        api = _dbot.ApiClient(f"http://127.0.0.1:{port}", svc)
+        bot = _dbot.build_bot(api)
+        log.info("bot Discord embarcado: conectando (loopback :%s)", port)
+        await bot.start(token)
+    except Exception:
+        log.exception("bot Discord embarcado morreu — servidor segue normal.")
+
+
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     """Sobe/desce do servidor (substitui @app.on_event('startup'), deprecado).
@@ -79,8 +120,13 @@ async def _lifespan(app: FastAPI):
     dos antigos eventos de startup, comportamento preservado."""
     log.info("servidor iniciando (backend=%s)", store.backend())
     _start_auto_collector()   # no-op na nuvem/testes (guardas internas)
+    bot_task = None
+    if os.environ.get("DISCORD_BOT_TOKEN", "").strip():
+        bot_task = asyncio.create_task(_run_discord_bot_inproc())
     yield
-    # nada a desligar: o coletor local é thread daemon
+    if bot_task:
+        bot_task.cancel()
+    # nada mais a desligar: o coletor local é thread daemon
 
 
 app = FastAPI(title="Mercado Albion — Américas", lifespan=_lifespan)

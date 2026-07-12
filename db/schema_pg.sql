@@ -161,3 +161,120 @@ CREATE INDEX IF NOT EXISTS idx_production_chains_owner
   ON production_chains (owner_user_id);
 CREATE INDEX IF NOT EXISTS idx_production_chains_org
   ON production_chains (org_id, owner_user_id);
+
+
+-- ==== Tributo da guild (multi-org) ====
+CREATE TABLE IF NOT EXISTS weekly_assignments (
+  id            SERIAL PRIMARY KEY,
+  org_id        INTEGER NOT NULL,
+  account_id    INTEGER NOT NULL,
+  week_start    TEXT NOT NULL,
+  item_id       TEXT NOT NULL,
+  qty_target    INTEGER NOT NULL,
+  sector        TEXT,
+  from_chain_id INTEGER,
+  note          TEXT,
+  created_at    DOUBLE PRECISION NOT NULL,
+  created_by    INTEGER NOT NULL,
+  UNIQUE (org_id, account_id, week_start, item_id)
+);
+CREATE INDEX IF NOT EXISTS idx_assign_week
+  ON weekly_assignments (org_id, week_start);
+CREATE INDEX IF NOT EXISTS idx_assign_member
+  ON weekly_assignments (org_id, account_id, week_start);
+CREATE TABLE IF NOT EXISTS member_reports (
+  id                 SERIAL PRIMARY KEY,
+  org_id             INTEGER NOT NULL,
+  account_id         INTEGER NOT NULL,
+  assignment_id      INTEGER,
+  item_id            TEXT NOT NULL,
+  qty_reported       INTEGER NOT NULL,
+  status             TEXT NOT NULL DEFAULT 'pending',
+  reported_at        DOUBLE PRECISION NOT NULL,
+  auditor_account_id INTEGER,
+  audit_note         TEXT,
+  processed_at       DOUBLE PRECISION,
+  discord_message_id BIGINT,
+  created_at         DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_reports_pending
+  ON member_reports (org_id, status, reported_at);
+CREATE INDEX IF NOT EXISTS idx_reports_member
+  ON member_reports (org_id, account_id, status);
+CREATE TABLE IF NOT EXISTS member_clock (
+  org_id          INTEGER NOT NULL,
+  account_id      INTEGER NOT NULL,
+  state           TEXT NOT NULL DEFAULT 'em_dia',
+  anchor_ts       DOUBLE PRECISION NOT NULL,
+  paused_ts       DOUBLE PRECISION,
+  clock_days      INTEGER NOT NULL DEFAULT 0,
+  tools_revoked   INTEGER NOT NULL DEFAULT 0,
+  dismissed_at    DOUBLE PRECISION,
+  reactivated_at  DOUBLE PRECISION,
+  updated_at      DOUBLE PRECISION NOT NULL,
+  PRIMARY KEY (org_id, account_id)
+);
+CREATE INDEX IF NOT EXISTS idx_clock_state
+  ON member_clock (org_id, state);
+CREATE TABLE IF NOT EXISTS guild_audit_log (
+  id                SERIAL PRIMARY KEY,
+  org_id            INTEGER NOT NULL,
+  actor_account_id  INTEGER,
+  action            TEXT NOT NULL,
+  target_account_id INTEGER,
+  details_json      TEXT,
+  created_at        DOUBLE PRECISION NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_guild_audit_time
+  ON guild_audit_log (org_id, created_at DESC);
+
+-- ==== Discord Fase 1: vinculo + tokens de servico ====
+CREATE TABLE IF NOT EXISTS auth_discord_links (
+  account_id INTEGER PRIMARY KEY,
+  discord_user_id INTEGER NOT NULL UNIQUE,
+  linked_at REAL NOT NULL,
+  unlinked_at REAL
+);
+
+CREATE TABLE IF NOT EXISTS auth_discord_link_codes (
+  code TEXT PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  expires_at REAL NOT NULL,
+  used_at REAL,
+  created_at REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS auth_service_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  label TEXT NOT NULL UNIQUE,
+  token_hash TEXT NOT NULL UNIQUE,
+  scopes_json TEXT NOT NULL,
+  created_at REAL NOT NULL,
+  last_used_at REAL,
+  revoked_at REAL
+);
+
+CREATE TABLE IF NOT EXISTS auth_discord_links (
+  account_id INTEGER PRIMARY KEY,
+  discord_user_id BIGINT NOT NULL UNIQUE,
+  linked_at DOUBLE PRECISION NOT NULL,
+  unlinked_at DOUBLE PRECISION
+);
+
+CREATE TABLE IF NOT EXISTS auth_discord_link_codes (
+  code TEXT PRIMARY KEY,
+  account_id INTEGER NOT NULL,
+  expires_at DOUBLE PRECISION NOT NULL,
+  used_at DOUBLE PRECISION,
+  created_at DOUBLE PRECISION NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS auth_service_tokens (
+  id SERIAL PRIMARY KEY,
+  label TEXT NOT NULL UNIQUE,
+  token_hash TEXT NOT NULL UNIQUE,
+  scopes_json TEXT NOT NULL,
+  created_at DOUBLE PRECISION NOT NULL,
+  last_used_at DOUBLE PRECISION,
+  revoked_at DOUBLE PRECISION
+);

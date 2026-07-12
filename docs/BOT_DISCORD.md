@@ -98,13 +98,40 @@ nunca do servidor Discord de onde o comando foi digitado.
 | `/flip <orçamento> [cidade]` | `GET /api/flip-advisor` | pública |
 | `/ilha` | `GET /api/island?view=laborers` (top 5) | pública |
 | `/felicidade <tier> [prédio] [trabalhadores] [família]` | `GET /api/laborer-happiness` (painel do jogo + rendimento por diário; assume mobília/troféus ideais = teto da config) | pública |
+| `/vender <item>` | `GET /api/prices` (ranking de venda por cidade) | pública |
+| `/ouro` | `GET /api/gold` (cotação + tendência 48h) | pública |
+| `/recomendar` | `GET /api/recommendations` (top 5 do dia) | pública |
+| `/plano [família] [tier] [trabalhadores]` | `GET /api/laborplan` (cesta + lucro/dia) | pública |
+| `/quadro` | `GET /api/discord/board` (metas × entregues × relógio da guild) | pública |
 | `/vincular <código>` | `POST /api/discord/link` | **efêmera** |
 | `/minhas-metas` | `GET /api/discord/my-assignments` | **efêmera** |
 | `/meu-status` | `GET /api/discord/my-status` | **efêmera** |
+| `/reportar <item> <qtd> [nota]` | `POST /api/discord/report` (liga a meta da semana sozinho; relógio pausa) | **efêmera** |
+| `/pendentes` | `GET /api/discord/pending` (só auditor vinculado) | **efêmera** |
+| `/aprovar <id> [nota]` | `POST /api/discord/approve` (zera relógio; alimenta a cadeia) | **efêmera** |
+| `/rejeitar <id> [nota]` | `POST /api/discord/reject` (relógio retoma) | **efêmera** |
 
 "Efêmera" = só o autor do comando vê a resposta (metas e relógio de tributo
 são dados pessoais do membro). Erros da API viram mensagens amigáveis em
 PT-BR — o bot nunca despeja traceback no canal (fica no console dele).
+
+## Quadro semanal automático (opcional)
+
+Com as envs `ALBION_BOARD_CHANNEL_ID` (id do canal, ex.: #tributo — clique
+direito no canal → Copiar ID, com o modo desenvolvedor ligado) e
+`DISCORD_BOARD_USER_ID` (snowflake de um membro VINCULADO — define de qual
+org é o quadro; normalmente o do dono), o bot posta o quadro no canal e
+**edita a mesma mensagem** 4×/dia e após cada `/aprovar` ou `/rejeitar`.
+
+## Bot embarcado no servidor (nuvem)
+
+Na nuvem (Render) NÃO é preciso rodar `python tools/discord_bot.py`: defina
+apenas `DISCORD_BOT_TOKEN` no Environment — o servidor sobe o bot dentro do
+próprio processo, provisiona sozinho o token de serviço (label `inproc-bot`,
+rotacionado a cada boot) e o cron de 1 min que mantém o app acordado mantém o
+bot online 24/7. Blueprint de canais sugerido: `#mercado` (comandos públicos),
+`#tributo` (comandos efêmeros + quadro automático), `#auditoria` (cargo de
+oficial; /pendentes /aprovar /rejeitar funcionam em qualquer canal, efêmeros).
 
 ## Problemas comuns
 

@@ -4,4 +4,6 @@ httpx>=0.27,<1
 # Driver Postgres do piloto na nuvem (Supabase). Local/dev usa SQLite e não
 # precisa dele, mas em produção (DATABASE_URL setada) é obrigatório.
 psycopg[binary]>=3.1,<4
-# opcional (bot Discord): discord.py>=2.3,<3
+# Bot Discord embarcado no servidor (liga com DISCORD_BOT_TOKEN; sem a env,
+# o import nem acontece — inofensivo local).
+discord.py>=2.3,<3

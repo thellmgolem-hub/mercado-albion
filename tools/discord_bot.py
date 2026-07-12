@@ -25,9 +25,12 @@ Interactions HTTP (webhook) trocando só a casca do gateway.
 
 Passo a passo completo (Developer Portal, convite, token): docs/BOT_DISCORD.md.
 """
+import json
 import os
 import sys
 import traceback
+from datetime import datetime
+from pathlib import Path
 
 import httpx
 
@@ -349,6 +352,208 @@ async def handle_meu_status(api, discord_user_id: int) -> str:
     return code_block("\n".join(lines))
 
 
+def _fmt_ts(unix):
+    """Timestamp unix -> 'dd/mm hh:mm' local; None -> '?'."""
+    try:
+        return datetime.fromtimestamp(float(unix)).strftime("%d/%m %H:%M")
+    except (TypeError, ValueError, OSError):
+        return "?"
+
+
+async def handle_reportar(api, discord_user_id: int, termo: str, qty: int,
+                          nota=None) -> str:
+    """/reportar — auto-reporte de entrega (relógio PAUSA até o auditor).
+
+    Se o membro tem meta da semana p/ o item, o reporte é ligado a ela
+    automaticamente; senão entra como bônus."""
+    item = await _resolve_item(api, termo)
+    if not item:
+        return f"Nenhum item casa com '{termo}'. Tente o id exato (ex.: T4_ORE)."
+    assignment_id = None
+    try:
+        res = await api.get("/api/discord/my-assignments",
+                            params={"discord_user_id": discord_user_id})
+        week = res.get("week_now")
+        for a in res.get("assignments") or []:
+            if a.get("week_start") == week and a.get("item_id") == item["id"]:
+                assignment_id = a.get("id")
+                break
+    except ApiError:
+        pass                                   # sem metas: reporte bônus
+    body = {"discord_user_id": discord_user_id, "item_id": item["id"],
+            "qty": int(qty)}
+    if assignment_id:
+        body["assignment_id"] = assignment_id
+    if nota:
+        body["note"] = str(nota)[:280]
+    res = await api.post("/api/discord/report", json=body)
+    kind = ("ligada à sua meta da semana" if assignment_id
+            else "bônus (sem meta ligada)")
+    return (f"Entrega registrada (#{res['id']}): {int(qty)}x {item['pt']} "
+            f"— {kind}.\nSeu relógio está PAUSADO até o auditor conferir.")
+
+
+async def handle_pendentes(api, discord_user_id: int) -> str:
+    """/pendentes — fila de auditoria da org (só operador vinculado)."""
+    res = await api.get("/api/discord/pending",
+                        params={"discord_user_id": discord_user_id})
+    rows = res.get("pending") or []
+    if not rows:
+        return "Fila vazia — nenhum reporte aguardando auditoria."
+    lines = [f"{len(rows)} reporte(s) na fila — use /aprovar <id> ou "
+             f"/rejeitar <id>:", ""]
+    for r in rows[:20]:
+        meta = (f" (meta #{r['assignment_id']})" if r.get("assignment_id")
+                else " (bônus)")
+        lines.append(f"#{r['id']:<4} conta {r['account_id']}: "
+                     f"{r['qty_reported']}x {r['item_id']}{meta} — "
+                     f"{_fmt_ts(r.get('reported_at'))}")
+    if len(rows) > 20:
+        lines.append(f"... +{len(rows) - 20} (veja a aba Guild na web)")
+    return code_block("\n".join(lines))
+
+
+async def handle_aprovar(api, discord_user_id: int, report_id: int,
+                         nota=None) -> str:
+    """/aprovar — zera o relógio do membro; alimenta a cadeia se houver meta."""
+    body = {"discord_user_id": discord_user_id, "report_id": int(report_id)}
+    if nota:
+        body["note"] = str(nota)[:280]
+    res = await api.post("/api/discord/approve", json=body)
+    out = (f"Aprovado #{res['id']}: relógio da conta {res['account_id']} "
+           f"ZERADO (em dia).")
+    if res.get("reactivated"):
+        out += "\nMembro REATIVADO — estava desligado; devolva o cargo no Discord."
+    if res.get("from_chain_id"):
+        out += (f"\nEstoque da cadeia #{res['from_chain_id']} alimentado "
+                f"(+{res.get('qty_reported')} {res.get('item_id')}).")
+    return out
+
+
+async def handle_rejeitar(api, discord_user_id: int, report_id: int,
+                          nota=None) -> str:
+    """/rejeitar — retoma a contagem (se não restar outro reporte pendente)."""
+    body = {"discord_user_id": discord_user_id, "report_id": int(report_id)}
+    if nota:
+        body["note"] = str(nota)[:280]
+    res = await api.post("/api/discord/reject", json=body)
+    state = STATE_PT.get(res.get("state"), res.get("state", "?"))
+    return (f"Rejeitado #{res['id']}: conta {res['account_id']} agora está "
+            f"{state}.")
+
+
+def _board_text(res) -> str:
+    """Quadro semanal: por membro, estado + metas item aprovado/alvo + total."""
+    members = res.get("members") or []
+    lines = [f"QUADRO DA SEMANA — início {res.get('week_start', '?')}", ""]
+    done_all = target_all = 0
+    for m in members:
+        st = STATE_PT.get(m.get("state"), m.get("state") or "sem relógio")
+        metas = m.get("metas") or []
+        done_all += sum(int(mt.get("qty_aprovada") or 0) for mt in metas)
+        target_all += sum(int(mt.get("qty_target") or 0) for mt in metas)
+        parts = (", ".join(f"{mt['item_id']} "
+                           f"{mt.get('qty_aprovada') or 0}/{mt['qty_target']}"
+                           for mt in metas) if metas else "sem metas")
+        lines.append(f"{m.get('username', '?'):<16} [{st}] {parts}")
+    if target_all:
+        pct = 100.0 * done_all / target_all
+        lines += ["", f"Total da guild: {fmt_silver(done_all)}/"
+                      f"{fmt_silver(target_all)} ({pct:.0f}%)"]
+    return code_block("\n".join(lines))
+
+
+async def handle_quadro(api, discord_user_id: int) -> str:
+    """/quadro — metas × entregas aprovadas × relógio de toda a org."""
+    res = await api.get("/api/discord/board",
+                        params={"discord_user_id": discord_user_id})
+    return _board_text(res)
+
+
+async def handle_vender(api, termo: str) -> str:
+    """/vender — melhor cidade p/ VENDER o item (maior venda q1)."""
+    item = await _resolve_item(api, termo)
+    if not item:
+        return f"Nenhum item casa com '{termo}'. Tente /buscar {termo}."
+    rows = await api.get("/api/prices",
+                         params={"items": item["id"], "qualities": "1"})
+    rows = [r for r in rows if (r.get("sell_price_min") or 0) > 0]
+    if not rows:
+        return code_block(f"{item['pt']} — sem cotação de venda no momento.")
+    rows.sort(key=lambda r: -(r.get("sell_price_min") or 0))
+    best = rows[0]
+    lines = [f"Onde vender {item['pt']} (T{item['tier']}.{item['ench']}):", ""]
+    for i, r in enumerate(rows[:6], 1):
+        star = " <- MELHOR" if r is best else ""
+        lines.append(f"{i}. {r['city']:<14} {fmt_silver(r['sell_price_min']):>12} "
+                     f"{fmt_age(r.get('sell_age_min'))}{star}")
+    lines += ["", "Preço bruto q1 (imposto 4% premium / 8% sem, anúncio 2,5% "
+                  "em ordem — Mercado Negro não paga anúncio)."]
+    return code_block("\n".join(lines))
+
+
+async def handle_ouro(api) -> str:
+    """/ouro — cotação atual + tendência simples (prata por 1 ouro)."""
+    pts = await api.get("/api/gold", params={"count": 48})
+    if not pts:
+        return "Sem cotação de ouro no cache ainda."
+    cur, old = pts[-1], pts[0]
+    delta = (cur["price"] - old["price"]) / old["price"] * 100 if old["price"] else 0
+    arrow = "subindo" if delta > 0.5 else ("caindo" if delta < -0.5 else "estável")
+    return code_block(
+        f"Ouro: {fmt_silver(cur['price'])} prata/ouro ({arrow}, "
+        f"{delta:+.1f}% em 48h)\n"
+        f"Sua prata em ouro: 1M = {fmt_silver(1_000_000 / cur['price'])} ouro")
+
+
+async def handle_recomendar(api) -> str:
+    """/recomendar — top 5 oportunidades do dia (cache local)."""
+    res = await api.get("/api/recommendations", params={"limit": 5})
+    rows = res.get("opportunities") or []
+    if not rows:
+        return ("Sem recomendações no momento — o cache está esquentando "
+                "(a coleta enche as janelas com o tempo).")
+    lines = ["Top oportunidades agora:", ""]
+    for i, o in enumerate(rows[:5], 1):
+        name = o.get("name_pt") or o.get("item_id", "?")
+        lucro = o.get("net_profit") or o.get("lucro_liquido") or o.get("profit")
+        roi = o.get("roi_pct") or o.get("roi")
+        lines.append(f"{i}. {name} — {o.get('buy_city', '?')} -> "
+                     f"{o.get('sell_city', '?')} | lucro {fmt_silver(lucro)}"
+                     + (f" (ROI {roi}%)" if roi is not None else ""))
+    lines += ["", "Detalhes e filtros: aba Início da plataforma."]
+    return code_block("\n".join(lines))
+
+
+async def handle_plano(api, familia: str = "WARRIOR", tier: int = 4,
+                       trabalhadores: int = 9) -> str:
+    """/plano — laborplan: cesta de produção p/ N trabalhadores de fabricação."""
+    res = await api.get("/api/laborplan",
+                        params={"family": familia, "tier": tier,
+                                "laborers": trabalhadores})
+    if not res.get("available"):
+        return f"Sem plano: {res.get('reason', 'cache frio p/ essa família/tier')}"
+    basket = res.get("basket") or []
+    lines = [f"PLANO {res['family']} T{res['tier']} × {res['n_laborers']} "
+             f"trabalhadores ({res['crafts_needed']} crafts/dia):", ""]
+    for b in basket[:5]:
+        lines.append(f"- {b.get('item_pt') or b['item']}: {b['crafts_dia']}/dia "
+                     f"({b.get('craft_city', '?')} -> {b.get('sell_city', '?')}, "
+                     f"lucro {fmt_silver(b.get('lucro_item_dia'))}/dia)")
+    if len(basket) > 5:
+        lines.append(f"  ... +{len(basket) - 5} itens na cesta")
+    ref = ", ".join(f"{k} {fmt_silver(v)}"
+                    for k, v in (res.get("refined_per_day") or {}).items())
+    if ref:
+        lines.append(f"Material/dia (net RRR): {ref}")
+    lines += ["", f"LUCRO/DIA estimado: {fmt_silver(res.get('profit_day'))}"]
+    if res.get("market_limited"):
+        lines.append(f"AVISO: mercado satura em {res['market_capacity']} "
+                     f"crafts/dia — alimenta ~{res['laborers_feedable']} "
+                     f"trabalhadores desta família/tier.")
+    return code_block("\n".join(lines))
+
+
 # ------------------------------------------------------ casca discord.py 2.x
 def build_bot(api: ApiClient):
     """Monta o Client + CommandTree ligando cada slash command ao handler puro."""
@@ -375,6 +580,68 @@ def build_bot(api: ApiClient):
         async def on_ready(self):
             print(f"[bot] conectado como {self.user} "
                   f"(API {api._client.base_url})", flush=True)
+            self._start_board_task()
+
+        # ---------------- quadro automático (1 mensagem editada no canal)
+        # Requer ALBION_BOARD_CHANNEL_ID (id do canal, ex.: #tributo) e
+        # DISCORD_BOARD_USER_ID (snowflake de um membro VINCULADO — define a
+        # org cujo quadro é publicado; normalmente o do dono). Sem as envs,
+        # o quadro segue disponível só via /quadro.
+        def _start_board_task(self):
+            if getattr(self, "_board_started", False):
+                return
+            ch = os.environ.get("ALBION_BOARD_CHANNEL_ID", "").strip()
+            uid = os.environ.get("DISCORD_BOARD_USER_ID", "").strip()
+            if not ch or not uid:
+                return
+            self._board_started = True
+            import asyncio
+
+            async def loop():
+                while True:
+                    await self.refresh_board()
+                    await asyncio.sleep(6 * 3600)   # 4x/dia + após auditorias
+            asyncio.create_task(loop())
+
+        def schedule_board_refresh(self):
+            """Re-edita o quadro após /aprovar e /rejeitar (não bloqueia)."""
+            import asyncio
+            if getattr(self, "_board_started", False):
+                asyncio.create_task(self.refresh_board())
+
+        async def refresh_board(self):
+            try:
+                ch_id = int(os.environ["ALBION_BOARD_CHANNEL_ID"])
+                uid = int(os.environ["DISCORD_BOARD_USER_ID"])
+                res = await api.get("/api/discord/board",
+                                    params={"discord_user_id": uid})
+                text = _board_text(res)
+                channel = self.get_channel(ch_id) or await self.fetch_channel(ch_id)
+                state_path = Path("data") / "bot_state.json"
+                try:
+                    state = json.loads(state_path.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    state = {}
+                msg_id = state.get(str(ch_id))
+                msg = None
+                if msg_id:
+                    try:
+                        msg = await channel.fetch_message(int(msg_id))
+                    except Exception:
+                        msg = None              # mensagem apagada: reposta
+                if msg:
+                    await msg.edit(content=text)
+                else:
+                    msg = await channel.send(text)
+                    state[str(ch_id)] = msg.id
+                    try:
+                        state_path.parent.mkdir(exist_ok=True)
+                        state_path.write_text(
+                            json.dumps(state), encoding="utf-8")
+                    except OSError:
+                        pass
+            except Exception as exc:            # nunca derruba o bot
+                print(f"[bot] quadro automático falhou: {exc!r}", flush=True)
 
     bot = GuildBot()
     tree = bot.tree
@@ -464,6 +731,85 @@ def build_bot(api: ApiClient):
         await _respond(interaction,
                        handle_meu_status(api, interaction.user.id),
                        ephemeral=True)
+
+    @tree.command(name="reportar",
+                  description="Reporta entrega de tributo (pausa seu relógio)")
+    @app_commands.describe(item="Item entregue (nome ou id — ex.: minério t4)",
+                           quantidade="Quantidade entregue",
+                           nota="Observação p/ o auditor (opcional)")
+    async def reportar_cmd(interaction: discord.Interaction, item: str,
+                           quantidade: app_commands.Range[int, 1, 1_000_000_000],
+                           nota: str = None):
+        await _respond(interaction,
+                       handle_reportar(api, interaction.user.id, item,
+                                       quantidade, nota=nota),
+                       ephemeral=True)
+
+    # ------------------------------------ comandos do AUDITOR (EFÊMEROS)
+    @tree.command(name="pendentes",
+                  description="Fila de reportes aguardando auditoria (auditor)")
+    async def pendentes_cmd(interaction: discord.Interaction):
+        await _respond(interaction,
+                       handle_pendentes(api, interaction.user.id),
+                       ephemeral=True)
+
+    @tree.command(name="aprovar",
+                  description="Aprova um reporte: zera o relógio do membro (auditor)")
+    @app_commands.describe(id="Número do reporte (veja /pendentes)",
+                           nota="Observação da auditoria (opcional)")
+    async def aprovar_cmd(interaction: discord.Interaction, id: int,
+                          nota: str = None):
+        await _respond(interaction,
+                       handle_aprovar(api, interaction.user.id, id, nota=nota),
+                       ephemeral=True)
+        bot.schedule_board_refresh()
+
+    @tree.command(name="rejeitar",
+                  description="Rejeita um reporte: relógio volta a contar (auditor)")
+    @app_commands.describe(id="Número do reporte (veja /pendentes)",
+                           nota="Motivo da rejeição (opcional)")
+    async def rejeitar_cmd(interaction: discord.Interaction, id: int,
+                           nota: str = None):
+        await _respond(interaction,
+                       handle_rejeitar(api, interaction.user.id, id, nota=nota),
+                       ephemeral=True)
+        bot.schedule_board_refresh()
+
+    # ------------------------------------------- públicos (mercado/quadro)
+    @tree.command(name="quadro",
+                  description="Quadro da semana: metas × entregas × relógio da guild")
+    async def quadro_cmd(interaction: discord.Interaction):
+        await _respond(interaction, handle_quadro(api, interaction.user.id))
+
+    @tree.command(name="vender",
+                  description="Melhor cidade para vender um item")
+    @app_commands.describe(item="Nome (PT/EN) ou id do item")
+    async def vender_cmd(interaction: discord.Interaction, item: str):
+        await _respond(interaction, handle_vender(api, item))
+
+    @tree.command(name="ouro", description="Cotação do ouro + tendência 48h")
+    async def ouro_cmd(interaction: discord.Interaction):
+        await _respond(interaction, handle_ouro(api))
+
+    @tree.command(name="recomendar",
+                  description="Top 5 oportunidades de flip agora")
+    async def recomendar_cmd(interaction: discord.Interaction):
+        await _respond(interaction, handle_recomendar(api))
+
+    @tree.command(name="plano",
+                  description="Plano de produção p/ N trabalhadores (laborplan)")
+    @app_commands.describe(familia="Família de fabricação",
+                           tier="Tier do diário (2-8)",
+                           trabalhadores="Quantos trabalhadores alimentar")
+    @app_commands.choices(familia=[
+        app_commands.Choice(name=f, value=f)
+        for f in ("WARRIOR", "HUNTER", "MAGE", "TOOLMAKER", "MERCENARY")])
+    async def plano_cmd(interaction: discord.Interaction,
+                        familia: str = "WARRIOR",
+                        tier: app_commands.Range[int, 2, 8] = 4,
+                        trabalhadores: app_commands.Range[int, 1, 99] = 9):
+        await _respond(interaction,
+                       handle_plano(api, familia, tier, trabalhadores))
 
     return bot
 

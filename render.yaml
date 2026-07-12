@@ -35,3 +35,17 @@ services:
       # conta e mostra a senha temporária no Log. Depois remova esta variável.
       - key: ALBION_BOOTSTRAP_ADMIN
         sync: false
+      # Token do bot do Discord (Developer Portal > Bot > Reset Token). Com ele
+      # o bot sobe DENTRO deste serviço (24/7 via keep-alive do cron) e
+      # provisiona sozinho o token de serviço. Vazio = bot desligado.
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      # (Opcional) sync instantâneo dos comandos no seu servidor Discord.
+      - key: DISCORD_GUILD_ID
+        sync: false
+      # (Opcional) quadro semanal automático: canal onde o bot posta/edita a
+      # mensagem + snowflake de um membro VINCULADO (define a org do quadro).
+      - key: ALBION_BOARD_CHANNEL_ID
+        sync: false
+      - key: DISCORD_BOARD_USER_ID
+        sync: false
