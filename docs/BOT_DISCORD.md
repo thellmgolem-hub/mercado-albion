@@ -72,6 +72,7 @@ Envs:
 | `ALBION_SERVICE_TOKEN` | sim | — | token `svc_...` do passo 2 |
 | `ALBION_API_URL` | não | `http://127.0.0.1:8528` | base da API do app |
 | `DISCORD_GUILD_ID` | não | — | sync instantâneo dos comandos num servidor |
+| `ALBION_PUBLIC_URL` | não | `https://mercado-albion.onrender.com` | base PÚBLICA p/ os ícones dos embeds (o Discord busca a imagem pela internet, não pelo `ALBION_API_URL` interno) |
 
 Sem `DISCORD_GUILD_ID` o registro dos comandos é **global** e o Discord pode
 levar até ~1 hora para exibi-los. Com a env, aparecem imediatamente no
@@ -94,7 +95,9 @@ nunca do servidor Discord de onde o comando foi digitado.
 | Comando | Endpoint da API | Visibilidade |
 |---|---|---|
 | `/preco <item>` | `GET /api/search` (resolve o id) + `GET /api/prices` | pública |
+| `/comparar <item>` | `GET /api/prices` (todas as cidades: barras + melhor rota de flip) | pública |
 | `/buscar <termo>` | `GET /api/search?group=true` | pública |
+| `/builds <arma> [conteúdo]` | `data/builds.json` (embed com ícone da arma + itens em PT-BR + habilidades; sem chamar a API) | pública |
 | `/flip <orçamento> [cidade]` | `GET /api/flip-advisor` | pública |
 | `/ilha` | `GET /api/island?view=laborers` (top 5) | pública |
 | `/felicidade <tier> [prédio] [trabalhadores] [família]` | `GET /api/laborer-happiness` (painel do jogo + rendimento por diário; assume mobília/troféus ideais = teto da config) | pública |
@@ -114,6 +117,20 @@ nunca do servidor Discord de onde o comando foi digitado.
 "Efêmera" = só o autor do comando vê a resposta (metas e relógio de tributo
 são dados pessoais do membro). Erros da API viram mensagens amigáveis em
 PT-BR — o bot nunca despeja traceback no canal (fica no console dele).
+
+## Intuitivo para iniciante (sem decorar nome de item)
+
+- **Autocomplete** em `/preco`, `/vender`, `/comparar` e `/buscar`: digite 2+
+  letras (PT ou EN) e **escolha da lista** — o `value` da escolha é o id do item,
+  e `_resolve_item` prioriza id exato, então a seleção resolve direto.
+- **`/builds`**: dois menus (árvore de arma + conteúdo) — nenhum texto. Lê
+  `data/builds.json` (gerado por `scripts/build_builds_data.py` a partir do guia
+  da guild: cada item já resolvido em **nome PT-BR oficial + id + ícone**). O
+  embed mostra o ícone da arma como thumbnail e lista arma/cabeça/peito/pés/capa/
+  poção/comida em PT. Regenerar após editar o guia:
+  `python scripts/build_builds_data.py --generate <saida.json>`.
+- **`/comparar`**: barras ASCII do preço por cidade + a melhor rota de flip
+  (comprar mais barato → vender na maior ordem de compra).
 
 ## Quadro semanal automático (opcional)
 

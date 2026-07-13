@@ -1,0 +1,2939 @@
+{
+  "trees": [
+    {
+      "tree": "Cajados de Fogo",
+      "count": 6
+    },
+    {
+      "tree": "Cajados de Gelo",
+      "count": 6
+    },
+    {
+      "tree": "Arcos",
+      "count": 6
+    },
+    {
+      "tree": "Cajados da Natureza",
+      "count": 6
+    },
+    {
+      "tree": "Cajados Amaldiçoados (Amaldiçoados)",
+      "count": 6
+    },
+    {
+      "tree": "Bordões (Quarterstaffs)",
+      "count": 7
+    },
+    {
+      "tree": "Machados",
+      "count": 6
+    }
+  ],
+  "count": 43,
+  "builds": [
+    {
+      "tree": "Cajados de Fogo",
+      "buildName": "Dawnsong",
+      "content": "Faccao/ZvZ",
+      "role": "DPS de área com anti-cura; opção geral da árvore para massa.",
+      "abilities": {
+        "q": "Burning Field",
+        "w": "Fire Artillery",
+        "e": "Flaming Phoenix",
+        "passive": "Furious"
+      },
+      "execution": "Acompanhe o engage e coloque o E no clump quando a cura adversária estiver comprometida. Preserve botas para o counter-engage.",
+      "note": "Trocas: Assassin Hood em composição que prioriza recarga; Cleric Robe para versão mais barata e defensiva.",
+      "items": {
+        "weapon": {
+          "name_en": "Dawnsong",
+          "id": "T8_2H_FIRE_RINGPAIR_AVALON",
+          "pt": "Canção da Alvorada do Ancião",
+          "pt_clean": "Canção da Alvorada",
+          "icon": "/icon/T8_2H_FIRE_RINGPAIR_AVALON"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Knight Helmet",
+          "id": "T8_HEAD_PLATE_SET2",
+          "pt": "Elmo de Cavaleiro do Ancião",
+          "pt_clean": "Elmo de Cavaleiro",
+          "icon": "/icon/T8_HEAD_PLATE_SET2"
+        },
+        "chest": {
+          "name_en": "Feyscale Robe",
+          "id": "T8_ARMOR_CLOTH_FEY",
+          "pt": "Robe Feérico do Ancião",
+          "pt_clean": "Robe Feérico",
+          "icon": "/icon/T8_ARMOR_CLOTH_FEY"
+        },
+        "shoes": {
+          "name_en": "Graveguard Boots",
+          "id": "T8_SHOES_PLATE_UNDEAD",
+          "pt": "Botas de Guarda-tumbas do Ancião",
+          "pt_clean": "Botas de Guarda-tumbas",
+          "icon": "/icon/T8_SHOES_PLATE_UNDEAD"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Fogo",
+      "buildName": "Brimstone",
+      "content": "Faccao/ZvZ",
+      "role": "Burst concentrado de ZvZ coordenado (bomb squad).",
+      "abilities": {
+        "q": "Burning Field",
+        "w": "Fire Artillery",
+        "e": "Meteor",
+        "passive": "Furious"
+      },
+      "execution": "Pré-bufe Royal Sandals, lance Meteor apenas no clump confirmado pelo caller e recue. Use Assassin Hood quando houver janela segura.",
+      "note": "Nota crítica: em facção pública, o dano teórico alto é menos valioso se o grupo não fixa os alvos.",
+      "items": {
+        "weapon": {
+          "name_en": "Brimstone Staff",
+          "id": "T8_2H_FIRESTAFF_HELL",
+          "pt": "Cajado Sulfuroso do Ancião",
+          "pt_clean": "Cajado Sulfuroso",
+          "icon": "/icon/T8_2H_FIRESTAFF_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Royal Sandals",
+          "id": "T8_SHOES_CLOTH_ROYAL",
+          "pt": "Sandálias Reais do Ancião",
+          "pt_clean": "Sandálias Reais",
+          "icon": "/icon/T8_SHOES_CLOTH_ROYAL"
+        },
+        "cape": {
+          "name_en": "Fort Sterling Cape",
+          "id": "T8_CAPEITEM_FW_FORTSTERLING",
+          "pt": "Capa de Fort Sterling do Ancião",
+          "pt_clean": "Capa de Fort Sterling",
+          "icon": "/icon/T8_CAPEITEM_FW_FORTSTERLING"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Fogo",
+      "buildName": "1H Fire",
+      "content": "Arena 5v5",
+      "role": "DPS contínuo e pressão independente.",
+      "abilities": {
+        "q": "Burning Field",
+        "w": "Fire Artillery",
+        "e": "Pyroblast",
+        "passive": "Aggressive Caster/Burn"
+      },
+      "execution": "Pressione o alvo exposto sem abandonar a linha do healer. Reserve defensivo para dive, não para dano residual.",
+      "note": "Trocas: Cleric Robe para Arena solo queue; Fire Wave contra canais e melees que atravessam sua zona.",
+      "items": {
+        "weapon": {
+          "name_en": "1H Fire Staff",
+          "id": "T8_MAIN_FIRESTAFF",
+          "pt": "Cajado de Fogo do Ancião",
+          "pt_clean": "Cajado de Fogo",
+          "icon": "/icon/T8_MAIN_FIRESTAFF"
+        },
+        "offhand": {
+          "name_en": "Cryptcandle",
+          "id": "T8_OFF_LAMP_UNDEAD",
+          "pt": "Lume Críptico do Ancião",
+          "pt_clean": "Lume Críptico",
+          "icon": "/icon/T8_OFF_LAMP_UNDEAD"
+        },
+        "head": {
+          "name_en": "Druid Cowl",
+          "id": "T8_HEAD_CLOTH_KEEPER",
+          "pt": "Capote de Druida do Ancião",
+          "pt_clean": "Capote de Druida",
+          "icon": "/icon/T8_HEAD_CLOTH_KEEPER"
+        },
+        "chest": {
+          "name_en": "Feyscale Robe",
+          "id": "T8_ARMOR_CLOTH_FEY",
+          "pt": "Robe Feérico do Ancião",
+          "pt_clean": "Robe Feérico",
+          "icon": "/icon/T8_ARMOR_CLOTH_FEY"
+        },
+        "shoes": {
+          "name_en": "Royal Shoes",
+          "id": "T8_SHOES_LEATHER_ROYAL",
+          "pt": "Sapatos Reais do Ancião",
+          "pt_clean": "Sapatos Reais",
+          "icon": "/icon/T8_SHOES_LEATHER_ROYAL"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Fogo",
+      "buildName": "Dawnsong",
+      "content": "Hellgate 5v5",
+      "role": "DPS de composição com redução de cura.",
+      "abilities": {
+        "q": "Burning Field",
+        "w": "Fire Artillery",
+        "e": "Flaming Phoenix",
+        "passive": "Furious"
+      },
+      "execution": "Sincronize E com o foco do tanque. Mercenary Shoes devem limpar o controle que impediria reposicionamento.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Dawnsong",
+          "id": "T8_2H_FIRE_RINGPAIR_AVALON",
+          "pt": "Canção da Alvorada do Ancião",
+          "pt_clean": "Canção da Alvorada",
+          "icon": "/icon/T8_2H_FIRE_RINGPAIR_AVALON"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Feyscale Hat",
+          "id": "T8_HEAD_CLOTH_FEY",
+          "pt": "Capote Feérico do Ancião",
+          "pt_clean": "Capote Feérico",
+          "icon": "/icon/T8_HEAD_CLOTH_FEY"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Fogo",
+      "buildName": "Wildfire",
+      "content": "Abyssal 3v3",
+      "role": "Burst em corredor e follow-up de controle.",
+      "abilities": {
+        "q": "Burning Field",
+        "w": "Raging Flare",
+        "e": "Magma Sphere",
+        "passive": "Furious"
+      },
+      "execution": "Carregue o dano apenas quando o tanque puder manter o alvo na trajetória do E. Evite ativar todos os multiplicadores antes de confirmar o controle.",
+      "note": "Nota crítica: configuração frágil — Cryptcandle e Royal Sandals aumentam o risco de morrer no counter-burst.",
+      "items": {
+        "weapon": {
+          "name_en": "Wildfire Staff",
+          "id": "T8_MAIN_FIRESTAFF_KEEPER",
+          "pt": "Cajado Incendiário do Ancião",
+          "pt_clean": "Cajado Incendiário",
+          "icon": "/icon/T8_MAIN_FIRESTAFF_KEEPER"
+        },
+        "offhand": {
+          "name_en": "Cryptcandle",
+          "id": "T8_OFF_LAMP_UNDEAD",
+          "pt": "Lume Críptico do Ancião",
+          "pt_clean": "Lume Críptico",
+          "icon": "/icon/T8_OFF_LAMP_UNDEAD"
+        },
+        "head": {
+          "name_en": "Royal Hood",
+          "id": "T8_HEAD_LEATHER_ROYAL",
+          "pt": "Capuz Real do Ancião",
+          "pt_clean": "Capuz Real",
+          "icon": "/icon/T8_HEAD_LEATHER_ROYAL"
+        },
+        "chest": {
+          "name_en": "Feyscale Robe",
+          "id": "T8_ARMOR_CLOTH_FEY",
+          "pt": "Robe Feérico do Ancião",
+          "pt_clean": "Robe Feérico",
+          "icon": "/icon/T8_ARMOR_CLOTH_FEY"
+        },
+        "shoes": {
+          "name_en": "Royal Sandals",
+          "id": "T8_SHOES_CLOTH_ROYAL",
+          "pt": "Sandálias Reais do Ancião",
+          "pt_clean": "Sandálias Reais",
+          "icon": "/icon/T8_SHOES_CLOTH_ROYAL"
+        },
+        "cape": {
+          "name_en": "Morgana Cape",
+          "id": "T8_CAPEITEM_MORGANA",
+          "pt": "Capa de Morgana do Ancião",
+          "pt_clean": "Capa de Morgana",
+          "icon": "/icon/T8_CAPEITEM_MORGANA"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Fogo",
+      "buildName": "1H Fire",
+      "content": "Corrompida 1v1",
+      "role": "Kite, separação e burst repetível.",
+      "abilities": {
+        "q": "Fire Bolt",
+        "w": "Wall of Flames",
+        "e": "Pyroblast",
+        "passive": "Aggressive Caster"
+      },
+      "execution": "Use Wall of Flames para negar a janela do melee, não apenas para causar dano. Pyroblast deve punir defensivos já consumidos.",
+      "note": "Trocas: Fire Wave contra canais; Feyscale Robe em versão cara; Infernal ou Wildfire como alternativas de burst.",
+      "items": {
+        "weapon": {
+          "name_en": "1H Fire Staff",
+          "id": "T8_MAIN_FIRESTAFF",
+          "pt": "Cajado de Fogo do Ancião",
+          "pt_clean": "Cajado de Fogo",
+          "icon": "/icon/T8_MAIN_FIRESTAFF"
+        },
+        "offhand": {
+          "name_en": "Rosalia's Diary",
+          "id": "T8_OFF_BOOK",
+          "pt": "Diário de Rosalia",
+          "pt_clean": "Diário de Rosalia",
+          "icon": "/icon/T8_OFF_BOOK"
+        },
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Keeper Cape",
+          "id": "T8_CAPEITEM_KEEPER",
+          "pt": "Capa Protetora do Ancião",
+          "pt_clean": "Capa Protetora",
+          "icon": "/icon/T8_CAPEITEM_KEEPER"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Gelo",
+      "buildName": "Permafrost Prism",
+      "content": "Faccao/ZvZ",
+      "role": "DPS de clump com controle imediato",
+      "abilities": {
+        "q": "Ice Shard",
+        "w": "Frost Nova",
+        "e": "Ice Crystal",
+        "passive": "Aggressive Caster"
+      },
+      "execution": "Entre depois do tanque, use E no centro do clump e Frost Nova para reposicionar ou escapar. Scholar Robe é uma janela, não um modo permanente.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Permafrost Prism",
+          "id": "T8_2H_ICECRYSTAL_UNDEAD",
+          "pt": "Prisma Geleterno do Ancião",
+          "pt_clean": "Prisma Geleterno",
+          "icon": "/icon/T8_2H_ICECRYSTAL_UNDEAD"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Scholar Robe",
+          "id": "T8_ARMOR_CLOTH_SET1",
+          "pt": "Robe de Erudito do Ancião",
+          "pt_clean": "Robe de Erudito",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET1"
+        },
+        "shoes": {
+          "name_en": "Graveguard Boots",
+          "id": "T8_SHOES_PLATE_UNDEAD",
+          "pt": "Botas de Guarda-tumbas do Ancião",
+          "pt_clean": "Botas de Guarda-tumbas",
+          "icon": "/icon/T8_SHOES_PLATE_UNDEAD"
+        },
+        "cape": {
+          "name_en": "Morgana Cape",
+          "id": "T8_CAPEITEM_MORGANA",
+          "pt": "Capa de Morgana do Ancião",
+          "pt_clean": "Capa de Morgana",
+          "icon": "/icon/T8_CAPEITEM_MORGANA"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Gelo",
+      "buildName": "Icicle Staff",
+      "content": "Faccao/ZvZ",
+      "role": "Suporte de ZvZ: controle de zona, peel e separação de linhas",
+      "abilities": {
+        "q": "Frozen Surge",
+        "w": "Frost Lance",
+        "e": "Frozen Hell",
+        "passive": "Energetic Caster"
+      },
+      "execution": "Coloque Frozen Hell entre front e backline ou na rota de retirada. O valor principal é negar movimento, não registrar kills.",
+      "note": "W alternativa: Glacial Obelisk; passiva também pode ser Aggressive Caster.",
+      "items": {
+        "weapon": {
+          "name_en": "Icicle Staff",
+          "id": "T8_2H_ICEGAUNTLETS_HELL",
+          "pt": "Cajado de Sincelo do Ancião",
+          "pt_clean": "Cajado de Sincelo",
+          "icon": "/icon/T8_2H_ICEGAUNTLETS_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Knight Armor",
+          "id": "T8_ARMOR_PLATE_SET2",
+          "pt": "Armadura de Cavaleiro do Ancião",
+          "pt_clean": "Armadura de Cavaleiro",
+          "icon": "/icon/T8_ARMOR_PLATE_SET2"
+        },
+        "shoes": {
+          "name_en": "Royal Shoes",
+          "id": "T8_SHOES_LEATHER_ROYAL",
+          "pt": "Sapatos Reais do Ancião",
+          "pt_clean": "Sapatos Reais",
+          "icon": "/icon/T8_SHOES_LEATHER_ROYAL"
+        },
+        "cape": {
+          "name_en": "Smuggler Cape",
+          "id": "T8_CAPEITEM_SMUGGLER",
+          "pt": "Capa de Contrabandista do Ancião",
+          "pt_clean": "Capa de Contrabandista",
+          "icon": "/icon/T8_CAPEITEM_SMUGGLER"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Avalonian Pork Omelette",
+          "id": "T7_MEAL_OMELETTE_AVALON",
+          "pt": "Omelete de Porco Avaloniano",
+          "pt_clean": "Omelete de Porco Avaloniano",
+          "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Gelo",
+      "buildName": "Great Frost",
+      "content": "Hellgate 5v5",
+      "role": "Dano constante front-to-back",
+      "abilities": {
+        "q": "Frozen Surge",
+        "w": "Frost Lance",
+        "e": "Hail",
+        "passive": "Furious"
+      },
+      "execution": "Mantenha Hail em recarga durante o foco e use Frost Lance para reduzir resistências. Preserve cleanse para o controle que cortaria sua janela.",
+      "note": "Título cobre Hellgate e Arena 5v5; poção alternativa: Cleansing Potion.",
+      "items": {
+        "weapon": {
+          "name_en": "Great Frost Staff",
+          "id": "T8_2H_FROSTSTAFF",
+          "pt": "Cajado de Gelo Elevado do Ancião",
+          "pt_clean": "Cajado de Gelo Elevado",
+          "icon": "/icon/T8_2H_FROSTSTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Druid Cowl",
+          "id": "T8_HEAD_CLOTH_KEEPER",
+          "pt": "Capote de Druida do Ancião",
+          "pt_clean": "Capote de Druida",
+          "icon": "/icon/T8_HEAD_CLOTH_KEEPER"
+        },
+        "chest": {
+          "name_en": "Mage Robe",
+          "id": "T8_ARMOR_CLOTH_SET3",
+          "pt": "Robe de Mago do Ancião",
+          "pt_clean": "Robe de Mago",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET3"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Gelo",
+      "buildName": "Arctic Staff",
+      "content": "Arena 5v5",
+      "role": "Pressão explosiva sobre alvo contido",
+      "abilities": {
+        "q": "Frozen Surge",
+        "w": "Frost Beam",
+        "e": "Arctic Volley",
+        "passive": "Furious"
+      },
+      "execution": "Canalize Frost Beam apenas quando houver peel ou controle aliado. Arctic Volley deve cobrir o espaço de disputa, não uma área vazia.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Arctic Staff",
+          "id": "T8_2H_FROSTSTAFF_CRYSTAL",
+          "pt": "Cajado Ártico do Ancião",
+          "pt_clean": "Cajado Ártico",
+          "icon": "/icon/T8_2H_FROSTSTAFF_CRYSTAL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Gelo",
+      "buildName": "Glacial Staff",
+      "content": "Abyssal 3v3",
+      "role": "Zona de dano e controle em corredor",
+      "abilities": {
+        "q": "Ice Shard",
+        "w": "Frost Nova",
+        "e": "Ice Storm",
+        "passive": "Aggressive Caster"
+      },
+      "execution": "Espere o controle aliado antes de Ice Storm. Use Frost Nova defensivamente se a composição inimiga tiver dive.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Glacial Staff",
+          "id": "T8_2H_GLACIALSTAFF",
+          "pt": "Cajado Glacial do Ancião",
+          "pt_clean": "Cajado Glacial",
+          "icon": "/icon/T8_2H_GLACIALSTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Royal Cowl",
+          "id": "T8_HEAD_CLOTH_ROYAL",
+          "pt": "Capote Real do Ancião",
+          "pt_clean": "Capote Real",
+          "icon": "/icon/T8_HEAD_CLOTH_ROYAL"
+        },
+        "chest": {
+          "name_en": "Scholar Robe",
+          "id": "T8_ARMOR_CLOTH_SET1",
+          "pt": "Robe de Erudito do Ancião",
+          "pt_clean": "Robe de Erudito",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET1"
+        },
+        "shoes": {
+          "name_en": "Shoes of Tenacity",
+          "id": "T8_SHOES_LEATHER_AVALON",
+          "pt": "Sapatos da Tenacidade do Ancião",
+          "pt_clean": "Sapatos da Tenacidade",
+          "icon": "/icon/T8_SHOES_LEATHER_AVALON"
+        },
+        "cape": {
+          "name_en": "Morgana Cape",
+          "id": "T8_CAPEITEM_MORGANA",
+          "pt": "Capa de Morgana do Ancião",
+          "pt_clean": "Capa de Morgana",
+          "icon": "/icon/T8_CAPEITEM_MORGANA"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      }
+    },
+    {
+      "tree": "Cajados de Gelo",
+      "buildName": "1H Frost",
+      "content": "Corrompida 1v1",
+      "role": "Kite, root e janelas curtas de dano",
+      "abilities": {
+        "q": "Frostbite",
+        "w": "Frost Nova",
+        "e": "Freezing Wind",
+        "passive": null
+      },
+      "execution": "Controle a distância e force o adversário a gastar mobilidade antes do E. Knight Armor cria espaço para resetar.",
+      "note": "Trocas: Great Frost é alternativa mais simples; Chillhowl tem teto técnico alto, mas uso menos padronizado.",
+      "items": {
+        "weapon": {
+          "name_en": "1H Frost Staff",
+          "id": "T8_MAIN_FROSTSTAFF",
+          "pt": "Cajado de Gelo do Ancião",
+          "pt_clean": "Cajado de Gelo",
+          "icon": "/icon/T8_MAIN_FROSTSTAFF"
+        },
+        "offhand": {
+          "name_en": "Rosalia's Diary",
+          "id": "T8_OFF_BOOK",
+          "pt": "Diário de Rosalia",
+          "pt_clean": "Diário de Rosalia",
+          "icon": "/icon/T8_OFF_BOOK"
+        },
+        "head": {
+          "name_en": "Cleric Cowl",
+          "id": "T8_HEAD_CLOTH_SET2",
+          "pt": "Capote de Clérigo do Ancião",
+          "pt_clean": "Capote de Clérigo",
+          "icon": "/icon/T8_HEAD_CLOTH_SET2"
+        },
+        "chest": {
+          "name_en": "Knight Armor",
+          "id": "T8_ARMOR_PLATE_SET2",
+          "pt": "Armadura de Cavaleiro do Ancião",
+          "pt_clean": "Armadura de Cavaleiro",
+          "icon": "/icon/T8_ARMOR_PLATE_SET2"
+        },
+        "shoes": {
+          "name_en": "Scholar Sandals",
+          "id": "T8_SHOES_CLOTH_SET1",
+          "pt": "Sandálias de Erudito do Ancião",
+          "pt_clean": "Sandálias de Erudito",
+          "icon": "/icon/T8_SHOES_CLOTH_SET1"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      }
+    },
+    {
+      "tree": "Arcos",
+      "buildName": "Longbow",
+      "content": "Faccao/ZvZ",
+      "role": "DPS de área repetido sobre clump.",
+      "abilities": {
+        "q": "Multishot",
+        "w": "Explosive Arrows",
+        "e": "Rain of Arrows",
+        "passive": "Piercing Arrows"
+      },
+      "execution": "Acompanhe o engage e cubra a área de imobilização. Não gaste E em alvos espalhados apenas para acumular dano.",
+      "note": "Trocas p/ versão mais barata: Cleric Robe no peito e Martlock (ou Lymhurst) Cape.",
+      "items": {
+        "weapon": {
+          "name_en": "Longbow",
+          "id": "T8_2H_LONGBOW",
+          "pt": "Arco Longo do Ancião",
+          "pt_clean": "Arco Longo",
+          "icon": "/icon/T8_2H_LONGBOW"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Knight Helmet",
+          "id": "T8_HEAD_PLATE_SET2",
+          "pt": "Elmo de Cavaleiro do Ancião",
+          "pt_clean": "Elmo de Cavaleiro",
+          "icon": "/icon/T8_HEAD_PLATE_SET2"
+        },
+        "chest": {
+          "name_en": "Jacket of Tenacity",
+          "id": "T8_ARMOR_LEATHER_AVALON",
+          "pt": "Casaco da Tenacidade do Ancião",
+          "pt_clean": "Casaco da Tenacidade",
+          "icon": "/icon/T8_ARMOR_LEATHER_AVALON"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Smuggler Cape",
+          "id": "T8_CAPEITEM_SMUGGLER",
+          "pt": "Capa de Contrabandista do Ancião",
+          "pt_clean": "Capa de Contrabandista",
+          "icon": "/icon/T8_CAPEITEM_SMUGGLER"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Arcos",
+      "buildName": "Wailing Bow",
+      "content": "Faccao/ZvZ",
+      "role": "Burst linear em clump alinhado (bomb squad).",
+      "abilities": {
+        "q": "Multishot",
+        "w": "Explosive Arrows",
+        "e": "Demon Arrow",
+        "passive": "Piercing Arrows"
+      },
+      "execution": "Procure ângulo lateral ou frontal que atravesse o maior número de alvos. Atire somente após o controle confirmar a linha.",
+      "note": "Só para bomb squad coordenada; a poção pode ser Gigantify Potion no lugar de Resistance.",
+      "items": {
+        "weapon": {
+          "name_en": "Wailing Bow",
+          "id": "T8_2H_BOW_HELL",
+          "pt": "Arco Plangente do Ancião",
+          "pt_clean": "Arco Plangente",
+          "icon": "/icon/T8_2H_BOW_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Cowl of Purity",
+          "id": "T8_HEAD_CLOTH_AVALON",
+          "pt": "Capote da Pureza do Ancião",
+          "pt_clean": "Capote da Pureza",
+          "icon": "/icon/T8_HEAD_CLOTH_AVALON"
+        },
+        "chest": {
+          "name_en": "Jacket of Tenacity",
+          "id": "T8_ARMOR_LEATHER_AVALON",
+          "pt": "Casaco da Tenacidade do Ancião",
+          "pt_clean": "Casaco da Tenacidade",
+          "icon": "/icon/T8_ARMOR_LEATHER_AVALON"
+        },
+        "shoes": {
+          "name_en": "Boots of Valor",
+          "id": "T8_SHOES_PLATE_AVALON",
+          "pt": "Botas da Bravura do Ancião",
+          "pt_clean": "Botas da Bravura",
+          "icon": "/icon/T8_SHOES_PLATE_AVALON"
+        },
+        "cape": {
+          "name_en": "Fort Sterling Cape",
+          "id": "T8_CAPEITEM_FW_FORTSTERLING",
+          "pt": "Capa de Fort Sterling do Ancião",
+          "pt_clean": "Capa de Fort Sterling",
+          "icon": "/icon/T8_CAPEITEM_FW_FORTSTERLING"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Arcos",
+      "buildName": "Bow",
+      "content": "Arena 5v5",
+      "role": "DPS de alvo único e pressão por autoataque.",
+      "abilities": {
+        "q": "Multishot",
+        "w": "Explosive Arrows",
+        "e": "Enchanted Quiver",
+        "passive": "Piercing Arrows"
+      },
+      "execution": "Ative Quiver quando puder manter contato sem sair da proteção do healer. Mage Robe remove buffs e impede que melees transformem sua janela em suicídio.",
+      "note": "Serve também para Hellgate 5v5.",
+      "items": {
+        "weapon": {
+          "name_en": "Bow",
+          "id": "T8_2H_BOW",
+          "pt": "Arco do Ancião",
+          "pt_clean": "Arco",
+          "icon": "/icon/T8_2H_BOW"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hood of Tenacity",
+          "id": "T8_HEAD_LEATHER_AVALON",
+          "pt": "Capuz da Tenacidade do Ancião",
+          "pt_clean": "Capuz da Tenacidade",
+          "icon": "/icon/T8_HEAD_LEATHER_AVALON"
+        },
+        "chest": {
+          "name_en": "Mage Robe",
+          "id": "T8_ARMOR_CLOTH_SET3",
+          "pt": "Robe de Mago do Ancião",
+          "pt_clean": "Robe de Mago",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET3"
+        },
+        "shoes": {
+          "name_en": "Royal Shoes",
+          "id": "T8_SHOES_LEATHER_ROYAL",
+          "pt": "Sapatos Reais do Ancião",
+          "pt_clean": "Sapatos Reais",
+          "icon": "/icon/T8_SHOES_LEATHER_ROYAL"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Cleansing Potion",
+          "id": "T5_POTION_CLEANSE2",
+          "pt": "Poção Purificadora",
+          "pt_clean": "Poção Purificadora",
+          "icon": "/icon/T5_POTION_CLEANSE2"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Arcos",
+      "buildName": "Bow of Badon",
+      "content": "Arena 5v5",
+      "role": "Controle de área, interrupção e desgaste.",
+      "abilities": {
+        "q": "Deadly Shot",
+        "w": "Ray of Light",
+        "e": "Raging Storm",
+        "passive": "Piercing Arrows"
+      },
+      "execution": "Use Ray of Light para manter o alvo dentro da tempestade. Em 3v3, feche passagem e force a equipe inimiga a escolher entre dano e reposicionamento.",
+      "note": "Uso híbrido: também forte em 3v3 (é o Principal do quadro de 3v3).",
+      "items": {
+        "weapon": {
+          "name_en": "Bow of Badon",
+          "id": "T8_2H_BOW_KEEPER",
+          "pt": "Arco Badônico do Ancião",
+          "pt_clean": "Arco Badônico",
+          "icon": "/icon/T8_2H_BOW_KEEPER"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Guardian Helmet",
+          "id": "T8_HEAD_PLATE_SET3",
+          "pt": "Elmo de Guardião do Ancião",
+          "pt_clean": "Elmo de Guardião",
+          "icon": "/icon/T8_HEAD_PLATE_SET3"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Arcos",
+      "buildName": "Skystrider Bow",
+      "content": "Abyssal 3v3",
+      "role": "Mobilidade, perseguição e esquiva ativa.",
+      "abilities": {
+        "q": "Deadly Shot",
+        "w": "Ray of Light",
+        "e": "exclusivo da arma",
+        "passive": null
+      },
+      "execution": "Use a mobilidade para negar a resposta inimiga, não apenas para entrar. No trio, coordene Ray of Light com o burst aliado.",
+      "note": "No solo: troque W p/ Frost Shot, poção p/ Healing e comida p/ Pork Omelette; calçado alternativo Hunter Shoes. O E é a skill exclusiva da arma (não nomeada no doc).",
+      "items": {
+        "weapon": {
+          "name_en": "Skystrider Bow",
+          "id": "T8_2H_BOW_CRYSTAL",
+          "pt": "Arco do Andarilho Celeste do Ancião",
+          "pt_clean": "Arco do Andarilho Celeste",
+          "icon": "/icon/T8_2H_BOW_CRYSTAL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Cowl of Purity",
+          "id": "T8_HEAD_CLOTH_AVALON",
+          "pt": "Capote da Pureza do Ancião",
+          "pt_clean": "Capote da Pureza",
+          "icon": "/icon/T8_HEAD_CLOTH_AVALON"
+        },
+        "chest": {
+          "name_en": "Assassin Jacket",
+          "id": "T8_ARMOR_LEATHER_SET3",
+          "pt": "Casaco de Assassino do Ancião",
+          "pt_clean": "Casaco de Assassino",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET3"
+        },
+        "shoes": {
+          "name_en": "Shoes of Tenacity",
+          "id": "T8_SHOES_LEATHER_AVALON",
+          "pt": "Sapatos da Tenacidade do Ancião",
+          "pt_clean": "Sapatos da Tenacidade",
+          "icon": "/icon/T8_SHOES_LEATHER_AVALON"
+        },
+        "cape": {
+          "name_en": "Smuggler Cape",
+          "id": "T8_CAPEITEM_SMUGGLER",
+          "pt": "Capa de Contrabandista do Ancião",
+          "pt_clean": "Capa de Contrabandista",
+          "icon": "/icon/T8_CAPEITEM_SMUGGLER"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Arcos",
+      "buildName": "Warbow",
+      "content": "Corrompida 1v1",
+      "role": "Kite e dano escalado por distância.",
+      "abilities": {
+        "q": "Deadly Shot",
+        "w": "Frost Shot",
+        "e": "Magic Arrow",
+        "passive": "Piercing Arrows"
+      },
+      "execution": "Mantenha espaço para maximizar Magic Arrow. Trocas curtas a curta distância anulam a principal vantagem da arma.",
+      "note": "Cabeça alternativa: Hunter Hood; capa alternativa: Thetford Cape.",
+      "items": {
+        "weapon": {
+          "name_en": "Warbow",
+          "id": "T8_2H_WARBOW",
+          "pt": "Arco de Guerra do Ancião",
+          "pt_clean": "Arco de Guerra",
+          "icon": "/icon/T8_2H_WARBOW"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Guardian Helmet",
+          "id": "T8_HEAD_PLATE_SET3",
+          "pt": "Elmo de Guardião do Ancião",
+          "pt_clean": "Elmo de Guardião",
+          "icon": "/icon/T8_HEAD_PLATE_SET3"
+        },
+        "chest": {
+          "name_en": "Assassin Jacket",
+          "id": "T8_ARMOR_LEATHER_SET3",
+          "pt": "Casaco de Assassino do Ancião",
+          "pt_clean": "Casaco de Assassino",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET3"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Undead Cape",
+          "id": "T8_CAPEITEM_UNDEAD",
+          "pt": "Capa Morta-Viva do Ancião",
+          "pt_clean": "Capa Morta-Viva",
+          "icon": "/icon/T8_CAPEITEM_UNDEAD"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      }
+    },
+    {
+      "tree": "Cajados da Natureza",
+      "buildName": "Blight Staff",
+      "content": "Faccao/ZvZ",
+      "role": "Cura movel de grupo",
+      "abilities": {
+        "q": "Rejuvenation",
+        "w": "Rejuvenating Breeze",
+        "e": "Elevated Nature",
+        "passive": "Adrenaline Driven Charity"
+      },
+      "execution": "Mantenha Rejuvenation distribuido e use Elevated Nature durante avanco ou retirada. Mercenary Shoes limpam o controle que interromperia seu posicionamento.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Blight Staff",
+          "id": "T8_2H_NATURESTAFF_HELL",
+          "pt": "Cajado Pustulento do Ancião",
+          "pt_clean": "Cajado Pustulento",
+          "icon": "/icon/T8_2H_NATURESTAFF_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Avalonian Pork Omelette",
+          "id": "T7_MEAL_OMELETTE_AVALON",
+          "pt": "Omelete de Porco Avaloniano",
+          "pt_clean": "Omelete de Porco Avaloniano",
+          "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
+        }
+      }
+    },
+    {
+      "tree": "Cajados da Natureza",
+      "buildName": "Rampant Staff",
+      "content": "Faccao/ZvZ",
+      "role": "Sustentacao de area para grupos grandes",
+      "abilities": {
+        "q": "Rejuvenating Flower",
+        "w": "Cleanse Heal",
+        "e": "Spirit Animal",
+        "passive": "Adrenaline Driven Charity"
+      },
+      "execution": "Coloque a area onde o grupo permanecera durante a troca, nao onde ele estava. Cleanse Heal ganha valor contra composicao de CC.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Rampant Staff",
+          "id": "T8_2H_NATURESTAFF_KEEPER",
+          "pt": "Cajado Rampante do Ancião",
+          "pt_clean": "Cajado Rampante",
+          "icon": "/icon/T8_2H_NATURESTAFF_KEEPER"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Druid Cowl",
+          "id": "T8_HEAD_CLOTH_KEEPER",
+          "pt": "Capote de Druida do Ancião",
+          "pt_clean": "Capote de Druida",
+          "icon": "/icon/T8_HEAD_CLOTH_KEEPER"
+        },
+        "chest": {
+          "name_en": "Robe of Purity",
+          "id": "T8_ARMOR_CLOTH_AVALON",
+          "pt": "Robe da Pureza do Ancião",
+          "pt_clean": "Robe da Pureza",
+          "icon": "/icon/T8_ARMOR_CLOTH_AVALON"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Avalonian Pork Omelette",
+          "id": "T7_MEAL_OMELETTE_AVALON",
+          "pt": "Omelete de Porco Avaloniano",
+          "pt_clean": "Omelete de Porco Avaloniano",
+          "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
+        }
+      }
+    },
+    {
+      "tree": "Cajados da Natureza",
+      "buildName": "1H Nature",
+      "content": "Hellgate 5v5",
+      "role": "Cura focal e salvamento de alvo",
+      "abilities": {
+        "q": "Rejuvenating Flower",
+        "w": "Protection of Nature",
+        "e": "Circle of Life",
+        "passive": "Adrenaline Driven Charity"
+      },
+      "execution": "Proteja previamente o alvo que recebera burst. Graveguard Helmet e recurso de emergencia; nao deve ser gasto em dano leve.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "1H Nature Staff",
+          "id": "T8_MAIN_NATURESTAFF",
+          "pt": "Cajado da Natureza do Ancião",
+          "pt_clean": "Cajado da Natureza",
+          "icon": "/icon/T8_MAIN_NATURESTAFF"
+        },
+        "offhand": {
+          "name_en": "Mistcaller",
+          "id": "T8_OFF_HORN_KEEPER",
+          "pt": "Brumário do Ancião",
+          "pt_clean": "Brumário",
+          "icon": "/icon/T8_OFF_HORN_KEEPER"
+        },
+        "head": {
+          "name_en": "Graveguard Helmet",
+          "id": "T8_HEAD_PLATE_UNDEAD",
+          "pt": "Elmo de Guarda-tumbas do Ancião",
+          "pt_clean": "Elmo de Guarda-tumbas",
+          "icon": "/icon/T8_HEAD_PLATE_UNDEAD"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Energy Potion",
+          "id": "T4_POTION_ENERGY",
+          "pt": "Poção de Energia",
+          "pt_clean": "Poção de Energia",
+          "icon": "/icon/T4_POTION_ENERGY"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      }
+    },
+    {
+      "tree": "Cajados da Natureza",
+      "buildName": "Ironroot Staff",
+      "content": "Abyssal 3v3",
+      "role": "Link, transferencia e cura de alvos prioritarios",
+      "abilities": {
+        "q": "Rejuvenation",
+        "w": "Protection of Nature",
+        "e": "Soul Link",
+        "passive": "Adrenaline Driven Charity"
+      },
+      "execution": "A ligacao correta decide a luta. Leia quem recebera o foco e evite conectar alvos que transformarao o compartilhamento em dano adicional.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Ironroot Staff",
+          "id": "T8_MAIN_NATURESTAFF_AVALON",
+          "pt": "Raiz Férrea do Ancião",
+          "pt_clean": "Raiz Férrea",
+          "icon": "/icon/T8_MAIN_NATURESTAFF_AVALON"
+        },
+        "offhand": {
+          "name_en": "Mistcaller",
+          "id": "T8_OFF_HORN_KEEPER",
+          "pt": "Brumário do Ancião",
+          "pt_clean": "Brumário",
+          "icon": "/icon/T8_OFF_HORN_KEEPER"
+        },
+        "head": {
+          "name_en": "Graveguard Helmet",
+          "id": "T8_HEAD_PLATE_UNDEAD",
+          "pt": "Elmo de Guarda-tumbas do Ancião",
+          "pt_clean": "Elmo de Guarda-tumbas",
+          "icon": "/icon/T8_HEAD_PLATE_UNDEAD"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Shoes of Tenacity",
+          "id": "T8_SHOES_LEATHER_AVALON",
+          "pt": "Sapatos da Tenacidade do Ancião",
+          "pt_clean": "Sapatos da Tenacidade",
+          "icon": "/icon/T8_SHOES_LEATHER_AVALON"
+        },
+        "cape": {
+          "name_en": "Brecilien Cape",
+          "id": "T8_CAPEITEM_FW_BRECILIEN",
+          "pt": "Capa de Brecilien do Ancião",
+          "pt_clean": "Capa de Brecilien",
+          "icon": "/icon/T8_CAPEITEM_FW_BRECILIEN"
+        },
+        "potion": {
+          "name_en": "Energy Potion",
+          "id": "T4_POTION_ENERGY",
+          "pt": "Poção de Energia",
+          "pt_clean": "Poção de Energia",
+          "icon": "/icon/T4_POTION_ENERGY"
+        },
+        "food": {
+          "name_en": "Avalonian Pork Omelette",
+          "id": "T7_MEAL_OMELETTE_AVALON",
+          "pt": "Omelete de Porco Avaloniano",
+          "pt_clean": "Omelete de Porco Avaloniano",
+          "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
+        }
+      }
+    },
+    {
+      "tree": "Cajados da Natureza",
+      "buildName": "Forgebark Staff",
+      "content": "Abyssal 3v3",
+      "role": "Cura, protecao e controle hibridos (suporte premium)",
+      "abilities": {
+        "q": "Rejuvenation",
+        "w": "Revitalize",
+        "e": "Dual Nature",
+        "passive": null
+      },
+      "execution": "Use Dual Nature defensivamente para proteger aliado focado ou ofensivamente quando a composicao puder converter o controle em kill.",
+      "note": "Build cara e menos tolerante a erro que Ironroot.",
+      "items": {
+        "weapon": {
+          "name_en": "Forgebark Staff",
+          "id": "T8_MAIN_NATURESTAFF_CRYSTAL",
+          "pt": "Cajado de Crosta Forjada do Ancião",
+          "pt_clean": "Cajado de Crosta Forjada",
+          "icon": "/icon/T8_MAIN_NATURESTAFF_CRYSTAL"
+        },
+        "offhand": {
+          "name_en": "Celestial Censer",
+          "id": "T8_OFF_CENSER_AVALON",
+          "pt": "Incensário Celeste do Ancião",
+          "pt_clean": "Incensário Celeste",
+          "icon": "/icon/T8_OFF_CENSER_AVALON"
+        },
+        "head": {
+          "name_en": "Mistwalker Hood",
+          "id": "T8_HEAD_LEATHER_FEY",
+          "pt": "Capuz de Andarilho da Névoa do Ancião",
+          "pt_clean": "Capuz de Andarilho da Névoa",
+          "icon": "/icon/T8_HEAD_LEATHER_FEY"
+        },
+        "chest": {
+          "name_en": "Mistwalker Jacket",
+          "id": "T8_ARMOR_LEATHER_FEY",
+          "pt": "Casaco de Andarilho da Névoa do Ancião",
+          "pt_clean": "Casaco de Andarilho da Névoa",
+          "icon": "/icon/T8_ARMOR_LEATHER_FEY"
+        },
+        "shoes": {
+          "name_en": "Mistwalker Shoes",
+          "id": "T8_SHOES_LEATHER_FEY",
+          "pt": "Sapatos de Andarilho da Névoa do Ancião",
+          "pt_clean": "Sapatos de Andarilho da Névoa",
+          "icon": "/icon/T8_SHOES_LEATHER_FEY"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      }
+    },
+    {
+      "tree": "Cajados da Natureza",
+      "buildName": "Great Nature",
+      "content": "Corrompida 1v1",
+      "role": "Sustain reativo e desgaste",
+      "abilities": {
+        "q": "Thorn Growth",
+        "w": "Revitalize",
+        "e": "Living Armor",
+        "passive": "Energetic"
+      },
+      "execution": "Ative Living Armor quando o oponente estiver comprometido com a troca. Jogadores experientes podem simplesmente parar de atacar e reduzir seu valor.",
+      "note": "Troca convencional: Druidic + Mistcaller com Hunter Hood, Mercenary Jacket e Soldier Boots.",
+      "items": {
+        "weapon": {
+          "name_en": "Great Nature Staff",
+          "id": "T8_2H_NATURESTAFF",
+          "pt": "Cajado da Natureza Elevado do Ancião",
+          "pt_clean": "Cajado da Natureza Elevado",
+          "icon": "/icon/T8_2H_NATURESTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Cowl of Purity",
+          "id": "T8_HEAD_CLOTH_AVALON",
+          "pt": "Capote da Pureza do Ancião",
+          "pt_clean": "Capote da Pureza",
+          "icon": "/icon/T8_HEAD_CLOTH_AVALON"
+        },
+        "chest": {
+          "name_en": "Robe of Purity",
+          "id": "T8_ARMOR_CLOTH_AVALON",
+          "pt": "Robe da Pureza do Ancião",
+          "pt_clean": "Robe da Pureza",
+          "icon": "/icon/T8_ARMOR_CLOTH_AVALON"
+        },
+        "shoes": {
+          "name_en": "Shoes of Tenacity",
+          "id": "T8_SHOES_LEATHER_AVALON",
+          "pt": "Sapatos da Tenacidade do Ancião",
+          "pt_clean": "Sapatos da Tenacidade",
+          "icon": "/icon/T8_SHOES_LEATHER_AVALON"
+        },
+        "cape": {
+          "name_en": "Undead Cape",
+          "id": "T8_CAPEITEM_UNDEAD",
+          "pt": "Capa Morta-Viva do Ancião",
+          "pt_clean": "Capa Morta-Viva",
+          "icon": "/icon/T8_CAPEITEM_UNDEAD"
+        },
+        "potion": {
+          "name_en": "Energy Potion",
+          "id": "T4_POTION_ENERGY",
+          "pt": "Poção de Energia",
+          "pt_clean": "Poção de Energia",
+          "icon": "/icon/T4_POTION_ENERGY"
+        },
+        "food": {
+          "name_en": "Dusthole Crab Omelette",
+          "id": "T7_MEAL_OMELETTE_FISH",
+          "pt": "Omelete de Caranguejo de Poço",
+          "pt_clean": "Omelete de Caranguejo de Poço",
+          "icon": "/icon/T7_MEAL_OMELETTE_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Cajados Amaldiçoados (Amaldiçoados)",
+      "buildName": "Lifecurse",
+      "content": "Faccao/ZvZ",
+      "role": "Suporte de facção/ZvZ — purga, redução de pressão e suporte defensivo.",
+      "abilities": {
+        "q": "Cursed Tar",
+        "w": "Armor Piercer",
+        "e": "Enfeeble Blades",
+        "passive": "Energetic"
+      },
+      "execution": "Use Enfeeble Blades na janela ofensiva inimiga ou para remover buffs importantes. O valor principal não aparece necessariamente no número de kills.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Lifecurse Staff",
+          "id": "T8_MAIN_CURSEDSTAFF_UNDEAD",
+          "pt": "Cajado Execrado do Ancião",
+          "pt_clean": "Cajado Execrado",
+          "icon": "/icon/T8_MAIN_CURSEDSTAFF_UNDEAD"
+        },
+        "offhand": {
+          "name_en": "Mistcaller",
+          "id": "T8_OFF_HORN_KEEPER",
+          "pt": "Brumário do Ancião",
+          "pt_clean": "Brumário",
+          "icon": "/icon/T8_OFF_HORN_KEEPER"
+        },
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Judicator Armor",
+          "id": "T8_ARMOR_PLATE_KEEPER",
+          "pt": "Armadura Judicante do Ancião",
+          "pt_clean": "Armadura Judicante",
+          "icon": "/icon/T8_ARMOR_PLATE_KEEPER"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Smuggler Cape",
+          "id": "T8_CAPEITEM_SMUGGLER",
+          "pt": "Capa de Contrabandista do Ancião",
+          "pt_clean": "Capa de Contrabandista",
+          "icon": "/icon/T8_CAPEITEM_SMUGGLER"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Avalonian Pork Omelette",
+          "id": "T7_MEAL_OMELETTE_AVALON",
+          "pt": "Omelete de Porco Avaloniano",
+          "pt_clean": "Omelete de Porco Avaloniano",
+          "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
+        }
+      }
+    },
+    {
+      "tree": "Cajados Amaldiçoados (Amaldiçoados)",
+      "buildName": "Damnation",
+      "content": "Faccao/ZvZ",
+      "role": "Suporte de clap/ZvZ — redução de resistências e preparação de bomba.",
+      "abilities": {
+        "q": "Cursed Tar",
+        "w": "Armor Piercer",
+        "e": "Cataclysm",
+        "passive": "Energetic"
+      },
+      "execution": "Cataclysm deve preceder o dano aliado por uma janela curta. Se for lançada depois do burst, a arma perde sua função.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Damnation Staff",
+          "id": "T8_2H_CURSEDSTAFF_MORGANA",
+          "pt": "Cajado da Danação do Ancião",
+          "pt_clean": "Cajado da Danação",
+          "icon": "/icon/T8_2H_CURSEDSTAFF_MORGANA"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Feyscale Hat",
+          "id": "T8_HEAD_CLOTH_FEY",
+          "pt": "Capote Feérico do Ancião",
+          "pt_clean": "Capote Feérico",
+          "icon": "/icon/T8_HEAD_CLOTH_FEY"
+        },
+        "chest": {
+          "name_en": "Judicator Armor",
+          "id": "T8_ARMOR_PLATE_KEEPER",
+          "pt": "Armadura Judicante do Ancião",
+          "pt_clean": "Armadura Judicante",
+          "icon": "/icon/T8_ARMOR_PLATE_KEEPER"
+        },
+        "shoes": {
+          "name_en": "Graveguard Boots",
+          "id": "T8_SHOES_PLATE_UNDEAD",
+          "pt": "Botas de Guarda-tumbas do Ancião",
+          "pt_clean": "Botas de Guarda-tumbas",
+          "icon": "/icon/T8_SHOES_PLATE_UNDEAD"
+        },
+        "cape": {
+          "name_en": "Morgana Cape",
+          "id": "T8_CAPEITEM_MORGANA",
+          "pt": "Capa de Morgana do Ancião",
+          "pt_clean": "Capa de Morgana",
+          "icon": "/icon/T8_CAPEITEM_MORGANA"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      }
+    },
+    {
+      "tree": "Cajados Amaldiçoados (Amaldiçoados)",
+      "buildName": "Rotcaller",
+      "content": "Arena 5v5",
+      "role": "Arena e Hellgate 5v5 — anti-cura e pressão de foco.",
+      "abilities": {
+        "q": "Cursed Sickle",
+        "w": "Dark Matter",
+        "e": "Plaguebringer",
+        "passive": "Furious"
+      },
+      "execution": "Force recursos defensivos e aplique Plaguebringer na janela de focus real. Não desperdice anti-cura em poke sem possibilidade de kill.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Rotcaller Staff",
+          "id": "T8_MAIN_CURSEDSTAFF_CRYSTAL",
+          "pt": "Cajado Pútrido do Ancião",
+          "pt_clean": "Cajado Pútrido",
+          "icon": "/icon/T8_MAIN_CURSEDSTAFF_CRYSTAL"
+        },
+        "offhand": {
+          "name_en": "Muisak",
+          "id": "T8_OFF_DEMONSKULL_HELL",
+          "pt": "Muisec do Ancião",
+          "pt_clean": "Muisec",
+          "icon": "/icon/T8_OFF_DEMONSKULL_HELL"
+        },
+        "head": {
+          "name_en": "Guardian Helmet",
+          "id": "T8_HEAD_PLATE_SET3",
+          "pt": "Elmo de Guardião do Ancião",
+          "pt_clean": "Elmo de Guardião",
+          "icon": "/icon/T8_HEAD_PLATE_SET3"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Royal Shoes",
+          "id": "T8_SHOES_LEATHER_ROYAL",
+          "pt": "Sapatos Reais do Ancião",
+          "pt_clean": "Sapatos Reais",
+          "icon": "/icon/T8_SHOES_LEATHER_ROYAL"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Cleansing Potion",
+          "id": "T5_POTION_CLEANSE2",
+          "pt": "Poção Purificadora",
+          "pt_clean": "Poção Purificadora",
+          "icon": "/icon/T5_POTION_CLEANSE2"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Cajados Amaldiçoados (Amaldiçoados)",
+      "buildName": "Great Cursed",
+      "content": "Arena 5v5",
+      "role": "5v5 de brawl — pressão prolongada e negação de área.",
+      "abilities": {
+        "q": "Cursed Sickle",
+        "w": "Dark Matter",
+        "e": "Area of Decay",
+        "passive": "Furious"
+      },
+      "execution": "Area of Decay pune equipes que permanecem agrupadas. Mercenary Hood adiciona cleanse coletivo e justifica a vaga além do dano.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Great Cursed Staff",
+          "id": "T8_2H_CURSEDSTAFF",
+          "pt": "Cajado Amaldiçoado Elevado do Ancião",
+          "pt_clean": "Cajado Amaldiçoado Elevado",
+          "icon": "/icon/T8_2H_CURSEDSTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Mercenary Hood",
+          "id": "T8_HEAD_LEATHER_SET1",
+          "pt": "Capuz de Mercenário do Ancião",
+          "pt_clean": "Capuz de Mercenário",
+          "icon": "/icon/T8_HEAD_LEATHER_SET1"
+        },
+        "chest": {
+          "name_en": "Feyscale Robe",
+          "id": "T8_ARMOR_CLOTH_FEY",
+          "pt": "Robe Feérico do Ancião",
+          "pt_clean": "Robe Feérico",
+          "icon": "/icon/T8_ARMOR_CLOTH_FEY"
+        },
+        "shoes": {
+          "name_en": "Royal Shoes",
+          "id": "T8_SHOES_LEATHER_ROYAL",
+          "pt": "Sapatos Reais do Ancião",
+          "pt_clean": "Sapatos Reais",
+          "icon": "/icon/T8_SHOES_LEATHER_ROYAL"
+        },
+        "cape": {
+          "name_en": "Caerleon Cape",
+          "id": "T8_CAPEITEM_FW_CAERLEON",
+          "pt": "Capa de Caerleon do Ancião",
+          "pt_clean": "Capa de Caerleon",
+          "icon": "/icon/T8_CAPEITEM_FW_CAERLEON"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Cajados Amaldiçoados (Amaldiçoados)",
+      "buildName": "Cursed Skull",
+      "content": "Abyssal 3v3",
+      "role": "3v3 e brawl — dano por tempo e pressão de área.",
+      "abilities": {
+        "q": "Vile Curse ou Cursed Sickle",
+        "w": "Dark Matter",
+        "e": "Haunting Screams",
+        "passive": "Hit and Run"
+      },
+      "execution": "Mantenha cargas e lute em espaço onde Haunting Screams obrigue o inimigo a atravessar a área. Evite perseguir além do alcance do healer.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Cursed Skull",
+          "id": "T8_2H_SKULLORB_HELL",
+          "pt": "Caveira Amaldiçoada do Ancião",
+          "pt_clean": "Caveira Amaldiçoada",
+          "icon": "/icon/T8_2H_SKULLORB_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Mercenary Jacket",
+          "id": "T8_ARMOR_LEATHER_SET1",
+          "pt": "Casaco de Mercenário do Ancião",
+          "pt_clean": "Casaco de Mercenário",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET1"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Roasted Puremist Snapper",
+          "id": "T7_MEAL_ROAST_FISH",
+          "pt": "Pargo Neblina-pura Assado",
+          "pt_clean": "Pargo Neblina-pura Assado",
+          "icon": "/icon/T7_MEAL_ROAST_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Cajados Amaldiçoados (Amaldiçoados)",
+      "buildName": "Lifecurse",
+      "content": "Corrompida 1v1",
+      "role": "Corrompida 1v1 — brawl caro com purga e enfraquecimento.",
+      "abilities": {
+        "q": "Vile Curse",
+        "w": "Grudge ou Desecrate",
+        "e": "Enfeeble Blades",
+        "passive": null
+      },
+      "execution": "Use Desecrate quando o controle for mais importante; Grudge quando puder manter ataques. Enfeeble Blades deve negar o pico ofensivo.",
+      "note": "O 1H Cursed continua barato e capaz de punir desconhecimento, mas Death Curse é altamente telegráfica e possui muitas respostas.",
+      "items": {
+        "weapon": {
+          "name_en": "Lifecurse Staff",
+          "id": "T8_MAIN_CURSEDSTAFF_UNDEAD",
+          "pt": "Cajado Execrado do Ancião",
+          "pt_clean": "Cajado Execrado",
+          "icon": "/icon/T8_MAIN_CURSEDSTAFF_UNDEAD"
+        },
+        "offhand": {
+          "name_en": "Taproot",
+          "id": "T8_OFF_TOTEM_KEEPER",
+          "pt": "Raiz Mestra do Ancião",
+          "pt_clean": "Raiz Mestra",
+          "icon": "/icon/T8_OFF_TOTEM_KEEPER"
+        },
+        "head": {
+          "name_en": "Cowl of Purity",
+          "id": "T8_HEAD_CLOTH_AVALON",
+          "pt": "Capote da Pureza do Ancião",
+          "pt_clean": "Capote da Pureza",
+          "icon": "/icon/T8_HEAD_CLOTH_AVALON"
+        },
+        "chest": {
+          "name_en": "Jacket of Tenacity",
+          "id": "T8_ARMOR_LEATHER_AVALON",
+          "pt": "Casaco da Tenacidade do Ancião",
+          "pt_clean": "Casaco da Tenacidade",
+          "icon": "/icon/T8_ARMOR_LEATHER_AVALON"
+        },
+        "shoes": {
+          "name_en": "Shoes of Tenacity",
+          "id": "T8_SHOES_LEATHER_AVALON",
+          "pt": "Sapatos da Tenacidade do Ancião",
+          "pt_clean": "Sapatos da Tenacidade",
+          "icon": "/icon/T8_SHOES_LEATHER_AVALON"
+        },
+        "cape": {
+          "name_en": "Smuggler Cape",
+          "id": "T8_CAPEITEM_SMUGGLER",
+          "pt": "Capa de Contrabandista do Ancião",
+          "pt_clean": "Capa de Contrabandista",
+          "icon": "/icon/T8_CAPEITEM_SMUGGLER"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Bordões (Quarterstaffs)",
+      "buildName": "Staff of Balance — facção e ZvZ",
+      "content": "Faccao/ZvZ",
+      "role": "Tanque de zona, anti-cura e negação de passagem.",
+      "abilities": {
+        "q": "Cartwheel",
+        "w": "Forceful Swing ou Rising Blow",
+        "e": "Mystic Rocks",
+        "passive": "Energetic/Stunning Strike"
+      },
+      "execution": "Coloque Mystic Rocks sobre a rota de engage, retirada ou cura inimiga. A arma ganha valor impedindo a luta que o adversário quer, não perseguindo kills.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Staff of Balance",
+          "id": "T8_2H_ROCKSTAFF_KEEPER",
+          "pt": "Cajado do Equilíbrio do Ancião",
+          "pt_clean": "Cajado do Equilíbrio",
+          "icon": "/icon/T8_2H_ROCKSTAFF_KEEPER"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hellion Hood",
+          "id": "T8_HEAD_LEATHER_HELL",
+          "pt": "Capuz Inferial do Ancião",
+          "pt_clean": "Capuz Inferial",
+          "icon": "/icon/T8_HEAD_LEATHER_HELL"
+        },
+        "chest": {
+          "name_en": "Duskweaver Armor",
+          "id": "T8_ARMOR_PLATE_FEY",
+          "pt": "Armadura de Tecelão do Crepúsculo do Ancião",
+          "pt_clean": "Armadura de Tecelão do Crepúsculo",
+          "icon": "/icon/T8_ARMOR_PLATE_FEY"
+        },
+        "shoes": {
+          "name_en": "Feyscale Sandals",
+          "id": "T8_SHOES_CLOTH_FEY",
+          "pt": "Sandálias Feéricas do Ancião",
+          "pt_clean": "Sandálias Feéricas",
+          "icon": "/icon/T8_SHOES_CLOTH_FEY"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Avalonian Pork Omelette",
+          "id": "T7_MEAL_OMELETTE_AVALON",
+          "pt": "Omelete de Porco Avaloniano",
+          "pt_clean": "Omelete de Porco Avaloniano",
+          "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
+        }
+      }
+    },
+    {
+      "tree": "Bordões (Quarterstaffs)",
+      "buildName": "Grailseeker — controle defensivo de ZvZ",
+      "content": "Faccao/ZvZ",
+      "role": "Stopper, catch e interrupção de front line.",
+      "abilities": {
+        "q": "Cartwheel",
+        "w": "Forceful Swing",
+        "e": "Soul Shaker",
+        "passive": "Stunning Strike"
+      },
+      "execution": "Soul Shaker deve quebrar a entrada inimiga ou impedir fuga de um clump. Knight Armor e Forceful Swing preservam a formação.",
+      "note": "Trocas: Hellion Hood/Demon Armor/Martlock Cape em composições específicas.",
+      "items": {
+        "weapon": {
+          "name_en": "Grailseeker",
+          "id": "T8_2H_QUARTERSTAFF_AVALON",
+          "pt": "Buscador do Graal do Ancião",
+          "pt_clean": "Buscador do Graal",
+          "icon": "/icon/T8_2H_QUARTERSTAFF_AVALON"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Knight Helmet",
+          "id": "T8_HEAD_PLATE_SET2",
+          "pt": "Elmo de Cavaleiro do Ancião",
+          "pt_clean": "Elmo de Cavaleiro",
+          "icon": "/icon/T8_HEAD_PLATE_SET2"
+        },
+        "chest": {
+          "name_en": "Knight Armor",
+          "id": "T8_ARMOR_PLATE_SET2",
+          "pt": "Armadura de Cavaleiro do Ancião",
+          "pt_clean": "Armadura de Cavaleiro",
+          "icon": "/icon/T8_ARMOR_PLATE_SET2"
+        },
+        "shoes": {
+          "name_en": "Hunter Shoes",
+          "id": "T8_SHOES_LEATHER_SET2",
+          "pt": "Sapatos de Caçador do Ancião",
+          "pt_clean": "Sapatos de Caçador",
+          "icon": "/icon/T8_SHOES_LEATHER_SET2"
+        },
+        "cape": {
+          "name_en": "Bridgewatch Cape",
+          "id": "T8_CAPEITEM_FW_BRIDGEWATCH",
+          "pt": "Capa de Bridgewatch do Ancião",
+          "pt_clean": "Capa de Bridgewatch",
+          "icon": "/icon/T8_CAPEITEM_FW_BRIDGEWATCH"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Thunderfall Lurcher Sandwich",
+          "id": "T8_MEAL_SANDWICH_FISH",
+          "pt": "Sanduíche de Larápio do Trovão",
+          "pt_clean": "Sanduíche de Larápio do Trovão",
+          "icon": "/icon/T8_MEAL_SANDWICH_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Bordões (Quarterstaffs)",
+      "buildName": "Phantom Twinblade — Arena 5v5",
+      "content": "Arena 5v5",
+      "role": "Bruiser autossuficiente com área, sustain e utilidade.",
+      "abilities": {
+        "q": "Whirling Strikes",
+        "w": "Gale Dance",
+        "e": "Phantom Twin",
+        "passive": "Life Leech"
+      },
+      "execution": "Entre após o primeiro controle, maximize área do E e saia antes que Hellion Jacket perca valor. O maior risco é energia em luta prolongada.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Phantom Twinblade",
+          "id": "T8_2H_DOUBLEBLADEDSTAFF_CRYSTAL",
+          "pt": "Lâminas Gêmeas Fantasmagóricas do Ancião",
+          "pt_clean": "Lâminas Gêmeas Fantasmagóricas",
+          "icon": "/icon/T8_2H_DOUBLEBLADEDSTAFF_CRYSTAL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Mercenary Hood",
+          "id": "T8_HEAD_LEATHER_SET1",
+          "pt": "Capuz de Mercenário do Ancião",
+          "pt_clean": "Capuz de Mercenário",
+          "icon": "/icon/T8_HEAD_LEATHER_SET1"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Assassin Shoes",
+          "id": "T8_SHOES_LEATHER_SET3",
+          "pt": "Sapatos de Assassino do Ancião",
+          "pt_clean": "Sapatos de Assassino",
+          "icon": "/icon/T8_SHOES_LEATHER_SET3"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Energy Potion",
+          "id": "T4_POTION_ENERGY",
+          "pt": "Poção de Energia",
+          "pt_clean": "Poção de Energia",
+          "icon": "/icon/T4_POTION_ENERGY"
+        },
+        "food": {
+          "name_en": "Beef Sandwich",
+          "id": "T8_MEAL_SANDWICH",
+          "pt": "Sanduíche de Carne",
+          "pt_clean": "Sanduíche de Carne",
+          "icon": "/icon/T8_MEAL_SANDWICH"
+        }
+      }
+    },
+    {
+      "tree": "Bordões (Quarterstaffs)",
+      "buildName": "Staff of Balance — Arena 5v5",
+      "content": "Arena 5v5",
+      "role": "Tanque de ponto e negação de sustain.",
+      "abilities": {
+        "q": "Cartwheel",
+        "w": "Stun Run ou Forceful Swing",
+        "e": "Mystic Rocks",
+        "passive": null
+      },
+      "execution": "Use a zona sobre healer, chokepoint ou objetivo. Não abandone a backline para perseguir alvo fora da luta.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Staff of Balance",
+          "id": "T8_2H_ROCKSTAFF_KEEPER",
+          "pt": "Cajado do Equilíbrio do Ancião",
+          "pt_clean": "Cajado do Equilíbrio",
+          "icon": "/icon/T8_2H_ROCKSTAFF_KEEPER"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hellion Hood",
+          "id": "T8_HEAD_LEATHER_HELL",
+          "pt": "Capuz Inferial do Ancião",
+          "pt_clean": "Capuz Inferial",
+          "icon": "/icon/T8_HEAD_LEATHER_HELL"
+        },
+        "chest": {
+          "name_en": "Duskweaver Armor",
+          "id": "T8_ARMOR_PLATE_FEY",
+          "pt": "Armadura de Tecelão do Crepúsculo do Ancião",
+          "pt_clean": "Armadura de Tecelão do Crepúsculo",
+          "icon": "/icon/T8_ARMOR_PLATE_FEY"
+        },
+        "shoes": {
+          "name_en": "Feyscale Sandals",
+          "id": "T8_SHOES_CLOTH_FEY",
+          "pt": "Sandálias Feéricas do Ancião",
+          "pt_clean": "Sandálias Feéricas",
+          "icon": "/icon/T8_SHOES_CLOTH_FEY"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Avalonian Pork Omelette",
+          "id": "T7_MEAL_OMELETTE_AVALON",
+          "pt": "Omelete de Porco Avaloniano",
+          "pt_clean": "Omelete de Porco Avaloniano",
+          "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
+        }
+      }
+    },
+    {
+      "tree": "Bordões (Quarterstaffs)",
+      "buildName": "Phantom Twinblade — Abyssal Depths 3v3",
+      "content": "Abyssal 3v3",
+      "role": "Bruiser de alta pressão em corredor.",
+      "abilities": {
+        "q": "Concussive Combo ou Whirling Strikes",
+        "w": "Gale Dance",
+        "e": "Phantom Twin",
+        "passive": "Aggression/Life Leech"
+      },
+      "execution": "Purga defensivos importantes e use o E quando os inimigos estiverem comprimidos. Preserve mobilidade para voltar à linha do healer.",
+      "note": "Sapatos Stalker/Assassin; capa Thetford ou Avalonian; capuz Fiend Cowl ou Mercenary Hood.",
+      "items": {
+        "weapon": {
+          "name_en": "Phantom Twinblade",
+          "id": "T8_2H_DOUBLEBLADEDSTAFF_CRYSTAL",
+          "pt": "Lâminas Gêmeas Fantasmagóricas do Ancião",
+          "pt_clean": "Lâminas Gêmeas Fantasmagóricas",
+          "icon": "/icon/T8_2H_DOUBLEBLADEDSTAFF_CRYSTAL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Fiend Cowl",
+          "id": "T8_HEAD_CLOTH_HELL",
+          "pt": "Capote Malévolo do Ancião",
+          "pt_clean": "Capote Malévolo",
+          "icon": "/icon/T8_HEAD_CLOTH_HELL"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Bordões (Quarterstaffs)",
+      "buildName": "Soulscythe — controle de 3v3",
+      "content": "Abyssal 3v3",
+      "role": "Engage, knock-up e preparação de burst.",
+      "abilities": {
+        "q": "Cartwheel",
+        "w": "Stun Run",
+        "e": "Tornado",
+        "passive": "Stunning Strike"
+      },
+      "execution": "Tornado é ferramenta de composição: lance quando aliados puderem converter o deslocamento em dano. Acid Potion amplia a janela de execução.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Soulscythe",
+          "id": "T8_2H_TWINSCYTHE_HELL",
+          "pt": "Seganímica do Ancião",
+          "pt_clean": "Seganímica",
+          "icon": "/icon/T8_2H_TWINSCYTHE_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Helmet of Valor",
+          "id": "T8_HEAD_PLATE_AVALON",
+          "pt": "Elmo da Bravura do Ancião",
+          "pt_clean": "Elmo da Bravura",
+          "icon": "/icon/T8_HEAD_PLATE_AVALON"
+        },
+        "chest": {
+          "name_en": "Knight Armor",
+          "id": "T8_ARMOR_PLATE_SET2",
+          "pt": "Armadura de Cavaleiro do Ancião",
+          "pt_clean": "Armadura de Cavaleiro",
+          "icon": "/icon/T8_ARMOR_PLATE_SET2"
+        },
+        "shoes": {
+          "name_en": "Hunter Shoes",
+          "id": "T8_SHOES_LEATHER_SET2",
+          "pt": "Sapatos de Caçador do Ancião",
+          "pt_clean": "Sapatos de Caçador",
+          "icon": "/icon/T8_SHOES_LEATHER_SET2"
+        },
+        "cape": {
+          "name_en": "Fort Sterling Cape",
+          "id": "T8_CAPEITEM_FW_FORTSTERLING",
+          "pt": "Capa de Fort Sterling do Ancião",
+          "pt_clean": "Capa de Fort Sterling",
+          "icon": "/icon/T8_CAPEITEM_FW_FORTSTERLING"
+        },
+        "potion": {
+          "name_en": "Acid Potion",
+          "id": "T5_POTION_ACID",
+          "pt": "Poção Ácida",
+          "pt_clean": "Poção Ácida",
+          "icon": "/icon/T5_POTION_ACID"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      }
+    },
+    {
+      "tree": "Bordões (Quarterstaffs)",
+      "buildName": "Quarterstaff — Corrompida 1v1",
+      "content": "Corrompida 1v1",
+      "role": "Brawl, mobilidade e combo de controle.",
+      "abilities": {
+        "q": "Concussive Combo",
+        "w": "Gale Dance",
+        "e": "Vault Leap",
+        "passive": "Life Leech"
+      },
+      "execution": "Carregue Fury, então use terceiro Q → E → W. Contra ranged, troque W por Separator; contra autoattack, Forceful Swing.",
+      "note": "Trocas: use Dodge nos sapatos contra Es previsíveis de melee. Fiend Cowl/Mercenary Jacket formam alternativa mais agressiva.",
+      "items": {
+        "weapon": {
+          "name_en": "Quarterstaff",
+          "id": "T8_2H_QUARTERSTAFF",
+          "pt": "Bordão do Ancião",
+          "pt_clean": "Bordão",
+          "icon": "/icon/T8_2H_QUARTERSTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Soldier Armor",
+          "id": "T8_ARMOR_PLATE_SET1",
+          "pt": "Armadura de Soldado do Ancião",
+          "pt_clean": "Armadura de Soldado",
+          "icon": "/icon/T8_ARMOR_PLATE_SET1"
+        },
+        "shoes": {
+          "name_en": "Assassin Shoes",
+          "id": "T8_SHOES_LEATHER_SET3",
+          "pt": "Sapatos de Assassino do Ancião",
+          "pt_clean": "Sapatos de Assassino",
+          "icon": "/icon/T8_SHOES_LEATHER_SET3"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Roasted Puremist Snapper",
+          "id": "T7_MEAL_ROAST_FISH",
+          "pt": "Pargo Neblina-pura Assado",
+          "pt_clean": "Pargo Neblina-pura Assado",
+          "icon": "/icon/T7_MEAL_ROAST_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Machados",
+      "buildName": "Realmbreaker",
+      "content": "Faccao/ZvZ",
+      "role": "Engage bruiser, reducao de vida maxima e pressao de clump.",
+      "abilities": {
+        "q": "Rending Rage",
+        "w": "Battle Rush",
+        "e": "Aftershock",
+        "passive": "Increased Defense"
+      },
+      "execution": "Entre no clump apos o primeiro controle, aplique Aftershock e sobreviva para uma segunda rotacao. Royal Banner amplifica a equipe, nao apenas seu dano.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Realmbreaker",
+          "id": "T8_2H_AXE_AVALON",
+          "pt": "Quebra-reino do Ancião",
+          "pt_clean": "Quebra-reino",
+          "icon": "/icon/T8_2H_AXE_AVALON"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Knight Helmet",
+          "id": "T8_HEAD_PLATE_SET2",
+          "pt": "Elmo de Cavaleiro do Ancião",
+          "pt_clean": "Elmo de Cavaleiro",
+          "icon": "/icon/T8_HEAD_PLATE_SET2"
+        },
+        "chest": {
+          "name_en": "Royal Jacket",
+          "id": "T8_ARMOR_LEATHER_ROYAL",
+          "pt": "Casaco Real do Ancião",
+          "pt_clean": "Casaco Real",
+          "icon": "/icon/T8_ARMOR_LEATHER_ROYAL"
+        },
+        "shoes": {
+          "name_en": "Graveguard Boots",
+          "id": "T8_SHOES_PLATE_UNDEAD",
+          "pt": "Botas de Guarda-tumbas do Ancião",
+          "pt_clean": "Botas de Guarda-tumbas",
+          "icon": "/icon/T8_SHOES_PLATE_UNDEAD"
+        },
+        "cape": {
+          "name_en": "Smuggler Cape",
+          "id": "T8_CAPEITEM_SMUGGLER",
+          "pt": "Capa de Contrabandista do Ancião",
+          "pt_clean": "Capa de Contrabandista",
+          "icon": "/icon/T8_CAPEITEM_SMUGGLER"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Machados",
+      "buildName": "Infernal Scythe",
+      "content": "Faccao/ZvZ",
+      "role": "DPS melee de execucao em alvos ja danificados.",
+      "abilities": {
+        "q": "Rending Rage",
+        "w": "Battle Rush",
+        "e": "Bloody Reap",
+        "passive": "Increased Defense"
+      },
+      "execution": "Nao inicie sozinho. Entre quando os alvos ja estiverem abaixo do limiar util de Bloody Reap e use Hellion Jacket no centro do brawl.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Infernal Scythe",
+          "id": "T8_2H_SCYTHE_HELL",
+          "pt": "Segadeira Infernal do Ancião",
+          "pt_clean": "Segadeira Infernal",
+          "icon": "/icon/T8_2H_SCYTHE_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Stalker Hood",
+          "id": "T8_HEAD_LEATHER_MORGANA",
+          "pt": "Capuz de Espreitador do Ancião",
+          "pt_clean": "Capuz de Espreitador",
+          "icon": "/icon/T8_HEAD_LEATHER_MORGANA"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Smuggler Cape",
+          "id": "T8_CAPEITEM_SMUGGLER",
+          "pt": "Capa de Contrabandista do Ancião",
+          "pt_clean": "Capa de Contrabandista",
+          "icon": "/icon/T8_CAPEITEM_SMUGGLER"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Machados",
+      "buildName": "Carrioncaller",
+      "content": "Arena 5v5",
+      "role": "Anti-cura, pressao persistente e debuff de foco.",
+      "abilities": {
+        "q": "Rending Rage",
+        "w": "Deadly Chop",
+        "e": "Morgana Raven",
+        "passive": "Deep Cuts"
+      },
+      "execution": "Morgana Raven deve atravessar o alvo de foco durante a janela de cura. Royal Armor sustenta energia e pressao do grupo.",
+      "note": "Alternativas de habilidade: W Internal Bleeding; passiva Aggressive Rush.",
+      "items": {
+        "weapon": {
+          "name_en": "Carrioncaller",
+          "id": "T8_2H_HALBERD_MORGANA",
+          "pt": "Chama-corpos do Ancião",
+          "pt_clean": "Chama-corpos",
+          "icon": "/icon/T8_2H_HALBERD_MORGANA"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Stalker Hood",
+          "id": "T8_HEAD_LEATHER_MORGANA",
+          "pt": "Capuz de Espreitador do Ancião",
+          "pt_clean": "Capuz de Espreitador",
+          "icon": "/icon/T8_HEAD_LEATHER_MORGANA"
+        },
+        "chest": {
+          "name_en": "Royal Armor",
+          "id": "T8_ARMOR_PLATE_ROYAL",
+          "pt": "Armadura Real do Ancião",
+          "pt_clean": "Armadura Real",
+          "icon": "/icon/T8_ARMOR_PLATE_ROYAL"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      }
+    },
+    {
+      "tree": "Machados",
+      "buildName": "Infernal Scythe",
+      "content": "Arena 5v5",
+      "role": "Bruiser de execucao e snowball.",
+      "abilities": {
+        "q": "Rending Rage",
+        "w": "Battle Rush",
+        "e": "Bloody Reap",
+        "passive": "Increased Defense"
+      },
+      "execution": "Espere o foco aliado reduzir o alvo. Shoes of Tenacity ajudam a alcancar a execucao sem morrer no caminho.",
+      "note": null,
+      "items": {
+        "weapon": {
+          "name_en": "Infernal Scythe",
+          "id": "T8_2H_SCYTHE_HELL",
+          "pt": "Segadeira Infernal do Ancião",
+          "pt_clean": "Segadeira Infernal",
+          "icon": "/icon/T8_2H_SCYTHE_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Scholar Cowl",
+          "id": "T8_HEAD_CLOTH_SET1",
+          "pt": "Capote de Erudito do Ancião",
+          "pt_clean": "Capote de Erudito",
+          "icon": "/icon/T8_HEAD_CLOTH_SET1"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Shoes of Tenacity",
+          "id": "T8_SHOES_LEATHER_AVALON",
+          "pt": "Sapatos da Tenacidade do Ancião",
+          "pt_clean": "Sapatos da Tenacidade",
+          "icon": "/icon/T8_SHOES_LEATHER_AVALON"
+        },
+        "cape": {
+          "name_en": "Caerleon Cape",
+          "id": "T8_CAPEITEM_FW_CAERLEON",
+          "pt": "Capa de Caerleon do Ancião",
+          "pt_clean": "Capa de Caerleon",
+          "icon": "/icon/T8_CAPEITEM_FW_CAERLEON"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    },
+    {
+      "tree": "Machados",
+      "buildName": "Crystal Reaper",
+      "content": "Abyssal 3v3",
+      "role": "Bruiser de area com sustain e pressao continua.",
+      "abilities": {
+        "q": "Rending Rage",
+        "w": "Adrenaline Boost",
+        "e": "Relentless Assault",
+        "passive": "Increased Defense"
+      },
+      "execution": "Use Adrenaline Boost para chegar ao alvo e mantenha Relentless Assault sobre multiplos inimigos. Hellion Jacket deve coincidir com o brawl, nao com perseguicao isolada.",
+      "note": "Cabeca alternativa: Mercenary Hood.",
+      "items": {
+        "weapon": {
+          "name_en": "Crystal Reaper",
+          "id": "T8_2H_SCYTHE_CRYSTAL",
+          "pt": "Foice de Cristal do Ancião",
+          "pt_clean": "Foice de Cristal",
+          "icon": "/icon/T8_2H_SCYTHE_CRYSTAL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Scholar Cowl",
+          "id": "T8_HEAD_CLOTH_SET1",
+          "pt": "Capote de Erudito do Ancião",
+          "pt_clean": "Capote de Erudito",
+          "icon": "/icon/T8_HEAD_CLOTH_SET1"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Avalonian Cape",
+          "id": "T8_CAPEITEM_AVALON",
+          "pt": "Capa Avaloniana do Ancião",
+          "pt_clean": "Capa Avaloniana",
+          "icon": "/icon/T8_CAPEITEM_AVALON"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Roast Pork",
+          "id": "T7_MEAL_ROAST",
+          "pt": "Porco Assado",
+          "pt_clean": "Porco Assado",
+          "icon": "/icon/T7_MEAL_ROAST"
+        }
+      }
+    },
+    {
+      "tree": "Machados",
+      "buildName": "Battleaxe",
+      "content": "Corrompida 1v1",
+      "role": "Sustain, pressao por sangramento e finalizacao.",
+      "abilities": {
+        "q": "Rending Rage",
+        "w": "Battle Rush",
+        "e": "Blood Bandit",
+        "passive": "Aggressive Rush"
+      },
+      "execution": "Mantenha tres cargas de sangramento. Use a segunda ativacao do E para finalizar ou recuperar vida quando os defensivos acabarem.",
+      "note": "Off-hand alternativa: Muisak. Trocas: Cleric Robe e Smuggler Cape sao alternativas. Bear Paws e a opcao agressiva para mobilidade/gank, mas menos estavel em Corrompida pura.",
+      "items": {
+        "weapon": {
+          "name_en": "Battleaxe",
+          "id": "T8_MAIN_AXE",
+          "pt": "Machado de Guerra do Ancião",
+          "pt_clean": "Machado de Guerra",
+          "icon": "/icon/T8_MAIN_AXE"
+        },
+        "offhand": {
+          "name_en": "Torch",
+          "id": "T8_OFF_TORCH",
+          "pt": "Tocha do Ancião",
+          "pt_clean": "Tocha",
+          "icon": "/icon/T8_OFF_TORCH"
+        },
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Mercenary Jacket",
+          "id": "T8_ARMOR_LEATHER_SET1",
+          "pt": "Casaco de Mercenário do Ancião",
+          "pt_clean": "Casaco de Mercenário",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET1"
+        },
+        "shoes": {
+          "name_en": "Assassin Shoes",
+          "id": "T8_SHOES_LEATHER_SET3",
+          "pt": "Sapatos de Assassino do Ancião",
+          "pt_clean": "Sapatos de Assassino",
+          "icon": "/icon/T8_SHOES_LEATHER_SET3"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      }
+    }
+  ]
+}

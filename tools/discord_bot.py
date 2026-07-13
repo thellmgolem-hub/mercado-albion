@@ -169,13 +169,106 @@ def friendly_error(exc: ApiError) -> str:
     return f"A API recusou o pedido: {exc.detail or exc.status}"
 
 
+# ----------------------------------------------------------- builds da guild
+# Dados estáticos (data/builds.json, gerado por scripts/build_builds_data.py):
+# cada build já vem com os itens resolvidos em PT-BR oficial + id + ícone.
+BUILD_TREES = [
+    ("Fogo", "Cajados de Fogo"),
+    ("Gelo", "Cajados de Gelo"),
+    ("Arcos", "Arcos"),
+    ("Natureza", "Cajados da Natureza"),
+    ("Amaldiçoados", "Cajados Amaldiçoados (Amaldiçoados)"),
+    ("Bordões", "Bordões (Quarterstaffs)"),
+    ("Machados", "Machados"),
+]
+BUILD_CONTENTS = [
+    ("Facção / ZvZ", "Faccao/ZvZ"),
+    ("Arena 5v5", "Arena 5v5"),
+    ("Hellgate 5v5", "Hellgate 5v5"),
+    ("Abyssal 3v3", "Abyssal 3v3"),
+    ("Corrompida 1v1", "Corrompida 1v1"),
+]
+_TREE_LABEL = {v: lbl for lbl, v in BUILD_TREES}
+_CONTENT_LABEL = {v: lbl for lbl, v in BUILD_CONTENTS}
+_SLOT_LABEL = [
+    ("weapon", "🗡️ Arma"), ("offhand", "🛡️ Off-hand"),
+    ("head", "🪖 Cabeça"), ("chest", "👕 Peito"),
+    ("shoes", "👢 Pés"), ("cape", "🧥 Capa"),
+    ("potion", "🧪 Poção"), ("food", "🍲 Comida"),
+]
+_BUILDS_CACHE = None
+
+
+def load_builds():
+    """Lê data/builds.json uma vez (lista de builds); [] se ausente."""
+    global _BUILDS_CACHE
+    if _BUILDS_CACHE is None:
+        try:
+            p = Path(__file__).resolve().parent.parent / "data" / "builds.json"
+            _BUILDS_CACHE = json.loads(p.read_text(encoding="utf-8")).get(
+                "builds", [])
+        except (OSError, ValueError):
+            _BUILDS_CACHE = []
+    return _BUILDS_CACHE
+
+
+def find_builds(tree_value, content_value=None):
+    out = [b for b in load_builds() if b.get("tree") == tree_value]
+    if content_value:
+        out = [b for b in out if b.get("content") == content_value]
+    return out
+
+
+def build_title(build):
+    tree = _TREE_LABEL.get(build.get("tree"), build.get("tree", ""))
+    content = _CONTENT_LABEL.get(build.get("content"), build.get("content", ""))
+    return f"⚔️ {build.get('buildName', '')} — {tree} · {content}"
+
+
+def build_card_text(build):
+    """Markdown de uma build (descrição de embed OU texto puro). Só PT-BR."""
+    items = build.get("items") or {}
+    lines = []
+    for slot, label in _SLOT_LABEL:
+        it = items.get(slot)
+        if it and it.get("pt_clean"):
+            lines.append(f"{label}: **{it['pt_clean']}**")
+    ab = build.get("abilities") or {}
+    hab = " · ".join(f"{k} {ab[key]}" for k, key in
+                     (("Q", "q"), ("W", "w"), ("E", "e")) if ab.get(key))
+    if ab.get("passive"):
+        hab += f" · passiva {ab['passive']}"
+    body = "\n".join(lines)
+    if hab:
+        body += f"\n\n✨ **Habilidades:** {hab}"
+    if build.get("execution"):
+        body += f"\n\n📋 {build['execution']}"
+    if build.get("note"):
+        body += f"\n\n⚠️ {build['note']}"
+    return body
+
+
+def weapon_icon_url(build, public_url):
+    it = (build.get("items") or {}).get("weapon")
+    if it and it.get("icon"):
+        return public_url.rstrip("/") + it["icon"] + "?size=128"
+    return None
+
+
 # ---------------------------------------------------- handlers (funções puras)
 # Cada handler recebe (api, params...) e devolve o TEXTO da resposta. Nenhum
 # tipo do discord.py aqui — portável p/ Interactions HTTP sem tocar na lógica.
 
 async def _resolve_item(api, termo):
-    """Melhor item p/ o termo (mesma busca da web); None se nada casar."""
+    """Melhor item p/ o termo (mesma busca da web); None se nada casar.
+
+    Se o termo for um id exato (ex.: veio do autocomplete), prioriza esse item.
+    """
     res = await api.get("/api/search", params={"q": termo, "limit": 5})
+    alvo = (termo or "").strip().lower()
+    for it in res:
+        if it.get("id", "").lower() == alvo:
+            return it
     return res[0] if res else None
 
 
@@ -216,6 +309,50 @@ async def handle_buscar(api, termo: str) -> str:
         lines.append(f"T{it['tier']} {it['pt']:<34} {it['id']}{ench}")
     lines += ["", "Use /preco com o nome ou o id exato."]
     return code_block("\n".join(lines))
+
+
+def _bar(value, vmax, width=12):
+    """Barra ASCII proporcional (comparação visual sem gerar imagem)."""
+    if not vmax or not value or value <= 0:
+        return ""
+    n = int(round(width * value / vmax))
+    return "█" * max(1, n)
+
+
+async def handle_comparar(api, termo: str) -> str:
+    """/comparar — preço do item entre TODAS as cidades (barras + rota de flip)."""
+    item = await _resolve_item(api, termo)
+    if not item:
+        return f"Nenhum item encontrado para '{termo}'. Tente /buscar {termo}."
+    rows = await api.get("/api/prices",
+                         params={"items": item["id"], "qualities": "1"})
+    sells = [(r["city"], r.get("sell_price_min") or 0) for r in rows
+             if (r.get("sell_price_min") or 0) > 0]
+    buys = [(r["city"], r.get("buy_price_max") or 0) for r in rows
+            if (r.get("buy_price_max") or 0) > 0]
+    head = (f"{item['pt']} (T{item['tier']}.{item['ench']}) — "
+            f"comparação entre cidades (qualidade 1)\n")
+    if not sells and not buys:
+        return code_block(head + "\nSem cotação agora — o cache pode estar frio.")
+    lines = ["VENDA mais barata (comprar aqui):"] if sells else []
+    vmax = max((v for _, v in sells), default=0)
+    for city, v in sorted(sells, key=lambda x: x[1]):
+        lines.append(f"  {city:<13} {fmt_silver(v):>12}  {_bar(v, vmax)}")
+    if buys:
+        lines.append("")
+        lines.append("Maior ordem de COMPRA (vender aqui):")
+        bmax = max(v for _, v in buys)
+        for city, v in sorted(buys, key=lambda x: -x[1]):
+            lines.append(f"  {city:<13} {fmt_silver(v):>12}  {_bar(v, bmax)}")
+    if sells and buys:
+        buy_city, buy_p = min(sells, key=lambda x: x[1])
+        sell_city, sell_p = max(buys, key=lambda x: x[1])
+        if sell_p > buy_p:
+            lines += ["", (f"Rota: comprar em {buy_city} ({fmt_silver(buy_p)}) "
+                           f"-> vender ordem em {sell_city} "
+                           f"({fmt_silver(sell_p)}) = +{fmt_silver(sell_p - buy_p)}"
+                           f" bruto/un (antes de impostos)")]
+    return code_block(head + "\n".join(lines))
 
 
 async def handle_flip(api, orcamento: float, cidade: str) -> str:
@@ -661,14 +798,50 @@ def build_bot(api: ApiClient):
             text = "Erro inesperado ao processar o comando. Veja o log do bot."
         await interaction.followup.send(clip(text), ephemeral=ephemeral)
 
+    async def item_ac(interaction: discord.Interaction, current: str):
+        """Autocomplete de item: digite 2+ letras (PT/EN) e escolha da lista.
+
+        O `value` é o id do item — o handler prioriza id exato, então a escolha
+        do usuário resolve direto, sem depender de digitar o nome certo.
+        """
+        current = (current or "").strip()
+        if len(current) < 2:
+            return []
+        try:
+            res = await api.get("/api/search",
+                                params={"q": current, "limit": 20,
+                                        "group": "true"})
+        except Exception:
+            return []
+        out, seen = [], set()
+        for it in res:
+            iid = it.get("id")
+            if not iid or iid in seen:
+                continue
+            seen.add(iid)
+            name = f"T{it.get('tier', '?')} {it.get('pt', iid)}"[:100]
+            out.append(app_commands.Choice(name=name, value=iid))
+            if len(out) >= 20:
+                break
+        return out
+
     # ---------------------------------------------------- comandos públicos
     @tree.command(name="preco", description="Preços atuais de um item por cidade")
-    @app_commands.describe(item="Nome (PT/EN) ou id do item — ex.: bolsa t4")
+    @app_commands.describe(item="Comece a digitar e escolha da lista (PT/EN)")
+    @app_commands.autocomplete(item=item_ac)
     async def preco_cmd(interaction: discord.Interaction, item: str):
         await _respond(interaction, handle_preco(api, item))
 
+    @tree.command(name="comparar",
+                  description="Compara o preço de um item entre TODAS as cidades")
+    @app_commands.describe(item="Comece a digitar e escolha da lista (PT/EN)")
+    @app_commands.autocomplete(item=item_ac)
+    async def comparar_cmd(interaction: discord.Interaction, item: str):
+        await _respond(interaction, handle_comparar(api, item))
+
     @tree.command(name="buscar", description="Busca itens pelo nome (PT/EN) ou id")
     @app_commands.describe(termo="Termo de busca — ex.: manto, t6 espada")
+    @app_commands.autocomplete(termo=item_ac)
     async def buscar_cmd(interaction: discord.Interaction, termo: str):
         await _respond(interaction, handle_buscar(api, termo))
 
@@ -783,7 +956,8 @@ def build_bot(api: ApiClient):
 
     @tree.command(name="vender",
                   description="Melhor cidade para vender um item")
-    @app_commands.describe(item="Nome (PT/EN) ou id do item")
+    @app_commands.describe(item="Comece a digitar e escolha da lista (PT/EN)")
+    @app_commands.autocomplete(item=item_ac)
     async def vender_cmd(interaction: discord.Interaction, item: str):
         await _respond(interaction, handle_vender(api, item))
 
@@ -810,6 +984,53 @@ def build_bot(api: ApiClient):
                         trabalhadores: app_commands.Range[int, 1, 99] = 9):
         await _respond(interaction,
                        handle_plano(api, familia, tier, trabalhadores))
+
+    # URL pública p/ os ícones (o embed é buscado pelos servidores do Discord,
+    # então precisa ser acessível na internet — não o 127.0.0.1 do bot embarcado).
+    public_url = os.environ.get(
+        "ALBION_PUBLIC_URL", "https://mercado-albion.onrender.com").rstrip("/")
+
+    @tree.command(
+        name="builds",
+        description="Builds meta da guild por arma e conteúdo (com ícones)")
+    @app_commands.describe(arma="Árvore de arma",
+                           conteudo="Tipo de conteúdo (opcional)")
+    @app_commands.choices(
+        arma=[app_commands.Choice(name=lbl, value=val)
+              for lbl, val in BUILD_TREES],
+        conteudo=[app_commands.Choice(name=lbl, value=val)
+                  for lbl, val in BUILD_CONTENTS])
+    async def builds_cmd(interaction: discord.Interaction, arma: str,
+                         conteudo: str = None):
+        await interaction.response.defer(thinking=True)
+        try:
+            matches = find_builds(arma, conteudo)
+            if not matches:
+                tree_lbl = _TREE_LABEL.get(arma, arma)
+                avail = sorted({_CONTENT_LABEL.get(b["content"], b["content"])
+                                for b in find_builds(arma)})
+                await interaction.followup.send(
+                    f"Não há build de **{tree_lbl}** para esse conteúdo.\n"
+                    f"Conteúdos com build nessa árvore: {', '.join(avail) or '—'}.")
+                return
+            embeds = []
+            for b in matches[:6]:
+                desc = (b.get("role") or "").strip()
+                desc = (desc + "\n\n" if desc else "") + build_card_text(b)
+                emb = discord.Embed(title=build_title(b), description=desc[:4000],
+                                    color=0xC9A24B)
+                icon = weapon_icon_url(b, public_url)
+                if icon:
+                    emb.set_thumbnail(url=icon)
+                embeds.append(emb)
+            note = None
+            if not conteudo and len(matches) > 6:
+                note = f"(mostrando 6 de {len(matches)} — escolha um conteúdo p/ filtrar)"
+            await interaction.followup.send(content=note, embeds=embeds)
+        except Exception:
+            traceback.print_exc()
+            await interaction.followup.send(
+                "Erro ao montar a build. Veja o log do bot.")
 
     return bot
 

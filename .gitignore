@@ -14,6 +14,7 @@ data/*
 !data/supply_data.json
 !data/farm_data.json
 !data/island_data.json
+!data/builds.json
 backups/
 *.log
 .claude/settings.local.json
