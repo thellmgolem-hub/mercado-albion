@@ -51,8 +51,8 @@ class BuildsDataTests(unittest.TestCase):
         title = bot.build_title(dawn)
         self.assertIn("Dawnsong", title)
         self.assertIn("Fogo", title)
-        url = bot.weapon_icon_url(dawn, "https://x.test/")
-        self.assertTrue(url.startswith("https://x.test/icon/"))
+        url = bot.weapon_icon_url(dawn)
+        self.assertTrue(url.startswith("https://render.albiononline.com/v1/item/"))
         self.assertIn("size=128", url)
 
     def test_every_tree_has_builds_and_clean_label(self):

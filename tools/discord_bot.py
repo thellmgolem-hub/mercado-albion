@@ -248,11 +248,23 @@ def build_card_text(build):
     return body
 
 
-def weapon_icon_url(build, public_url):
+def item_render_url(item_id, size=128):
+    """URL oficial do ícone no render da SBI — o proxy do Discord busca daqui
+    (mais confiável que o nosso /icon, que na nuvem Linux não tem o fallback
+    PowerShell que contorna o Cloudflare)."""
+    return (f"https://render.albiononline.com/v1/item/{item_id}.png"
+            f"?size={size}") if item_id else None
+
+
+def weapon_icon_url(build, public_url=None):
     it = (build.get("items") or {}).get("weapon")
-    if it and it.get("icon"):
-        return public_url.rstrip("/") + it["icon"] + "?size=128"
-    return None
+    return item_render_url(it.get("id")) if it and it.get("id") else None
+
+
+def build_image_url(build, public_url):
+    """URL pública da imagem de loadout pré-gerada (web/builds/*.png), se houver."""
+    img = build.get("image")
+    return (public_url.rstrip("/") + img) if img else None
 
 
 # ---------------------------------------------------- handlers (funções puras)
@@ -1019,9 +1031,12 @@ def build_bot(api: ApiClient):
                 desc = (desc + "\n\n" if desc else "") + build_card_text(b)
                 emb = discord.Embed(title=build_title(b), description=desc[:4000],
                                     color=0xC9A24B)
-                icon = weapon_icon_url(b, public_url)
+                icon = weapon_icon_url(b)
                 if icon:
                     emb.set_thumbnail(url=icon)
+                img = build_image_url(b, public_url)
+                if img:
+                    emb.set_image(url=img)
                 embeds.append(emb)
             note = None
             if not conteudo and len(matches) > 6:

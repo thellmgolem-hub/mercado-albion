@@ -1,0 +1,148 @@
+# -*- coding: utf-8 -*-
+"""Gera as imagens de loadout das builds (web/builds/*.png) e anota o caminho
+em data/builds.json (campo `image`).
+
+Roda LOCALMENTE (Windows) — baixa os ícones do render.albiononline.com pelo
+mesmo truque do proxy do app (PowerShell/Schannel contorna o Cloudflare) e
+compõe a imagem com Pillow. Como o resultado é ESTÁTICO, a nuvem só serve o
+PNG pronto (não precisa baixar ícone em runtime, onde não há PowerShell).
+
+Uso:  python scripts/build_build_images.py
+"""
+import json
+import re
+import subprocess
+import time
+import unicodedata
+from pathlib import Path
+from urllib.parse import quote
+
+import httpx
+from PIL import Image, ImageDraw, ImageFont
+
+ROOT = Path(__file__).resolve().parent.parent
+DATA = ROOT / "data"
+ICONS = DATA / "icons"
+OUT = ROOT / "web" / "builds"
+ICONS.mkdir(parents=True, exist_ok=True)
+OUT.mkdir(parents=True, exist_ok=True)
+
+_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+       "(KHTML, like Gecko) Chrome/125.0 Safari/537.36")
+SLOTS = [("weapon", "Arma"), ("offhand", "Off"), ("head", "Cabeça"),
+         ("chest", "Peito"), ("shoes", "Pés"), ("cape", "Capa"),
+         ("potion", "Poção"), ("food", "Comida")]
+
+
+def download_icon(item_id, size=128):
+    dest = ICONS / f"{item_id}_q0_s{size}.png"
+    if dest.exists():
+        return dest
+    url = f"https://render.albiononline.com/v1/item/{quote(item_id)}.png?size={size}"
+    try:
+        r = httpx.get(url, headers={"User-Agent": _UA}, timeout=15,
+                      follow_redirects=True)
+        if r.status_code == 200 and r.content[:4] == b"\x89PNG":
+            dest.write_bytes(r.content)
+            return dest
+    except httpx.HTTPError:
+        pass
+    tmp = dest.with_suffix(".tmp.png")
+    for attempt in range(3):        # rede instável / rajada Cloudflare: 3 tentativas
+        try:
+            subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                 "[Net.ServicePointManager]::SecurityProtocol = "
+                 "[Net.ServicePointManager]::SecurityProtocol -bor 3072; "
+                 f"Invoke-WebRequest -Uri '{url}' -OutFile '{tmp}' "
+                 f"-UserAgent '{_UA}' -TimeoutSec 25 -UseBasicParsing"],
+                capture_output=True, timeout=40)
+            if tmp.exists() and tmp.read_bytes()[:4] == b"\x89PNG":
+                tmp.replace(dest)
+                return dest
+        except (subprocess.SubprocessError, OSError):
+            pass
+        finally:
+            tmp.unlink(missing_ok=True)
+        time.sleep(0.6 * (attempt + 1))
+    return None
+
+
+def font(size, bold=False):
+    names = (["arialbd.ttf", "seguisb.ttf"] if bold else ["arial.ttf", "segoeui.ttf"])
+    paths = [f"C:/Windows/Fonts/{n}" for n in names] + [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold
+        else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+    for p in paths:
+        try:
+            return ImageFont.truetype(p, size)
+        except (OSError, IOError):
+            continue
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
+
+
+def slugify(build):
+    s = "-".join([build.get("tree", ""), build.get("buildName", ""),
+                  build.get("content", "")]).lower()
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+
+
+def compose(build):
+    items = build.get("items") or {}
+    present = [(s, lbl) for s, lbl in SLOTS if items.get(s)]
+    cols, cell, ic, top = 4, 96, 64, 46
+    rows = (len(present) + cols - 1) // cols
+    W = cols * cell + 20
+    H = top + rows * cell + 6
+    img = Image.new("RGBA", (W, H), (32, 34, 37, 255))
+    d = ImageDraw.Draw(img)
+    tree = build.get("tree", "").replace("Cajados ", "").split(" (")[0]
+    d.text((12, 8), f"{build.get('buildName', '')}", fill=(201, 162, 75, 255),
+           font=font(20, bold=True))
+    d.text((12, 30), f"{tree} · {build.get('content', '')}",
+           fill=(170, 170, 170, 255), font=font(12))
+    fl = font(11)
+    miss = 0
+    for i, (slot, _lbl) in enumerate(present):
+        it = items[slot]
+        cx = 10 + (i % cols) * cell
+        cy = top + (i // cols) * cell
+        p = download_icon(it["id"])
+        if p:
+            try:
+                icon = Image.open(p).convert("RGBA").resize((ic, ic))
+                img.alpha_composite(icon, (cx + (cell - ic) // 2, cy))
+            except Exception:
+                miss += 1
+        else:
+            miss += 1
+        name = (it.get("pt_clean") or "")[:15]
+        w = d.textlength(name, font=fl)
+        d.text((cx + (cell - w) / 2, cy + ic + 3), name,
+               fill=(215, 215, 215, 255), font=fl)
+    return img.convert("RGB"), miss
+
+
+def main():
+    data = json.loads((DATA / "builds.json").read_text(encoding="utf-8"))
+    builds = data["builds"]
+    total_miss = 0
+    for b in builds:
+        img, miss = compose(b)
+        total_miss += miss
+        name = slugify(b) + ".png"
+        img.save(OUT / name, "PNG")
+        b["image"] = f"/builds/{name}"
+    (DATA / "builds.json").write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"{len(builds)} imagens geradas em web/builds/ "
+          f"(ícones faltando: {total_miss})")
+
+
+if __name__ == "__main__":
+    main()

@@ -132,6 +132,20 @@ PT-BR — o bot nunca despeja traceback no canal (fica no console dele).
 - **`/comparar`**: barras ASCII do preço por cidade + a melhor rota de flip
   (comprar mais barato → vender na maior ordem de compra).
 
+### Imagens de loadout das builds (estáticas)
+
+`/builds` mostra, além do embed, uma **imagem de loadout** (todos os ícones dos
+itens montados numa figura) via `embed.set_image`. Elas são **PRÉ-GERADAS** por
+`scripts/build_build_images.py` e servidas como estáticos em `web/builds/*.png`
+(o campo `image` de cada build em `data/builds.json` aponta o caminho). Motivo de
+serem estáticas: `render.albiononline.com` bloqueia o fetch server-side via
+Cloudflare e a nuvem Linux não tem o fallback PowerShell do `/icon`; gerando no
+Windows (onde o fallback funciona) e comitando os PNGs, a nuvem só entrega a
+imagem pronta. A **thumbnail** da arma no embed aponta direto pro render oficial
+(`item_render_url`) — o proxy de imagem do Discord busca de lá. Regenerar após
+mudar as builds: `python scripts/build_builds_data.py --generate <saida>` e
+depois `python scripts/build_build_images.py`.
+
 ## Quadro semanal automático (opcional)
 
 Com as envs `ALBION_BOARD_CHANNEL_ID` (id do canal, ex.: #tributo — clique

@@ -95,7 +95,8 @@
           "pt_clean": "Guisado de Enguia de Água-podre",
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
-      }
+      },
+      "image": "/builds/cajados-de-fogo-dawnsong-faccao-zvz.png"
     },
     {
       "tree": "Cajados de Fogo",
@@ -161,7 +162,8 @@
           "pt_clean": "Omelete de Porco",
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
-      }
+      },
+      "image": "/builds/cajados-de-fogo-brimstone-faccao-zvz.png"
     },
     {
       "tree": "Cajados de Fogo",
@@ -233,7 +235,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/cajados-de-fogo-1h-fire-arena-5v5.png"
     },
     {
       "tree": "Cajados de Fogo",
@@ -299,7 +302,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/cajados-de-fogo-dawnsong-hellgate-5v5.png"
     },
     {
       "tree": "Cajados de Fogo",
@@ -371,7 +375,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/cajados-de-fogo-wildfire-abyssal-3v3.png"
     },
     {
       "tree": "Cajados de Fogo",
@@ -443,7 +448,8 @@
           "pt_clean": "Omelete de Porco",
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
-      }
+      },
+      "image": "/builds/cajados-de-fogo-1h-fire-corrompida-1v1.png"
     },
     {
       "tree": "Cajados de Gelo",
@@ -509,7 +515,8 @@
           "pt_clean": "Guisado de Enguia de Água-podre",
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
-      }
+      },
+      "image": "/builds/cajados-de-gelo-permafrost-prism-faccao-zvz.png"
     },
     {
       "tree": "Cajados de Gelo",
@@ -575,7 +582,8 @@
           "pt_clean": "Omelete de Porco Avaloniano",
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
-      }
+      },
+      "image": "/builds/cajados-de-gelo-icicle-staff-faccao-zvz.png"
     },
     {
       "tree": "Cajados de Gelo",
@@ -641,7 +649,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/cajados-de-gelo-great-frost-hellgate-5v5.png"
     },
     {
       "tree": "Cajados de Gelo",
@@ -707,7 +716,8 @@
           "pt_clean": "Guisado de Enguia de Água-podre",
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
-      }
+      },
+      "image": "/builds/cajados-de-gelo-arctic-staff-arena-5v5.png"
     },
     {
       "tree": "Cajados de Gelo",
@@ -773,7 +783,8 @@
           "pt_clean": "Omelete de Porco",
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
-      }
+      },
+      "image": "/builds/cajados-de-gelo-glacial-staff-abyssal-3v3.png"
     },
     {
       "tree": "Cajados de Gelo",
@@ -845,7 +856,8 @@
           "pt_clean": "Omelete de Porco",
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
-      }
+      },
+      "image": "/builds/cajados-de-gelo-1h-frost-corrompida-1v1.png"
     },
     {
       "tree": "Arcos",
@@ -911,7 +923,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/arcos-longbow-faccao-zvz.png"
     },
     {
       "tree": "Arcos",
@@ -977,7 +990,8 @@
           "pt_clean": "Guisado de Enguia de Água-podre",
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
-      }
+      },
+      "image": "/builds/arcos-wailing-bow-faccao-zvz.png"
     },
     {
       "tree": "Arcos",
@@ -1043,7 +1057,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/arcos-bow-arena-5v5.png"
     },
     {
       "tree": "Arcos",
@@ -1109,7 +1124,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/arcos-bow-of-badon-arena-5v5.png"
     },
     {
       "tree": "Arcos",
@@ -1175,7 +1191,8 @@
           "pt_clean": "Guisado de Enguia de Água-podre",
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
-      }
+      },
+      "image": "/builds/arcos-skystrider-bow-abyssal-3v3.png"
     },
     {
       "tree": "Arcos",
@@ -1241,7 +1258,8 @@
           "pt_clean": "Omelete de Porco",
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
-      }
+      },
+      "image": "/builds/arcos-warbow-corrompida-1v1.png"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1307,7 +1325,8 @@
           "pt_clean": "Omelete de Porco Avaloniano",
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
-      }
+      },
+      "image": "/builds/cajados-da-natureza-blight-staff-faccao-zvz.png"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1373,7 +1392,8 @@
           "pt_clean": "Omelete de Porco Avaloniano",
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
-      }
+      },
+      "image": "/builds/cajados-da-natureza-rampant-staff-faccao-zvz.png"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1445,7 +1465,8 @@
           "pt_clean": "Omelete de Porco",
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
-      }
+      },
+      "image": "/builds/cajados-da-natureza-1h-nature-hellgate-5v5.png"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1517,7 +1538,8 @@
           "pt_clean": "Omelete de Porco Avaloniano",
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
-      }
+      },
+      "image": "/builds/cajados-da-natureza-ironroot-staff-abyssal-3v3.png"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1589,7 +1611,8 @@
           "pt_clean": "Omelete de Porco",
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
-      }
+      },
+      "image": "/builds/cajados-da-natureza-forgebark-staff-abyssal-3v3.png"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1655,7 +1678,8 @@
           "pt_clean": "Omelete de Caranguejo de Poço",
           "icon": "/icon/T7_MEAL_OMELETTE_FISH"
         }
-      }
+      },
+      "image": "/builds/cajados-da-natureza-great-nature-corrompida-1v1.png"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -1727,7 +1751,8 @@
           "pt_clean": "Omelete de Porco Avaloniano",
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
-      }
+      },
+      "image": "/builds/cajados-amaldicoados-amaldicoados-lifecurse-faccao-zvz.png"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -1793,7 +1818,8 @@
           "pt_clean": "Omelete de Porco",
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
-      }
+      },
+      "image": "/builds/cajados-amaldicoados-amaldicoados-damnation-faccao-zvz.png"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -1865,7 +1891,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/cajados-amaldicoados-amaldicoados-rotcaller-arena-5v5.png"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -1931,7 +1958,8 @@
           "pt_clean": "Guisado de Enguia de Água-podre",
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
-      }
+      },
+      "image": "/builds/cajados-amaldicoados-amaldicoados-great-cursed-arena-5v5.png"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -1997,7 +2025,8 @@
           "pt_clean": "Pargo Neblina-pura Assado",
           "icon": "/icon/T7_MEAL_ROAST_FISH"
         }
-      }
+      },
+      "image": "/builds/cajados-amaldicoados-amaldicoados-cursed-skull-abyssal-3v3.png"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -2069,7 +2098,8 @@
           "pt_clean": "Guisado de Enguia de Água-podre",
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
-      }
+      },
+      "image": "/builds/cajados-amaldicoados-amaldicoados-lifecurse-corrompida-1v1.png"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2135,7 +2165,8 @@
           "pt_clean": "Omelete de Porco Avaloniano",
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
-      }
+      },
+      "image": "/builds/bordoes-quarterstaffs-staff-of-balance-faccao-e-zvz-faccao-zvz.png"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2201,7 +2232,8 @@
           "pt_clean": "Sanduíche de Larápio do Trovão",
           "icon": "/icon/T8_MEAL_SANDWICH_FISH"
         }
-      }
+      },
+      "image": "/builds/bordoes-quarterstaffs-grailseeker-controle-defensivo-de-zvz-faccao-zvz.png"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2267,7 +2299,8 @@
           "pt_clean": "Sanduíche de Carne",
           "icon": "/icon/T8_MEAL_SANDWICH"
         }
-      }
+      },
+      "image": "/builds/bordoes-quarterstaffs-phantom-twinblade-arena-5v5-arena-5v5.png"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2333,7 +2366,8 @@
           "pt_clean": "Omelete de Porco Avaloniano",
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
-      }
+      },
+      "image": "/builds/bordoes-quarterstaffs-staff-of-balance-arena-5v5-arena-5v5.png"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2399,7 +2433,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/bordoes-quarterstaffs-phantom-twinblade-abyssal-depths-3v3-abyssal-3v3.png"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2465,7 +2500,8 @@
           "pt_clean": "Omelete de Porco",
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
-      }
+      },
+      "image": "/builds/bordoes-quarterstaffs-soulscythe-controle-de-3v3-abyssal-3v3.png"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2531,7 +2567,8 @@
           "pt_clean": "Pargo Neblina-pura Assado",
           "icon": "/icon/T7_MEAL_ROAST_FISH"
         }
-      }
+      },
+      "image": "/builds/bordoes-quarterstaffs-quarterstaff-corrompida-1v1-corrompida-1v1.png"
     },
     {
       "tree": "Machados",
@@ -2597,7 +2634,8 @@
           "pt_clean": "Guisado de Enguia de Água-podre",
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
-      }
+      },
+      "image": "/builds/machados-realmbreaker-faccao-zvz.png"
     },
     {
       "tree": "Machados",
@@ -2663,7 +2701,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/machados-infernal-scythe-faccao-zvz.png"
     },
     {
       "tree": "Machados",
@@ -2729,7 +2768,8 @@
           "pt_clean": "Guisado de Enguia de Água-podre",
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
-      }
+      },
+      "image": "/builds/machados-carrioncaller-arena-5v5.png"
     },
     {
       "tree": "Machados",
@@ -2795,7 +2835,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/machados-infernal-scythe-arena-5v5.png"
     },
     {
       "tree": "Machados",
@@ -2861,7 +2902,8 @@
           "pt_clean": "Porco Assado",
           "icon": "/icon/T7_MEAL_ROAST"
         }
-      }
+      },
+      "image": "/builds/machados-crystal-reaper-abyssal-3v3.png"
     },
     {
       "tree": "Machados",
@@ -2933,7 +2975,8 @@
           "pt_clean": "Guisado de Carne",
           "icon": "/icon/T8_MEAL_STEW"
         }
-      }
+      },
+      "image": "/builds/machados-battleaxe-corrompida-1v1.png"
     }
   ]
 }
