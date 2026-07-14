@@ -261,6 +261,59 @@ def weapon_icon_url(build, public_url=None):
     return item_render_url(it.get("id")) if it and it.get("id") else None
 
 
+# ------------------------------------------------------------ guia de comandos
+# Fonte única do /ajuda: toda ferramenta do bot, com exemplo. Mantido aqui
+# (não em texto solto) para nunca sair do sincronismo com os comandos reais.
+HELP_SECTIONS = [
+    ("💹 Mercado", [
+        ("/preco", "preço de um item por cidade — ex.: `/preco bolsa t4`"),
+        ("/comparar", "preço entre TODAS as cidades + melhor rota de flip"),
+        ("/vender", "melhor cidade para vender um item"),
+        ("/ouro", "cotação do ouro + tendência de 48h"),
+        ("/flip", "quanto você tem → o que comprar — ex.: `/flip 500000`"),
+        ("/recomendar", "as 5 melhores oportunidades de flip agora"),
+        ("/buscar", "descobrir o nome/id de um item"),
+    ]),
+    ("🏝️ Ilha & Produção", [
+        ("/ilha", "top 5 diários de trabalhador (margem vazio→cheio)"),
+        ("/felicidade", "móveis/troféus ideais + rendimento — ex.: "
+                        "`/felicidade tier_trabalhador: 7`"),
+        ("/plano", "plano de produção p/ N trabalhadores"),
+    ]),
+    ("⚔️ Builds da guild", [
+        ("/builds", "escolha a árvore de arma + o conteúdo → build com os "
+                    "itens em PT-BR e imagem do loadout"),
+    ]),
+    ("🎯 Tributo da guild", [
+        ("/vincular", "liga seu Discord à sua conta (peça o código a um oficial)"),
+        ("/minhas-metas", "suas metas da semana (só você vê)"),
+        ("/meu-status", "seu relógio de tributo (só você vê)"),
+        ("/reportar", "avisa uma entrega — ex.: "
+                      "`/reportar item: minério t4 quantidade: 500`"),
+        ("/quadro", "placar da guild: metas × entregas"),
+    ]),
+    ("🛡️ Auditoria (oficiais)", [
+        ("/pendentes", "fila de reportes aguardando aprovação"),
+        ("/aprovar", "aprova um reporte (zera o relógio do membro)"),
+        ("/rejeitar", "rejeita um reporte (relógio volta a contar)"),
+    ]),
+]
+HELP_INTRO = ("Sou o assistente de mercado do Albion (servidor Américas). "
+              "Digite **/** e escolha um comando — a resposta vem na hora.\n"
+              "🔎 Nos comandos de item (**/preco, /comparar, /vender, /buscar**) "
+              "não precisa saber o nome exato: comece a digitar e **clique na "
+              "lista** (autocomplete).")
+
+
+def help_fields():
+    """Campos do embed do /ajuda (nome da seção, texto). Pura p/ testar."""
+    out = []
+    for title, cmds in HELP_SECTIONS:
+        body = "\n".join(f"**{c}** — {desc}" for c, desc in cmds)
+        out.append((title, body[:1024]))
+    return out
+
+
 def build_image_url(build, public_url):
     """URL pública da imagem de loadout pré-gerada (web/builds/*.png), se houver."""
     img = build.get("image")
@@ -730,6 +783,52 @@ def build_bot(api: ApiClient):
             print(f"[bot] conectado como {self.user} "
                   f"(API {api._client.base_url})", flush=True)
             self._start_board_task()
+            import asyncio
+            asyncio.create_task(self._post_guide())
+
+        # ---------------- guia fixo (1 mensagem editada com TODOS os comandos)
+        # Com ALBION_GUIDE_CHANNEL_ID (id do canal, ex.: #comece-aqui), o bot
+        # posta/edita o embed do /ajuda ali no boot — instruções sempre visíveis
+        # pra todos, sem depender de ninguém digitar /ajuda.
+        async def _post_guide(self):
+            ch_id = os.environ.get("ALBION_GUIDE_CHANNEL_ID", "").strip()
+            if not ch_id:
+                return
+            try:
+                import discord
+                channel = (self.get_channel(int(ch_id))
+                           or await self.fetch_channel(int(ch_id)))
+                emb = discord.Embed(
+                    title="📖 Guia de comandos — Mercado Albion",
+                    description=HELP_INTRO, color=0xC9A24B)
+                for name, body in help_fields():
+                    emb.add_field(name=name, value=body, inline=False)
+                emb.set_footer(text="Digite /ajuda a qualquer momento p/ rever.")
+                state_path = Path("data") / "bot_state.json"
+                try:
+                    state = json.loads(state_path.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    state = {}
+                key = f"guide:{ch_id}"
+                msg = None
+                if state.get(key):
+                    try:
+                        msg = await channel.fetch_message(int(state[key]))
+                    except Exception:
+                        msg = None
+                if msg:
+                    await msg.edit(content=None, embed=emb)
+                else:
+                    msg = await channel.send(embed=emb)
+                    state[key] = msg.id
+                    try:
+                        state_path.parent.mkdir(exist_ok=True)
+                        state_path.write_text(json.dumps(state),
+                                              encoding="utf-8")
+                    except OSError:
+                        pass
+            except Exception as exc:
+                print(f"[bot] guia automático falhou: {exc!r}", flush=True)
 
         # ---------------- quadro automático (1 mensagem editada no canal)
         # Requer ALBION_BOARD_CHANNEL_ID (id do canal, ex.: #tributo) e
@@ -1001,6 +1100,17 @@ def build_bot(api: ApiClient):
     # então precisa ser acessível na internet — não o 127.0.0.1 do bot embarcado).
     public_url = os.environ.get(
         "ALBION_PUBLIC_URL", "https://mercado-albion.onrender.com").rstrip("/")
+
+    @tree.command(name="ajuda",
+                  description="Guia de TODOS os comandos e como usar cada um")
+    async def ajuda_cmd(interaction: discord.Interaction):
+        await interaction.response.defer(thinking=True)
+        emb = discord.Embed(title="📖 Guia de comandos — Mercado Albion",
+                            description=HELP_INTRO, color=0xC9A24B)
+        for name, body in help_fields():
+            emb.add_field(name=name, value=body, inline=False)
+        emb.set_footer(text="Digite /ajuda a qualquer momento para rever isto.")
+        await interaction.followup.send(embed=emb)
 
     @tree.command(
         name="builds",

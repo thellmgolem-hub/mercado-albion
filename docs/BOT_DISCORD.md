@@ -73,6 +73,7 @@ Envs:
 | `ALBION_API_URL` | não | `http://127.0.0.1:8528` | base da API do app |
 | `DISCORD_GUILD_ID` | não | — | sync instantâneo dos comandos num servidor |
 | `ALBION_PUBLIC_URL` | não | `https://mercado-albion.onrender.com` | base PÚBLICA p/ os ícones dos embeds (o Discord busca a imagem pela internet, não pelo `ALBION_API_URL` interno) |
+| `ALBION_GUIDE_CHANNEL_ID` | não | — | id do canal (ex.: #comece-aqui) onde o bot posta/edita, no boot, o embed do `/ajuda` com TODOS os comandos — guia sempre visível sem ninguém digitar nada |
 
 Sem `DISCORD_GUILD_ID` o registro dos comandos é **global** e o Discord pode
 levar até ~1 hora para exibi-los. Com a env, aparecem imediatamente no
@@ -94,6 +95,7 @@ nunca do servidor Discord de onde o comando foi digitado.
 
 | Comando | Endpoint da API | Visibilidade |
 |---|---|---|
+| `/ajuda` | *(nenhum — embed estático com TODOS os comandos)* | pública |
 | `/preco <item>` | `GET /api/search` (resolve o id) + `GET /api/prices` | pública |
 | `/comparar <item>` | `GET /api/prices` (todas as cidades: barras + melhor rota de flip) | pública |
 | `/buscar <termo>` | `GET /api/search?group=true` | pública |

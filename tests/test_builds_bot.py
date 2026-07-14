@@ -104,5 +104,27 @@ class HandlerTests(unittest.TestCase):
         self.assertTrue(len(bot._bar(100, 100)) >= len(bot._bar(50, 100)))
 
 
+class HelpTests(unittest.TestCase):
+    def test_help_has_intro_and_sections(self):
+        self.assertTrue(bot.HELP_INTRO)
+        fields = bot.help_fields()
+        self.assertGreaterEqual(len(fields), 5)
+        for name, body in fields:
+            self.assertTrue(name and body)
+            self.assertLessEqual(len(body), 1024)   # limite de campo do embed
+
+    def test_help_covers_every_registered_command(self):
+        import os
+        os.environ.setdefault("ALBION_PUBLIC_URL", "https://x")
+        from tools.discord_bot import build_bot, ApiClient
+        b = build_bot(ApiClient("http://x", "svc"))
+        help_text = "\n".join(body for _n, body in bot.help_fields())
+        for cmd in b.tree.get_commands():
+            if cmd.name == "ajuda":
+                continue
+            self.assertIn(f"/{cmd.name}", help_text,
+                          f"/{cmd.name} não está no /ajuda")
+
+
 if __name__ == "__main__":
     unittest.main()
