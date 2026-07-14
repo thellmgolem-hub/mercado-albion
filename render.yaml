@@ -43,6 +43,16 @@ services:
       # (Opcional) sync instantâneo dos comandos no seu servidor Discord.
       - key: DISCORD_GUILD_ID
         sync: false
+      # (Opcional) canal onde o bot posta/edita, no boot, o guia com TODOS os
+      # comandos (ex.: #comece-aqui). Idempotente: reencontra a própria mensagem
+      # e edita (não duplica em redeploy). Sem a env, o guia sai só via /ajuda.
+      - key: ALBION_GUIDE_CHANNEL_ID
+        sync: false
+      # (Opcional) base pública p/ os ícones/imagens dos embeds. O default já é
+      # https://mercado-albion.onrender.com — só defina se o serviço tiver outro
+      # nome/domínio (senão as thumbnails das builds dão 404).
+      - key: ALBION_PUBLIC_URL
+        sync: false
       # (Opcional) quadro semanal automático: canal onde o bot posta/edita a
       # mensagem + snowflake de um membro VINCULADO (define a org do quadro).
       - key: ALBION_BOARD_CHANNEL_ID

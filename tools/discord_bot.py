@@ -132,7 +132,9 @@ def clip(text, limit=MAX_CHARS):
 
 
 def code_block(text):
-    return "```\n" + clip(text) + "\n```"
+    # Deixa folga p/ as cercas ``` (8 chars): assim o total já sai <= MAX_CHARS
+    # e o clip() de _respond (que reaplica o limite) não corta o fecho ```.
+    return "```\n" + clip(text, MAX_CHARS - 8) + "\n```"
 
 
 def friendly_error(exc: ApiError) -> str:
@@ -298,6 +300,10 @@ HELP_SECTIONS = [
         ("/rejeitar", "rejeita um reporte (relógio volta a contar)"),
     ]),
 ]
+# Título do embed do guia — usado no /ajuda, no guia automático E como marcador
+# p/ reencontrar a própria mensagem no canal (idempotência sem depender de disco).
+GUIDE_TITLE = "📖 Guia de comandos — Mercado Albion"
+BOARD_MARKER = "QUADRO DA SEMANA"     # cabeçalho do quadro (idem: reencontro no canal)
 HELP_INTRO = ("Sou o assistente de mercado do Albion (servidor Américas). "
               "Digite **/** e escolha um comando — a resposta vem na hora.\n"
               "🔎 Nos comandos de item (**/preco, /comparar, /vender, /buscar**) "
@@ -699,8 +705,11 @@ async def handle_ouro(api) -> str:
     pts = await api.get("/api/gold", params={"count": 48})
     if not pts:
         return "Sem cotação de ouro no cache ainda."
-    cur, old = pts[-1], pts[0]
-    delta = (cur["price"] - old["price"]) / old["price"] * 100 if old["price"] else 0
+    # /api/gold vem ORDER BY ts DESC (mais NOVO primeiro): pts[0]=atual, pts[-1]=~48h atrás.
+    cur, old = pts[0], pts[-1]
+    if not cur.get("price"):
+        return "Sem cotação de ouro válida no cache ainda."
+    delta = (cur["price"] - old["price"]) / old["price"] * 100 if old.get("price") else 0
     arrow = "subindo" if delta > 0.5 else ("caindo" if delta < -0.5 else "estável")
     return code_block(
         f"Ouro: {fmt_silver(cur['price'])} prata/ouro ({arrow}, "
@@ -770,14 +779,24 @@ def build_bot(api: ApiClient):
             self.tree = app_commands.CommandTree(self)
 
         async def setup_hook(self):
+            # Um DISCORD_GUILD_ID malformado (ValueError no int) NÃO pode derrubar
+            # o boot do bot: cai no sync global. Idem p/ erro transitório de sync.
             gid = os.environ.get("DISCORD_GUILD_ID", "").strip()
-            if gid:
-                # sync por servidor: comandos aparecem na hora (dev/uso próprio)
-                guild = discord.Object(id=int(gid))
-                self.tree.copy_global_to(guild=guild)
-                await self.tree.sync(guild=guild)
-            else:
-                await self.tree.sync()     # global: pode levar até ~1h
+            try:
+                if gid:
+                    # sync por servidor: comandos aparecem na hora (dev/uso próprio)
+                    guild = discord.Object(id=int(gid))
+                    self.tree.copy_global_to(guild=guild)
+                    await self.tree.sync(guild=guild)
+                else:
+                    await self.tree.sync()     # global: pode levar até ~1h
+            except Exception as exc:
+                print(f"[bot] sync de comandos falhou ({exc!r}); tentando global",
+                      flush=True)
+                try:
+                    await self.tree.sync()
+                except Exception:
+                    pass
 
         async def on_ready(self):
             print(f"[bot] conectado como {self.user} "
@@ -786,48 +805,87 @@ def build_bot(api: ApiClient):
             import asyncio
             asyncio.create_task(self._post_guide())
 
+        # ------------------------------------------- estado idempotente
+        # O id da mensagem (guia/quadro) é gravado em data/bot_state.json APENAS
+        # como cache rápido. No Render o FS é EFÊMERO (some a cada redeploy/cold
+        # start), então NUNCA confiamos só nele: se o id sumir, varremos o canal
+        # pela própria mensagem (por marcador) e editamos — sem duplicar.
+        @staticmethod
+        def _load_state():
+            try:
+                return json.loads(
+                    (Path("data") / "bot_state.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                return {}
+
+        @staticmethod
+        def _save_state_id(state, key, msg_id):
+            state[key] = msg_id
+            try:
+                p = Path("data") / "bot_state.json"
+                p.parent.mkdir(exist_ok=True)
+                p.write_text(json.dumps(state), encoding="utf-8")
+            except OSError:
+                pass
+
+        async def _msg_from_state(self, channel, state, key):
+            mid = state.get(key)
+            if not mid:
+                return None
+            try:
+                return await channel.fetch_message(int(mid))
+            except Exception:
+                return None
+
+        async def _find_own_message(self, channel, match):
+            """Última mensagem DESTE bot no canal que casa `match` — reencontro
+            robusto no FS efêmero (não posta duplicata após redeploy)."""
+            try:
+                async for m in channel.history(limit=50):
+                    if m.author.id == self.user.id and match(m):
+                        return m
+            except Exception:
+                pass
+            return None
+
         # ---------------- guia fixo (1 mensagem editada com TODOS os comandos)
         # Com ALBION_GUIDE_CHANNEL_ID (id do canal, ex.: #comece-aqui), o bot
         # posta/edita o embed do /ajuda ali no boot — instruções sempre visíveis
         # pra todos, sem depender de ninguém digitar /ajuda.
         async def _post_guide(self):
+            if getattr(self, "_guide_posted", False):
+                return                          # guarda de reentrância (on_ready 2x)
             ch_id = os.environ.get("ALBION_GUIDE_CHANNEL_ID", "").strip()
             if not ch_id:
                 return
+            self._guide_posted = True
             try:
                 import discord
                 channel = (self.get_channel(int(ch_id))
                            or await self.fetch_channel(int(ch_id)))
-                emb = discord.Embed(
-                    title="📖 Guia de comandos — Mercado Albion",
-                    description=HELP_INTRO, color=0xC9A24B)
+                emb = discord.Embed(title=GUIDE_TITLE, description=HELP_INTRO,
+                                    color=0xC9A24B)
                 for name, body in help_fields():
                     emb.add_field(name=name, value=body, inline=False)
                 emb.set_footer(text="Digite /ajuda a qualquer momento p/ rever.")
-                state_path = Path("data") / "bot_state.json"
-                try:
-                    state = json.loads(state_path.read_text(encoding="utf-8"))
-                except (OSError, ValueError):
-                    state = {}
-                key = f"guide:{ch_id}"
-                msg = None
-                if state.get(key):
-                    try:
-                        msg = await channel.fetch_message(int(state[key]))
-                    except Exception:
-                        msg = None
+                state, key = self._load_state(), f"guide:{ch_id}"
+                msg = await self._msg_from_state(channel, state, key)
+                if msg is None:                 # id perdeu no redeploy: acha no canal
+                    msg = await self._find_own_message(
+                        channel,
+                        lambda m: bool(m.embeds)
+                        and (m.embeds[0].title or "") == GUIDE_TITLE)
                 if msg:
                     await msg.edit(content=None, embed=emb)
                 else:
                     msg = await channel.send(embed=emb)
-                    state[key] = msg.id
                     try:
-                        state_path.parent.mkdir(exist_ok=True)
-                        state_path.write_text(json.dumps(state),
-                                              encoding="utf-8")
-                    except OSError:
-                        pass
+                        await msg.pin()
+                    except Exception:
+                        pass                    # sem permissão de fixar: tudo bem
+                self._save_state_id(state, key, msg.id)
             except Exception as exc:
+                self._guide_posted = False      # deixa tentar de novo no próximo boot
                 print(f"[bot] guia automático falhou: {exc!r}", flush=True)
 
         # ---------------- quadro automático (1 mensagem editada no canal)
@@ -865,29 +923,16 @@ def build_bot(api: ApiClient):
                                     params={"discord_user_id": uid})
                 text = _board_text(res)
                 channel = self.get_channel(ch_id) or await self.fetch_channel(ch_id)
-                state_path = Path("data") / "bot_state.json"
-                try:
-                    state = json.loads(state_path.read_text(encoding="utf-8"))
-                except (OSError, ValueError):
-                    state = {}
-                msg_id = state.get(str(ch_id))
-                msg = None
-                if msg_id:
-                    try:
-                        msg = await channel.fetch_message(int(msg_id))
-                    except Exception:
-                        msg = None              # mensagem apagada: reposta
+                state, key = self._load_state(), str(ch_id)
+                msg = await self._msg_from_state(channel, state, key)
+                if msg is None:                 # id perdeu no redeploy: acha no canal
+                    msg = await self._find_own_message(
+                        channel, lambda m: BOARD_MARKER in (m.content or ""))
                 if msg:
                     await msg.edit(content=text)
                 else:
                     msg = await channel.send(text)
-                    state[str(ch_id)] = msg.id
-                    try:
-                        state_path.parent.mkdir(exist_ok=True)
-                        state_path.write_text(
-                            json.dumps(state), encoding="utf-8")
-                    except OSError:
-                        pass
+                self._save_state_id(state, key, msg.id)
             except Exception as exc:            # nunca derruba o bot
                 print(f"[bot] quadro automático falhou: {exc!r}", flush=True)
 
@@ -1105,7 +1150,7 @@ def build_bot(api: ApiClient):
                   description="Guia de TODOS os comandos e como usar cada um")
     async def ajuda_cmd(interaction: discord.Interaction):
         await interaction.response.defer(thinking=True)
-        emb = discord.Embed(title="📖 Guia de comandos — Mercado Albion",
+        emb = discord.Embed(title=GUIDE_TITLE,
                             description=HELP_INTRO, color=0xC9A24B)
         for name, body in help_fields():
             emb.add_field(name=name, value=body, inline=False)
@@ -1136,11 +1181,15 @@ def build_bot(api: ApiClient):
                     f"Conteúdos com build nessa árvore: {', '.join(avail) or '—'}.")
                 return
             embeds = []
+            total = 0                     # Discord: soma de TODOS os embeds <= 6000
             for b in matches[:6]:
                 desc = (b.get("role") or "").strip()
-                desc = (desc + "\n\n" if desc else "") + build_card_text(b)
-                emb = discord.Embed(title=build_title(b), description=desc[:4000],
-                                    color=0xC9A24B)
+                desc = ((desc + "\n\n" if desc else "") + build_card_text(b))[:4000]
+                title = build_title(b)
+                if embeds and total + len(title) + len(desc) > 5800:
+                    break                 # não estoura o teto agregado (falha 400)
+                total += len(title) + len(desc)
+                emb = discord.Embed(title=title, description=desc, color=0xC9A24B)
                 icon = weapon_icon_url(b)
                 if icon:
                     emb.set_thumbnail(url=icon)
@@ -1149,8 +1198,9 @@ def build_bot(api: ApiClient):
                     emb.set_image(url=img)
                 embeds.append(emb)
             note = None
-            if not conteudo and len(matches) > 6:
-                note = f"(mostrando 6 de {len(matches)} — escolha um conteúdo p/ filtrar)"
+            if not conteudo and len(matches) > len(embeds):
+                note = (f"(mostrando {len(embeds)} de {len(matches)} — escolha um "
+                        f"conteúdo p/ filtrar)")
             await interaction.followup.send(content=note, embeds=embeds)
         except Exception:
             traceback.print_exc()

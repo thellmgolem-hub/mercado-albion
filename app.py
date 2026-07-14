@@ -2903,7 +2903,7 @@ except OSError:
     import tempfile
     ICONS_DIR = Path(tempfile.gettempdir()) / "albion_icons"
     ICONS_DIR.mkdir(parents=True, exist_ok=True)
-_ICON_ID_RE = re.compile(r"^[A-Za-z0-9_@\-\.]+$")
+_ICON_ID_RE = re.compile(r"\A[A-Za-z0-9_@\-\.]+\Z")   # \Z (não $) barra \n final
 _icon_sem = threading.Semaphore(4)
 _BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
                " (KHTML, like Gecko) Chrome/125.0 Safari/537.36")
@@ -2984,6 +2984,13 @@ def icon(item_id: str, quality: int = Query(0, ge=0, le=5),
                     for k in [k for k, v in list(_icon_neg_cache.items())
                               if v <= now]:
                         _icon_neg_cache.pop(k, None)
+                    # teto RÍGIDO: se ainda cheio de entradas vivas, corta as
+                    # mais antigas (senão o dict cresceria ~TTL*taxa sem evicção)
+                    excess = len(_icon_neg_cache) - 4096
+                    if excess > 0:
+                        for k, _v in sorted(_icon_neg_cache.items(),
+                                            key=lambda kv: kv[1])[:excess]:
+                            _icon_neg_cache.pop(k, None)
                 _icon_neg_cache[key] = time.monotonic() + _ICON_NEG_TTL
                 return Response(status_code=404)
     return FileResponse(dest, media_type="image/png",

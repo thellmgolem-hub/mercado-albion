@@ -103,6 +103,23 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(bot._bar(0, 100), "")
         self.assertTrue(len(bot._bar(100, 100)) >= len(bot._bar(50, 100)))
 
+    def test_ouro_usa_mais_novo_como_atual(self):
+        # /api/gold vem ORDER BY ts DESC (mais NOVO primeiro): pts[0]=agora.
+        class GoldApi:
+            async def get(self, path, params=None):
+                return [{"price": 4000, "ts": "2026-07-14T00:00:00"},   # atual
+                        {"price": 3000, "ts": "2026-07-12T00:00:00"}]   # ~48h atrás
+        out = asyncio.run(bot.handle_ouro(GoldApi()))
+        self.assertIn("4.000", out)        # cotação atual = ponto mais novo
+        self.assertIn("subindo", out)      # 4000 vs 3000 -> subiu (sinal correto)
+
+    def test_ouro_preco_zero_nao_quebra(self):
+        class GoldApi:
+            async def get(self, path, params=None):
+                return [{"price": 0, "ts": "2026-07-14T00:00:00"}]
+        out = asyncio.run(bot.handle_ouro(GoldApi()))  # sem ZeroDivisionError
+        self.assertIn("válida", out)
+
 
 class HelpTests(unittest.TestCase):
     def test_help_has_intro_and_sections(self):
