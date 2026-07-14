@@ -183,5 +183,24 @@ class HelpTests(unittest.TestCase):
                           f"/{cmd.name} não está no /ajuda")
 
 
+class BuildImageFileTests(unittest.TestCase):
+    """build_image_file anexa o PNG do loadout. O import de discord é lazy no
+    módulo (só dentro de função), então a helper precisa reimportar — senão dá
+    NameError, que quebrou o /builds em produção. Estes testes exercem o caminho
+    de verdade (os testes antigos nunca chamavam a helper)."""
+
+    def test_retorna_discord_file_do_png(self):
+        import json
+        from tools import discord_bot as bot
+        b = json.load(open("data/builds.json", encoding="utf-8"))["builds"][0]
+        f = bot.build_image_file(b, 0)
+        self.assertIsNotNone(f)                 # PNG existe em web/builds/
+        self.assertEqual(f.filename, "build0.png")
+
+    def test_sem_imagem_retorna_none(self):
+        from tools import discord_bot as bot
+        self.assertIsNone(bot.build_image_file({}, 0))
+
+
 if __name__ == "__main__":
     unittest.main()

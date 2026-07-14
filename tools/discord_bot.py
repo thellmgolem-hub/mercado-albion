@@ -357,6 +357,7 @@ def build_image_file(build, idx):
     ALBION_PUBLIC_URL) faz o Discord SEMPRE renderizar a imagem: não depende do
     Render estar acordado nem do fetch do Cloudflare. O bot roda embarcado, então
     tem o arquivo no disco. Devolve None se não houver imagem gerada."""
+    import discord   # import é lazy no módulo (só dentro de função); replica aqui
     img = build.get("image")            # ex.: /builds/<slug>.png
     if not img:
         return None
