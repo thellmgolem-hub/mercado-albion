@@ -2263,5 +2263,55 @@ class LiquidityPgTypeTests(unittest.TestCase):
         self.assertIsInstance(v * 0.20, float)
 
 
+class HistoryVwapScopeTests(unittest.TestCase):
+    """O /plano travava por varrer o histórico do universo no Postgres free.
+    _history_vwap_volumes agora aceita item_ids p/ escopar. Estes testes travam
+    esse comportamento (regressão: se alguém tirar o filtro, o scan volta)."""
+
+    def test_item_ids_vazio_nao_toca_no_banco(self):
+        # item_ids=[] -> retorna vazio SEM executar query (con nem é usado)
+        vwap, vol = app._history_vwap_volumes(object(), days=30, item_ids=[])
+        self.assertEqual(vwap, {})
+        self.assertEqual(vol, {})
+
+    def test_item_ids_escopa_a_query(self):
+        captured = {}
+
+        class _Cur:
+            def fetchall(self):
+                return [{"item_id": "T4_LEATHER", "avg_price": 100.0,
+                         "item_count": 10}]
+
+        class _Con:
+            def execute(self, sql, params):
+                captured["sql"] = sql
+                captured["params"] = params
+                return _Cur()
+
+        vwap, vol = app._history_vwap_volumes(
+            _Con(), days=30, item_ids=["T4_LEATHER", "T4_CLOTH"])
+        self.assertIn("item_id IN (", captured["sql"])
+        self.assertIn("T4_LEATHER", captured["params"])
+        self.assertIn("T4_CLOTH", captured["params"])
+        self.assertAlmostEqual(vwap["T4_LEATHER"], 100.0)     # 100*10 / 10
+        self.assertAlmostEqual(vol["T4_LEATHER"], 10 / 30)    # 10 un / 30 dias
+
+    def test_sem_item_ids_varre_tudo(self):
+        # item_ids=None (padrão) NÃO adiciona o filtro — comportamento antigo
+        captured = {}
+
+        class _Cur:
+            def fetchall(self):
+                return []
+
+        class _Con:
+            def execute(self, sql, params):
+                captured["sql"] = sql
+                return _Cur()
+
+        app._history_vwap_volumes(_Con(), days=30)
+        self.assertNotIn("item_id IN", captured["sql"])
+
+
 if __name__ == "__main__":
     unittest.main()

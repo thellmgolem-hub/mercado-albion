@@ -1712,16 +1712,24 @@ def micro(view: str = "spread", premium: bool = True,
         con.close()
 
 
-def _price_lookups(con, max_age_days=3):
+def _price_lookups(con, max_age_days=3, quality=None):
     """(q1, allq) das linhas de prices saneadas (sem âncora) e frescas — base
-    das análises do hub Avançado. Espelha analyze.py _clean_price_lookups."""
+    das análises do hub Avançado. Espelha analyze.py _clean_price_lookups.
+
+    quality: se setado (ex.: 1), filtra a query no SQL — bem mais leve no Postgres
+    (evita o SELECT * da tabela inteira de prices). Use quando o chamador só precisa
+    daquela qualidade (ilha/laborplan usam só q1). None = todas (padrão; NÃO mudar
+    p/ não afetar prod/guild/prodchain, que usam allq)."""
     from albion.microstructure import clean_price_rows
     # corte ISO calculado em Python (portável SQLite/Postgres)
     cutoff = (datetime.utcnow()
               - timedelta(days=int(max_age_days))).strftime("%Y-%m-%dT%H:%M:%S")
+    sql, params = "SELECT * FROM prices WHERE server=?", [aodp.server]
+    if quality is not None:
+        sql += " AND quality=?"
+        params.append(int(quality))
     rows = clean_price_rows(
-        [dict(r) for r in con.execute(
-            "SELECT * FROM prices WHERE server=?", [aodp.server]).fetchall()])
+        [dict(r) for r in con.execute(sql, params).fetchall()])
     q1, allq = {}, {}
     for r in rows:
         sp = r.get("sell_price_min") or 0
@@ -1876,7 +1884,7 @@ def island_view(view: str = "laborers", premium: bool = True,
         return {"view": view, "rows": []}
     try:
         name = lambda i: (db.get(i) or {}).get("pt", i)
-        q1, _ = _price_lookups(con)
+        q1, _ = _price_lookups(con, quality=1)   # ilha usa só q1; evita scan pesado
         if view == "crops":
             res = isl.crop_economy(q1, premium=premium, sell_mode=sell_mode,
                                    limit=limit)
@@ -1956,15 +1964,24 @@ def laborer_happiness_view(laborer_tier: int, building_tier: int = 8,
 _LABORPLAN_FAMILIES = ("WARRIOR", "HUNTER", "MAGE", "TOOLMAKER", "MERCENARY")
 
 
-def _history_vwap_volumes(con, days=30.0):
+def _history_vwap_volumes(con, days=30.0, item_ids=None):
     """VWAP por item (Σ preço×volume / Σ volume) e volume DIÁRIO (Σ volume/dias)
     do histórico q1/24h — espelha analyze._laborer_market_data. Corte por texto
-    ISO via store.cutoff_iso (portável SQLite/Postgres; nunca date('now'))."""
+    ISO via store.cutoff_iso (portável SQLite/Postgres; nunca date('now')).
+
+    item_ids: se dado, restringe a query a esses itens — bem mais leve no Postgres
+    (o laborplan só precisa dos itens de fill da família/tier, não do universo de
+    ~10k). None = varre tudo (padrão)."""
+    if item_ids is not None and not item_ids:
+        return {}, {}
+    where = ["server=?", "time_scale=24", "quality=1", "avg_price>0", "ts >= ?"]
+    params = [aodp.server, store.cutoff_iso(days)]
+    if item_ids:
+        where.append(f"item_id IN ({_placeholders(item_ids)})")
+        params.extend(item_ids)
     rows = con.execute(
-        """SELECT item_id, avg_price, item_count FROM history
-           WHERE server=? AND time_scale=24 AND quality=1
-             AND avg_price>0 AND ts >= ?""",
-        [aodp.server, store.cutoff_iso(days)]).fetchall()
+        f"SELECT item_id, avg_price, item_count FROM history WHERE "
+        + " AND ".join(where), params).fetchall()
     num, den = {}, {}
     for r in rows:
         iid, avg, cnt = r["item_id"], r["avg_price"] or 0, r["item_count"] or 0
@@ -2016,8 +2033,14 @@ def laborplan_view(family: str, tier: int, laborers: int,
         return {"available": False, "reason": "cache de preços vazio",
                 "family": fam, "tier": tier}
     try:
-        q1, _ = _price_lookups(con)
-        vwap, volumes = _history_vwap_volumes(con, days=30)
+        # ESCOPO (senão o scan da tabela inteira estoura o timeout no Postgres
+        # free): só q1 nos preços e só os itens de FILL desta família/tier no
+        # histórico — que é tudo que o laborer_plan consulta de vwap/volume.
+        fill_items = (((isl._load().get("laborers") or {})
+                       .get(f"T{tier}_JOURNAL_{fam}_EMPTY") or {})
+                      .get("fill", {}).get("items", []))
+        q1, _ = _price_lookups(con, quality=1)
+        vwap, volumes = _history_vwap_volumes(con, days=30, item_ids=fill_items)
     finally:
         con.close()
 

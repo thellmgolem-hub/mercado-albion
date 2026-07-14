@@ -29,7 +29,7 @@ import json
 import os
 import sys
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
 
@@ -125,6 +125,20 @@ def fmt_age(minutes):
     if m < 48 * 60:
         return f"{m // 60}h"
     return f"{m // (24 * 60)}d"
+
+
+def fmt_data_hora(age_min):
+    """Idade do dado (min) -> HORÁRIO (BR, UTC-3) de quando o preço foi visto,
+    ex.: '14h32'. Se for de +1 dia, o horário sozinho enganaria, então mostra
+    'há Nd'. Substitui o rótulo opaco de 'confiabilidade' por algo que o jogador
+    entende: a hora de que vem o dado de cada ponta (compra/venda)."""
+    if age_min is None:
+        return "?"
+    m = int(age_min)
+    if m >= 24 * 60:
+        return f"há {m // (24 * 60)}d"
+    t = datetime.now(timezone.utc) - timedelta(minutes=m, hours=3)  # UTC-3
+    return t.strftime("%Hh%M")
 
 
 def clip(text, limit=MAX_CHARS):
@@ -335,6 +349,21 @@ def build_image_url(build, public_url):
     return (public_url.rstrip("/") + img) if img else None
 
 
+def build_image_file(build, idx):
+    """Lê o PNG de loadout pré-gerado (web/builds/*.png) do disco e devolve um
+    discord.File pra ANEXAR ao embed. Anexar (em vez de linkar via
+    ALBION_PUBLIC_URL) faz o Discord SEMPRE renderizar a imagem: não depende do
+    Render estar acordado nem do fetch do Cloudflare. O bot roda embarcado, então
+    tem o arquivo no disco. Devolve None se não houver imagem gerada."""
+    img = build.get("image")            # ex.: /builds/<slug>.png
+    if not img:
+        return None
+    path = Path(__file__).resolve().parent.parent / "web" / img.lstrip("/")
+    if not path.is_file():
+        return None
+    return discord.File(str(path), filename=f"build{idx}.png")
+
+
 # ---------------------------------------------------- handlers (funções puras)
 # Cada handler recebe (api, params...) e devolve o TEXTO da resposta. Nenhum
 # tipo do discord.py aqui — portável p/ Interactions HTTP sem tocar na lógica.
@@ -541,7 +570,9 @@ async def handle_flip(api, orcamento: float, cidade: str) -> str:
             f"    compra {ln['buy_city']} {fmt_silver(ln['buy_price'])} -> "
             f"vende {ln['sell_city']} {fmt_silver(ln['sell_price'])}\n"
             f"    {ln['units']}x | lucro {fmt_silver(ln['lucro_liquido'])} "
-            f"(ROI {ln['roi_pct']}%) | conf. {ln.get('confidence_label', '?')}")
+            f"(ROI {ln['roi_pct']}%)\n"
+            f"    preço visto: compra {fmt_data_hora(ln.get('buy_age_min'))} · "
+            f"venda {fmt_data_hora(ln.get('sell_age_min'))}")
     if len(shopping) > 10:
         lines.append(f"... +{len(shopping) - 10} itens (veja a aba Flips na web)")
     return code_block(head + "\n" + "\n".join(lines))
@@ -1040,8 +1071,11 @@ def build_bot(api: ApiClient):
     bot = GuildBot()
     tree = bot.tree
 
-    async def _respond(interaction, coro, ephemeral=False):
-        """defer -> handler -> followup; erro da API vira mensagem amigável."""
+    async def _respond(interaction, coro, ephemeral=True):
+        """defer -> handler -> followup; erro da API vira mensagem amigável.
+        ephemeral=True por PADRÃO: as consultas do bot são PRIVADAS (só quem
+        chamou vê), pra ninguém ficar olhando a pesquisa do outro e não poluir
+        o canal quando vários usam ao mesmo tempo."""
         await interaction.response.defer(ephemeral=ephemeral, thinking=True)
         try:
             text = await coro
@@ -1103,29 +1137,33 @@ def build_bot(api: ApiClient):
     @app_commands.autocomplete(item=item_ac)
     async def historico_cmd(interaction: discord.Interaction, item: str,
                             dias: app_commands.Range[int, 3, 90] = 30):
-        await interaction.response.defer(thinking=True)
+        # PRIVADO (ephemeral): a efemeridade tem que casar entre o defer e TODOS
+        # os followup, senão o 1º "edita" o defer e vaza público.
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             res = await handle_historico(api, item, dias)
         except ApiError as exc:
-            await interaction.followup.send(friendly_error(exc))
+            await interaction.followup.send(friendly_error(exc), ephemeral=True)
             return
         except httpx.HTTPError:
             await interaction.followup.send(
-                "Não consegui falar com a API do app. Tente de novo em instantes.")
+                "Não consegui falar com a API do app. Tente de novo em instantes.",
+                ephemeral=True)
             return
         except Exception:
             traceback.print_exc()
             await interaction.followup.send(
-                "Erro inesperado ao montar o histórico. Veja o log do bot.")
+                "Erro inesperado ao montar o histórico. Veja o log do bot.",
+                ephemeral=True)
             return
         if not res.get("chart_url"):
-            await interaction.followup.send(clip(res["text"]))
+            await interaction.followup.send(clip(res["text"]), ephemeral=True)
             return
         emb = discord.Embed(title=f"📈 {res['title']}",
                             description=res["text"][:4000], color=0xC9A24B)
         emb.set_image(url=res["chart_url"])
         emb.set_footer(text="Preço médio diário (AODP, q1) · volume é piso censurado")
-        await interaction.followup.send(embed=emb)
+        await interaction.followup.send(embed=emb, ephemeral=True)
 
     @tree.command(name="buscar", description="Busca itens pelo nome (PT/EN) ou id")
     @app_commands.describe(termo="Termo de busca — ex.: manto, t6 espada")
@@ -1281,13 +1319,13 @@ def build_bot(api: ApiClient):
     @tree.command(name="ajuda",
                   description="Guia de TODOS os comandos e como usar cada um")
     async def ajuda_cmd(interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=True)
         emb = discord.Embed(title=GUIDE_TITLE,
                             description=HELP_INTRO, color=0xC9A24B)
         for name, body in help_fields():
             emb.add_field(name=name, value=body, inline=False)
         emb.set_footer(text="Digite /ajuda a qualquer momento para rever isto.")
-        await interaction.followup.send(embed=emb)
+        await interaction.followup.send(embed=emb, ephemeral=True)
 
     @tree.command(
         name="builds",
@@ -1301,7 +1339,7 @@ def build_bot(api: ApiClient):
                   for lbl, val in BUILD_CONTENTS])
     async def builds_cmd(interaction: discord.Interaction, arma: str,
                          conteudo: str = None):
-        await interaction.response.defer(thinking=True)
+        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             matches = find_builds(arma, conteudo)
             if not matches:
@@ -1310,9 +1348,10 @@ def build_bot(api: ApiClient):
                                 for b in find_builds(arma)})
                 await interaction.followup.send(
                     f"Não há build de **{tree_lbl}** para esse conteúdo.\n"
-                    f"Conteúdos com build nessa árvore: {', '.join(avail) or '—'}.")
+                    f"Conteúdos com build nessa árvore: {', '.join(avail) or '—'}.",
+                    ephemeral=True)
                 return
-            embeds = []
+            embeds, files = [], []
             total = 0                     # Discord: soma de TODOS os embeds <= 6000
             for b in matches[:6]:
                 desc = (b.get("role") or "").strip()
@@ -1322,22 +1361,24 @@ def build_bot(api: ApiClient):
                     break                 # não estoura o teto agregado (falha 400)
                 total += len(title) + len(desc)
                 emb = discord.Embed(title=title, description=desc, color=0xC9A24B)
-                icon = weapon_icon_url(b)
-                if icon:
-                    emb.set_thumbnail(url=icon)
-                img = build_image_url(b, public_url)
-                if img:
-                    emb.set_image(url=img)
+                # Imagem do LOADOUT INTEIRO anexada do disco (attachment://) — o
+                # Discord sempre renderiza, sem depender de ALBION_PUBLIC_URL/Render
+                # acordado nem do Cloudflare (que engolia o thumbnail antigo da arma).
+                f = build_image_file(b, len(files))
+                if f:
+                    files.append(f)
+                    emb.set_image(url=f"attachment://{f.filename}")
                 embeds.append(emb)
             note = None
             if not conteudo and len(matches) > len(embeds):
                 note = (f"(mostrando {len(embeds)} de {len(matches)} — escolha um "
                         f"conteúdo p/ filtrar)")
-            await interaction.followup.send(content=note, embeds=embeds)
+            await interaction.followup.send(content=note, embeds=embeds,
+                                            files=files, ephemeral=True)
         except Exception:
             traceback.print_exc()
             await interaction.followup.send(
-                "Erro ao montar a build. Veja o log do bot.")
+                "Erro ao montar a build. Veja o log do bot.", ephemeral=True)
 
     return bot
 
