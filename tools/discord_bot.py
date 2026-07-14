@@ -257,10 +257,12 @@ def build_card_text(build):
         if it and it.get("pt_clean"):
             lines.append(f"{label}: **{it['pt_clean']}**")
     ab = build.get("abilities") or {}
-    hab = " · ".join(f"{k} {ab[key]}" for k, key in
+    # nome PT oficial da skill (build_spells_pt.py), caindo pro EN se faltar
+    _sk = lambda key: ab.get(key + "_pt") or ab.get(key)
+    hab = " · ".join(f"{k} {_sk(key)}" for k, key in
                      (("Q", "q"), ("W", "w"), ("E", "e")) if ab.get(key))
     if ab.get("passive"):
-        hab += f" · passiva {ab['passive']}"
+        hab += f" · passiva {_sk('passive')}"
     body = "\n".join(lines)
     if hab:
         body += f"\n\n✨ **Habilidades:** {hab}"

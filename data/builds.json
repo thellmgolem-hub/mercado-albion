@@ -40,7 +40,11 @@
         "q": "Burning Field",
         "w": "Fire Artillery",
         "e": "Flaming Phoenix",
-        "passive": "Furious"
+        "passive": "Furious",
+        "q_pt": "Campo Ardente",
+        "w_pt": "Artilharia de Fogo",
+        "e_pt": "Fênix Flamejante",
+        "passive_pt": "Furioso"
       },
       "execution": "Acompanhe o engage e coloque o E no clump quando a cura adversária estiver comprometida. Preserve botas para o counter-engage.",
       "note": "Trocas: Assassin Hood em composição que prioriza recarga; Cleric Robe para versão mais barata e defensiva.",
@@ -107,7 +111,11 @@
         "q": "Burning Field",
         "w": "Fire Artillery",
         "e": "Meteor",
-        "passive": "Furious"
+        "passive": "Furious",
+        "q_pt": "Campo Ardente",
+        "w_pt": "Artilharia de Fogo",
+        "e_pt": "Meteoro",
+        "passive_pt": "Furioso"
       },
       "execution": "Pré-bufe Royal Sandals, lance Meteor apenas no clump confirmado pelo caller e recue. Use Assassin Hood quando houver janela segura.",
       "note": "Nota crítica: em facção pública, o dano teórico alto é menos valioso se o grupo não fixa os alvos.",
@@ -174,7 +182,11 @@
         "q": "Burning Field",
         "w": "Fire Artillery",
         "e": "Pyroblast",
-        "passive": "Aggressive Caster/Burn"
+        "passive": "Aggressive Caster/Burn",
+        "q_pt": "Campo Ardente",
+        "w_pt": "Artilharia de Fogo",
+        "e_pt": "Ignimpacto",
+        "passive_pt": "Lançador Agressivo ou Queimar"
       },
       "execution": "Pressione o alvo exposto sem abandonar a linha do healer. Reserve defensivo para dive, não para dano residual.",
       "note": "Trocas: Cleric Robe para Arena solo queue; Fire Wave contra canais e melees que atravessam sua zona.",
@@ -247,7 +259,11 @@
         "q": "Burning Field",
         "w": "Fire Artillery",
         "e": "Flaming Phoenix",
-        "passive": "Furious"
+        "passive": "Furious",
+        "q_pt": "Campo Ardente",
+        "w_pt": "Artilharia de Fogo",
+        "e_pt": "Fênix Flamejante",
+        "passive_pt": "Furioso"
       },
       "execution": "Sincronize E com o foco do tanque. Mercenary Shoes devem limpar o controle que impediria reposicionamento.",
       "note": null,
@@ -314,7 +330,11 @@
         "q": "Burning Field",
         "w": "Raging Flare",
         "e": "Magma Sphere",
-        "passive": "Furious"
+        "passive": "Furious",
+        "q_pt": "Campo Ardente",
+        "w_pt": "Chama Furiosa",
+        "e_pt": "Esfera de Lava",
+        "passive_pt": "Furioso"
       },
       "execution": "Carregue o dano apenas quando o tanque puder manter o alvo na trajetória do E. Evite ativar todos os multiplicadores antes de confirmar o controle.",
       "note": "Nota crítica: configuração frágil — Cryptcandle e Royal Sandals aumentam o risco de morrer no counter-burst.",
@@ -387,7 +407,11 @@
         "q": "Fire Bolt",
         "w": "Wall of Flames",
         "e": "Pyroblast",
-        "passive": "Aggressive Caster"
+        "passive": "Aggressive Caster",
+        "q_pt": "Seta de Fogo",
+        "w_pt": "Parede de Chamas",
+        "e_pt": "Ignimpacto",
+        "passive_pt": "Lançador Agressivo"
       },
       "execution": "Use Wall of Flames para negar a janela do melee, não apenas para causar dano. Pyroblast deve punir defensivos já consumidos.",
       "note": "Trocas: Fire Wave contra canais; Feyscale Robe em versão cara; Infernal ou Wildfire como alternativas de burst.",
@@ -460,7 +484,11 @@
         "q": "Ice Shard",
         "w": "Frost Nova",
         "e": "Ice Crystal",
-        "passive": "Aggressive Caster"
+        "passive": "Aggressive Caster",
+        "q_pt": "Lâmina de Gelo",
+        "w_pt": "Explosão Congelante",
+        "e_pt": "Cristal de Gelo",
+        "passive_pt": "Lançador Agressivo"
       },
       "execution": "Entre depois do tanque, use E no centro do clump e Frost Nova para reposicionar ou escapar. Scholar Robe é uma janela, não um modo permanente.",
       "note": null,
@@ -527,7 +555,11 @@
         "q": "Frozen Surge",
         "w": "Frost Lance",
         "e": "Frozen Hell",
-        "passive": "Energetic Caster"
+        "passive": "Energetic Caster",
+        "q_pt": "Surto Congelado",
+        "w_pt": "Lança Congelada",
+        "e_pt": "Inferno Congelado",
+        "passive_pt": "Energetic Caster"
       },
       "execution": "Coloque Frozen Hell entre front e backline ou na rota de retirada. O valor principal é negar movimento, não registrar kills.",
       "note": "W alternativa: Glacial Obelisk; passiva também pode ser Aggressive Caster.",
@@ -594,7 +626,11 @@
         "q": "Frozen Surge",
         "w": "Frost Lance",
         "e": "Hail",
-        "passive": "Furious"
+        "passive": "Furious",
+        "q_pt": "Surto Congelado",
+        "w_pt": "Lança Congelada",
+        "e_pt": "Granizo",
+        "passive_pt": "Furioso"
       },
       "execution": "Mantenha Hail em recarga durante o foco e use Frost Lance para reduzir resistências. Preserve cleanse para o controle que cortaria sua janela.",
       "note": "Título cobre Hellgate e Arena 5v5; poção alternativa: Cleansing Potion.",
@@ -661,7 +697,11 @@
         "q": "Frozen Surge",
         "w": "Frost Beam",
         "e": "Arctic Volley",
-        "passive": "Furious"
+        "passive": "Furious",
+        "q_pt": "Surto Congelado",
+        "w_pt": "Raio de Gelo",
+        "e_pt": "Rajada Ártica",
+        "passive_pt": "Furioso"
       },
       "execution": "Canalize Frost Beam apenas quando houver peel ou controle aliado. Arctic Volley deve cobrir o espaço de disputa, não uma área vazia.",
       "note": null,
@@ -728,7 +768,11 @@
         "q": "Ice Shard",
         "w": "Frost Nova",
         "e": "Ice Storm",
-        "passive": "Aggressive Caster"
+        "passive": "Aggressive Caster",
+        "q_pt": "Lâmina de Gelo",
+        "w_pt": "Explosão Congelante",
+        "e_pt": "Tempestade de Gelo",
+        "passive_pt": "Lançador Agressivo"
       },
       "execution": "Espere o controle aliado antes de Ice Storm. Use Frost Nova defensivamente se a composição inimiga tiver dive.",
       "note": null,
@@ -795,7 +839,10 @@
         "q": "Frostbite",
         "w": "Frost Nova",
         "e": "Freezing Wind",
-        "passive": null
+        "passive": null,
+        "q_pt": "Queimadura Gelada",
+        "w_pt": "Explosão Congelante",
+        "e_pt": "Vento Congelante"
       },
       "execution": "Controle a distância e force o adversário a gastar mobilidade antes do E. Knight Armor cria espaço para resetar.",
       "note": "Trocas: Great Frost é alternativa mais simples; Chillhowl tem teto técnico alto, mas uso menos padronizado.",
@@ -868,7 +915,11 @@
         "q": "Multishot",
         "w": "Explosive Arrows",
         "e": "Rain of Arrows",
-        "passive": "Piercing Arrows"
+        "passive": "Piercing Arrows",
+        "q_pt": "Multidisparo",
+        "w_pt": "Flechas Explosivas",
+        "e_pt": "Chuva de Flechas",
+        "passive_pt": "Flechas Perfurantes"
       },
       "execution": "Acompanhe o engage e cubra a área de imobilização. Não gaste E em alvos espalhados apenas para acumular dano.",
       "note": "Trocas p/ versão mais barata: Cleric Robe no peito e Martlock (ou Lymhurst) Cape.",
@@ -935,7 +986,11 @@
         "q": "Multishot",
         "w": "Explosive Arrows",
         "e": "Demon Arrow",
-        "passive": "Piercing Arrows"
+        "passive": "Piercing Arrows",
+        "q_pt": "Multidisparo",
+        "w_pt": "Flechas Explosivas",
+        "e_pt": "Flecha Demoníaca",
+        "passive_pt": "Flechas Perfurantes"
       },
       "execution": "Procure ângulo lateral ou frontal que atravesse o maior número de alvos. Atire somente após o controle confirmar a linha.",
       "note": "Só para bomb squad coordenada; a poção pode ser Gigantify Potion no lugar de Resistance.",
@@ -1002,7 +1057,11 @@
         "q": "Multishot",
         "w": "Explosive Arrows",
         "e": "Enchanted Quiver",
-        "passive": "Piercing Arrows"
+        "passive": "Piercing Arrows",
+        "q_pt": "Multidisparo",
+        "w_pt": "Flechas Explosivas",
+        "e_pt": "Aljava Encantada",
+        "passive_pt": "Flechas Perfurantes"
       },
       "execution": "Ative Quiver quando puder manter contato sem sair da proteção do healer. Mage Robe remove buffs e impede que melees transformem sua janela em suicídio.",
       "note": "Serve também para Hellgate 5v5.",
@@ -1069,7 +1128,11 @@
         "q": "Deadly Shot",
         "w": "Ray of Light",
         "e": "Raging Storm",
-        "passive": "Piercing Arrows"
+        "passive": "Piercing Arrows",
+        "q_pt": "Tiro Letal",
+        "w_pt": "Raio de Luz",
+        "e_pt": "Tempestade Furiosa",
+        "passive_pt": "Flechas Perfurantes"
       },
       "execution": "Use Ray of Light para manter o alvo dentro da tempestade. Em 3v3, feche passagem e force a equipe inimiga a escolher entre dano e reposicionamento.",
       "note": "Uso híbrido: também forte em 3v3 (é o Principal do quadro de 3v3).",
@@ -1136,7 +1199,10 @@
         "q": "Deadly Shot",
         "w": "Ray of Light",
         "e": "exclusivo da arma",
-        "passive": null
+        "passive": null,
+        "q_pt": "Tiro Letal",
+        "w_pt": "Raio de Luz",
+        "e_pt": "exclusivo da arma"
       },
       "execution": "Use a mobilidade para negar a resposta inimiga, não apenas para entrar. No trio, coordene Ray of Light com o burst aliado.",
       "note": "No solo: troque W p/ Frost Shot, poção p/ Healing e comida p/ Pork Omelette; calçado alternativo Hunter Shoes. O E é a skill exclusiva da arma (não nomeada no doc).",
@@ -1203,7 +1269,11 @@
         "q": "Deadly Shot",
         "w": "Frost Shot",
         "e": "Magic Arrow",
-        "passive": "Piercing Arrows"
+        "passive": "Piercing Arrows",
+        "q_pt": "Tiro Letal",
+        "w_pt": "Tiro de Gelo",
+        "e_pt": "Flecha Mágica",
+        "passive_pt": "Flechas Perfurantes"
       },
       "execution": "Mantenha espaço para maximizar Magic Arrow. Trocas curtas a curta distância anulam a principal vantagem da arma.",
       "note": "Cabeça alternativa: Hunter Hood; capa alternativa: Thetford Cape.",
@@ -1270,7 +1340,11 @@
         "q": "Rejuvenation",
         "w": "Rejuvenating Breeze",
         "e": "Elevated Nature",
-        "passive": "Adrenaline Driven Charity"
+        "passive": "Adrenaline Driven Charity",
+        "q_pt": "Rejuvenescimento",
+        "w_pt": "Brisa Rejuvenescedora",
+        "e_pt": "Natureza Elevada",
+        "passive_pt": "Caridade Intensificada"
       },
       "execution": "Mantenha Rejuvenation distribuido e use Elevated Nature durante avanco ou retirada. Mercenary Shoes limpam o controle que interromperia seu posicionamento.",
       "note": null,
@@ -1337,7 +1411,11 @@
         "q": "Rejuvenating Flower",
         "w": "Cleanse Heal",
         "e": "Spirit Animal",
-        "passive": "Adrenaline Driven Charity"
+        "passive": "Adrenaline Driven Charity",
+        "q_pt": "Flor Rejuvenescedora",
+        "w_pt": "Cura Purificadora",
+        "e_pt": "Animal Espírito",
+        "passive_pt": "Caridade Intensificada"
       },
       "execution": "Coloque a area onde o grupo permanecera durante a troca, nao onde ele estava. Cleanse Heal ganha valor contra composicao de CC.",
       "note": null,
@@ -1404,7 +1482,11 @@
         "q": "Rejuvenating Flower",
         "w": "Protection of Nature",
         "e": "Circle of Life",
-        "passive": "Adrenaline Driven Charity"
+        "passive": "Adrenaline Driven Charity",
+        "q_pt": "Flor Rejuvenescedora",
+        "w_pt": "Proteção da Natureza",
+        "e_pt": "Círculo da Vida",
+        "passive_pt": "Caridade Intensificada"
       },
       "execution": "Proteja previamente o alvo que recebera burst. Graveguard Helmet e recurso de emergencia; nao deve ser gasto em dano leve.",
       "note": null,
@@ -1477,7 +1559,11 @@
         "q": "Rejuvenation",
         "w": "Protection of Nature",
         "e": "Soul Link",
-        "passive": "Adrenaline Driven Charity"
+        "passive": "Adrenaline Driven Charity",
+        "q_pt": "Rejuvenescimento",
+        "w_pt": "Proteção da Natureza",
+        "e_pt": "Ligação de Alma",
+        "passive_pt": "Caridade Intensificada"
       },
       "execution": "A ligacao correta decide a luta. Leia quem recebera o foco e evite conectar alvos que transformarao o compartilhamento em dano adicional.",
       "note": null,
@@ -1550,7 +1636,10 @@
         "q": "Rejuvenation",
         "w": "Revitalize",
         "e": "Dual Nature",
-        "passive": null
+        "passive": null,
+        "q_pt": "Rejuvenescimento",
+        "w_pt": "Revitalizar",
+        "e_pt": "Dupla Natureza"
       },
       "execution": "Use Dual Nature defensivamente para proteger aliado focado ou ofensivamente quando a composicao puder converter o controle em kill.",
       "note": "Build cara e menos tolerante a erro que Ironroot.",
@@ -1623,7 +1712,11 @@
         "q": "Thorn Growth",
         "w": "Revitalize",
         "e": "Living Armor",
-        "passive": "Energetic"
+        "passive": "Energetic",
+        "q_pt": "Arbusto de Espinhos",
+        "w_pt": "Revitalizar",
+        "e_pt": "Armadura viva",
+        "passive_pt": "Energético"
       },
       "execution": "Ative Living Armor quando o oponente estiver comprometido com a troca. Jogadores experientes podem simplesmente parar de atacar e reduzir seu valor.",
       "note": "Troca convencional: Druidic + Mistcaller com Hunter Hood, Mercenary Jacket e Soldier Boots.",
@@ -1690,7 +1783,11 @@
         "q": "Cursed Tar",
         "w": "Armor Piercer",
         "e": "Enfeeble Blades",
-        "passive": "Energetic"
+        "passive": "Energetic",
+        "q_pt": "Piche Amaldiçoado",
+        "w_pt": "Perfurador de Armadura",
+        "e_pt": "Lâminas Debilitantes",
+        "passive_pt": "Energético"
       },
       "execution": "Use Enfeeble Blades na janela ofensiva inimiga ou para remover buffs importantes. O valor principal não aparece necessariamente no número de kills.",
       "note": null,
@@ -1763,7 +1860,11 @@
         "q": "Cursed Tar",
         "w": "Armor Piercer",
         "e": "Cataclysm",
-        "passive": "Energetic"
+        "passive": "Energetic",
+        "q_pt": "Piche Amaldiçoado",
+        "w_pt": "Perfurador de Armadura",
+        "e_pt": "Cataclismo",
+        "passive_pt": "Energético"
       },
       "execution": "Cataclysm deve preceder o dano aliado por uma janela curta. Se for lançada depois do burst, a arma perde sua função.",
       "note": null,
@@ -1830,7 +1931,11 @@
         "q": "Cursed Sickle",
         "w": "Dark Matter",
         "e": "Plaguebringer",
-        "passive": "Furious"
+        "passive": "Furious",
+        "q_pt": "Foice Amaldiçoada",
+        "w_pt": "Matéria Negra",
+        "e_pt": "Pragueiro",
+        "passive_pt": "Furioso"
       },
       "execution": "Force recursos defensivos e aplique Plaguebringer na janela de focus real. Não desperdice anti-cura em poke sem possibilidade de kill.",
       "note": null,
@@ -1903,7 +2008,11 @@
         "q": "Cursed Sickle",
         "w": "Dark Matter",
         "e": "Area of Decay",
-        "passive": "Furious"
+        "passive": "Furious",
+        "q_pt": "Foice Amaldiçoada",
+        "w_pt": "Matéria Negra",
+        "e_pt": "Área de Podridão",
+        "passive_pt": "Furioso"
       },
       "execution": "Area of Decay pune equipes que permanecem agrupadas. Mercenary Hood adiciona cleanse coletivo e justifica a vaga além do dano.",
       "note": null,
@@ -1970,7 +2079,11 @@
         "q": "Vile Curse ou Cursed Sickle",
         "w": "Dark Matter",
         "e": "Haunting Screams",
-        "passive": "Hit and Run"
+        "passive": "Hit and Run",
+        "q_pt": "Maldição Vil ou Foice Amaldiçoada",
+        "w_pt": "Matéria Negra",
+        "e_pt": "Gritos Assombrosos",
+        "passive_pt": "Pressa Induzida"
       },
       "execution": "Mantenha cargas e lute em espaço onde Haunting Screams obrigue o inimigo a atravessar a área. Evite perseguir além do alcance do healer.",
       "note": null,
@@ -2037,7 +2150,10 @@
         "q": "Vile Curse",
         "w": "Grudge ou Desecrate",
         "e": "Enfeeble Blades",
-        "passive": null
+        "passive": null,
+        "q_pt": "Maldição Vil",
+        "w_pt": "Rancor ou Profanação",
+        "e_pt": "Lâminas Debilitantes"
       },
       "execution": "Use Desecrate quando o controle for mais importante; Grudge quando puder manter ataques. Enfeeble Blades deve negar o pico ofensivo.",
       "note": "O 1H Cursed continua barato e capaz de punir desconhecimento, mas Death Curse é altamente telegráfica e possui muitas respostas.",
@@ -2110,7 +2226,11 @@
         "q": "Cartwheel",
         "w": "Forceful Swing ou Rising Blow",
         "e": "Mystic Rocks",
-        "passive": "Energetic/Stunning Strike"
+        "passive": "Energetic/Stunning Strike",
+        "q_pt": "Salto Mortal",
+        "w_pt": "Golpe Violento ou Golpe Ascendente",
+        "e_pt": "Pedras Místicas",
+        "passive_pt": "Energético ou Golpe Atordoante"
       },
       "execution": "Coloque Mystic Rocks sobre a rota de engage, retirada ou cura inimiga. A arma ganha valor impedindo a luta que o adversário quer, não perseguindo kills.",
       "note": null,
@@ -2177,7 +2297,11 @@
         "q": "Cartwheel",
         "w": "Forceful Swing",
         "e": "Soul Shaker",
-        "passive": "Stunning Strike"
+        "passive": "Stunning Strike",
+        "q_pt": "Salto Mortal",
+        "w_pt": "Golpe Violento",
+        "e_pt": "Move Almas",
+        "passive_pt": "Golpe Atordoante"
       },
       "execution": "Soul Shaker deve quebrar a entrada inimiga ou impedir fuga de um clump. Knight Armor e Forceful Swing preservam a formação.",
       "note": "Trocas: Hellion Hood/Demon Armor/Martlock Cape em composições específicas.",
@@ -2244,7 +2368,11 @@
         "q": "Whirling Strikes",
         "w": "Gale Dance",
         "e": "Phantom Twin",
-        "passive": "Life Leech"
+        "passive": "Life Leech",
+        "q_pt": "Golpes Giratórios",
+        "w_pt": "Dança do Vento",
+        "e_pt": "Gêmeo Fantasma",
+        "passive_pt": "Parasita de Vida"
       },
       "execution": "Entre após o primeiro controle, maximize área do E e saia antes que Hellion Jacket perca valor. O maior risco é energia em luta prolongada.",
       "note": null,
@@ -2311,7 +2439,10 @@
         "q": "Cartwheel",
         "w": "Stun Run ou Forceful Swing",
         "e": "Mystic Rocks",
-        "passive": null
+        "passive": null,
+        "q_pt": "Salto Mortal",
+        "w_pt": "Corrida Atordoante ou Golpe Violento",
+        "e_pt": "Pedras Místicas"
       },
       "execution": "Use a zona sobre healer, chokepoint ou objetivo. Não abandone a backline para perseguir alvo fora da luta.",
       "note": null,
@@ -2378,7 +2509,11 @@
         "q": "Concussive Combo ou Whirling Strikes",
         "w": "Gale Dance",
         "e": "Phantom Twin",
-        "passive": "Aggression/Life Leech"
+        "passive": "Aggression/Life Leech",
+        "q_pt": "Combo Concussivo ou Golpes Giratórios",
+        "w_pt": "Dança do Vento",
+        "e_pt": "Gêmeo Fantasma",
+        "passive_pt": "Agressão ou Parasita de Vida"
       },
       "execution": "Purga defensivos importantes e use o E quando os inimigos estiverem comprimidos. Preserve mobilidade para voltar à linha do healer.",
       "note": "Sapatos Stalker/Assassin; capa Thetford ou Avalonian; capuz Fiend Cowl ou Mercenary Hood.",
@@ -2445,7 +2580,11 @@
         "q": "Cartwheel",
         "w": "Stun Run",
         "e": "Tornado",
-        "passive": "Stunning Strike"
+        "passive": "Stunning Strike",
+        "q_pt": "Salto Mortal",
+        "w_pt": "Corrida Atordoante",
+        "e_pt": "Tornado",
+        "passive_pt": "Golpe Atordoante"
       },
       "execution": "Tornado é ferramenta de composição: lance quando aliados puderem converter o deslocamento em dano. Acid Potion amplia a janela de execução.",
       "note": null,
@@ -2512,7 +2651,11 @@
         "q": "Concussive Combo",
         "w": "Gale Dance",
         "e": "Vault Leap",
-        "passive": "Life Leech"
+        "passive": "Life Leech",
+        "q_pt": "Combo Concussivo",
+        "w_pt": "Dança do Vento",
+        "e_pt": "Salto Seguro",
+        "passive_pt": "Parasita de Vida"
       },
       "execution": "Carregue Fury, então use terceiro Q → E → W. Contra ranged, troque W por Separator; contra autoattack, Forceful Swing.",
       "note": "Trocas: use Dodge nos sapatos contra Es previsíveis de melee. Fiend Cowl/Mercenary Jacket formam alternativa mais agressiva.",
@@ -2579,7 +2722,11 @@
         "q": "Rending Rage",
         "w": "Battle Rush",
         "e": "Aftershock",
-        "passive": "Increased Defense"
+        "passive": "Increased Defense",
+        "q_pt": "Fúria Dilacerante",
+        "w_pt": "Impulso de Batalha",
+        "e_pt": "Tremor Posterior",
+        "passive_pt": "Defesa Aumentada"
       },
       "execution": "Entre no clump apos o primeiro controle, aplique Aftershock e sobreviva para uma segunda rotacao. Royal Banner amplifica a equipe, nao apenas seu dano.",
       "note": null,
@@ -2646,7 +2793,11 @@
         "q": "Rending Rage",
         "w": "Battle Rush",
         "e": "Bloody Reap",
-        "passive": "Increased Defense"
+        "passive": "Increased Defense",
+        "q_pt": "Fúria Dilacerante",
+        "w_pt": "Impulso de Batalha",
+        "e_pt": "Ceifa Sangrenta",
+        "passive_pt": "Defesa Aumentada"
       },
       "execution": "Nao inicie sozinho. Entre quando os alvos ja estiverem abaixo do limiar util de Bloody Reap e use Hellion Jacket no centro do brawl.",
       "note": null,
@@ -2713,7 +2864,11 @@
         "q": "Rending Rage",
         "w": "Deadly Chop",
         "e": "Morgana Raven",
-        "passive": "Deep Cuts"
+        "passive": "Deep Cuts",
+        "q_pt": "Fúria Dilacerante",
+        "w_pt": "Cutelada Mortal",
+        "e_pt": "Corvo de Morgana",
+        "passive_pt": "Cortes Fundos"
       },
       "execution": "Morgana Raven deve atravessar o alvo de foco durante a janela de cura. Royal Armor sustenta energia e pressao do grupo.",
       "note": "Alternativas de habilidade: W Internal Bleeding; passiva Aggressive Rush.",
@@ -2780,7 +2935,11 @@
         "q": "Rending Rage",
         "w": "Battle Rush",
         "e": "Bloody Reap",
-        "passive": "Increased Defense"
+        "passive": "Increased Defense",
+        "q_pt": "Fúria Dilacerante",
+        "w_pt": "Impulso de Batalha",
+        "e_pt": "Ceifa Sangrenta",
+        "passive_pt": "Defesa Aumentada"
       },
       "execution": "Espere o foco aliado reduzir o alvo. Shoes of Tenacity ajudam a alcancar a execucao sem morrer no caminho.",
       "note": null,
@@ -2847,7 +3006,11 @@
         "q": "Rending Rage",
         "w": "Adrenaline Boost",
         "e": "Relentless Assault",
-        "passive": "Increased Defense"
+        "passive": "Increased Defense",
+        "q_pt": "Fúria Dilacerante",
+        "w_pt": "Pico de Adrenalina",
+        "e_pt": "Investida Implacável",
+        "passive_pt": "Defesa Aumentada"
       },
       "execution": "Use Adrenaline Boost para chegar ao alvo e mantenha Relentless Assault sobre multiplos inimigos. Hellion Jacket deve coincidir com o brawl, nao com perseguicao isolada.",
       "note": "Cabeca alternativa: Mercenary Hood.",
@@ -2914,7 +3077,11 @@
         "q": "Rending Rage",
         "w": "Battle Rush",
         "e": "Blood Bandit",
-        "passive": "Aggressive Rush"
+        "passive": "Aggressive Rush",
+        "q_pt": "Fúria Dilacerante",
+        "w_pt": "Impulso de Batalha",
+        "e_pt": "Bandido de Sangue",
+        "passive_pt": "Ímpeto Agressivo"
       },
       "execution": "Mantenha tres cargas de sangramento. Use a segunda ativacao do E para finalizar ou recuperar vida quando os defensivos acabarem.",
       "note": "Off-hand alternativa: Muisak. Trocas: Cleric Robe e Smuggler Cape sao alternativas. Bear Paws e a opcao agressiva para mobilidade/gank, mas menos estavel em Corrompida pura.",
