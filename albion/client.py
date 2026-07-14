@@ -767,12 +767,52 @@ class AODP:
         índice (server, fetched_at). vacuum=False pula o VACUUM (que segura o
         lock) — usado pela poda automática do servidor.
         """
-        if getattr(self.db, "backend", "sqlite") != "sqlite":
-            return {"aggregated_days": 0, "deleted_rows": 0,
-                    "skipped": "backend nao-sqlite"}
         cutoff = ((datetime.now(timezone.utc) - timedelta(days=days))
                   .replace(hour=0, minute=0, second=0, microsecond=0)
                   .timestamp())
+        if getattr(self.db, "backend", "sqlite") != "sqlite":
+            # Postgres (nuvem): mesma agregação com ON CONFLICT (não há
+            # INSERT OR REPLACE) e dia derivado do epoch em UTC. Sem esta poda
+            # o sweep enchia o Postgres free SEM LIMITE (visto no Supabase:
+            # "exhausting disk space"). VACUUM fica com o autovacuum do PG —
+            # o espaço liberado volta a ser reutilizado pelo banco.
+            day_expr = ("to_char(to_timestamp(fetched_at) AT TIME ZONE 'UTC',"
+                        " 'YYYY-MM-DD')")
+            with self.db_lock:
+                try:
+                    cur_agg = self.db.execute(f"""
+                        INSERT INTO price_snapshots_daily
+                          (server,item_id,city,quality,day,
+                           sell_min,sell_avg,sell_max,
+                           buy_min,buy_avg,buy_max,samples)
+                        SELECT server, item_id, city, quality, {day_expr},
+                               MIN(NULLIF(sell_price_min,0)),
+                               AVG(NULLIF(sell_price_min,0)),
+                               MAX(NULLIF(sell_price_min,0)),
+                               MIN(NULLIF(buy_price_max,0)),
+                               AVG(NULLIF(buy_price_max,0)),
+                               MAX(NULLIF(buy_price_max,0)),
+                               COUNT(*)
+                        FROM price_snapshots
+                        WHERE fetched_at < ?
+                        GROUP BY server, item_id, city, quality, {day_expr}
+                        ON CONFLICT (server,item_id,city,quality,day)
+                        DO UPDATE SET
+                          sell_min=EXCLUDED.sell_min, sell_avg=EXCLUDED.sell_avg,
+                          sell_max=EXCLUDED.sell_max, buy_min=EXCLUDED.buy_min,
+                          buy_avg=EXCLUDED.buy_avg, buy_max=EXCLUDED.buy_max,
+                          samples=EXCLUDED.samples
+                    """, [cutoff])
+                    aggregated = cur_agg.rowcount
+                    cur = self.db.execute(
+                        "DELETE FROM price_snapshots WHERE fetched_at < ?",
+                        [cutoff])
+                    deleted = cur.rowcount
+                    self.db.commit()
+                except Exception:
+                    self.db.rollback()   # nunca deixar conexão em tx abortada
+                    raise
+            return {"aggregated_days": aggregated, "deleted_rows": deleted}
         with self.db_lock:
             cur_agg = self.db.execute("""
                 INSERT OR REPLACE INTO price_snapshots_daily

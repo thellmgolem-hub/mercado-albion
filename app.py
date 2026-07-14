@@ -847,6 +847,10 @@ def _market_universe():
         and (it.get("tier") or 0) >= 1)
 
 
+# epoch da última poda do sweep (0 = poda já no 1º tick após o boot)
+_SWEEP_LAST_PRUNE = 0.0
+
+
 @app.get("/api/sweep")
 @app.post("/api/sweep")
 def sweep(request: Request, token: str = "",
@@ -873,7 +877,7 @@ def sweep(request: Request, token: str = "",
     hi = _api_guard(lambda: aodp.get_history(
         slice_ids, time_scale=24, days=config.SWEEP_HISTORY_DAYS,
         max_age=config.SWEEP_HISTORY_TTL))
-    return {
+    out = {
         "ok": True, "universe": n, "from_cursor": res["start"],
         "took": len(slice_ids), "next_cursor": res["new_cursor"],
         "cycle": res["cycle"], "price_rows": len(pr),
@@ -881,6 +885,18 @@ def sweep(request: Request, token: str = "",
         "progress_pct": round(100 * res["new_cursor"] / n, 1)
         if res["new_cursor"] else 100.0,
     }
+    # Poda DIÁRIA best-effort (espelha o coletor local): sem ela o sweep
+    # enchia o Postgres free sem limite. Estado só em memória — no pior caso
+    # (reboot) roda uma poda extra, que sai barata quando não há nada a podar.
+    global _SWEEP_LAST_PRUNE
+    if time.time() - _SWEEP_LAST_PRUNE >= 86400:
+        _SWEEP_LAST_PRUNE = time.time()      # antes do trabalho: sem re-entrada
+        try:
+            out["prune"] = aodp.snapshot_prune(vacuum=False)
+        except Exception as exc:             # nunca derruba o tick do cron
+            log.warning("[sweep] prune falhou: %s", exc)
+            out["prune"] = {"error": str(exc)[:200]}
+    return out
 
 
 @app.get("/api/intel-sweep")
