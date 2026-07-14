@@ -96,13 +96,20 @@ async def _run_discord_bot_inproc():
             _sys.path.insert(0, tools_dir)
         import discord_bot as _dbot
 
-        label = "inproc-bot"
+        # Label ÚNICO por boot: auth_service_tokens tem UNIQUE(label) GLOBAL,
+        # então a linha REVOGADA do boot anterior segue ocupando "inproc-bot"
+        # e reusar o label quebrava TODO reboot na nuvem (UniqueViolation ->
+        # bot morto silenciosamente). Revoga qualquer inproc ativo e cria com
+        # sufixo de época (1 linha revogada/deploy — auditável, sem conflito).
+        prefix = "inproc-bot"
         for t in auth_manager.list_service_tokens():
-            if t.get("name") == label and not t.get("revoked_at"):
+            if (str(t.get("name") or "").startswith(prefix)
+                    and not t.get("revoked_at")):
                 auth_manager.revoke_service_token(t["id"])
         svc = auth_manager.create_service_token(
-            label, ["discord_link", "discord_read",
-                    "guild_report", "guild_audit"])["token"]
+            f"{prefix}-{int(time.time())}",
+            ["discord_link", "discord_read",
+             "guild_report", "guild_audit"])["token"]
         port = os.environ.get("PORT", str(PORT))   # PORT do módulo (local 8528)
         api = _dbot.ApiClient(f"http://127.0.0.1:{port}", svc)
         bot = _dbot.build_bot(api)
