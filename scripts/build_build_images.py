@@ -32,6 +32,20 @@ _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 SLOTS = [("weapon", "Arma"), ("offhand", "Off"), ("head", "Cabeça"),
          ("chest", "Peito"), ("shoes", "Pés"), ("cape", "Capa"),
          ("potion", "Poção"), ("food", "Comida")]
+SLOT_LABEL = dict(SLOTS)
+# Posições no "boneco de equipamento" (igual à tela do jogo): coluna central
+# Cabeça -> Peito -> Pés; arma à ESQUERDA do peito, off-hand à DIREITA; capa no
+# topo-direito; poção e comida na base. Grade 3 colunas × 4 linhas.
+POS = {
+    "head":    (1, 0),
+    "cape":    (2, 0),
+    "weapon":  (0, 1),
+    "chest":   (1, 1),
+    "offhand": (2, 1),
+    "shoes":   (1, 2),
+    "potion":  (0, 3),
+    "food":    (2, 3),
+}
 
 
 def download_icon(item_id, size=128):
@@ -93,38 +107,52 @@ def slugify(build):
 
 
 def compose(build):
+    """Monta a imagem no formato "boneco" (paper-doll) da tela de equipamento do
+    jogo: cada slot na sua posição, com moldura de célula. Slots sem item viram
+    célula-fantasma rotulada (Cabeça/Peito/Pés...), como no inventário."""
     items = build.get("items") or {}
-    present = [(s, lbl) for s, lbl in SLOTS if items.get(s)]
-    cols, cell, ic, top = 4, 96, 64, 46
-    rows = (len(present) + cols - 1) // cols
-    W = cols * cell + 20
-    H = top + rows * cell + 6
+    cols, rows, cell, ic, top, margin = 3, 4, 108, 78, 54, 14
+    W = cols * cell + 2 * margin
+    H = top + rows * cell + 10
     img = Image.new("RGBA", (W, H), (32, 34, 37, 255))
     d = ImageDraw.Draw(img)
     tree = build.get("tree", "").replace("Cajados ", "").split(" (")[0]
-    d.text((12, 8), f"{build.get('buildName', '')}", fill=(201, 162, 75, 255),
+    d.text((margin, 8), f"{build.get('buildName', '')}", fill=(201, 162, 75, 255),
            font=font(20, bold=True))
-    d.text((12, 30), f"{tree} · {build.get('content', '')}",
+    d.text((margin, 32), f"{tree} · {build.get('content', '')}",
            fill=(170, 170, 170, 255), font=font(12))
-    fl = font(11)
+    fl, fslot = font(11), font(10)
     miss = 0
-    for i, (slot, _lbl) in enumerate(present):
-        it = items[slot]
-        cx = 10 + (i % cols) * cell
-        cy = top + (i // cols) * cell
+    for slot, (col, row) in POS.items():
+        cx = margin + col * cell
+        cy = top + row * cell
+        box = [cx + 4, cy + 4, cx + cell - 4, cy + cell - 4]
+        it = items.get(slot)
+        d.rounded_rectangle(
+            box, radius=9,
+            fill=(48, 50, 55, 255) if it else (40, 42, 46, 255),
+            outline=(201, 162, 75, 130) if it else (60, 62, 66, 255), width=2)
+        if not it:                       # célula-fantasma: só o rótulo do slot
+            lbl = SLOT_LABEL.get(slot, "")
+            w = d.textlength(lbl, font=fslot)
+            d.text((cx + (cell - w) / 2, cy + cell / 2 - 6), lbl,
+                   fill=(96, 98, 102, 255), font=fslot)
+            continue
         p = download_icon(it["id"])
+        drawn = False
         if p:
             try:
                 icon = Image.open(p).convert("RGBA").resize((ic, ic))
-                img.alpha_composite(icon, (cx + (cell - ic) // 2, cy))
+                img.alpha_composite(icon, (cx + (cell - ic) // 2, cy + 6))
+                drawn = True
             except Exception:
-                miss += 1
-        else:
+                pass
+        if not drawn:
             miss += 1
-        name = (it.get("pt_clean") or "")[:15]
+        name = (it.get("pt_clean") or "")[:16]
         w = d.textlength(name, font=fl)
-        d.text((cx + (cell - w) / 2, cy + ic + 3), name,
-               fill=(215, 215, 215, 255), font=fl)
+        d.text((cx + (cell - w) / 2, cy + 6 + ic + 1), name,
+               fill=(220, 220, 220, 255), font=fl)
     return img.convert("RGB"), miss
 
 

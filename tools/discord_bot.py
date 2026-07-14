@@ -27,6 +27,7 @@ Passo a passo completo (Developer Portal, convite, token): docs/BOT_DISCORD.md.
 """
 import json
 import os
+import re
 import sys
 import traceback
 from datetime import datetime, timedelta, timezone
@@ -310,6 +311,19 @@ HELP_SECTIONS = [
                      "Ex.: `/craftar cajado de fogo t4`"),
         ("/refinar", "ranking do refino: onde compensa refinar o bruto ou vender bruto. "
                      "Ex.: `/refinar tier: 4`"),
+        ("/foco", "ranking de prata por ponto de foco (craft e refino)"),
+        ("/guild", "decisões da guild: fabricar-vs-comprar, o que mais se perde, regear"),
+    ]),
+    ("📈 Análise avançada", [
+        ("/escanear", "varre uma categoria inteira e lista os melhores flips. "
+                      "Ex.: `/escanear categoria: weapons tier: 6`"),
+        ("/lab", "raio-X de um item: caro ou barato vs a tendência, z, momentum"),
+        ("/demanda", "killboard: consumíveis mais gastos e qualidade destruída"),
+        ("/logistica", "prêmio do Mercado Negro, se vale subir qualidade, reposição"),
+        ("/micro", "market-making: os melhores spreads de compra/venda agora"),
+        ("/risco", "volatilidade, drawdown e VaR por item, ou correlação"),
+        ("/sinais", "previsão de um item: reversão à média, quebra de regime"),
+        ("/origem", "de quais mobs um item cai (por fama)"),
     ]),
     ("⚔️ Builds da guild", [
         ("/builds", "é só escolher a arma e o conteúdo. Vem a build pronta, "
@@ -958,6 +972,308 @@ async def handle_refinar(api, tier: int = None) -> str:
     return code_block("\n".join(lines))
 
 
+# ---------------------------------------------- análises avançadas (plataforma)
+# Cada handler espelha um endpoint /api do app. Campos conferidos 1:1 com o
+# contrato do backend (workflow map-endpoint-contracts). Muitas análises de
+# killboard saem VAZIAS até o intel-sweep acumular — tratamos com mensagem amiga.
+
+def _nome(r):
+    return r.get("name_pt") or r.get("item_id") or "?"
+
+
+_GUILD_VIEW = {"fabricar": "makeorbuy", "destruicao": "watch", "regear": "kit"}
+
+
+async def handle_guild(api, tipo: str = "fabricar") -> str:
+    """/guild — decisões da guild pelo killboard: fabricar-vs-comprar, o que a
+    guild mais perde, e custo de regear (GET /api/guild)."""
+    view = _GUILD_VIEW.get(tipo, "makeorbuy")
+    res = await api.get("/api/guild", params={"view": view})
+    if view == "kit":
+        basket = res.get("basket") or []
+        series = res.get("series") or []
+        if not basket:
+            return code_block("Sem dados de killboard ainda p/ o custo de regear "
+                              "(enche conforme o intel-sweep coleta).")
+        lines = ["Custo de regear — cesta ponderada pelo que a guild mais perde:", ""]
+        for b in basket[:8]:
+            lines.append(f"- {_nome(b)} (peso {round((b.get('weight') or 0) * 100)}%)")
+        if series:
+            last = series[-1]
+            lines += ["", f"Índice de custo (base 100): {round(last.get('index') or 0)}"
+                          f" · cesta hoje {fmt_silver(last.get('cost'))}"]
+        return code_block("\n".join(lines))
+    rows = res.get("rows") or []
+    if not rows:
+        return code_block("Sem dados de killboard ainda (o intel-sweep precisa "
+                          "acumular umas horas). Tente mais tarde.")
+    if view == "watch":
+        lines = ["O que a guild mais perde em PvP (vale produzir/estocar):", ""]
+        for r in rows[:10]:
+            preco = f", ~{fmt_silver(r.get('price'))} cada" if r.get("price") else ""
+            lines.append(f"- {_nome(r)}: {r.get('destroyed')} destruídos{preco}")
+        return code_block("\n".join(lines))
+    lines = ["Fabricar ou comprar? (itens que a guild consome)", ""]
+    for r in rows[:10]:
+        v = (r.get("verdict") or "?").upper()
+        eco = (f" (economia {r.get('save_pct')}%)"
+               if r.get("save_pct") is not None else "")
+        lines.append(f"{v:>7} · {_nome(r)}: fazer em {r.get('internal_city', '?')} por "
+                     f"{fmt_silver(r.get('internal_cost'))} vs mercado "
+                     f"{fmt_silver(r.get('market_price'))}{eco}")
+    return code_block("\n".join(lines))
+
+
+async def handle_foco(api) -> str:
+    """/foco — ranking de prata por ponto de FOCO (craft e refino)
+    (GET /api/prod?view=focus)."""
+    res = await api.get("/api/prod", params={"view": "focus"})
+    rows = res.get("rows") or []
+    if not rows:
+        return code_block("Sem dados de foco agora (cache frio). Tente mais tarde.")
+    lines = ["Prata por ponto de FOCO (melhor cidade por receita):", ""]
+    for r in rows[:12]:
+        tipo = r.get("tipo") or ("refino" if r.get("is_refining") else "craft")
+        lines.append(f"- {_nome(r)} [{tipo}]: {r.get('silver_per_focus')}/foco em "
+                     f"{r.get('city', '?')} (+{fmt_silver(r.get('focus_gain'))} vs "
+                     "sem foco)")
+    lines += ["", "número = lucro extra por ponto de foco gasto."]
+    return code_block("\n".join(lines))
+
+
+_DEMANDA_VIEW = {"consumo": "burn", "qualidade": "quality"}
+
+
+async def handle_demanda(api, tipo: str = "consumo") -> str:
+    """/demanda — killboard: consumíveis mais queimados/dia e qualidade
+    destruída (GET /api/demand)."""
+    view = _DEMANDA_VIEW.get(tipo, "burn")
+    res = await api.get("/api/demand", params={"view": view})
+    rows = res.get("rows") or []
+    if not rows:
+        return code_block("Sem dados de killboard ainda (o intel-sweep precisa "
+                          "acumular). Tente mais tarde.")
+    if view == "quality":
+        lines = ["Qualidade destruída (vale fabricar Q4+?):", ""]
+        for r in rows[:10]:
+            lines.append(f"- {_nome(r)}: {r.get('destroyed')} destr., Q4+ "
+                         f"{r.get('share_q4plus_pct')}%, prêmio qualidade "
+                         f"{r.get('ev_quality_premium')}x (dominante Q{r.get('dominant_q')})")
+        return code_block("\n".join(lines))
+    lines = ["Consumíveis mais queimados por dia (poção/comida):", ""]
+    for r in rows[:10]:
+        flag = " ⚠ pouca oferta" if r.get("undersupplied") else ""
+        cov = f", cobertura {r.get('coverage')}" if r.get("coverage") is not None else ""
+        sd = (f", ~{fmt_silver(r.get('silver_per_day'))}/dia"
+              if r.get("silver_per_day") else "")
+        lines.append(f"- {_nome(r)}: {r.get('per_day')}/dia{cov}{sd}{flag}")
+    return code_block("\n".join(lines))
+
+
+SCAN_CATS = ["weapons", "armors", "head", "shoes", "offhands", "capes", "bags",
+             "mounts", "consumables", "gathering", "crafting", "artefacts"]
+
+
+async def handle_escanear(api, categoria: str, tier_min: int = None) -> str:
+    """/escanear — varre uma categoria e lista os melhores flips (GET /api/scan)."""
+    params = {"cat": categoria, "limit": 12}
+    if tier_min:
+        params["tier_min"] = tier_min
+    res = await api.get("/api/scan", params=params)
+    opps = res.get("opportunities") or []
+    alvo = f" T{tier_min}+" if tier_min else ""
+    if not opps:
+        return code_block(f"Nada lucrativo em '{categoria}'{alvo} agora "
+                          "(preços frios ou sem margem).")
+    lines = [f"Melhores flips em {categoria}{alvo}:", ""]
+    for o in opps[:10]:
+        t = o.get("tier")
+        tag = f" T{t}.{o.get('ench') or 0}" if t else ""
+        lines.append(f"- {_nome(o)}{tag}: {o.get('buy_city', '?')} -> "
+                     f"{o.get('sell_city', '?')} lucro {fmt_silver(o.get('profit'))} "
+                     f"(ROI {o.get('roi_pct')}%)")
+    return code_block("\n".join(lines))
+
+
+_LOGI_VIEW = {"mercadonegro": "bm", "qualidade": "ladder", "reposicao": "restock"}
+
+
+async def handle_logistica(api, tipo: str = "mercadonegro") -> str:
+    """/logistica — prêmio do Mercado Negro, ganho de subir qualidade, e mapa de
+    reposição do killboard (GET /api/logi)."""
+    view = _LOGI_VIEW.get(tipo, "bm")
+    res = await api.get("/api/logi", params={"view": view})
+    rows = res.get("rows") or []
+    if not rows:
+        msg = ("Sem dados de reposição ainda (depende do killboard)."
+               if view == "restock" else "Sem dados agora (cache frio).")
+        return code_block(msg)
+    if view == "ladder":
+        lines = ["Vale subir a qualidade? (prêmio do melhor degrau)", ""]
+        for r in rows[:10]:
+            lines.append(f"- {_nome(r)} em {r.get('city', '?')}: {r.get('best_step')} "
+                         f"+{fmt_silver(r.get('best_premium_abs'))} "
+                         f"({r.get('best_premium_pct')}%)")
+        return code_block("\n".join(lines))
+    if view == "restock":
+        lines = ["Reposição: o que a guild perde e onde comprar barato p/ revender:", ""]
+        for r in rows[:10]:
+            lines.append(f"- {_nome(r)}: {r.get('buy_city', '?')} -> "
+                         f"{r.get('sell_city', '?')} lucro {fmt_silver(r.get('profit'))} "
+                         f"(demanda {r.get('demand_units')})")
+        return code_block("\n".join(lines))
+    lines = ["Prêmio do Mercado Negro (vender gear lá vs cidade real):", ""]
+    for r in rows[:10]:
+        qs = f" q{r.get('quality')}" if r.get("quality") else ""
+        lines.append(f"- {_nome(r)}{qs}: BM {fmt_silver(r.get('bm_net'))} vs "
+                     f"{r.get('best_city', '?')} {fmt_silver(r.get('best_city_net'))} "
+                     f"(+{r.get('premium_pct')}%)")
+    return code_block("\n".join(lines))
+
+
+async def handle_lab(api, item: str) -> str:
+    """/lab — estatística de UM item numa cidade: caro/barato vs tendência, z,
+    momentum, e onde comprar mais barato (GET /api/item-analysis)."""
+    res = await api.get("/api/item-analysis", params={"item": item})
+    meta = res.get("item") or {}
+    nome = meta.get("pt") or meta.get("id", item)
+    series = [s for s in (res.get("series") or []) if (s.get("points") or 0) > 0]
+    if not series:
+        return code_block(f"{nome}: sem histórico coletado o bastante p/ análise. "
+                          "Colete mais e tente de novo.")
+    s = max(series, key=lambda r: (r.get("avg_daily_volume") or 0,
+                                   r.get("points") or 0))
+    lines = [f"{nome} — {s.get('city', '?')} (q{s.get('quality')}, "
+             f"{s.get('points')} pts)", ""]
+    stance = (s.get("interpretation") or {}).get("stance")
+    if stance:
+        lines.append(f"Leitura: {stance}")
+    if s.get("vwap") is not None:
+        lines.append(f"VWAP {fmt_silver(s.get('vwap'))} · último "
+                     f"{fmt_silver(s.get('latest_price'))}")
+    bits = []
+    if s.get("robust_z") is not None:
+        bits.append(f"z {s['robust_z']:+.1f}")
+    if s.get("price_percentile") is not None:
+        bits.append(f"percentil {round(s['price_percentile'])}%")
+    if s.get("momentum_pct") is not None:
+        bits.append(f"momentum {s['momentum_pct']:+.1f}%")
+    if bits:
+        lines.append(" · ".join(bits))
+    comp = res.get("comparison") or {}
+    if comp.get("cheapest_city"):
+        lines += ["", f"Mais barato: {comp.get('cheapest_city')} "
+                      f"({fmt_silver(comp.get('cheapest_vwap'))}) · spread "
+                      f"{comp.get('vwap_spread_pct')}%"]
+    return code_block("\n".join(lines))
+
+
+def _mob_name(mob):
+    """'T5_MOB_DEMON_VETERAN_BOSS' -> 'Demon Veteran Boss' (aproxima; o dump não
+    traz o nome do mob em PT)."""
+    s = re.sub(r"^T\d+_MOB_?", "", str(mob or ""))
+    return s.replace("_", " ").title() or str(mob or "?")
+
+
+async def handle_origem(api, item: str) -> str:
+    """/origem — de quais mobs o item cai, por fama (GET /api/origin)."""
+    res = await api.get("/api/origin", params={"item": item})
+    meta = res.get("item") or {}
+    nome = meta.get("name_pt") or meta.get("id", item)
+    sources = res.get("sources") or []
+    if not sources:
+        return code_block(f"{nome}: não vem de mob (é craftado/refinado/coletado, "
+                          "ou sem dado de drop).")
+    lines = [f"De onde vem {nome} (mobs que dropam, por fama):", ""]
+    for s in sources[:10]:
+        cat = f" · {s.get('cat')}" if s.get("cat") else ""
+        lines.append(f"- {_mob_name(s.get('mob'))} (T{s.get('tier')}, "
+                     f"fama {fmt_silver(s.get('fame'))}{cat})")
+    return code_block("\n".join(lines))
+
+
+async def handle_micro(api) -> str:
+    """/micro — market-making: melhores spreads de compra/venda por ordem
+    (GET /api/micro?view=spread)."""
+    res = await api.get("/api/micro", params={"view": "spread"})
+    rows = res.get("rows") or []
+    if not rows:
+        return code_block("Sem oportunidades de spread agora (livro fino ou "
+                          "cache frio).")
+    lines = ["Market-making: melhores spreads (comprar e vender na ordem):", ""]
+    for r in rows[:10]:
+        qs = f" q{r.get('quality')}" if r.get("quality") else ""
+        lines.append(f"- {_nome(r)}{qs} em {r.get('city', '?')}: "
+                     f"{fmt_silver(r.get('net_per_unit'))}/un ({r.get('net_pct')}%), "
+                     f"~{fmt_silver(r.get('potential_day'))}/dia")
+    lines += ["", "spread = diferença ordem de compra vs venda, já com taxas."]
+    return code_block("\n".join(lines))
+
+
+_RISCO_VIEW = {"perfil": "profile", "correlacao": "corr"}
+
+
+async def handle_risco(api, tipo: str = "perfil") -> str:
+    """/risco — volatilidade/drawdown/VaR por item, ou correlação entre itens
+    (GET /api/risk)."""
+    view = _RISCO_VIEW.get(tipo, "profile")
+    res = await api.get("/api/risk", params={"view": view})
+    rows = res.get("rows") or []
+    if not rows:
+        return code_block("Sem dados de risco agora (precisa de histórico; "
+                          "cache frio).")
+    if view == "corr":
+        lines = ["Itens que andam juntos / se protegem (correlação):", ""]
+        for r in rows[:10]:
+            a = r.get("a_pt") or r.get("a")
+            b = r.get("b_pt") or r.get("b")
+            lines.append(f"- {a} × {b}: {r.get('corr')} ({r.get('tipo')})")
+        return code_block("\n".join(lines))
+    lines = ["Risco de preço por item (volatilidade / drawdown / VaR):", ""]
+    for r in rows[:10]:
+        ci = r.get("vol_ci")
+        ci_s = f" (IC {ci})" if ci and ci != "—" else ""
+        lines.append(f"- {_nome(r)}: {r.get('risk_label')} · vol "
+                     f"{r.get('vol_shrunk_pct')}%{ci_s} · drawdown "
+                     f"{r.get('max_drawdown_pct')}% · VaR {r.get('var_1d_pct')}%")
+    return code_block("\n".join(lines))
+
+
+async def handle_sinais(api, item: str) -> str:
+    """/sinais — previsão de UM item: risco, reversão à média, quebra de regime e
+    previsibilidade (GET /api/item_signals)."""
+    it = await _resolve_item(api, item)
+    if not it:
+        return code_block(f"Não achei o item '{item}'. Tente /buscar {item}.")
+    res = await api.get("/api/item_signals", params={"item": it["id"]})
+    nome = it.get("pt") or it["id"]
+    if not res.get("available"):
+        return code_block(f"{nome}: sem histórico coletado p/ sinais. Colete o "
+                          "item e tente de novo.")
+    lines = [f"Sinais de {nome} — {res.get('city', '?')} "
+             f"({res.get('points')} pts)", ""]
+    risk = res.get("risk") or {}
+    if risk.get("risk_label"):
+        lines.append(f"Risco: {risk.get('risk_label')} "
+                     f"(vol {risk.get('vol_annual_pct')}%)")
+    rev = res.get("reversion") or {}
+    if rev.get("direction"):
+        disparou = "SIM" if rev.get("signal") else "não"
+        lines.append(f"Reversão: {rev.get('direction')} — alvo "
+                     f"{fmt_silver(rev.get('target'))}, gap {rev.get('gap_pct')}% "
+                     f"(disparou: {disparou})")
+    reg = res.get("regime") or {}
+    if reg.get("significant"):
+        lines.append(f"Regime: quebra recente ({reg.get('kind')})")
+    pred = res.get("predictability") or {}
+    if pred.get("label"):
+        lines.append(f"Previsibilidade: {pred.get('label')} "
+                     f"({round((pred.get('predictability') or 0) * 100)}%)")
+    if len(lines) <= 2:
+        lines.append("Série ainda curta p/ sinais firmes — colete mais.")
+    return code_block("\n".join(lines))
+
+
 # ------------------------------------------------------ casca discord.py 2.x
 def build_bot(api: ApiClient):
     """Monta o Client + CommandTree ligando cada slash command ao handler puro."""
@@ -1392,6 +1708,86 @@ def build_bot(api: ApiClient):
     async def refinar_cmd(interaction: discord.Interaction,
                           tier: app_commands.Range[int, 2, 8] = None):
         await _respond(interaction, handle_refinar(api, tier))
+
+    @tree.command(name="guild",
+                  description="Decisões da guild: fabricar-vs-comprar, o que perde, regear")
+    @app_commands.describe(tipo="Que análise da guild")
+    @app_commands.choices(tipo=[
+        app_commands.Choice(name="Fabricar ou comprar", value="fabricar"),
+        app_commands.Choice(name="O que a guild mais perde", value="destruicao"),
+        app_commands.Choice(name="Custo de regear", value="regear")])
+    async def guild_cmd(interaction: discord.Interaction, tipo: str = "fabricar"):
+        await _respond(interaction, handle_guild(api, tipo))
+
+    @tree.command(name="foco",
+                  description="Ranking de prata por ponto de foco (craft e refino)")
+    async def foco_cmd(interaction: discord.Interaction):
+        await _respond(interaction, handle_foco(api))
+
+    @tree.command(name="demanda",
+                  description="Killboard: consumíveis mais gastos e qualidade destruída")
+    @app_commands.describe(tipo="Consumo (poção/comida) ou qualidade destruída")
+    @app_commands.choices(tipo=[
+        app_commands.Choice(name="Consumíveis (poção/comida)", value="consumo"),
+        app_commands.Choice(name="Qualidade destruída", value="qualidade")])
+    async def demanda_cmd(interaction: discord.Interaction, tipo: str = "consumo"):
+        await _respond(interaction, handle_demanda(api, tipo))
+
+    @tree.command(name="escanear",
+                  description="Varre uma categoria e lista os melhores flips")
+    @app_commands.describe(categoria="Categoria a varrer",
+                           tier="Tier mínimo (opcional)")
+    @app_commands.choices(categoria=[
+        app_commands.Choice(name=c, value=c) for c in SCAN_CATS])
+    async def escanear_cmd(interaction: discord.Interaction, categoria: str,
+                           tier: app_commands.Range[int, 1, 8] = None):
+        await _respond(interaction, handle_escanear(api, categoria, tier))
+
+    @tree.command(name="logistica",
+                  description="Prêmio do Mercado Negro, subir qualidade, reposição")
+    @app_commands.describe(tipo="Que análise de logística")
+    @app_commands.choices(tipo=[
+        app_commands.Choice(name="Prêmio do Mercado Negro", value="mercadonegro"),
+        app_commands.Choice(name="Vale subir a qualidade?", value="qualidade"),
+        app_commands.Choice(name="Mapa de reposição (killboard)", value="reposicao")])
+    async def logistica_cmd(interaction: discord.Interaction,
+                            tipo: str = "mercadonegro"):
+        await _respond(interaction, handle_logistica(api, tipo))
+
+    @tree.command(name="lab",
+                  description="Estatística de um item: caro/barato vs tendência, z, momentum")
+    @app_commands.describe(item="Comece a digitar e escolha da lista (PT/EN)")
+    @app_commands.autocomplete(item=item_ac)
+    async def lab_cmd(interaction: discord.Interaction, item: str):
+        await _respond(interaction, handle_lab(api, item))
+
+    @tree.command(name="origem",
+                  description="De quais mobs um item cai (por fama)")
+    @app_commands.describe(item="Comece a digitar e escolha da lista (PT/EN)")
+    @app_commands.autocomplete(item=item_ac)
+    async def origem_cmd(interaction: discord.Interaction, item: str):
+        await _respond(interaction, handle_origem(api, item))
+
+    @tree.command(name="micro",
+                  description="Market-making: melhores spreads de compra/venda")
+    async def micro_cmd(interaction: discord.Interaction):
+        await _respond(interaction, handle_micro(api))
+
+    @tree.command(name="risco",
+                  description="Volatilidade/drawdown/VaR por item, ou correlação")
+    @app_commands.describe(tipo="Perfil de risco ou correlação entre itens")
+    @app_commands.choices(tipo=[
+        app_commands.Choice(name="Perfil de risco por item", value="perfil"),
+        app_commands.Choice(name="Correlação entre itens", value="correlacao")])
+    async def risco_cmd(interaction: discord.Interaction, tipo: str = "perfil"):
+        await _respond(interaction, handle_risco(api, tipo))
+
+    @tree.command(name="sinais",
+                  description="Previsão de um item: reversão à média, regime, risco")
+    @app_commands.describe(item="Comece a digitar e escolha da lista (PT/EN)")
+    @app_commands.autocomplete(item=item_ac)
+    async def sinais_cmd(interaction: discord.Interaction, item: str):
+        await _respond(interaction, handle_sinais(api, item))
 
     # URL pública p/ os ícones (o embed é buscado pelos servidores do Discord,
     # então precisa ser acessível na internet — não o 127.0.0.1 do bot embarcado).

@@ -273,5 +273,241 @@ class CraftRefinarHandlerTests(unittest.TestCase):
         self.assertIn("Sem dados de refino", out)
 
 
+class AdvancedHandlerTests(unittest.TestCase):
+    """Handlers das 10 análises avançadas. Fixtures batem 1:1 com o contrato REAL
+    de cada endpoint (workflow map-endpoint-contracts) — pega erro de nome de
+    campo, None e formatação ANTES do deploy. Também exercita o caminho VAZIO
+    (killboard/cache frio) que é o estado comum no piloto."""
+
+    def _run(self, coro):
+        return asyncio.run(coro)
+
+    def test_guild_makeorbuy(self):
+        class Api:
+            async def get(self, path, params=None):
+                assert path == "/api/guild" and params["view"] == "makeorbuy"
+                return {"view": "makeorbuy", "rows": [
+                    {"item_id": "T5_POTION", "demand_units": 300, "internal_cost": 800,
+                     "internal_city": "Thetford", "market_price": 1200, "save_pct": 33,
+                     "verdict": "fazer", "name_pt": "Poção de Cura"}]}
+        out = self._run(bot.handle_guild(Api(), "fabricar"))
+        self.assertIn("Poção de Cura", out)
+        self.assertIn("FAZER", out)
+        self.assertIn("economia 33%", out)
+
+    def test_guild_watch(self):
+        class Api:
+            async def get(self, path, params=None):
+                return {"watched_count": 0, "view": "watch", "rows": [
+                    {"item_id": "T6_HEAD", "destroyed": 42, "active_days": 3,
+                     "price": 15000, "score": 630, "name_pt": "Capuz do Mestre"}]}
+        out = self._run(bot.handle_guild(Api(), "destruicao"))
+        self.assertIn("Capuz do Mestre", out)
+        self.assertIn("42 destruídos", out)
+
+    def test_guild_kit_and_empty(self):
+        class KitApi:
+            async def get(self, path, params=None):
+                return {"view": "kit",
+                        "basket": [{"item_id": "T6_2H", "name_pt": "Machado",
+                                    "weight": 0.4}],
+                        "series": [{"day": "2026-07-01", "cost": 500000, "index": 100},
+                                   {"day": "2026-07-08", "cost": 550000, "index": 110}]}
+        out = self._run(bot.handle_guild(KitApi(), "regear"))
+        self.assertIn("Machado", out)
+        self.assertIn("110", out)              # índice mais recente
+
+        class Empty:
+            async def get(self, path, params=None):
+                return {"view": "makeorbuy", "rows": []}
+        self.assertIn("killboard",
+                      self._run(bot.handle_guild(Empty(), "fabricar")).lower())
+
+    def test_foco(self):
+        class Api:
+            async def get(self, path, params=None):
+                assert params["view"] == "focus"
+                return {"view": "focus", "rows": [
+                    {"item_id": "T5_METALBAR", "city": "Thetford",
+                     "silver_per_focus": 12.5, "focus_gain": 3000, "focus": 200,
+                     "is_refining": True, "name_pt": "Barra de Aço", "tipo": "refino"}]}
+        out = self._run(bot.handle_foco(Api()))
+        self.assertIn("Barra de Aço", out)
+        self.assertIn("12.5/foco", out)
+        self.assertIn("refino", out)
+
+    def test_demanda_burn_e_quality(self):
+        class Burn:
+            async def get(self, path, params=None):
+                assert params["view"] == "burn"
+                return {"view": "burn", "rows": [
+                    {"item_id": "T5_POTION", "burned_units": 700, "per_day": 100.0,
+                     "market_vol_day": 50.0, "coverage": 0.5, "silver_per_day": 40000,
+                     "undersupplied": True, "name_pt": "Poção de Cura"}]}
+        out = self._run(bot.handle_demanda(Burn(), "consumo"))
+        self.assertIn("Poção de Cura", out)
+        self.assertIn("pouca oferta", out)
+
+        class Qual:
+            async def get(self, path, params=None):
+                assert params["view"] == "quality"
+                return {"view": "quality", "rows": [
+                    {"item_id": "T6_2H", "destroyed": 30, "share_q4plus_pct": 45.0,
+                     "ev_quality_premium": 1.35, "dominant_q": 2, "name_pt": "Machado"}]}
+        out2 = self._run(bot.handle_demanda(Qual(), "qualidade"))
+        self.assertIn("Q4+ 45.0%", out2)
+
+    def test_escanear(self):
+        class Api:
+            async def get(self, path, params=None):
+                assert path == "/api/scan" and params["cat"] == "weapons"
+                return {"items_scanned": 100, "items_total": 100, "opportunities": [
+                    {"item_id": "T6_2H_BOW", "name_pt": "Arco", "tier": 6, "ench": 1,
+                     "buy_city": "Martlock", "sell_city": "Caerleon", "profit": 25000,
+                     "roi_pct": 18.0, "flip_score": 20000}]}
+        out = self._run(bot.handle_escanear(Api(), "weapons", 6))
+        self.assertIn("Arco", out)
+        self.assertIn("Martlock", out)
+        self.assertIn("ROI 18.0%", out)
+
+    def test_logistica_tres_views(self):
+        class BM:
+            async def get(self, path, params=None):
+                assert params["view"] == "bm"
+                return {"view": "bm", "rows": [
+                    {"item_id": "T6_2H", "name_pt": "Machado", "quality": 2,
+                     "bm_net": 90000, "best_city": "Caerleon", "best_city_net": 70000,
+                     "premium_abs": 20000, "premium_pct": 28.5}]}
+        self.assertIn("+28.5%",
+                      self._run(bot.handle_logistica(BM(), "mercadonegro")))
+
+        class Ladder:
+            async def get(self, path, params=None):
+                assert params["view"] == "ladder"
+                return {"view": "ladder", "rows": [
+                    {"item_id": "T6_2H", "name_pt": "Machado", "city": "Thetford",
+                     "qualities": [1, 2, 3], "best_step": "q1->q2",
+                     "best_premium_pct": 15.0, "best_premium_abs": 5000,
+                     "quals": "1,2,3"}]}
+        self.assertIn("q1->q2",
+                      self._run(bot.handle_logistica(Ladder(), "qualidade")))
+
+        class Restock:
+            async def get(self, path, params=None):
+                return {"view": "restock", "rows": []}
+        self.assertIn("reposição",
+                      self._run(bot.handle_logistica(Restock(), "reposicao")).lower())
+
+    def test_lab_e_cold(self):
+        class Api:
+            async def get(self, path, params=None):
+                assert path == "/api/item-analysis"
+                return {"item": {"id": "T4_BAG", "pt": "Bolsa", "tier": 4, "ench": 0},
+                        "series": [
+                            {"item_id": "T4_BAG", "city": "Caerleon", "quality": 1,
+                             "points": 20, "vwap": 1000, "latest_price": 1100,
+                             "robust_z": 1.5, "price_percentile": 80.0,
+                             "momentum_pct": 5.0, "avg_daily_volume": 50,
+                             "interpretation": {"stance": "evitar entrada cara",
+                                                "notes": []}}],
+                        "comparison": {"cheapest_city": "Lymhurst", "cheapest_vwap": 900,
+                                       "vwap_spread_pct": 20.0}}
+        out = self._run(bot.handle_lab(Api(), "bolsa"))
+        self.assertIn("Bolsa", out)
+        self.assertIn("evitar entrada cara", out)
+        self.assertIn("Lymhurst", out)
+
+        class Cold:
+            async def get(self, path, params=None):
+                return {"item": {"id": "T4_BAG", "pt": "Bolsa"},
+                        "series": [{"item_id": "T4_BAG", "city": "Caerleon",
+                                    "quality": 1, "points": 0,
+                                    "interpretation": {"stance": "sem dados"}}],
+                        "comparison": {}}
+        self.assertIn("sem histórico", self._run(bot.handle_lab(Cold(), "bolsa")))
+
+    def test_origem_e_vazio(self):
+        class Api:
+            async def get(self, path, params=None):
+                assert path == "/api/origin"
+                return {"item": {"id": "T5_2H_BOW", "name_pt": "Arco"},
+                        "sources": [{"mob": "T5_MOB_DEMON_VETERAN_BOSS", "tier": 5,
+                                     "fame": 12000, "cat": "boss"}]}
+        out = self._run(bot.handle_origem(Api(), "arco"))
+        self.assertIn("Demon Veteran Boss", out)      # mob id limpo
+
+        class Empty:
+            async def get(self, path, params=None):
+                return {"item": {"id": "T5_METALBAR", "name_pt": "Barra"},
+                        "sources": []}
+        self.assertIn("não vem de mob",
+                      self._run(bot.handle_origem(Empty(), "barra")))
+
+    def test_micro(self):
+        class Api:
+            async def get(self, path, params=None):
+                assert params["view"] == "spread"
+                return {"view": "spread", "rows": [
+                    {"item_id": "T4_BAG", "city": "Martlock", "quality": 1,
+                     "sell_price_min": 1200, "buy_price_max": 1000, "spread_gross": 200,
+                     "net_per_unit": 120.0, "net_pct": 12.0, "age_min": 10,
+                     "liquidity_day": 40, "potential_day": 960, "name_pt": "Bolsa"}]}
+        out = self._run(bot.handle_micro(Api()))
+        self.assertIn("Bolsa", out)
+        self.assertIn("12.0%", out)
+
+    def test_risco_profile_e_corr(self):
+        class Prof:
+            async def get(self, path, params=None):
+                assert params["view"] == "profile"
+                return {"view": "profile", "rows": [
+                    {"item_id": "T4_BAG", "name_pt": "Bolsa", "city": "Caerleon",
+                     "risk_label": "seguro", "vol_shrunk_pct": 25.0, "vol_ci": "20–30",
+                     "max_drawdown_pct": -15.0, "var_1d_pct": -5.0}]}
+        out = self._run(bot.handle_risco(Prof(), "perfil"))
+        self.assertIn("seguro", out)
+        self.assertIn("IC 20–30", out)
+
+        class Corr:
+            async def get(self, path, params=None):
+                assert params["view"] == "corr"
+                return {"view": "corr", "rows": [
+                    {"a": "T4_ORE", "b": "T4_METALBAR", "corr": 0.85, "common_days": 30,
+                     "a_pt": "Minério", "b_pt": "Barra", "tipo": "andam juntos"}]}
+        out2 = self._run(bot.handle_risco(Corr(), "correlacao"))
+        self.assertIn("Minério × Barra", out2)
+        self.assertIn("andam juntos", out2)
+
+    def test_sinais_e_indisponivel(self):
+        class Api:
+            async def get(self, path, params=None):
+                if path == "/api/search":
+                    return [{"id": "T6_2H_BOW", "pt": "Arco Longo", "tier": 6,
+                             "ench": 0}]
+                assert path == "/api/item_signals"
+                return {"item_id": "T6_2H_BOW", "available": True, "city": "Caerleon",
+                        "points": 90,
+                        "risk": {"risk_label": "médio", "vol_annual_pct": 40.0},
+                        "reversion": {"direction": "comprar", "target": 100000,
+                                      "gap_pct": -12.0, "signal": True},
+                        "regime": {"significant": True, "kind": "nível"},
+                        "predictability": {"label": "modelável",
+                                           "predictability": 0.7}}
+        out = self._run(bot.handle_sinais(Api(), "arco longo"))
+        self.assertIn("Arco Longo", out)
+        self.assertIn("comprar", out)
+        self.assertIn("modelável", out)
+
+        class NoHist:
+            async def get(self, path, params=None):
+                if path == "/api/search":
+                    return [{"id": "T6_2H_BOW", "pt": "Arco Longo", "tier": 6,
+                             "ench": 0}]
+                return {"item_id": "T6_2H_BOW", "available": False,
+                        "note": "sem historico"}
+        self.assertIn("sem histórico",
+                      self._run(bot.handle_sinais(NoHist(), "arco longo")))
+
+
 if __name__ == "__main__":
     unittest.main()
