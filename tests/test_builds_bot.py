@@ -4,6 +4,7 @@
 Só funções puras — não sobe o bot nem precisa do discord.py conectado.
 """
 import asyncio
+import re
 import sys
 import unittest
 from pathlib import Path
@@ -64,6 +65,22 @@ class BuildsDataTests(unittest.TestCase):
                              f"título com nome EN: {b['buildName']}")
             self.assertTrue(b.get("buildName_pt"),
                             f"{b['buildName']} sem buildName_pt")
+
+    def test_no_english_game_terms_in_card(self):
+        # regressão: título + ficha (itens/skills/execução/nota) sem termo de jogo
+        # em inglês (build_notes_pt.py + build_names_pt.py traduzem tudo).
+        EN = re.compile(
+            r"\b(Wildfire|Quiver|Meteor|Cataclysm|Wall of Flames|Fire Wave|Frost Nova|"
+            r"Frost Lance|Frost Shot|Cleric Robe|Hellion Jacket|Hellion Hood|Mercenary "
+            r"Hood|Mercenary Shoes|Mercenary Jacket|Assassin Hood|Knight Armor|Demon "
+            r"Armor|Feyscale Robe|Graveguard Helmet|Enfeeble Blades|Forceful Swing|Ray "
+            r"of Light|Magic Arrow|Living Armor|Death Curse|Haunting Screams|Area of "
+            r"Decay|Mystic Rocks|Soul Shaker|Acid Potion|Bear Paws|Great Frost)\b")
+        for b in bot.load_builds():
+            txt = bot.build_title(b) + " " + bot.build_card_text(b)
+            m = EN.search(txt)
+            self.assertIsNone(m, f"{b['buildName']}: termo EN "
+                                 f"'{m.group(0) if m else ''}' na ficha")
 
     def test_every_tree_has_builds_and_clean_label(self):
         for label, value in bot.BUILD_TREES:

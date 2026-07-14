@@ -270,10 +270,12 @@ def build_card_text(build):
     body = "\n".join(lines)
     if hab:
         body += f"\n\n✨ **Habilidades:** {hab}"
-    if build.get("execution"):
-        body += f"\n\n📋 {build['execution']}"
-    if build.get("note"):
-        body += f"\n\n⚠️ {build['note']}"
+    ex = build.get("execution_pt") or build.get("execution")   # PT (build_notes_pt)
+    if ex:
+        body += f"\n\n📋 {ex}"
+    nt = build.get("note_pt") or build.get("note")
+    if nt:
+        body += f"\n\n⚠️ {nt}"
     return body
 
 

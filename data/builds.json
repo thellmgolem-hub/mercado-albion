@@ -101,7 +101,9 @@
         }
       },
       "image": "/builds/cajados-de-fogo-dawnsong-faccao-zvz.png",
-      "buildName_pt": "Canção da Alvorada"
+      "buildName_pt": "Canção da Alvorada",
+      "execution_pt": "Acompanhe o engage e coloque o E no clump quando a cura adversária estiver comprometida. Preserve botas para o counter-engage.",
+      "note_pt": "Trocas: Capuz de Assassino em composição que prioriza recarga; Robe de Clérigo para versão mais barata e defensiva."
     },
     {
       "tree": "Cajados de Fogo",
@@ -173,7 +175,9 @@
         }
       },
       "image": "/builds/cajados-de-fogo-brimstone-faccao-zvz.png",
-      "buildName_pt": "Cajado Sulfuroso"
+      "buildName_pt": "Cajado Sulfuroso",
+      "execution_pt": "Pré-bufe Sandálias Reais, lance Meteoro apenas no clump confirmado pelo caller e recue. Use Capuz de Assassino quando houver janela segura.",
+      "note_pt": "Nota crítica: em facção pública, o dano teórico alto é menos valioso se o grupo não fixa os alvos."
     },
     {
       "tree": "Cajados de Fogo",
@@ -251,7 +255,9 @@
         }
       },
       "image": "/builds/cajados-de-fogo-1h-fire-arena-5v5.png",
-      "buildName_pt": "Cajado de Fogo"
+      "buildName_pt": "Cajado de Fogo",
+      "execution_pt": "Pressione o alvo exposto sem abandonar a linha do healer. Reserve defensivo para dive, não para dano residual.",
+      "note_pt": "Trocas: Robe de Clérigo para Arena solo queue; Onda de Fogo contra canais e melees que atravessam sua zona."
     },
     {
       "tree": "Cajados de Fogo",
@@ -323,7 +329,8 @@
         }
       },
       "image": "/builds/cajados-de-fogo-dawnsong-hellgate-5v5.png",
-      "buildName_pt": "Canção da Alvorada"
+      "buildName_pt": "Canção da Alvorada",
+      "execution_pt": "Sincronize E com o foco do tanque. Sapatos de Mercenário do Calouro devem limpar o controle que impediria reposicionamento."
     },
     {
       "tree": "Cajados de Fogo",
@@ -401,7 +408,9 @@
         }
       },
       "image": "/builds/cajados-de-fogo-wildfire-abyssal-3v3.png",
-      "buildName_pt": "Cajado Incendiário"
+      "buildName_pt": "Cajado Incendiário",
+      "execution_pt": "Carregue o dano apenas quando o tanque puder manter o alvo na trajetória do E. Evite ativar todos os multiplicadores antes de confirmar o controle.",
+      "note_pt": "Nota crítica: configuração frágil — Lume Críptico e Sandálias Reais aumentam o risco de morrer no counter-burst."
     },
     {
       "tree": "Cajados de Fogo",
@@ -479,7 +488,9 @@
         }
       },
       "image": "/builds/cajados-de-fogo-1h-fire-corrompida-1v1.png",
-      "buildName_pt": "Cajado de Fogo"
+      "buildName_pt": "Cajado de Fogo",
+      "execution_pt": "Use Parede de Chamas para negar a janela do melee, não apenas para causar dano. Ignimpacto deve punir defensivos já consumidos.",
+      "note_pt": "Trocas: Onda de Fogo contra canais; Robe Feérico em versão cara; Infernal ou Incendiário como alternativas de burst."
     },
     {
       "tree": "Cajados de Gelo",
@@ -551,7 +562,8 @@
         }
       },
       "image": "/builds/cajados-de-gelo-permafrost-prism-faccao-zvz.png",
-      "buildName_pt": "Prisma Geleterno"
+      "buildName_pt": "Prisma Geleterno",
+      "execution_pt": "Entre depois do tanque, use E no centro do clump e Explosão Congelante para reposicionar ou escapar. Robe de Erudito é uma janela, não um modo permanente."
     },
     {
       "tree": "Cajados de Gelo",
@@ -623,7 +635,9 @@
         }
       },
       "image": "/builds/cajados-de-gelo-icicle-staff-faccao-zvz.png",
-      "buildName_pt": "Cajado de Sincelo"
+      "buildName_pt": "Cajado de Sincelo",
+      "execution_pt": "Coloque Inferno Congelado entre front e backline ou na rota de retirada. O valor principal é negar movimento, não registrar kills.",
+      "note_pt": "W alternativa: Obelisco Glacial; passiva também pode ser Lançador Agressivo."
     },
     {
       "tree": "Cajados de Gelo",
@@ -695,7 +709,9 @@
         }
       },
       "image": "/builds/cajados-de-gelo-great-frost-hellgate-5v5.png",
-      "buildName_pt": "Cajado de Gelo"
+      "buildName_pt": "Cajado de Gelo",
+      "execution_pt": "Mantenha Granizo em recarga durante o foco e use Lança Congelada para reduzir resistências. Preserve cleanse para o controle que cortaria sua janela.",
+      "note_pt": "Título cobre Hellgate e Arena 5v5; poção alternativa: Poção Purificadora."
     },
     {
       "tree": "Cajados de Gelo",
@@ -767,7 +783,8 @@
         }
       },
       "image": "/builds/cajados-de-gelo-arctic-staff-arena-5v5.png",
-      "buildName_pt": "Cajado Ártico"
+      "buildName_pt": "Cajado Ártico",
+      "execution_pt": "Canalize Raio de Gelo apenas quando houver peel ou controle aliado. Rajada Ártica deve cobrir o espaço de disputa, não uma área vazia."
     },
     {
       "tree": "Cajados de Gelo",
@@ -839,7 +856,8 @@
         }
       },
       "image": "/builds/cajados-de-gelo-glacial-staff-abyssal-3v3.png",
-      "buildName_pt": "Cajado Glacial"
+      "buildName_pt": "Cajado Glacial",
+      "execution_pt": "Espere o controle aliado antes de Tempestade de Gelo. Use Explosão Congelante defensivamente se a composição inimiga tiver dive."
     },
     {
       "tree": "Cajados de Gelo",
@@ -916,7 +934,9 @@
         }
       },
       "image": "/builds/cajados-de-gelo-1h-frost-corrompida-1v1.png",
-      "buildName_pt": "Cajado de Gelo"
+      "buildName_pt": "Cajado de Gelo",
+      "execution_pt": "Controle a distância e force o adversário a gastar mobilidade antes do E. Armadura de Cavaleiro cria espaço para resetar.",
+      "note_pt": "Trocas: Grande Gelo é alternativa mais simples; Uivo Frio tem teto técnico alto, mas uso menos padronizado."
     },
     {
       "tree": "Arcos",
@@ -988,7 +1008,9 @@
         }
       },
       "image": "/builds/arcos-longbow-faccao-zvz.png",
-      "buildName_pt": "Arco Longo"
+      "buildName_pt": "Arco Longo",
+      "execution_pt": "Acompanhe o engage e cubra a área de imobilização. Não gaste E em alvos espalhados apenas para acumular dano.",
+      "note_pt": "Trocas p/ versão mais barata: Robe de Clérigo no peito e Martlock (ou Lymhurst) Capa."
     },
     {
       "tree": "Arcos",
@@ -1060,7 +1082,9 @@
         }
       },
       "image": "/builds/arcos-wailing-bow-faccao-zvz.png",
-      "buildName_pt": "Arco Plangente"
+      "buildName_pt": "Arco Plangente",
+      "execution_pt": "Procure ângulo lateral ou frontal que atravesse o maior número de alvos. Atire somente após o controle confirmar a linha.",
+      "note_pt": "Só para bomb squad coordenada; a poção pode ser Poção de Crescimento no lugar de Resistance."
     },
     {
       "tree": "Arcos",
@@ -1132,7 +1156,9 @@
         }
       },
       "image": "/builds/arcos-bow-arena-5v5.png",
-      "buildName_pt": "Arco"
+      "buildName_pt": "Arco",
+      "execution_pt": "Ative Aljava quando puder manter contato sem sair da proteção do healer. Robe de Mago remove buffs e impede que melees transformem sua janela em suicídio.",
+      "note_pt": "Serve também para Hellgate 5v5."
     },
     {
       "tree": "Arcos",
@@ -1204,7 +1230,9 @@
         }
       },
       "image": "/builds/arcos-bow-of-badon-arena-5v5.png",
-      "buildName_pt": "Arco Badônico"
+      "buildName_pt": "Arco Badônico",
+      "execution_pt": "Use Raio de Luz para manter o alvo dentro da tempestade. Em 3v3, feche passagem e force a equipe inimiga a escolher entre dano e reposicionamento.",
+      "note_pt": "Uso híbrido: também forte em 3v3 (é o Principal do quadro de 3v3)."
     },
     {
       "tree": "Arcos",
@@ -1275,7 +1303,9 @@
         }
       },
       "image": "/builds/arcos-skystrider-bow-abyssal-3v3.png",
-      "buildName_pt": "Arco do Andarilho Celeste"
+      "buildName_pt": "Arco do Andarilho Celeste",
+      "execution_pt": "Use a mobilidade para negar a resposta inimiga, não apenas para entrar. No trio, coordene Raio de Luz com o burst aliado.",
+      "note_pt": "No solo: troque W p/ Tiro de Gelo, poção p/ Cura e comida p/ Omelete de Porco; calçado alternativo Sapatos de Caçador. O E é a skill exclusiva da arma (não nomeada no doc)."
     },
     {
       "tree": "Arcos",
@@ -1347,7 +1377,9 @@
         }
       },
       "image": "/builds/arcos-warbow-corrompida-1v1.png",
-      "buildName_pt": "Arco de Guerra"
+      "buildName_pt": "Arco de Guerra",
+      "execution_pt": "Mantenha espaço para maximizar Flecha Mágica. Trocas curtas a curta distância anulam a principal vantagem da arma.",
+      "note_pt": "Cabeça alternativa: Capuz de Caçador; capa alternativa: Capa de Thetford."
     },
     {
       "tree": "Cajados da Natureza",
@@ -1419,7 +1451,8 @@
         }
       },
       "image": "/builds/cajados-da-natureza-blight-staff-faccao-zvz.png",
-      "buildName_pt": "Cajado Pustulento"
+      "buildName_pt": "Cajado Pustulento",
+      "execution_pt": "Mantenha Rejuvenescimento distribuido e use Natureza Elevada durante avanco ou retirada. Sapatos de Mercenário do Calouro limpam o controle que interromperia seu posicionamento."
     },
     {
       "tree": "Cajados da Natureza",
@@ -1491,7 +1524,8 @@
         }
       },
       "image": "/builds/cajados-da-natureza-rampant-staff-faccao-zvz.png",
-      "buildName_pt": "Cajado Rampante"
+      "buildName_pt": "Cajado Rampante",
+      "execution_pt": "Coloque a area onde o grupo permanecera durante a troca, nao onde ele estava. Cura Purificadora ganha valor contra composicao de CC."
     },
     {
       "tree": "Cajados da Natureza",
@@ -1569,7 +1603,8 @@
         }
       },
       "image": "/builds/cajados-da-natureza-1h-nature-hellgate-5v5.png",
-      "buildName_pt": "Cajado da Natureza"
+      "buildName_pt": "Cajado da Natureza",
+      "execution_pt": "Proteja previamente o alvo que recebera burst. Elmo de Guarda-tumbas e recurso de emergencia; nao deve ser gasto em dano leve."
     },
     {
       "tree": "Cajados da Natureza",
@@ -1647,7 +1682,8 @@
         }
       },
       "image": "/builds/cajados-da-natureza-ironroot-staff-abyssal-3v3.png",
-      "buildName_pt": "Raiz Férrea"
+      "buildName_pt": "Raiz Férrea",
+      "execution_pt": "A ligacao correta decide a luta. Leia quem recebera o foco e evite conectar alvos que transformarao o compartilhamento em dano adicional."
     },
     {
       "tree": "Cajados da Natureza",
@@ -1724,7 +1760,9 @@
         }
       },
       "image": "/builds/cajados-da-natureza-forgebark-staff-abyssal-3v3.png",
-      "buildName_pt": "Cajado de Crosta Forjada"
+      "buildName_pt": "Cajado de Crosta Forjada",
+      "execution_pt": "Use Dupla Natureza defensivamente para proteger aliado focado ou ofensivamente quando a composicao puder converter o controle em kill.",
+      "note_pt": "Build cara e menos tolerante a erro que Ironroot."
     },
     {
       "tree": "Cajados da Natureza",
@@ -1796,7 +1834,9 @@
         }
       },
       "image": "/builds/cajados-da-natureza-great-nature-corrompida-1v1.png",
-      "buildName_pt": "Cajado da Natureza"
+      "buildName_pt": "Cajado da Natureza",
+      "execution_pt": "Ative Armadura viva quando o oponente estiver comprometido com a troca. Jogadores experientes podem simplesmente parar de atacar e reduzir seu valor.",
+      "note_pt": "Troca convencional: Druídico + Brumário com Capuz de Caçador, Casaco de Mercenário do Calouro e Botas de Soldado."
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -1874,7 +1914,8 @@
         }
       },
       "image": "/builds/cajados-amaldicoados-amaldicoados-lifecurse-faccao-zvz.png",
-      "buildName_pt": "Cajado Execrado"
+      "buildName_pt": "Cajado Execrado",
+      "execution_pt": "Use Lâminas Debilitantes na janela ofensiva inimiga ou para remover buffs importantes. O valor principal não aparece necessariamente no número de kills."
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -1946,7 +1987,8 @@
         }
       },
       "image": "/builds/cajados-amaldicoados-amaldicoados-damnation-faccao-zvz.png",
-      "buildName_pt": "Cajado da Danação"
+      "buildName_pt": "Cajado da Danação",
+      "execution_pt": "Cataclismo deve preceder o dano aliado por uma janela curta. Se for lançada depois do burst, a arma perde sua função."
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -2024,7 +2066,8 @@
         }
       },
       "image": "/builds/cajados-amaldicoados-amaldicoados-rotcaller-arena-5v5.png",
-      "buildName_pt": "Cajado Pútrido"
+      "buildName_pt": "Cajado Pútrido",
+      "execution_pt": "Force recursos defensivos e aplique Pragueiro na janela de focus real. Não desperdice anti-cura em poke sem possibilidade de kill."
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -2096,7 +2139,8 @@
         }
       },
       "image": "/builds/cajados-amaldicoados-amaldicoados-great-cursed-arena-5v5.png",
-      "buildName_pt": "Cajado Amaldiçoado"
+      "buildName_pt": "Cajado Amaldiçoado",
+      "execution_pt": "Área de Podridão pune equipes que permanecem agrupadas. Capuz de Mercenário do Calouro adiciona cleanse coletivo e justifica a vaga além do dano."
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -2168,7 +2212,8 @@
         }
       },
       "image": "/builds/cajados-amaldicoados-amaldicoados-cursed-skull-abyssal-3v3.png",
-      "buildName_pt": "Caveira Amaldiçoada"
+      "buildName_pt": "Caveira Amaldiçoada",
+      "execution_pt": "Mantenha cargas e lute em espaço onde Gritos Assombrosos obrigue o inimigo a atravessar a área. Evite perseguir além do alcance do healer."
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -2245,7 +2290,9 @@
         }
       },
       "image": "/builds/cajados-amaldicoados-amaldicoados-lifecurse-corrompida-1v1.png",
-      "buildName_pt": "Cajado Execrado"
+      "buildName_pt": "Cajado Execrado",
+      "execution_pt": "Use Profanação quando o controle for mais importante; Rancor quando puder manter ataques. Lâminas Debilitantes deve negar o pico ofensivo.",
+      "note_pt": "O 1H Amaldiçoado continua barato e capaz de punir desconhecimento, mas Maldição da Morte é altamente telegráfica e possui muitas respostas."
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2317,7 +2364,8 @@
         }
       },
       "image": "/builds/bordoes-quarterstaffs-staff-of-balance-faccao-e-zvz-faccao-zvz.png",
-      "buildName_pt": "Cajado do Equilíbrio"
+      "buildName_pt": "Cajado do Equilíbrio",
+      "execution_pt": "Coloque Pedras Místicas sobre a rota de engage, retirada ou cura inimiga. A arma ganha valor impedindo a luta que o adversário quer, não perseguindo kills."
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2389,7 +2437,9 @@
         }
       },
       "image": "/builds/bordoes-quarterstaffs-grailseeker-controle-defensivo-de-zvz-faccao-zvz.png",
-      "buildName_pt": "Buscador do Graal"
+      "buildName_pt": "Buscador do Graal",
+      "execution_pt": "Move Almas deve quebrar a entrada inimiga ou impedir fuga de um clump. Armadura de Cavaleiro e Golpe Violento preservam a formação.",
+      "note_pt": "Trocas: Capuz Inferial/Armadura Demônia/Capa de Martlock em composições específicas."
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2461,7 +2511,8 @@
         }
       },
       "image": "/builds/bordoes-quarterstaffs-phantom-twinblade-arena-5v5-arena-5v5.png",
-      "buildName_pt": "Lâminas Gêmeas Fantasmagóricas"
+      "buildName_pt": "Lâminas Gêmeas Fantasmagóricas",
+      "execution_pt": "Entre após o primeiro controle, maximize área do E e saia antes que Casaco Inferial perca valor. O maior risco é energia em luta prolongada."
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2532,7 +2583,8 @@
         }
       },
       "image": "/builds/bordoes-quarterstaffs-staff-of-balance-arena-5v5-arena-5v5.png",
-      "buildName_pt": "Cajado do Equilíbrio"
+      "buildName_pt": "Cajado do Equilíbrio",
+      "execution_pt": "Use a zona sobre healer, chokepoint ou objetivo. Não abandone a backline para perseguir alvo fora da luta."
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2604,7 +2656,9 @@
         }
       },
       "image": "/builds/bordoes-quarterstaffs-phantom-twinblade-abyssal-depths-3v3-abyssal-3v3.png",
-      "buildName_pt": "Lâminas Gêmeas Fantasmagóricas"
+      "buildName_pt": "Lâminas Gêmeas Fantasmagóricas",
+      "execution_pt": "Purga defensivos importantes e use o E quando os inimigos estiverem comprimidos. Preserve mobilidade para voltar à linha do healer.",
+      "note_pt": "Sapatos Perseguidor/Assassino; capa Thetford ou Avaloniana; capuz Capote Malévolo ou Capuz de Mercenário do Calouro."
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2676,7 +2730,8 @@
         }
       },
       "image": "/builds/bordoes-quarterstaffs-soulscythe-controle-de-3v3-abyssal-3v3.png",
-      "buildName_pt": "Seganímica"
+      "buildName_pt": "Seganímica",
+      "execution_pt": "Tornado é ferramenta de composição: lance quando aliados puderem converter o deslocamento em dano. Poção Ácida amplia a janela de execução."
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2748,7 +2803,9 @@
         }
       },
       "image": "/builds/bordoes-quarterstaffs-quarterstaff-corrompida-1v1-corrompida-1v1.png",
-      "buildName_pt": "Bordão"
+      "buildName_pt": "Bordão",
+      "execution_pt": "Carregue Fury, então use terceiro Q → E → W. Contra ranged, troque W por Separator; contra autoattack, Golpe Violento.",
+      "note_pt": "Trocas: use esquiva nos sapatos contra Es previsíveis de melee. Capote Malévolo/Casaco de Mercenário do Calouro formam alternativa mais agressiva."
     },
     {
       "tree": "Machados",
@@ -2820,7 +2877,8 @@
         }
       },
       "image": "/builds/machados-realmbreaker-faccao-zvz.png",
-      "buildName_pt": "Quebra-reino"
+      "buildName_pt": "Quebra-reino",
+      "execution_pt": "Entre no clump apos o primeiro controle, aplique Tremor Posterior e sobreviva para uma segunda rotacao. Estandarte Real amplifica a equipe, nao apenas seu dano."
     },
     {
       "tree": "Machados",
@@ -2892,7 +2950,8 @@
         }
       },
       "image": "/builds/machados-infernal-scythe-faccao-zvz.png",
-      "buildName_pt": "Segadeira Infernal"
+      "buildName_pt": "Segadeira Infernal",
+      "execution_pt": "Nao inicie sozinho. Entre quando os alvos ja estiverem abaixo do limiar util de Ceifa Sangrenta e use Casaco Inferial no centro do brawl."
     },
     {
       "tree": "Machados",
@@ -2964,7 +3023,9 @@
         }
       },
       "image": "/builds/machados-carrioncaller-arena-5v5.png",
-      "buildName_pt": "Chama-corpos"
+      "buildName_pt": "Chama-corpos",
+      "execution_pt": "Corvo de Morgana deve atravessar o alvo de foco durante a janela de cura. Armadura Real sustenta energia e pressao do grupo.",
+      "note_pt": "Alternativas de habilidade: W Sangramento Interno; passiva Ímpeto Agressivo."
     },
     {
       "tree": "Machados",
@@ -3036,7 +3097,8 @@
         }
       },
       "image": "/builds/machados-infernal-scythe-arena-5v5.png",
-      "buildName_pt": "Segadeira Infernal"
+      "buildName_pt": "Segadeira Infernal",
+      "execution_pt": "Espere o foco aliado reduzir o alvo. Sapatos da Tenacidade ajudam a alcancar a execucao sem morrer no caminho."
     },
     {
       "tree": "Machados",
@@ -3108,7 +3170,9 @@
         }
       },
       "image": "/builds/machados-crystal-reaper-abyssal-3v3.png",
-      "buildName_pt": "Foice de Cristal"
+      "buildName_pt": "Foice de Cristal",
+      "execution_pt": "Use Pico de Adrenalina para chegar ao alvo e mantenha Investida Implacável sobre multiplos inimigos. Casaco Inferial deve coincidir com o brawl, nao com perseguicao isolada.",
+      "note_pt": "Cabeca alternativa: Capuz de Mercenário do Calouro."
     },
     {
       "tree": "Machados",
@@ -3186,7 +3250,9 @@
         }
       },
       "image": "/builds/machados-battleaxe-corrompida-1v1.png",
-      "buildName_pt": "Machado de Guerra"
+      "buildName_pt": "Machado de Guerra",
+      "execution_pt": "Mantenha tres cargas de sangramento. Use a segunda ativacao do E para finalizar ou recuperar vida quando os defensivos acabarem.",
+      "note_pt": "Off-hand alternativa: Muisec. Trocas: Robe de Clérigo e Capa de Contrabandista sao alternativas. Patas de Urso e a opcao agressiva para mobilidade/gank, mas menos estavel em Corrompida pura."
     }
   ]
 }
