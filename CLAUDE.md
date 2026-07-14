@@ -12,6 +12,13 @@ DEPLOY.md). Mudanças estruturais em relação ao app local:
   SQL (date('now'), strftime, datetime) — use store.cutoff_iso e compare `ts`
   (texto ISO) com `>=`. Escritas com conflito via store.upsert/upsert_ignore/
   upsert_add (este SOMA, p/ agregados). store.Row imita sqlite3.Row.
+  2ª regra de ouro (tipo): no Postgres, SUM/AVG de coluna INTEIRA (BIGINT como
+  item_count, victim_units, sell_price_min, gold.price) volta **Decimal**;
+  misturar Decimal com float (colunas DOUBLE: avg_price, fetched_at) em / * + -
+  estoura TypeError. No SQLite tudo é float, então o bug NÃO aparece local nem
+  nos testes. Sempre coaja o agregado com float()/int() NA LEITURA. Regressão:
+  HistoryStatsPgTypeTests/LiquidityPgTypeTests injetam Decimal (o bug do 500 do
+  /recomendar, jul/2026).
 - **Coleta = sweep fatiado por cron** na NUVEM (não mais coletor sempre-ligado);
   no LOCAL (SQLite) app.py._start_auto_collector religa um coletor em background
   (startup event): semeia a watchlist com itens líquidos no 1º uso e coleta a cada
