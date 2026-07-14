@@ -100,7 +100,8 @@
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
       },
-      "image": "/builds/cajados-de-fogo-dawnsong-faccao-zvz.png"
+      "image": "/builds/cajados-de-fogo-dawnsong-faccao-zvz.png",
+      "buildName_pt": "Canção da Alvorada"
     },
     {
       "tree": "Cajados de Fogo",
@@ -171,7 +172,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
       },
-      "image": "/builds/cajados-de-fogo-brimstone-faccao-zvz.png"
+      "image": "/builds/cajados-de-fogo-brimstone-faccao-zvz.png",
+      "buildName_pt": "Cajado Sulfuroso"
     },
     {
       "tree": "Cajados de Fogo",
@@ -248,7 +250,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/cajados-de-fogo-1h-fire-arena-5v5.png"
+      "image": "/builds/cajados-de-fogo-1h-fire-arena-5v5.png",
+      "buildName_pt": "Cajado de Fogo"
     },
     {
       "tree": "Cajados de Fogo",
@@ -319,7 +322,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/cajados-de-fogo-dawnsong-hellgate-5v5.png"
+      "image": "/builds/cajados-de-fogo-dawnsong-hellgate-5v5.png",
+      "buildName_pt": "Canção da Alvorada"
     },
     {
       "tree": "Cajados de Fogo",
@@ -396,7 +400,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/cajados-de-fogo-wildfire-abyssal-3v3.png"
+      "image": "/builds/cajados-de-fogo-wildfire-abyssal-3v3.png",
+      "buildName_pt": "Cajado Incendiário"
     },
     {
       "tree": "Cajados de Fogo",
@@ -473,7 +478,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
       },
-      "image": "/builds/cajados-de-fogo-1h-fire-corrompida-1v1.png"
+      "image": "/builds/cajados-de-fogo-1h-fire-corrompida-1v1.png",
+      "buildName_pt": "Cajado de Fogo"
     },
     {
       "tree": "Cajados de Gelo",
@@ -544,7 +550,8 @@
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
       },
-      "image": "/builds/cajados-de-gelo-permafrost-prism-faccao-zvz.png"
+      "image": "/builds/cajados-de-gelo-permafrost-prism-faccao-zvz.png",
+      "buildName_pt": "Prisma Geleterno"
     },
     {
       "tree": "Cajados de Gelo",
@@ -615,7 +622,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
       },
-      "image": "/builds/cajados-de-gelo-icicle-staff-faccao-zvz.png"
+      "image": "/builds/cajados-de-gelo-icicle-staff-faccao-zvz.png",
+      "buildName_pt": "Cajado de Sincelo"
     },
     {
       "tree": "Cajados de Gelo",
@@ -686,7 +694,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/cajados-de-gelo-great-frost-hellgate-5v5.png"
+      "image": "/builds/cajados-de-gelo-great-frost-hellgate-5v5.png",
+      "buildName_pt": "Cajado de Gelo"
     },
     {
       "tree": "Cajados de Gelo",
@@ -757,7 +766,8 @@
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
       },
-      "image": "/builds/cajados-de-gelo-arctic-staff-arena-5v5.png"
+      "image": "/builds/cajados-de-gelo-arctic-staff-arena-5v5.png",
+      "buildName_pt": "Cajado Ártico"
     },
     {
       "tree": "Cajados de Gelo",
@@ -828,7 +838,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
       },
-      "image": "/builds/cajados-de-gelo-glacial-staff-abyssal-3v3.png"
+      "image": "/builds/cajados-de-gelo-glacial-staff-abyssal-3v3.png",
+      "buildName_pt": "Cajado Glacial"
     },
     {
       "tree": "Cajados de Gelo",
@@ -904,7 +915,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
       },
-      "image": "/builds/cajados-de-gelo-1h-frost-corrompida-1v1.png"
+      "image": "/builds/cajados-de-gelo-1h-frost-corrompida-1v1.png",
+      "buildName_pt": "Cajado de Gelo"
     },
     {
       "tree": "Arcos",
@@ -975,7 +987,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/arcos-longbow-faccao-zvz.png"
+      "image": "/builds/arcos-longbow-faccao-zvz.png",
+      "buildName_pt": "Arco Longo"
     },
     {
       "tree": "Arcos",
@@ -1046,7 +1059,8 @@
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
       },
-      "image": "/builds/arcos-wailing-bow-faccao-zvz.png"
+      "image": "/builds/arcos-wailing-bow-faccao-zvz.png",
+      "buildName_pt": "Arco Plangente"
     },
     {
       "tree": "Arcos",
@@ -1117,7 +1131,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/arcos-bow-arena-5v5.png"
+      "image": "/builds/arcos-bow-arena-5v5.png",
+      "buildName_pt": "Arco"
     },
     {
       "tree": "Arcos",
@@ -1188,7 +1203,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/arcos-bow-of-badon-arena-5v5.png"
+      "image": "/builds/arcos-bow-of-badon-arena-5v5.png",
+      "buildName_pt": "Arco Badônico"
     },
     {
       "tree": "Arcos",
@@ -1258,7 +1274,8 @@
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
       },
-      "image": "/builds/arcos-skystrider-bow-abyssal-3v3.png"
+      "image": "/builds/arcos-skystrider-bow-abyssal-3v3.png",
+      "buildName_pt": "Arco do Andarilho Celeste"
     },
     {
       "tree": "Arcos",
@@ -1329,7 +1346,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
       },
-      "image": "/builds/arcos-warbow-corrompida-1v1.png"
+      "image": "/builds/arcos-warbow-corrompida-1v1.png",
+      "buildName_pt": "Arco de Guerra"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1400,7 +1418,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
       },
-      "image": "/builds/cajados-da-natureza-blight-staff-faccao-zvz.png"
+      "image": "/builds/cajados-da-natureza-blight-staff-faccao-zvz.png",
+      "buildName_pt": "Cajado Pustulento"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1471,7 +1490,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
       },
-      "image": "/builds/cajados-da-natureza-rampant-staff-faccao-zvz.png"
+      "image": "/builds/cajados-da-natureza-rampant-staff-faccao-zvz.png",
+      "buildName_pt": "Cajado Rampante"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1548,7 +1568,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
       },
-      "image": "/builds/cajados-da-natureza-1h-nature-hellgate-5v5.png"
+      "image": "/builds/cajados-da-natureza-1h-nature-hellgate-5v5.png",
+      "buildName_pt": "Cajado da Natureza"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1625,7 +1646,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
       },
-      "image": "/builds/cajados-da-natureza-ironroot-staff-abyssal-3v3.png"
+      "image": "/builds/cajados-da-natureza-ironroot-staff-abyssal-3v3.png",
+      "buildName_pt": "Raiz Férrea"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1701,7 +1723,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
       },
-      "image": "/builds/cajados-da-natureza-forgebark-staff-abyssal-3v3.png"
+      "image": "/builds/cajados-da-natureza-forgebark-staff-abyssal-3v3.png",
+      "buildName_pt": "Cajado de Crosta Forjada"
     },
     {
       "tree": "Cajados da Natureza",
@@ -1772,7 +1795,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE_FISH"
         }
       },
-      "image": "/builds/cajados-da-natureza-great-nature-corrompida-1v1.png"
+      "image": "/builds/cajados-da-natureza-great-nature-corrompida-1v1.png",
+      "buildName_pt": "Cajado da Natureza"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -1849,7 +1873,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
       },
-      "image": "/builds/cajados-amaldicoados-amaldicoados-lifecurse-faccao-zvz.png"
+      "image": "/builds/cajados-amaldicoados-amaldicoados-lifecurse-faccao-zvz.png",
+      "buildName_pt": "Cajado Execrado"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -1920,7 +1945,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
       },
-      "image": "/builds/cajados-amaldicoados-amaldicoados-damnation-faccao-zvz.png"
+      "image": "/builds/cajados-amaldicoados-amaldicoados-damnation-faccao-zvz.png",
+      "buildName_pt": "Cajado da Danação"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -1997,7 +2023,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/cajados-amaldicoados-amaldicoados-rotcaller-arena-5v5.png"
+      "image": "/builds/cajados-amaldicoados-amaldicoados-rotcaller-arena-5v5.png",
+      "buildName_pt": "Cajado Pútrido"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -2068,7 +2095,8 @@
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
       },
-      "image": "/builds/cajados-amaldicoados-amaldicoados-great-cursed-arena-5v5.png"
+      "image": "/builds/cajados-amaldicoados-amaldicoados-great-cursed-arena-5v5.png",
+      "buildName_pt": "Cajado Amaldiçoado"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -2139,7 +2167,8 @@
           "icon": "/icon/T7_MEAL_ROAST_FISH"
         }
       },
-      "image": "/builds/cajados-amaldicoados-amaldicoados-cursed-skull-abyssal-3v3.png"
+      "image": "/builds/cajados-amaldicoados-amaldicoados-cursed-skull-abyssal-3v3.png",
+      "buildName_pt": "Caveira Amaldiçoada"
     },
     {
       "tree": "Cajados Amaldiçoados (Amaldiçoados)",
@@ -2215,7 +2244,8 @@
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
       },
-      "image": "/builds/cajados-amaldicoados-amaldicoados-lifecurse-corrompida-1v1.png"
+      "image": "/builds/cajados-amaldicoados-amaldicoados-lifecurse-corrompida-1v1.png",
+      "buildName_pt": "Cajado Execrado"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2286,7 +2316,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
       },
-      "image": "/builds/bordoes-quarterstaffs-staff-of-balance-faccao-e-zvz-faccao-zvz.png"
+      "image": "/builds/bordoes-quarterstaffs-staff-of-balance-faccao-e-zvz-faccao-zvz.png",
+      "buildName_pt": "Cajado do Equilíbrio"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2357,7 +2388,8 @@
           "icon": "/icon/T8_MEAL_SANDWICH_FISH"
         }
       },
-      "image": "/builds/bordoes-quarterstaffs-grailseeker-controle-defensivo-de-zvz-faccao-zvz.png"
+      "image": "/builds/bordoes-quarterstaffs-grailseeker-controle-defensivo-de-zvz-faccao-zvz.png",
+      "buildName_pt": "Buscador do Graal"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2428,7 +2460,8 @@
           "icon": "/icon/T8_MEAL_SANDWICH"
         }
       },
-      "image": "/builds/bordoes-quarterstaffs-phantom-twinblade-arena-5v5-arena-5v5.png"
+      "image": "/builds/bordoes-quarterstaffs-phantom-twinblade-arena-5v5-arena-5v5.png",
+      "buildName_pt": "Lâminas Gêmeas Fantasmagóricas"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2498,7 +2531,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE_AVALON"
         }
       },
-      "image": "/builds/bordoes-quarterstaffs-staff-of-balance-arena-5v5-arena-5v5.png"
+      "image": "/builds/bordoes-quarterstaffs-staff-of-balance-arena-5v5-arena-5v5.png",
+      "buildName_pt": "Cajado do Equilíbrio"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2569,7 +2603,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/bordoes-quarterstaffs-phantom-twinblade-abyssal-depths-3v3-abyssal-3v3.png"
+      "image": "/builds/bordoes-quarterstaffs-phantom-twinblade-abyssal-depths-3v3-abyssal-3v3.png",
+      "buildName_pt": "Lâminas Gêmeas Fantasmagóricas"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2640,7 +2675,8 @@
           "icon": "/icon/T7_MEAL_OMELETTE"
         }
       },
-      "image": "/builds/bordoes-quarterstaffs-soulscythe-controle-de-3v3-abyssal-3v3.png"
+      "image": "/builds/bordoes-quarterstaffs-soulscythe-controle-de-3v3-abyssal-3v3.png",
+      "buildName_pt": "Seganímica"
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -2711,7 +2747,8 @@
           "icon": "/icon/T7_MEAL_ROAST_FISH"
         }
       },
-      "image": "/builds/bordoes-quarterstaffs-quarterstaff-corrompida-1v1-corrompida-1v1.png"
+      "image": "/builds/bordoes-quarterstaffs-quarterstaff-corrompida-1v1-corrompida-1v1.png",
+      "buildName_pt": "Bordão"
     },
     {
       "tree": "Machados",
@@ -2782,7 +2819,8 @@
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
       },
-      "image": "/builds/machados-realmbreaker-faccao-zvz.png"
+      "image": "/builds/machados-realmbreaker-faccao-zvz.png",
+      "buildName_pt": "Quebra-reino"
     },
     {
       "tree": "Machados",
@@ -2853,7 +2891,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/machados-infernal-scythe-faccao-zvz.png"
+      "image": "/builds/machados-infernal-scythe-faccao-zvz.png",
+      "buildName_pt": "Segadeira Infernal"
     },
     {
       "tree": "Machados",
@@ -2924,7 +2963,8 @@
           "icon": "/icon/T8_MEAL_STEW_FISH"
         }
       },
-      "image": "/builds/machados-carrioncaller-arena-5v5.png"
+      "image": "/builds/machados-carrioncaller-arena-5v5.png",
+      "buildName_pt": "Chama-corpos"
     },
     {
       "tree": "Machados",
@@ -2995,7 +3035,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/machados-infernal-scythe-arena-5v5.png"
+      "image": "/builds/machados-infernal-scythe-arena-5v5.png",
+      "buildName_pt": "Segadeira Infernal"
     },
     {
       "tree": "Machados",
@@ -3066,7 +3107,8 @@
           "icon": "/icon/T7_MEAL_ROAST"
         }
       },
-      "image": "/builds/machados-crystal-reaper-abyssal-3v3.png"
+      "image": "/builds/machados-crystal-reaper-abyssal-3v3.png",
+      "buildName_pt": "Foice de Cristal"
     },
     {
       "tree": "Machados",
@@ -3143,7 +3185,8 @@
           "icon": "/icon/T8_MEAL_STEW"
         }
       },
-      "image": "/builds/machados-battleaxe-corrompida-1v1.png"
+      "image": "/builds/machados-battleaxe-corrompida-1v1.png",
+      "buildName_pt": "Machado de Guerra"
     }
   ]
 }

@@ -244,9 +244,12 @@ def find_builds(tree_value, content_value=None):
 
 
 def build_title(build):
+    # nome da build em PT (buildName_pt, do nome PT da arma); cai pro EN só se
+    # faltar — guilda 100% BR não vê título em inglês.
+    nome = build.get("buildName_pt") or build.get("buildName", "")
     tree = _TREE_LABEL.get(build.get("tree"), build.get("tree", ""))
     content = _CONTENT_LABEL.get(build.get("content"), build.get("content", ""))
-    return f"⚔️ {build.get('buildName', '')} — {tree} · {content}"
+    return f"⚔️ {nome} — {tree} · {content}"
 
 
 def build_card_text(build):

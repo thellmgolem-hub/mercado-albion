@@ -49,11 +49,21 @@ class BuildsDataTests(unittest.TestCase):
     def test_title_and_icon_url(self):
         dawn = next(b for b in bot.load_builds() if b["buildName"] == "Dawnsong")
         title = bot.build_title(dawn)
-        self.assertIn("Dawnsong", title)
+        self.assertIn("Canção da Alvorada", title)   # título em PT (buildName_pt)
+        self.assertNotIn("Dawnsong", title)          # nada de nome EN no título
         self.assertIn("Fogo", title)
         url = bot.weapon_icon_url(dawn)
         self.assertTrue(url.startswith("https://render.albiononline.com/v1/item/"))
         self.assertIn("size=128", url)
+
+    def test_no_english_build_names_in_titles(self):
+        # regressão: NENHUM título de build deve exibir o buildName em inglês
+        for b in bot.load_builds():
+            title = bot.build_title(b)
+            self.assertNotIn(b["buildName"], title,
+                             f"título com nome EN: {b['buildName']}")
+            self.assertTrue(b.get("buildName_pt"),
+                            f"{b['buildName']} sem buildName_pt")
 
     def test_every_tree_has_builds_and_clean_label(self):
         for label, value in bot.BUILD_TREES:

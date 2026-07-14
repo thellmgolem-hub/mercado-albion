@@ -117,8 +117,9 @@ def compose(build):
     img = Image.new("RGBA", (W, H), (32, 34, 37, 255))
     d = ImageDraw.Draw(img)
     tree = build.get("tree", "").replace("Cajados ", "").split(" (")[0]
-    d.text((margin, 8), f"{build.get('buildName', '')}", fill=(201, 162, 75, 255),
-           font=font(20, bold=True))
+    # título em PT (buildName_pt); cai pro EN só se faltar
+    nome = build.get("buildName_pt") or build.get("buildName", "")
+    d.text((margin, 8), nome, fill=(201, 162, 75, 255), font=font(20, bold=True))
     d.text((margin, 32), f"{tree} · {build.get('content', '')}",
            fill=(170, 170, 170, 255), font=font(12))
     fl, fslot = font(11), font(10)
