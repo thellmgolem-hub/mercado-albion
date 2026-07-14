@@ -352,15 +352,26 @@ class AuthManager:
                 raise
 
     def _init_schema(self):
-        with self._tx() as con:
-            if getattr(con, "backend", "sqlite") == "sqlite":
-                con.executescript(_AUTH_SCHEMA_SQLITE)
-            else:
-                for stmt in _AUTH_SCHEMA_PG.split(";"):
-                    if stmt.strip():
-                        con.execute(stmt)
-        self._migrate_org_columns()
-        self._revoke_legacy_devices()
+        from . import store  # p/ detectar somente-leitura (disco cheio no free)
+        try:
+            with self._tx() as con:
+                if getattr(con, "backend", "sqlite") == "sqlite":
+                    con.executescript(_AUTH_SCHEMA_SQLITE)
+                else:
+                    for stmt in _AUTH_SCHEMA_PG.split(";"):
+                        if stmt.strip():
+                            con.execute(stmt)
+            self._migrate_org_columns()
+            self._revoke_legacy_devices()
+        except Exception as exc:
+            # Postgres em somente-leitura (disco cheio): o app sobe em modo
+            # degradado em vez de crash-loop. As tabelas de auth já existem de
+            # um boot são; login novo volta quando o disco for liberado.
+            if store._is_readonly_error(exc):
+                print("[auth] _init_schema pulado: banco em somente-leitura. "
+                      "App sobe em modo degradado.", flush=True)
+                return
+            raise
 
     def _migrate_org_columns(self):
         """Idempotente: base viva ganha org_id/is_super em auth_accounts e o

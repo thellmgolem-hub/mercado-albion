@@ -269,55 +269,56 @@ def weapon_icon_url(build, public_url=None):
 # (não em texto solto) para nunca sair do sincronismo com os comandos reais.
 HELP_SECTIONS = [
     ("💹 Mercado", [
-        ("/preco", "preço de um item por cidade — ex.: `/preco bolsa t4`"),
-        ("/comparar", "preço entre TODAS as cidades + melhor rota de flip"),
-        ("/historico", "GRÁFICO do preço: evolução + comparação entre cidades"),
-        ("/vender", "melhor cidade para vender um item"),
-        ("/ouro", "cotação do ouro + tendência de 48h"),
-        ("/flip", "quanto você tem → o que comprar — ex.: `/flip 500000`"),
-        ("/recomendar", "as 5 melhores oportunidades de flip agora"),
-        ("/buscar", "descobrir o nome/id de um item"),
+        ("/preco", "mostra o preço de um item em cada cidade. Ex.: `/preco bolsa t4`"),
+        ("/comparar", "põe as cidades lado a lado e já aponta a rota de flip"),
+        ("/historico", "gráfico da evolução do preço, comparando as cidades de maior giro"),
+        ("/vender", "diz onde vale mais a pena vender"),
+        ("/ouro", "cotação do ouro e como ela andou nas últimas 48h"),
+        ("/flip", "você diz quanta prata tem e ele monta a lista de compras. "
+                  "Ex.: `/flip 500000`"),
+        ("/recomendar", "as 5 melhores oportunidades do momento"),
+        ("/buscar", "acha o nome ou o id de um item"),
     ]),
     ("🏝️ Ilha & Produção", [
-        ("/ilha", "top 5 diários de trabalhador (margem vazio→cheio)"),
-        ("/felicidade", "móveis/troféus ideais + rendimento — ex.: "
-                        "`/felicidade tier_trabalhador: 7`"),
-        ("/plano", "plano de produção p/ N trabalhadores"),
+        ("/ilha", "os 5 melhores diários de trabalhador, pela margem de vazio pra cheio"),
+        ("/felicidade", "os móveis e troféus ideais e o rendimento que dá. "
+                        "Ex.: `/felicidade tier_trabalhador: 7`"),
+        ("/plano", "monta um plano de produção pra vários trabalhadores"),
     ]),
     ("⚔️ Builds da guild", [
-        ("/builds", "escolha a árvore de arma + o conteúdo → build com os "
-                    "itens em PT-BR e imagem do loadout"),
+        ("/builds", "é só escolher a arma e o conteúdo. Vem a build pronta, "
+                    "com os itens em português e a imagem do loadout"),
     ]),
     ("🎯 Tributo da guild", [
-        ("/vincular", "liga seu Discord à sua conta (peça o código a um oficial)"),
-        ("/minhas-metas", "suas metas da semana (só você vê)"),
-        ("/meu-status", "seu relógio de tributo (só você vê)"),
-        ("/reportar", "avisa uma entrega — ex.: "
-                      "`/reportar item: minério t4 quantidade: 500`"),
-        ("/quadro", "placar da guild: metas × entregas"),
+        ("/vincular", "liga seu Discord à sua conta. Peça o código a um oficial"),
+        ("/minhas-metas", "suas metas da semana. Só você vê"),
+        ("/meu-status", "seu relógio de tributo. Só você vê"),
+        ("/reportar", "avisa que você entregou algo. "
+                      "Ex.: `/reportar item: minério t4 quantidade: 500`"),
+        ("/quadro", "o placar da guild: metas contra o que já entrou"),
     ]),
     ("🛡️ Auditoria (oficiais)", [
-        ("/pendentes", "fila de reportes aguardando aprovação"),
-        ("/aprovar", "aprova um reporte (zera o relógio do membro)"),
-        ("/rejeitar", "rejeita um reporte (relógio volta a contar)"),
+        ("/pendentes", "a fila de reportes esperando aprovação"),
+        ("/aprovar", "aprova um reporte e zera o relógio do membro"),
+        ("/rejeitar", "rejeita um reporte, e o relógio volta a correr"),
     ]),
 ]
 # Título do embed do guia — usado no /ajuda, no guia automático E como marcador
 # p/ reencontrar a própria mensagem no canal (idempotência sem depender de disco).
 GUIDE_TITLE = "📖 Guia de comandos — Mercado Albion"
 BOARD_MARKER = "QUADRO DA SEMANA"     # cabeçalho do quadro (idem: reencontro no canal)
-HELP_INTRO = ("Sou o assistente de mercado do Albion (servidor Américas). "
-              "Digite **/** e escolha um comando — a resposta vem na hora.\n"
+HELP_INTRO = ("Sou o bot de mercado do Albion, servidor Américas. "
+              "Digita **/** e escolhe um comando; a resposta chega ali mesmo.\n"
               "🔎 Nos comandos de item (**/preco, /comparar, /vender, /buscar**) "
-              "não precisa saber o nome exato: comece a digitar e **clique na "
-              "lista** (autocomplete).")
+              "você não precisa saber o nome certo. Começa a digitar e "
+              "**clica na sugestão** que aparecer.")
 
 
 def help_fields():
     """Campos do embed do /ajuda (nome da seção, texto). Pura p/ testar."""
     out = []
     for title, cmds in HELP_SECTIONS:
-        body = "\n".join(f"**{c}** — {desc}" for c, desc in cmds)
+        body = "\n".join(f"**{c}** {desc}" for c, desc in cmds)
         out.append((title, body[:1024]))
     return out
 
@@ -875,6 +876,13 @@ def build_bot(api: ApiClient):
                     guild = discord.Object(id=int(gid))
                     self.tree.copy_global_to(guild=guild)
                     await self.tree.sync(guild=guild)
+                    # tira os comandos GLOBAIS antigos. Sem isto, um comando que
+                    # já tinha sido registrado global (antes de existir o
+                    # DISCORD_GUILD_ID) aparece DUPLICADO no menu: uma vez como
+                    # global, outra como do servidor. Limpar o global deixa só a
+                    # cópia do servidor (que já foi sincronizada acima).
+                    self.tree.clear_commands(guild=None)
+                    await self.tree.sync()
                 else:
                     await self.tree.sync()     # global: pode levar até ~1h
             except Exception as exc:

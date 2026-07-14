@@ -700,21 +700,46 @@ def ensure_default_org(conn) -> None:
     conn.commit()
 
 
+def _is_readonly_error(exc) -> bool:
+    """True se for erro de Postgres em modo somente-leitura (o que acontece no
+    plano free quando o disco enche). Serve p/ o app subir degradado em vez de
+    entrar em crash-loop no boot."""
+    s = str(exc).lower()
+    return "read-only" in s or "read only" in s or "readonlysql" in s
+
+
 def init_schema(conn):
-    """Cria as tabelas do piloto no backend ativo (idempotente)."""
-    if getattr(conn, "backend", "sqlite") == "sqlite":
-        conn.executescript(_SQLITE_SCHEMA)
-    else:
-        for stmt in _PG_SCHEMA.split(";"):
-            if stmt.strip():
-                conn.execute(stmt)
-    conn.commit()
-    # Migração idempotente para bases que predatam o multi-inquilino: o
-    # CREATE ... IF NOT EXISTS acima NÃO altera tabela viva sem org_id.
-    add_column(conn, "production_chains", "org_id INTEGER NOT NULL DEFAULT 1")
-    add_column(conn, "positions", "org_id INTEGER NOT NULL DEFAULT 1")
-    conn.execute("CREATE INDEX IF NOT EXISTS idx_production_chains_org "
-                 "ON production_chains (org_id, owner_user_id)")
-    conn.commit()
-    ensure_default_org(conn)
-    init_tribute_schema(conn)   # tributo da guild (idempotente, dual)
+    """Cria as tabelas do piloto no backend ativo (idempotente).
+
+    Se o Postgres estiver em somente-leitura (disco cheio no free), o DDL falha
+    no boot. Em vez de derrubar o processo em loop, o app SOBE em modo
+    degradado: as tabelas já existem de um boot são, então as leituras (site,
+    /preco, /historico) funcionam; as escritas caem por endpoint até o disco
+    ser liberado. Só o erro de read-only é engolido; qualquer outro sobe."""
+    try:
+        if getattr(conn, "backend", "sqlite") == "sqlite":
+            conn.executescript(_SQLITE_SCHEMA)
+        else:
+            for stmt in _PG_SCHEMA.split(";"):
+                if stmt.strip():
+                    conn.execute(stmt)
+        conn.commit()
+        # Migração idempotente para bases que predatam o multi-inquilino: o
+        # CREATE ... IF NOT EXISTS acima NÃO altera tabela viva sem org_id.
+        add_column(conn, "production_chains", "org_id INTEGER NOT NULL DEFAULT 1")
+        add_column(conn, "positions", "org_id INTEGER NOT NULL DEFAULT 1")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_production_chains_org "
+                     "ON production_chains (org_id, owner_user_id)")
+        conn.commit()
+        ensure_default_org(conn)
+        init_tribute_schema(conn)   # tributo da guild (idempotente, dual)
+    except Exception as exc:
+        if _is_readonly_error(exc):
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            print("[store] init_schema pulado: banco em somente-leitura "
+                  "(disco cheio?). App sobe em modo degradado.", flush=True)
+            return
+        raise
