@@ -2180,5 +2180,88 @@ class ProdChainTests(unittest.TestCase):
         self.assertNotIn("T4_METALBAR", full["nodes"])
 
 
+class HistoryStatsPgTypeTests(unittest.TestCase):
+    """No Postgres, SUM de coluna BIGINT (item_count) volta como Decimal, e
+    SUM(item_count*avg_price) (avg_price é DOUBLE) volta como float; dividir
+    float por Decimal estoura TypeError. No SQLite tudo vem float, então o bug
+    só aparecia em produção (o 500 do /recomendar). Estes testes injetam os
+    tipos do PG e garantem que _history_stats coage p/ float e não quebra."""
+
+    def _fake_con(self, total_volume, traded_value, active_days=5):
+        agg = {
+            "item_id": "T4_BAG", "city": "Lymhurst", "quality": 1,
+            "total_volume": total_volume, "active_days": active_days,
+            "traded_value": traded_value,
+        }
+
+        class _Cur:
+            def __init__(self, rows):
+                self._rows = rows
+
+            def fetchone(self):
+                return self._rows[0] if self._rows else None
+
+            def __iter__(self):
+                return iter(self._rows)
+
+        class _Con:
+            def execute(self, sql, params=None):
+                # 1ª query pega MAX(ts); a 2ª agrega (GROUP BY)
+                if "MAX(ts)" in sql:
+                    return _Cur([{"m": "2026-07-10T12:00:00"}])
+                return _Cur([agg])
+
+        return _Con()
+
+    def test_decimal_total_com_traded_float_nao_quebra(self):
+        from decimal import Decimal
+        # tipos reais do PG: SUM(BIGINT)->Decimal, SUM(qtd*DOUBLE)->float
+        con = self._fake_con(Decimal("1000"), 250000.0)
+        stats_map, mx = app._history_stats(con, ["T4_BAG"], ["Lymhurst"], [1], 7)
+        s = stats_map[("T4_BAG", "Lymhurst", 1)]
+        self.assertAlmostEqual(s["vwap"], 250.0)            # 250000 / 1000
+        self.assertAlmostEqual(s["avg_daily"], 1000 / 7)
+        self.assertIsInstance(s["vwap"], float)
+        self.assertIsInstance(s["avg_daily"], float)
+        self.assertEqual(mx, "2026-07-10T12:00:00")
+
+    def test_ambos_decimal_tambem_ok(self):
+        from decimal import Decimal
+        con = self._fake_con(Decimal("800"), Decimal("200000"))
+        stats_map, _ = app._history_stats(con, ["T4_BAG"], ["Lymhurst"], [1], 7)
+        s = stats_map[("T4_BAG", "Lymhurst", 1)]
+        self.assertAlmostEqual(s["vwap"], 250.0)            # 200000 / 800
+        self.assertIsInstance(s["vwap"], float)
+
+
+class LiquidityPgTypeTests(unittest.TestCase):
+    """_daily_liquidity é a raiz do 'liquidity_day' que /flip (advisor) e
+    /micro multiplicam por preço/CAPTURE_RATE (float). No Postgres SUM(item_count
+    BIGINT) volta Decimal; se não coagir, Decimal*float estoura. Injeta Decimal
+    e garante que a mediana sai float."""
+
+    def test_daily_liquidity_coage_decimal_para_float(self):
+        from decimal import Decimal
+        from albion import microstructure
+
+        class _Cur:
+            def fetchall(self):
+                # (item_id, city, dia, SUM(item_count)) — SUM de BIGINT no PG
+                return [("T4_BAG", "Lymhurst", "2026-07-10", Decimal("300")),
+                        ("T4_BAG", "Lymhurst", "2026-07-11", Decimal("500"))]
+
+        class _Con:
+            def execute(self, sql, params=None):
+                return _Cur()
+
+        liq = microstructure._daily_liquidity(
+            _Con(), "americas", [("T4_BAG", "Lymhurst")], days=7)
+        v = liq[("T4_BAG", "Lymhurst")]
+        self.assertIsInstance(v, float)        # Decimal coagido
+        self.assertEqual(v, 500.0)             # mediana de [300, 500]
+        # e o produto com um float (como no advisor/micro) não estoura
+        self.assertIsInstance(v * 0.20, float)
+
+
 if __name__ == "__main__":
     unittest.main()

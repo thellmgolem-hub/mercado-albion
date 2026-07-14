@@ -54,7 +54,9 @@ def soldier_kit_index(con, server, days=7, hist_days=120, top_k=4):
             [server, slot, store.cutoff_iso(days), top_k]).fetchall()
         tot = sum(n for _, n in rows) or 1
         for item, n in rows:
-            weights[item] = weights.get(item, 0) + (n / tot) / len(slots)
+            # SUM(victim_units) é Decimal no Postgres; float() deixa o peso float
+            # e evita Decimal*avg_price (DOUBLE->float) no custo da cesta abaixo.
+            weights[item] = weights.get(item, 0) + (float(n) / float(tot)) / len(slots)
     if not weights:
         return {"basket": [], "series": []}
     ids = list(weights)

@@ -54,7 +54,9 @@ def _daily_liquidity(con, server, pairs, days=7):
     out = {}
     for k, vals in by_pair.items():
         vals.sort()
-        out[k] = vals[len(vals) // 2]  # mediana
+        # SUM(item_count) volta Decimal no Postgres; float() aqui evita o
+        # Decimal*float la em market_making_menu/advisor (raiz do 'liquidity_day').
+        out[k] = float(vals[len(vals) // 2])  # mediana
     return out
 
 

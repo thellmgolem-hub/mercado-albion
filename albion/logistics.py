@@ -192,7 +192,9 @@ def restock_map(demand_rows, price_rows, items_meta, premium=True, limit=40):
     e melhor cidade p/ vender líquido (where_to_sell). Ordena por
     demanda × lucro_por_kg — a fila de abastecimento mais valiosa.
     """
-    demand = {iid: u for iid, u in demand_rows if u}
+    # SUM(victim_units) volta Decimal no Postgres; int() (é contagem) evita o
+    # Decimal*float no score/profit_per_kg abaixo.
+    demand = {iid: int(u) for iid, u in demand_rows if u}
     # melhor venda líquida por item (q1) via where_to_sell
     sells = where_to_sell([r for r in price_rows if r["quality"] == 1],
                           items_meta, premium=premium, qualities=[1])

@@ -1087,12 +1087,18 @@ def _history_stats(con, item_ids, city_list, qualities, days):
                 FROM history
                 WHERE {' AND '.join(where)}
                 GROUP BY item_id, city, quality""", params):
-        total = r["total_volume"] or 0
-        vwap = ((r["traded_value"] or 0) / total) if total else None
+        # Postgres devolve SUM de coluna inteira como Decimal e SUM de produto
+        # com preco (double) como float; misturar os dois numa divisao estoura
+        # (float / Decimal). No SQLite tudo ja vem float. Forcar float/int aqui
+        # deixa a aritmetica dual-safe.
+        total = float(r["total_volume"] or 0)
+        traded = float(r["traded_value"] or 0)
+        active_days = int(r["active_days"] or 0)
+        vwap = (traded / total) if total else None
         stats[(r["item_id"], r["city"], r["quality"])] = {
             "avg_daily": total / max(days, 1),
-            "active_days": r["active_days"] or 0,
-            "active_ratio": (r["active_days"] or 0) / max(days, 1),
+            "active_days": active_days,
+            "active_ratio": active_days / max(days, 1),
             "total_volume": total,
             "vwap": vwap,
         }

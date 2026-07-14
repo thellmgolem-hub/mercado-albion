@@ -64,11 +64,16 @@ def consumable_burn(con, server, days=7, price_of=None, vol_of=None,
         [server, store.cutoff_iso(days)]).fetchall()
     out = []
     for item, units, active_days in rows:
+        # SUM(victim_units) e o volume de mercado voltam Decimal no Postgres;
+        # float() antes das razões evita o Decimal/float com o preço (que é float).
+        units = float(units)
         # agregado é diário: normaliza por DIAS ativos (não por horas de
         # exposição — o killboard magro não guarda a granularidade horária).
         per_day = units / max(active_days, 1)
         price = price_of(item) if price_of else None
         market_vol = vol_of(item) if vol_of else None
+        if market_vol is not None:
+            market_vol = float(market_vol)
         coverage = (market_vol / per_day) if (market_vol and per_day) else None
         out.append({
             "item_id": item,
@@ -103,7 +108,9 @@ def destroyed_quality(con, server, days=7, price_q=None, limit=40):
         [server, store.cutoff_iso(days)]).fetchall()
     by_item = {}
     for item, q, units in rows:
-        by_item.setdefault(item, {})[q] = units
+        # SUM(victim_units) é Decimal no Postgres; int() (contagem) evita o
+        # Decimal*float no share*(preço/preço_q1) abaixo.
+        by_item.setdefault(item, {})[q] = int(units)
     out = []
     for item, qd in by_item.items():
         total = sum(qd.values())
