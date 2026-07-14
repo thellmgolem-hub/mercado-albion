@@ -109,7 +109,16 @@ GOLD_TTL = 300
 
 # Janelas canônicas de busca de histórico por escala (dias). Pedidos menores
 # reaproveitam o cache da janela maior — 1 requisição cobre várias consultas.
-HISTORY_FETCH_WINDOWS = {24: [90, 180, 365], 6: [30, 90], 1: [7, 30]}
+# O 30 no início da escala 24h deixa o sweep da NUVEM guardar só 30 dias (cabe
+# no Postgres free); pedidos de 90/180/365 seguem servidos p/ o app local.
+HISTORY_FETCH_WINDOWS = {24: [30, 90, 180, 365], 6: [30, 90], 1: [7, 30]}
+
+# Retenção da tabela `history` (dias). O sweep re-insere a janela buscada sem
+# apagar as linhas antigas, então elas ACUMULAM sem limite (foi o que encheu o
+# Postgres free: history chegou a 1.2 GB). A poda diária do sweep apaga
+# history com `ts` além desta janela. Fica um pouco ACIMA de SWEEP_HISTORY_DAYS
+# p/ nunca apagar dado recém-buscado. Sobe se você migrar p/ um plano maior.
+HISTORY_RETENTION_DAYS = 35
 
 # Retenção de snapshots BRUTOS (30 min). O histórico de longo prazo fica em
 # price_snapshots_daily (agregado, permanente); os snapshots crus só servem à
@@ -224,7 +233,9 @@ USER_AGENT = "albion-market-local/1.0 (app local de consulta de mercado)"
 # (muda devagar — refazer a cada ciclo seria desperdício de requisições).
 SWEEP_ITEMS_PER_TICK = 100        # itens por toque (~2 chunks de preço/histórico)
 SWEEP_HISTORY_TTL = 6 * 3600      # refaz histórico do item no máx. de 6 em 6 h
-SWEEP_HISTORY_DAYS = 90           # janela canônica de histórico (escala 24h)
+SWEEP_HISTORY_DAYS = 30           # janela de histórico do sweep (escala 24h) —
+# 30 dias (era 90) p/ o Postgres free caber; o /historico mostra até 30 dias na
+# nuvem, e a poda (HISTORY_RETENTION_DAYS) mantém a tabela nesse tamanho.
 # Universo de varredura = TODO item negociável. 'vanity' são skins não-vendáveis
 # (0/696 com mercado). 'other' e 'furniture' contêm itens negociáveis (diários,
 # labourers, mobília, mapas) — por isso filtramos por SUBcategoria-lixo, não pela

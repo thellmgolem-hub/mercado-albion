@@ -896,6 +896,13 @@ def sweep(request: Request, token: str = "",
         except Exception as exc:             # nunca derruba o tick do cron
             log.warning("[sweep] prune falhou: %s", exc)
             out["prune"] = {"error": str(exc)[:200]}
+        try:
+            # poda de history: o vilão real do disco no Postgres free — sem ela
+            # a tabela acumula a janela buscada sem limite (chegou a 1.2 GB).
+            out["history_prune"] = aodp.history_prune()
+        except Exception as exc:
+            log.warning("[sweep] history_prune falhou: %s", exc)
+            out["history_prune"] = {"error": str(exc)[:200]}
     return out
 
 

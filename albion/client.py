@@ -837,3 +837,26 @@ class AODP:
             if vacuum:
                 self.db.execute("VACUUM")
         return {"aggregated_days": aggregated, "deleted_rows": deleted}
+
+    def history_prune(self, days: int = config.HISTORY_RETENTION_DAYS) -> dict:
+        """Apaga linhas de `history` com `ts` além da janela de retenção.
+
+        O sweep re-insere a janela buscada (upsert), mas nunca apaga o que caiu
+        fora dela — as linhas antigas ACUMULAM sem limite (foi o que encheu o
+        Postgres free: history a 1.2 GB). Esta poda mantém a tabela no tamanho
+        da janela. `ts` é texto ISO de largura fixa, então `ts < cutoff` (só a
+        data) equivale à comparação temporal em SQLite E Postgres — sem função
+        de data, dual-safe. Escrita única: rollback defensivo p/ nunca deixar a
+        conexão gravável do PG em transação abortada."""
+        cutoff = store.cutoff_iso(days)
+        with self.db_lock:
+            try:
+                cur = self.db.execute(
+                    "DELETE FROM history WHERE server=? AND ts < ?",
+                    [self.server, cutoff])
+                deleted = cur.rowcount
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
+        return {"deleted_rows": deleted, "cutoff": cutoff}

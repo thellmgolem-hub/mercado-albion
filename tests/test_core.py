@@ -518,6 +518,31 @@ class DivergenceTests(unittest.TestCase):
         self.assertAlmostEqual(s["volume_dia"], 50.0, places=0)
 
 
+class HistoryPruneTests(unittest.TestCase):
+    def test_history_prune_removes_rows_beyond_retention(self):
+        from datetime import datetime, timedelta, timezone
+        now = datetime.now(timezone.utc)
+        keep = (now - timedelta(days=5)).strftime("%Y-%m-%d")    # dentro (35d)
+        drop = (now - timedelta(days=120)).strftime("%Y-%m-%d")  # fora
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                for ts in (keep, drop):
+                    aodp.db.execute(
+                        "INSERT INTO history VALUES (?,?,?,?,?,?,?,?,?)",
+                        ("americas", "T4_TESTSWORD", "Martlock", 1, 24,
+                         f"{ts}T00:00:00", 50, 100.0, 0))
+                aodp.db.commit()
+                res = aodp.history_prune()
+                rows = aodp.db.execute(
+                    "SELECT ts FROM history ORDER BY ts").fetchall()
+            finally:
+                aodp.db.close()
+        self.assertEqual(res["deleted_rows"], 1)     # só a linha antiga saiu
+        self.assertEqual(len(rows), 1)
+        self.assertTrue(rows[0][0].startswith(keep))  # a recente ficou
+
+
 class SignalValidationTests(unittest.TestCase):
     def test_validate_signals_measures_realized_return(self):
         import time as _time
