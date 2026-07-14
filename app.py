@@ -2106,7 +2106,7 @@ def prodchain_graph(item: str, premium: bool = True, sell_mode: str = "order"):
     if con is None:
         return {"roots": roots, "nodes": {}, "cities": config.ROYAL_CITIES}
     try:
-        q1, _ = _price_lookups(con)
+        q1, _ = _price_lookups(con, quality=1)   # prodchain só usa q1
         g = _prodchain.build_graph(
             roots, lambda i, c: q1.get((i, c)),
             premium=premium, sell_mode=sell_mode, cities=config.ROYAL_CITIES)
@@ -2116,6 +2116,42 @@ def prodchain_graph(item: str, premium: bool = True, sell_mode: str = "order"):
             node["tier"] = meta.get("tier")
             node["enchant"] = meta.get("enchant", 0)
         return g
+    finally:
+        con.close()
+
+
+@app.get("/api/prodchain/plan")
+def prodchain_plan(item: str, qty: int = Query(1, ge=1, le=100000),
+                   premium: bool = True):
+    """Plano de produção em TEXTO (p/ o bot /produzir): resolve 1 alvo, monta o
+    grafo e roda prodchain.solve() com tudo FABRICAR até o bruto — devolve a
+    lista de compras de recurso bruto + custo + lucro se vender. Espelha o
+    'produzir' da aba Linha de Produção, sem o editor visual."""
+    item_id = _resolve_items([item])[0]
+    con = _cache_connection()
+    meta = _item_meta(item_id)
+    head = {"id": item_id, "name_pt": meta.get("pt", item_id),
+            "tier": meta.get("tier"), "enchant": meta.get("enchant", 0)}
+    if con is None:
+        return {"item": head, "qty": qty, "available": False}
+    try:
+        q1, _ = _price_lookups(con, quality=1)
+        g = _prodchain.build_graph([item_id], lambda i, c: q1.get((i, c)),
+                                   premium=premium, sell_mode="order",
+                                   cities=config.ROYAL_CITIES)
+        if item_id not in g["nodes"] or g["nodes"][item_id].get("is_raw") \
+                or not g["nodes"][item_id].get("recipe"):
+            return {"item": head, "qty": qty, "available": False}
+        res = _prodchain.solve(g, {item_id: qty})     # state=None => tudo fabricar
+        shop = [{**s, "id": iid, "name_pt": _item_meta(iid).get("pt", iid)}
+                for iid, s in (res.get("shopping") or {}).items()]
+        shop.sort(key=lambda s: -(s.get("cost") or 0))
+        return {
+            "item": head, "qty": qty, "available": True, "shopping": shop,
+            "buy_cost": res.get("buy_cost"), "focus_points": res.get("focus_points"),
+            "revenue": res.get("revenue"), "profit": res.get("profit"),
+            "roi_pct": res.get("roi_pct"), "missing_sell": res.get("missing_sell"),
+        }
     finally:
         con.close()
 

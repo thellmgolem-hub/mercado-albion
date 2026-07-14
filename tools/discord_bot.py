@@ -312,6 +312,8 @@ HELP_SECTIONS = [
         ("/refinar", "ranking do refino: onde compensa refinar o bruto ou vender bruto. "
                      "Ex.: `/refinar tier: 4`"),
         ("/foco", "ranking de prata por ponto de foco (craft e refino)"),
+        ("/produzir", "pra fazer N de um item, a lista de compras de recurso bruto. "
+                      "Ex.: `/produzir espada larga t5 quantidade: 20`"),
         ("/guild", "decisões da guild: fabricar-vs-comprar, o que mais se perde, regear"),
     ]),
     ("📈 Análise avançada", [
@@ -1274,6 +1276,40 @@ async def handle_sinais(api, item: str) -> str:
     return code_block("\n".join(lines))
 
 
+async def handle_produzir(api, item: str, qty: int = 1) -> str:
+    """/produzir — cadeia de produção em texto: pra fazer N do item, a lista de
+    compras de recurso BRUTO + custo + lucro se vender (GET /api/prodchain/plan)."""
+    res = await api.get("/api/prodchain/plan", params={"item": item, "qty": qty})
+    meta = res.get("item") or {}
+    nome = meta.get("name_pt") or meta.get("id", item)
+    t = meta.get("tier")
+    tag = f" T{t}.{meta.get('enchant', 0)}" if t else ""
+    if not res.get("available"):
+        return code_block(f"{nome}: sem plano de produção agora (item já é bruto, "
+                          "sem receita, ou cache frio).")
+    shop = res.get("shopping") or []
+    if not shop:
+        return code_block(f"{nome}: nada a comprar (já é bruto ou sem receita).")
+    lines = [f"Produzir {qty}× {nome}{tag} — lista de compras (recurso bruto):", ""]
+    for s in shop[:15]:
+        c = f" = {fmt_silver(s.get('cost'))}" if s.get("cost") else " (sem preço)"
+        lines.append(f"  {s.get('qty')}x {s.get('name_pt') or s.get('id')} "
+                     f"em {s.get('city', '?')}{c}")
+    if len(shop) > 15:
+        lines.append(f"  ... +{len(shop) - 15} materiais")
+    lines += ["", f"Custo dos materiais: {fmt_silver(res.get('buy_cost'))}"]
+    if res.get("focus_points"):
+        lines.append(f"Foco necessário: {fmt_silver(res.get('focus_points'))} pontos")
+    if res.get("revenue"):
+        roi = (f" (ROI {res.get('roi_pct')}%)"
+               if res.get("roi_pct") is not None else "")
+        lines.append(f"Se vender tudo: receita {fmt_silver(res.get('revenue'))} · "
+                     f"LUCRO {fmt_silver(res.get('profit'))}{roi}")
+    elif res.get("missing_sell"):
+        lines.append("(produto final sem cotação de venda — lucro não estimado)")
+    return code_block("\n".join(lines))
+
+
 # ------------------------------------------------------ casca discord.py 2.x
 def build_bot(api: ApiClient):
     """Monta o Client + CommandTree ligando cada slash command ao handler puro."""
@@ -1723,6 +1759,15 @@ def build_bot(api: ApiClient):
                   description="Ranking de prata por ponto de foco (craft e refino)")
     async def foco_cmd(interaction: discord.Interaction):
         await _respond(interaction, handle_foco(api))
+
+    @tree.command(name="produzir",
+                  description="Cadeia de produção: lista de compras p/ fazer N de um item")
+    @app_commands.describe(item="Comece a digitar e escolha da lista (PT/EN)",
+                           quantidade="Quantas unidades produzir (padrão 1)")
+    @app_commands.autocomplete(item=item_ac)
+    async def produzir_cmd(interaction: discord.Interaction, item: str,
+                           quantidade: app_commands.Range[int, 1, 100000] = 1):
+        await _respond(interaction, handle_produzir(api, item, quantidade))
 
     @tree.command(name="demanda",
                   description="Killboard: consumíveis mais gastos e qualidade destruída")

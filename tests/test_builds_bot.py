@@ -478,6 +478,37 @@ class AdvancedHandlerTests(unittest.TestCase):
         self.assertIn("Minério × Barra", out2)
         self.assertIn("andam juntos", out2)
 
+    def test_produzir_e_indisponivel(self):
+        class Api:
+            async def get(self, path, params=None):
+                assert path == "/api/prodchain/plan"
+                assert params["qty"] == 20
+                return {"item": {"id": "T5_2H_AXE", "name_pt": "Machado Grande",
+                                 "tier": 5, "enchant": 0},
+                        "qty": 20, "available": True,
+                        "shopping": [
+                            {"id": "T5_PLANKS", "name_pt": "Tábuas de Pinho",
+                             "qty": 320, "unit": 250, "cost": 80000,
+                             "city": "Fort Sterling", "priced": True},
+                            {"id": "T5_METALBAR", "name_pt": "Barra de Aço",
+                             "qty": 160, "unit": 300, "cost": 48000,
+                             "city": "Thetford", "priced": True}],
+                        "buy_cost": 128000, "focus_points": 0,
+                        "revenue": 200000, "profit": 72000, "roi_pct": 56.3,
+                        "missing_sell": []}
+        out = self._run(bot.handle_produzir(Api(), "machado grande", 20))
+        self.assertIn("Produzir 20× Machado Grande", out)
+        self.assertIn("Tábuas de Pinho", out)
+        self.assertIn("LUCRO", out)
+        self.assertIn("ROI 56.3%", out)
+
+        class NoRecipe:
+            async def get(self, path, params=None):
+                return {"item": {"id": "T4_ORE", "name_pt": "Minério"},
+                        "qty": 1, "available": False}
+        self.assertIn("sem plano de produção",
+                      self._run(bot.handle_produzir(NoRecipe(), "minério", 1)))
+
     def test_sinais_e_indisponivel(self):
         class Api:
             async def get(self, path, params=None):
