@@ -1724,7 +1724,12 @@ def _price_lookups(con, max_age_days=3, quality=None):
     # corte ISO calculado em Python (portável SQLite/Postgres)
     cutoff = (datetime.utcnow()
               - timedelta(days=int(max_age_days))).strftime("%Y-%m-%dT%H:%M:%S")
-    sql, params = "SELECT * FROM prices WHERE server=?", [aodp.server]
+    # descarta linhas MORTAS (sem preço nenhum) já no SQL: são a maioria da
+    # tabela e o Postgres free trava se varrer tudo (o clean_price_rows só olha
+    # campos > 0 mesmo, então filtrar aqui é equivalente e MUITO mais leve).
+    sql = ("SELECT * FROM prices WHERE server=? "
+           "AND (sell_price_min > 0 OR buy_price_max > 0)")
+    params = [aodp.server]
     if quality is not None:
         sql += " AND quality=?"
         params.append(int(quality))
@@ -1808,7 +1813,7 @@ def guild_view(view: str = "watch", days: float = Query(7, ge=0.25, le=30),
                              for i, w in res.get("basket", [])]
             res["view"] = "kit"
             return res
-        q1, _ = _price_lookups(con)
+        q1, _ = _price_lookups(con, quality=1)   # watch/makeorbuy só usam q1
         if view == "makeorbuy":
             rows = gd.make_or_buy(con, aodp.server,
                                   price_of=lambda i, c: q1.get((i, c)),
@@ -1840,8 +1845,8 @@ def demand_view(view: str = "burn", days: float = Query(7, ge=0.25, le=45),
         return {"view": view, "rows": []}
     try:
         name = lambda i: (db.get(i) or {}).get("pt", i)
-        q1, allq = _price_lookups(con)
         if view == "quality":
+            _, allq = _price_lookups(con)   # quality precisa de TODAS as qual.
             priceq = {}
             for (i, _c, qq), p in allq.items():
                 k = (i, qq)
@@ -1850,7 +1855,8 @@ def demand_view(view: str = "burn", days: float = Query(7, ge=0.25, le=45),
             rows = dm.destroyed_quality(con, aodp.server, days=days,
                                         price_q=lambda i, q: priceq.get((i, q)),
                                         limit=limit)
-        else:  # burn
+        else:  # burn — só usa q1
+            q1, _ = _price_lookups(con, quality=1)
             price_item = _cheapest_by_item(q1)
             # mesma janela nos dois lados (queima do killboard vs volume AODP)
             vol = _market_volume(con, days=days)
@@ -2286,8 +2292,11 @@ def _clean_prows(con):
     """Linhas de prices saneadas (sem âncora) no formato dos rows da API —
     base das análises de logística (carga, escada de qualidade, BM, reposição)."""
     from albion.microstructure import clean_price_rows
+    # filtra linhas mortas no SQL (idem _price_lookups): leve no Postgres free
     return clean_price_rows([dict(r) for r in con.execute(
-        "SELECT * FROM prices WHERE server=?", [aodp.server]).fetchall()])
+        "SELECT * FROM prices WHERE server=? "
+        "AND (sell_price_min > 0 OR buy_price_max > 0)",
+        [aodp.server]).fetchall()])
 
 
 def _metas_for(rows):
