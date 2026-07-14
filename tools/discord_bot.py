@@ -31,6 +31,7 @@ import sys
 import traceback
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 
@@ -270,6 +271,7 @@ HELP_SECTIONS = [
     ("💹 Mercado", [
         ("/preco", "preço de um item por cidade — ex.: `/preco bolsa t4`"),
         ("/comparar", "preço entre TODAS as cidades + melhor rota de flip"),
+        ("/historico", "GRÁFICO do preço: evolução + comparação entre cidades"),
         ("/vender", "melhor cidade para vender um item"),
         ("/ouro", "cotação do ouro + tendência de 48h"),
         ("/flip", "quanto você tem → o que comprar — ex.: `/flip 500000`"),
@@ -424,6 +426,91 @@ async def handle_comparar(api, termo: str) -> str:
                            f"({fmt_silver(sell_p)}) = +{fmt_silver(sell_p - buy_p)}"
                            f" bruto/un (antes de impostos)")]
     return code_block(head + "\n".join(lines))
+
+
+# ---------------------------------------------------- histórico com gráfico
+QUICKCHART_BASE = "https://quickchart.io/chart"
+
+
+def _sample(seq, n):
+    """<= n pontos com amostragem uniforme, preservando o primeiro e o último."""
+    if len(seq) <= n:
+        return list(seq)
+    step = (len(seq) - 1) / (n - 1)
+    return [seq[round(i * step)] for i in range(n)]
+
+
+def quickchart_url(title, labeled_series, max_len=1990):
+    """URL GET do QuickChart p/ até 2 séries [(cidade, [(rótulo, preço), ...])].
+
+    O gráfico é renderizado pelo quickchart.io (serviço público, sem chave) e o
+    Discord busca a imagem pelo proxy dele — na URL vão SÓ preços públicos de
+    mercado. Degrada (menos séries/pontos) até caber no limite de URL de embed;
+    None se nem a menor versão couber ou não houver série."""
+    for n_series, n_points in ((2, 20), (1, 20), (1, 12)):
+        use = [s for s in labeled_series[:n_series] if s[1]]
+        if not use:
+            return None
+        base_labels = [lb for lb, _ in _sample(use[0][1], n_points)]
+        datasets = []
+        for (city, pts), color in zip(use, ("#c9a24b", "#4bc0c0")):
+            by_label = dict(_sample(pts, n_points))
+            datasets.append({"label": city,
+                             "data": [by_label.get(lb) for lb in base_labels],
+                             "borderColor": color, "fill": False,
+                             "spanGaps": True})
+        cfg = {"type": "line",
+               "data": {"labels": base_labels, "datasets": datasets},
+               "options": {"title": {"display": True, "text": title[:60]}}}
+        url = (QUICKCHART_BASE + "?w=520&h=300&c="
+               + quote(json.dumps(cfg, separators=(",", ":"),
+                                  ensure_ascii=False)))
+        if len(url) <= max_len:
+            return url
+    return None
+
+
+async def handle_historico(api, termo: str, dias: int = 30) -> dict:
+    """/historico — preço médio diário + gráfico comparando as 2 cidades com
+    mais volume.
+
+    Exceção ao contrato de texto dos handlers: devolve dict
+    {text, chart_url, title} — a casca monta o embed com a imagem."""
+    item = await _resolve_item(api, termo)
+    if not item:
+        return {"text": (f"Nenhum item encontrado para '{termo}'. "
+                         f"Tente /buscar {termo}."),
+                "chart_url": None, "title": None}
+    series = await api.get("/api/history",
+                           params={"items": item["id"], "days": dias,
+                                   "time_scale": 24, "quality": 1})
+    series = [s for s in series if s.get("data")]
+    if not series:
+        return {"text": (f"{item['pt']} — sem histórico no cache para {dias} "
+                         "dias. A coleta enche as janelas com o tempo."),
+                "chart_url": None, "title": None}
+    # cidades com mais volume primeiro (o gráfico compara as 2 maiores)
+    series.sort(key=lambda s: -sum(p.get("item_count") or 0 for p in s["data"]))
+    lines, labeled = [], []
+    for s in series[:2]:
+        pts = [(p["ts"][8:10] + "/" + p["ts"][5:7], p["avg_price"])
+               for p in s["data"] if (p.get("avg_price") or 0) > 0]
+        if not pts:
+            continue
+        labeled.append((s.get("city", "?"), pts))
+        prices = [v for _, v in pts]
+        var = ((prices[-1] - prices[0]) / prices[0] * 100) if prices[0] else 0.0
+        vol = sum(p.get("item_count") or 0 for p in s["data"]) / max(1, dias)
+        lines.append(f"**{s.get('city', '?')}** · média "
+                     f"{fmt_silver(sum(prices) / len(prices))} · mín "
+                     f"{fmt_silver(min(prices))} · máx {fmt_silver(max(prices))}"
+                     f" · {var:+.1f}% no período · ~{fmt_silver(vol)} un/dia")
+    if not labeled:
+        return {"text": f"{item['pt']} — histórico sem preços válidos no período.",
+                "chart_url": None, "title": None}
+    title = f"{item['pt']} (T{item['tier']}.{item['ench']}) — {dias} dias"
+    return {"text": "\n".join(lines), "title": title,
+            "chart_url": quickchart_url(title, labeled)}
 
 
 async def handle_flip(api, orcamento: float, cidade: str) -> str:
@@ -994,6 +1081,37 @@ def build_bot(api: ApiClient):
     @app_commands.autocomplete(item=item_ac)
     async def comparar_cmd(interaction: discord.Interaction, item: str):
         await _respond(interaction, handle_comparar(api, item))
+
+    @tree.command(name="historico",
+                  description="Gráfico do preço: evolução + comparação entre cidades")
+    @app_commands.describe(item="Comece a digitar e escolha da lista (PT/EN)",
+                           dias="Janela em dias (3-90, padrão 30)")
+    @app_commands.autocomplete(item=item_ac)
+    async def historico_cmd(interaction: discord.Interaction, item: str,
+                            dias: app_commands.Range[int, 3, 90] = 30):
+        await interaction.response.defer(thinking=True)
+        try:
+            res = await handle_historico(api, item, dias)
+        except ApiError as exc:
+            await interaction.followup.send(friendly_error(exc))
+            return
+        except httpx.HTTPError:
+            await interaction.followup.send(
+                "Não consegui falar com a API do app. Tente de novo em instantes.")
+            return
+        except Exception:
+            traceback.print_exc()
+            await interaction.followup.send(
+                "Erro inesperado ao montar o histórico. Veja o log do bot.")
+            return
+        if not res.get("chart_url"):
+            await interaction.followup.send(clip(res["text"]))
+            return
+        emb = discord.Embed(title=f"📈 {res['title']}",
+                            description=res["text"][:4000], color=0xC9A24B)
+        emb.set_image(url=res["chart_url"])
+        emb.set_footer(text="Preço médio diário (AODP, q1) · volume é piso censurado")
+        await interaction.followup.send(embed=emb)
 
     @tree.command(name="buscar", description="Busca itens pelo nome (PT/EN) ou id")
     @app_commands.describe(termo="Termo de busca — ex.: manto, t6 espada")

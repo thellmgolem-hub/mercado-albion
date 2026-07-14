@@ -98,6 +98,7 @@ nunca do servidor Discord de onde o comando foi digitado.
 | `/ajuda` | *(nenhum — embed estático com TODOS os comandos)* | pública |
 | `/preco <item>` | `GET /api/search` (resolve o id) + `GET /api/prices` | pública |
 | `/comparar <item>` | `GET /api/prices` (todas as cidades: barras + melhor rota de flip) | pública |
+| `/historico <item> [dias]` | `GET /api/history` → embed com **gráfico de linha** (imagem do quickchart.io; compara as 2 cidades com mais volume) + média/mín/máx/variação/volume | pública |
 | `/buscar <termo>` | `GET /api/search?group=true` | pública |
 | `/builds <arma> [conteúdo]` | `data/builds.json` (embed com ícone da arma + itens em PT-BR + habilidades; sem chamar a API) | pública |
 | `/flip <orçamento> [cidade]` | `GET /api/flip-advisor` | pública |
@@ -133,6 +134,12 @@ PT-BR — o bot nunca despeja traceback no canal (fica no console dele).
   `python scripts/build_builds_data.py --generate <saida.json>`.
 - **`/comparar`**: barras ASCII do preço por cidade + a melhor rota de flip
   (comprar mais barato → vender na maior ordem de compra).
+- **`/historico`**: gráfico de LINHA de verdade (imagem) da evolução do preço,
+  comparando as 2 cidades com mais volume. A imagem é renderizada pelo
+  **quickchart.io** (serviço público, sem chave): o bot só monta a URL com a
+  série de preços — dado público de mercado — e o Discord busca a imagem pelo
+  proxy dele. Se a URL não couber no limite do embed, degrada (menos
+  séries/pontos) e, em último caso, responde só com as estatísticas em texto.
 
 ### Imagens de loadout das builds (estáticas)
 

@@ -120,6 +120,46 @@ class HandlerTests(unittest.TestCase):
         out = asyncio.run(bot.handle_ouro(GoldApi()))  # sem ZeroDivisionError
         self.assertIn("válida", out)
 
+    def test_historico_grafico_e_estatisticas(self):
+        class HistApi:
+            async def get(self, path, params=None):
+                if path == "/api/search":
+                    return [{"id": "T4_BAG", "pt": "Bolsa", "tier": 4, "ench": 0}]
+                mk = lambda base, step, cnt: [
+                    {"ts": f"2026-07-{d:02d}T00:00:00",
+                     "avg_price": base + d * step, "item_count": cnt}
+                    for d in range(1, 31)]
+                return [{"item_id": "T4_BAG", "city": "Martlock", "quality": 1,
+                         "data": mk(900, 5, 10)},
+                        {"item_id": "T4_BAG", "city": "Caerleon", "quality": 1,
+                         "data": mk(1000, 10, 50)}]
+        res = asyncio.run(bot.handle_historico(HistApi(), "bolsa", 30))
+        # Caerleon tem mais volume -> vem primeiro no texto e no gráfico
+        self.assertTrue(res["text"].startswith("**Caerleon**"))
+        self.assertIn("Martlock", res["text"])
+        self.assertIn("+", res["text"])            # variação com sinal
+        url = res["chart_url"]
+        self.assertTrue(url.startswith("https://quickchart.io/chart"))
+        self.assertLessEqual(len(url), 2000)       # cabe no limite de URL
+
+    def test_historico_sem_dados(self):
+        class EmptyApi:
+            async def get(self, path, params=None):
+                if path == "/api/search":
+                    return [{"id": "T4_BAG", "pt": "Bolsa", "tier": 4, "ench": 0}]
+                return []
+        res = asyncio.run(bot.handle_historico(EmptyApi(), "bolsa"))
+        self.assertIsNone(res["chart_url"])
+        self.assertIn("sem histórico", res["text"])
+
+    def test_sample_preserva_extremos(self):
+        seq = list(range(100))
+        out = bot._sample(seq, 20)
+        self.assertEqual(len(out), 20)
+        self.assertEqual(out[0], 0)
+        self.assertEqual(out[-1], 99)
+        self.assertEqual(bot._sample([1, 2], 20), [1, 2])
+
 
 class HelpTests(unittest.TestCase):
     def test_help_has_intro_and_sections(self):
