@@ -37,7 +37,12 @@ import httpx
 
 API_URL_DEFAULT = "http://127.0.0.1:8528"
 MAX_CHARS = 1900          # margem sob o limite de 2000 do Discord
-HTTP_TIMEOUT = 20.0       # /api/flip-advisor com refresh pode demorar
+# Leitura longa: /recomendar e /flip varrem o mercado inteiro e, no Postgres
+# free (throttled), passam dos 20s. O bot faz defer(thinking=True), e o Discord
+# aceita followup por ~15min, entao esperar aqui e seguro. O connect fica curto
+# (app embarcado no localhost) p/ falhar rapido se a API estiver mesmo fora.
+HTTP_TIMEOUT = 90.0
+HTTP_CONNECT_TIMEOUT = 5.0
 
 # cidades aceitas pelo /flip (compra ancorada onde o jogador está)
 FLIP_CITIES = ["Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst",
@@ -69,7 +74,8 @@ class ApiClient:
 
     def __init__(self, base_url, service_token, timeout=HTTP_TIMEOUT):
         self._client = httpx.AsyncClient(
-            base_url=base_url.rstrip("/"), timeout=timeout,
+            base_url=base_url.rstrip("/"),
+            timeout=httpx.Timeout(timeout, connect=HTTP_CONNECT_TIMEOUT),
             headers={"X-Service-Token": service_token})
 
     async def get(self, path, params=None):
