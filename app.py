@@ -1767,7 +1767,7 @@ def prod_view(view: str = "focus", premium: bool = True,
     if con is None:
         return {"view": view, "rows": []}
     try:
-        q1, _ = _price_lookups(con)
+        q1, _ = _price_lookups(con, quality=1)   # prod só usa q1; evita scan pesado
         name = lambda i: (db.get(i) or {}).get("pt", i)
         if view == "refine":
             recipes = prod.craft._load("recipes_refining.json")

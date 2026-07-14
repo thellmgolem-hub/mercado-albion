@@ -306,6 +306,10 @@ HELP_SECTIONS = [
         ("/felicidade", "os móveis e troféus ideais e o rendimento que dá. "
                         "Ex.: `/felicidade tier_trabalhador: 7`"),
         ("/plano", "monta um plano de produção pra vários trabalhadores"),
+        ("/craftar", "diz se vale craftar um item, com a margem e a lista de compras. "
+                     "Ex.: `/craftar cajado de fogo t4`"),
+        ("/refinar", "ranking do refino: onde compensa refinar o bruto ou vender bruto. "
+                     "Ex.: `/refinar tier: 4`"),
     ]),
     ("⚔️ Builds da guild", [
         ("/builds", "é só escolher a arma e o conteúdo. Vem a build pronta, "
@@ -893,6 +897,67 @@ async def handle_plano(api, familia: str = "WARRIOR", tier: int = 4,
     return code_block("\n".join(lines))
 
 
+async def handle_craftar(api, item: str) -> str:
+    """/craftar — vale a pena craftar este item? Melhor cenário de craft com a
+    lista de compras dos insumos (GET /api/craft; busca preço ao vivo)."""
+    res = await api.get("/api/craft", params={"item": item})
+    meta = res.get("item") or {}
+    nome = meta.get("name_pt") or meta.get("id", item)
+    rows = res.get("rows") or []
+    if not rows:
+        return code_block(
+            f"{nome}: sem cotação suficiente pra calcular o craft agora "
+            "(mercado/cache frio). Tente outro item ou mais tarde.")
+    b = rows[0]                       # melhor cenário (ordenado por margem)
+    margem = b.get("margin") or 0
+    veredito = ("VALE A PENA craftar" if margem > 0
+                else "NÃO compensa (compre pronto)")
+    bonus = " · cidade-bônus" if b.get("is_bonus_city") else ""
+    lines = [
+        f"{nome} (T{meta.get('tier', '?')}.{meta.get('ench', 0)}) — {veredito}",
+        "",
+        f"Craftar em {b.get('craft_city', '?')} (RRR {b.get('rrr_pct')}%{bonus})",
+        f"  materiais {fmt_silver(b.get('materials'))}  ->  vende em "
+        f"{b.get('sell_city', '?')} por {fmt_silver(b.get('revenue'))}",
+        f"  LUCRO por craft: {fmt_silver(margem)}"
+        + (f" ({b['margin_pct']}%)" if b.get("margin_pct") is not None else ""),
+    ]
+    src = b.get("sourcing") or []
+    if src:
+        lines += ["", "Lista de compras (insumos):"]
+        for s in src:
+            lines.append(
+                f"  {s.get('count', '?')}x {s.get('name_pt') or s.get('id')} "
+                f"em {s.get('buy_city', '?')} "
+                f"({fmt_silver(s.get('unit_price'))}/un)")
+    return code_block("\n".join(lines))
+
+
+async def handle_refinar(api, tier: int = None) -> str:
+    """/refinar — ranking de refino: pra cada material refinado, se vale mais
+    refinar o bruto ou vender o bruto, e onde (GET /api/prod?view=refine)."""
+    res = await api.get("/api/prod", params={"view": "refine"})
+    rows = res.get("rows") or []
+    if tier:
+        rows = [r for r in rows
+                if str(r.get("item_id", "")).startswith(f"T{tier}_")]
+    if not rows:
+        alvo = f" T{tier}" if tier else ""
+        return code_block(
+            f"Sem dados de refino{alvo} agora (a coleta preenche com o tempo).")
+    titulo = f"Refino{(' T' + str(tier)) if tier else ''}: refinar ou vender o bruto?"
+    lines = [titulo, ""]
+    for r in rows[:12]:
+        nome = r.get("name_pt") or r.get("item_id")
+        v = "REFINAR" if (r.get("margin") or 0) > 0 else "vender bruto"
+        lines.append(
+            f"{v:>12} · {nome}: margem {fmt_silver(r.get('margin'))} "
+            f"({r.get('premium_pct')}%) em {r.get('city', '?')} "
+            f"(RRR {r.get('rrr_pct')}%)")
+    lines += ["", "margem = refinar o bruto e vender vs. comprar o refinado pronto."]
+    return code_block("\n".join(lines))
+
+
 # ------------------------------------------------------ casca discord.py 2.x
 def build_bot(api: ApiClient):
     """Monta o Client + CommandTree ligando cada slash command ao handler puro."""
@@ -1313,6 +1378,20 @@ def build_bot(api: ApiClient):
                         trabalhadores: app_commands.Range[int, 1, 99] = 9):
         await _respond(interaction,
                        handle_plano(api, familia, tier, trabalhadores))
+
+    @tree.command(name="craftar",
+                  description="Vale a pena craftar? Margem + lista de compras")
+    @app_commands.describe(item="Comece a digitar e escolha da lista (PT/EN)")
+    @app_commands.autocomplete(item=item_ac)
+    async def craftar_cmd(interaction: discord.Interaction, item: str):
+        await _respond(interaction, handle_craftar(api, item))
+
+    @tree.command(name="refinar",
+                  description="Refino: compensa refinar o bruto ou vender bruto?")
+    @app_commands.describe(tier="Filtra por tier (2-8; opcional)")
+    async def refinar_cmd(interaction: discord.Interaction,
+                          tier: app_commands.Range[int, 2, 8] = None):
+        await _respond(interaction, handle_refinar(api, tier))
 
     # URL pública p/ os ícones (o embed é buscado pelos servidores do Discord,
     # então precisa ser acessível na internet — não o 127.0.0.1 do bot embarcado).
