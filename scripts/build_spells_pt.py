@@ -22,6 +22,14 @@ BUILDS = ROOT / "data" / "builds.json"
 # nomes que NÃO são feitiço (ruído do guia) — deixa como está, sem procurar
 _NOT_A_SPELL = {"exclusivo da arma", "arma", "nenhum", "-", ""}
 
+# override manual p/ skills cujo nome no guia diverge do dump (ou faltam nele).
+# PT oficial conferido no jogo. Aplicado ANTES do dump.
+_MANUAL = {
+    "brute force": "Força Bruta",
+    "silence shot": "Tiro Silenciador",     # dump: "Silencing Shot"
+    "energetic caster": "Conjurador Energético",
+}
+
 
 def norm(s):
     s = unicodedata.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode()
@@ -68,7 +76,7 @@ def translate(name, en_pt, missing):
     done = []
     for p in parts:
         p = p.strip()
-        pt = en_pt.get(norm(p))
+        pt = _MANUAL.get(norm(p)) or en_pt.get(norm(p))
         if pt:
             done.append(pt)
         else:

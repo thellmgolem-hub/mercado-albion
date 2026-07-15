@@ -29,7 +29,7 @@
       "count": 6
     }
   ],
-  "count": 43,
+  "count": 93,
   "builds": [
     {
       "tree": "Cajados de Fogo",
@@ -578,7 +578,7 @@
         "q_pt": "Surto Congelado",
         "w_pt": "Lança Congelada",
         "e_pt": "Inferno Congelado",
-        "passive_pt": "Energetic Caster"
+        "passive_pt": "Conjurador Energético"
       },
       "execution": "Coloque Frozen Hell entre front e backline ou na rota de retirada. O valor principal é negar movimento, não registrar kills.",
       "note": "W alternativa: Glacial Obelisk; passiva também pode ser Aggressive Caster.",
@@ -2292,7 +2292,7 @@
       "image": "/builds/cajados-amaldicoados-amaldicoados-lifecurse-corrompida-1v1.png",
       "buildName_pt": "Cajado Execrado",
       "execution_pt": "Use Profanação quando o controle for mais importante; Rancor quando puder manter ataques. Lâminas Debilitantes deve negar o pico ofensivo.",
-      "note_pt": "O 1H Amaldiçoado continua barato e capaz de punir desconhecimento, mas Maldição da Morte é altamente telegráfica e possui muitas respostas."
+      "note_pt": "O 1H Amaldiçoado continua barato e capaz de punir desconhecimento, mas Maldição Mortal é altamente telegráfica e possui muitas respostas."
     },
     {
       "tree": "Bordões (Quarterstaffs)",
@@ -3253,6 +3253,3796 @@
       "buildName_pt": "Machado de Guerra",
       "execution_pt": "Mantenha tres cargas de sangramento. Use a segunda ativacao do E para finalizar ou recuperar vida quando os defensivos acabarem.",
       "note_pt": "Off-hand alternativa: Muisec. Trocas: Robe de Clérigo e Capa de Contrabandista sao alternativas. Patas de Urso e a opcao agressiva para mobilidade/gank, mas menos estavel em Corrompida pura."
+    },
+    {
+      "tree": "Espadas",
+      "buildName": "Dual Swords",
+      "content": "Corrompida 1v1",
+      "role": "dano/duelista",
+      "abilities": {
+        "q": "Heroic Strike",
+        "w": "Splitting Slash",
+        "e": "Spinning Blades",
+        "passive": "Deep Cuts",
+        "q_pt": "Golpe Heroico",
+        "w_pt": "Corte Fatiador",
+        "e_pt": "Lâminas Giratórias",
+        "passive_pt": "Cortes Fundos"
+      },
+      "execution": "Empilhe 3 cargas de Heroic Charge batendo Heroic Strike (Q) nos mobs e no alvo enquanto ganha velocidade de movimento. Prenda o inimigo com Splitting Slash (W) e, com as 3 cargas cheias, detone Spinning Blades (E) para o pico de dano, usando a Poção de Cura no meio da troca. Deep Cuts mantém um sangramento constante que soma muito DPS.",
+      "note": "A espada mais fácil e barata pra começar em Corrompida. Troque o Fiend Cowl por Hood of Tenacity contra builds com muito controle; troque a Thetford Cape por Lymhurst Cape se quiser mais reset do E.",
+      "items": {
+        "weapon": {
+          "name_en": "Dual Swords",
+          "id": "T8_2H_DUALSWORD",
+          "pt": "Espadas Duplas do Ancião",
+          "pt_clean": "Espadas Duplas",
+          "icon": "/icon/T8_2H_DUALSWORD"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Fiend Cowl",
+          "id": "T8_HEAD_CLOTH_HELL",
+          "pt": "Capote Malévolo do Ancião",
+          "pt_clean": "Capote Malévolo",
+          "icon": "/icon/T8_HEAD_CLOTH_HELL"
+        },
+        "chest": {
+          "name_en": "Mercenary Jacket",
+          "id": "T8_ARMOR_LEATHER_SET1",
+          "pt": "Casaco de Mercenário do Ancião",
+          "pt_clean": "Casaco de Mercenário",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET1"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Espadas Duplas",
+      "execution_pt": "Empilhe 3 cargas de Carga Heroica batendo Golpe Heroico (Q) nos mobs e no alvo enquanto ganha velocidade de movimento. Prenda o inimigo com Corte Fatiador (W) e, com as 3 cargas cheias, detone Lâminas Giratórias (E) para o pico de dano, usando a Poção de Cura no meio da troca. Cortes Fundos mantém um sangramento constante que soma muito DPS.",
+      "note_pt": "A espada mais fácil e barata pra começar em Corrompida. Troque o Capote Malévolo por Capuz da Tenacidade contra builds com muito controle; troque a Capa de Thetford por Capa de Lymhurst se quiser mais reset do E.",
+      "image": "/builds/espadas-dual-swords-corrompida-1v1.png"
+    },
+    {
+      "tree": "Espadas",
+      "buildName": "Clarent Blade",
+      "content": "Openworld/Brumas",
+      "role": "dano/ganker",
+      "abilities": {
+        "q": "Heroic Strike",
+        "w": "Iron Will",
+        "e": "Crescent Slash",
+        "passive": "Heroic Fighting",
+        "q_pt": "Golpe Heroico",
+        "w_pt": "Determinação Férrea",
+        "e_pt": "Golpe Crescente",
+        "passive_pt": "Luta Heroica"
+      },
+      "execution": "Aproxime escondido usando o Assassin Hood, encoste no alvo e empilhe cargas com Heroic Strike (Q). Trave a fuga com o silêncio do Muisak e finalize com Crescent Slash (E) já com 3 cargas. Iron Will (W) te dá imunidade a purga e defesa pra escapar caso apareça um contra-gank.",
+      "note": "O Q vira Heroic Cleave se for caçar grupo em vez de alvo único. Poção Gigantify pra comprometer o abate; troque por Poção de Cura e comida Beef Sandwich (redução de recarga) se estiver morrendo muito nas Brumas.",
+      "items": {
+        "weapon": {
+          "name_en": "Clarent Blade",
+          "id": "T8_MAIN_SCIMITAR_MORGANA",
+          "pt": "Lâmina Aclarada do Ancião",
+          "pt_clean": "Lâmina Aclarada",
+          "icon": "/icon/T8_MAIN_SCIMITAR_MORGANA"
+        },
+        "offhand": {
+          "name_en": "Muisak",
+          "id": "T8_OFF_DEMONSKULL_HELL",
+          "pt": "Muisec do Ancião",
+          "pt_clean": "Muisec",
+          "icon": "/icon/T8_OFF_DEMONSKULL_HELL"
+        },
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Mercenary Jacket",
+          "id": "T8_ARMOR_LEATHER_SET1",
+          "pt": "Casaco de Mercenário do Ancião",
+          "pt_clean": "Casaco de Mercenário",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET1"
+        },
+        "shoes": {
+          "name_en": "Hunter Shoes",
+          "id": "T8_SHOES_LEATHER_SET2",
+          "pt": "Sapatos de Caçador do Ancião",
+          "pt_clean": "Sapatos de Caçador",
+          "icon": "/icon/T8_SHOES_LEATHER_SET2"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Lâmina Aclarada",
+      "execution_pt": "Aproxime escondido usando o Capuz de Assassino, encoste no alvo e empilhe cargas com Golpe Heroico (Q). Trave a fuga com o silêncio do Muisec e finalize com Golpe Crescente (E) já com 3 cargas. Determinação Férrea (W) te dá imunidade a purga e defesa pra escapar caso apareça um contra-gank.",
+      "note_pt": "O Q vira Cutelo Heróico se for caçar grupo em vez de alvo único. Poção de Crescimento pra comprometer o abate; troque por Poção de Cura e comida Sanduíche de Carne (redução de recarga) se estiver morrendo muito nas Brumas.",
+      "image": "/builds/espadas-clarent-blade-openworld-brumas.png"
+    },
+    {
+      "tree": "Espadas",
+      "buildName": "Kingmaker",
+      "content": "Faccao/ZvZ",
+      "role": "dano em área/bomber (linha de frente)",
+      "abilities": {
+        "q": "Heroic Cleave",
+        "w": "Blade Cyclone",
+        "e": "Majestic Smash",
+        "passive": "Deep Cuts",
+        "q_pt": "Cutelo Heróico",
+        "w_pt": "Lâmina Ciclone",
+        "e_pt": "Golpe Majestoso",
+        "passive_pt": "Cortes Fundos"
+      },
+      "execution": "Fique na linha de frente e engaje com a investida da Judicator Armor, abrindo com o atordoamento em área do Guardian Helmet. Empilhe cargas com Heroic Cleave (Q) na blob inimiga e detone Majestic Smash (E) no aglomerado; Blade Cyclone (W) machuca quem está colado. Nunca solte o E sem as 3 cargas.",
+      "note": "Não seja o primeiro a entrar: espere o engage do time. Poção Gigantify pra sobreviver ao mergulho; troque o Guardian Helmet por Knight Helmet se quiser mais tanque na blob.",
+      "items": {
+        "weapon": {
+          "name_en": "Kingmaker",
+          "id": "T8_2H_CLAYMORE_AVALON",
+          "pt": "Cria-reis do Ancião",
+          "pt_clean": "Cria-reis",
+          "icon": "/icon/T8_2H_CLAYMORE_AVALON"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Guardian Helmet",
+          "id": "T8_HEAD_PLATE_SET3",
+          "pt": "Elmo de Guardião do Ancião",
+          "pt_clean": "Elmo de Guardião",
+          "icon": "/icon/T8_HEAD_PLATE_SET3"
+        },
+        "chest": {
+          "name_en": "Judicator Armor",
+          "id": "T8_ARMOR_PLATE_KEEPER",
+          "pt": "Armadura Judicante do Ancião",
+          "pt_clean": "Armadura Judicante",
+          "icon": "/icon/T8_ARMOR_PLATE_KEEPER"
+        },
+        "shoes": {
+          "name_en": "Boots of Valor",
+          "id": "T8_SHOES_PLATE_AVALON",
+          "pt": "Botas da Bravura do Ancião",
+          "pt_clean": "Botas da Bravura",
+          "icon": "/icon/T8_SHOES_PLATE_AVALON"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Cria-reis",
+      "execution_pt": "Fique na linha de frente e engaje com a investida da Armadura Judicante, abrindo com o atordoamento em área do Elmo de Guardião. Empilhe cargas com Cutelo Heróico (Q) na blob inimiga e detone Golpe Majestoso (E) no aglomerado; Lâmina Ciclone (W) machuca quem está colado. Nunca solte o E sem as 3 cargas.",
+      "note_pt": "Não seja o primeiro a entrar: espere o engage do time. Poção de Crescimento pra sobreviver ao mergulho; troque o Elmo de Guardião por Elmo de Cavaleiro se quiser mais tanque na blob.",
+      "image": "/builds/espadas-kingmaker-faccao-zvz.png"
+    },
+    {
+      "tree": "Espadas",
+      "buildName": "Galatine Pair",
+      "content": "Abyssal 3v3",
+      "role": "dano em área/nuke (linha de frente)",
+      "abilities": {
+        "q": "Heroic Cleave",
+        "w": "Iron Will",
+        "e": "Soulless Stream",
+        "passive": "Increased Defense",
+        "q_pt": "Cutelo Heróico",
+        "w_pt": "Determinação Férrea",
+        "e_pt": "Corrente Desalmada",
+        "passive_pt": "Defesa Aumentada"
+      },
+      "execution": "Como frontliner sem off-hand, use o Block do Soldier Helmet pra absorver o pico e a investida da Judicator Armor pra entrar já curando. Empilhe cargas com Heroic Cleave (Q) nos três alvos e canalize Soulless Stream (E): tira 20% da vida máxima de todos e escala com as cargas. Iron Will (W) te segura vivo durante o canal.",
+      "note": "Dá pra cancelar o Soulless Stream no meio do canal pra forçar as defensivas inimigas e reentrar. Poção de Resistência + Beef Stew pra aguentar o foco; a passiva Increased Defense sobe a resistência a cada poucos ataques.",
+      "items": {
+        "weapon": {
+          "name_en": "Galatine Pair",
+          "id": "T8_2H_DUALSCIMITAR_UNDEAD",
+          "pt": "Par de Galatinas do Ancião",
+          "pt_clean": "Par de Galatinas",
+          "icon": "/icon/T8_2H_DUALSCIMITAR_UNDEAD"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Soldier Helmet",
+          "id": "T8_HEAD_PLATE_SET1",
+          "pt": "Elmo de Soldado do Ancião",
+          "pt_clean": "Elmo de Soldado",
+          "icon": "/icon/T8_HEAD_PLATE_SET1"
+        },
+        "chest": {
+          "name_en": "Judicator Armor",
+          "id": "T8_ARMOR_PLATE_KEEPER",
+          "pt": "Armadura Judicante do Ancião",
+          "pt_clean": "Armadura Judicante",
+          "icon": "/icon/T8_ARMOR_PLATE_KEEPER"
+        },
+        "shoes": {
+          "name_en": "Boots of Valor",
+          "id": "T8_SHOES_PLATE_AVALON",
+          "pt": "Botas da Bravura do Ancião",
+          "pt_clean": "Botas da Bravura",
+          "icon": "/icon/T8_SHOES_PLATE_AVALON"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Par de Galatinas",
+      "execution_pt": "Como frontliner sem off-hand, use o Bloqueio do Elmo de Soldado pra absorver o pico e a investida da Armadura Judicante pra entrar já curando. Empilhe cargas com Cutelo Heróico (Q) nos três alvos e canalize Corrente Desalmada (E): tira 20% da vida máxima de todos e escala com as cargas. Determinação Férrea (W) te segura vivo durante o canal.",
+      "note_pt": "Dá pra cancelar o Corrente Desalmada no meio do canal pra forçar as defensivas inimigas e reentrar. Poção de Resistência + Guisado de Carne pra aguentar o foco; a passiva Defesa Aumentada sobe a resistência a cada poucos ataques.",
+      "image": "/builds/espadas-galatine-pair-abyssal-3v3.png"
+    },
+    {
+      "tree": "Espadas",
+      "buildName": "Carving Sword",
+      "content": "Hellgate 5v5",
+      "role": "dano/assassino de retaguarda",
+      "abilities": {
+        "q": "Heroic Strike",
+        "w": "Splitting Slash",
+        "e": "Fearless Strike",
+        "passive": "Deep Cuts",
+        "q_pt": "Golpe Heroico",
+        "w_pt": "Corte Fatiador",
+        "e_pt": "Pancada Destemida",
+        "passive_pt": "Cortes Fundos"
+      },
+      "execution": "Espere a abertura do time e mergulhe na retaguarda com Fearless Strike (E), que fecha distância e quebra a armadura do alvo. Trave com Splitting Slash (W) e concentre Heroic Strike (Q) no alvo com armadura reduzida, enquanto o Torch acelera seus ataques. Mercenary Jacket e Undead Cape seguram sua vida no mergulho.",
+      "note": "Troque o Torch por Shield contra muito dano recebido; Fiend Cowl por Mercenary Hood se precisar limpar controle. Peça pro healer te acompanhar, porque você entra fundo na retaguarda.",
+      "items": {
+        "weapon": {
+          "name_en": "Carving Sword",
+          "id": "T8_2H_CLEAVER_HELL",
+          "pt": "Espada Entalhada do Ancião",
+          "pt_clean": "Espada Entalhada",
+          "icon": "/icon/T8_2H_CLEAVER_HELL"
+        },
+        "offhand": {
+          "name_en": "Torch",
+          "id": "T8_OFF_TORCH",
+          "pt": "Tocha do Ancião",
+          "pt_clean": "Tocha",
+          "icon": "/icon/T8_OFF_TORCH"
+        },
+        "head": {
+          "name_en": "Fiend Cowl",
+          "id": "T8_HEAD_CLOTH_HELL",
+          "pt": "Capote Malévolo do Ancião",
+          "pt_clean": "Capote Malévolo",
+          "icon": "/icon/T8_HEAD_CLOTH_HELL"
+        },
+        "chest": {
+          "name_en": "Mercenary Jacket",
+          "id": "T8_ARMOR_LEATHER_SET1",
+          "pt": "Casaco de Mercenário do Ancião",
+          "pt_clean": "Casaco de Mercenário",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET1"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Undead Cape",
+          "id": "T8_CAPEITEM_UNDEAD",
+          "pt": "Capa Morta-Viva do Ancião",
+          "pt_clean": "Capa Morta-Viva",
+          "icon": "/icon/T8_CAPEITEM_UNDEAD"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Espada Entalhada",
+      "execution_pt": "Espere a abertura do time e mergulhe na retaguarda com Pancada Destemida (E), que fecha distância e quebra a armadura do alvo. Trave com Corte Fatiador (W) e concentre Golpe Heroico (Q) no alvo com armadura reduzida, enquanto o Tocha acelera seus ataques. Casaco de Mercenário do Calouro e Capa Morta-Viva seguram sua vida no mergulho.",
+      "note_pt": "Troque o Tocha por Escudo do Calouro contra muito dano recebido; Capote Malévolo por Capuz de Mercenário do Calouro se precisar limpar controle. Peça pro healer te acompanhar, porque você entra fundo na retaguarda.",
+      "image": "/builds/espadas-carving-sword-hellgate-5v5.png"
+    },
+    {
+      "tree": "Espadas",
+      "buildName": "Broadsword",
+      "content": "Arena 5v5",
+      "role": "dano/bruiser duelista",
+      "abilities": {
+        "q": "Heroic Strike",
+        "w": "Splitting Slash",
+        "e": "Mighty Blow",
+        "passive": "Deep Cuts",
+        "q_pt": "Golpe Heroico",
+        "w_pt": "Corte Fatiador",
+        "e_pt": "Pancada Potente",
+        "passive_pt": "Cortes Fundos"
+      },
+      "execution": "Junte 3 cargas com Heroic Strike (Q), prenda o alvo com Splitting Slash (W) ou com a cabeçada do Facebreaker e detone Mighty Blow (E), que interrompe, te dá armadura e explode com as cargas cheias. Foque quem o time chamar e recue usando a velocidade que as cargas dão.",
+      "note": "Off-hand Shield no lugar do Facebreaker se quiser aguentar mais tempo; Hellion Jacket por Judicator Armor pra uma versão mais tanque. Poção de Cura ajuda nos 1v1 prolongados dentro da arena.",
+      "items": {
+        "weapon": {
+          "name_en": "Broadsword",
+          "id": "T8_MAIN_SWORD",
+          "pt": "Espada Larga do Ancião",
+          "pt_clean": "Espada Larga",
+          "icon": "/icon/T8_MAIN_SWORD"
+        },
+        "offhand": {
+          "name_en": "Facebreaker",
+          "id": "T8_OFF_SPIKEDSHIELD_MORGANA",
+          "pt": "Quebra-rostos do Ancião",
+          "pt_clean": "Quebra-rostos",
+          "icon": "/icon/T8_OFF_SPIKEDSHIELD_MORGANA"
+        },
+        "head": {
+          "name_en": "Mercenary Hood",
+          "id": "T8_HEAD_LEATHER_SET1",
+          "pt": "Capuz de Mercenário do Ancião",
+          "pt_clean": "Capuz de Mercenário",
+          "icon": "/icon/T8_HEAD_LEATHER_SET1"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Espada Larga",
+      "execution_pt": "Junte 3 cargas com Golpe Heroico (Q), prenda o alvo com Corte Fatiador (W) ou com a cabeçada do Quebra-rostos e detone Pancada Potente (E), que interrompe, te dá armadura e explode com as cargas cheias. Foque quem o time chamar e recue usando a velocidade que as cargas dão.",
+      "note_pt": "Off-hand Escudo do Calouro no lugar do Quebra-rostos se quiser aguentar mais tempo; Casaco Inferial por Armadura Judicante pra uma versão mais tanque. Poção de Cura ajuda nos 1v1 prolongados dentro da arena.",
+      "image": "/builds/espadas-broadsword-arena-5v5.png"
+    },
+    {
+      "tree": "Maças",
+      "buildName": "Heavy Mace",
+      "content": "Faccao/ZvZ",
+      "role": "tank/engajador",
+      "abilities": {
+        "q": "Sacred Ground",
+        "w": "Air Compressor",
+        "e": "Deep Leap",
+        "passive": "Energetic",
+        "q_pt": "Solo Sagrado",
+        "w_pt": "Compressor de Ar",
+        "e_pt": "Salto Profundo",
+        "passive_pt": "Energético"
+      },
+      "execution": "Fique colado no seu grupo e espere o chamado de engaje. Use Air Compressor pra puxar o aglomerado inimigo pra dentro, emende Deep Leap pra atordoar a pilha e Sacred Ground pra silenciar os curandeiros e magos deles. Segure o Force Shield do peito pra proteger a linha e NUNCA engaje sozinho na frente.",
+      "note": "É a build carro-chefe da Maça em ZvZ/facção. Troque o Q pra Threatening Smash se quiser mais dano em avanços pequenos; Soldier Boots no lugar de Royal Sandals se estiver morrendo por imobilização. O Displacement Immunity do Knight Helmet te deixa imune a CC no momento do engaje.",
+      "items": {
+        "weapon": {
+          "name_en": "Heavy Mace",
+          "id": "T8_2H_MACE",
+          "pt": "Maça Pesada do Ancião",
+          "pt_clean": "Maça Pesada",
+          "icon": "/icon/T8_2H_MACE"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Knight Helmet",
+          "id": "T8_HEAD_PLATE_SET2",
+          "pt": "Elmo de Cavaleiro do Ancião",
+          "pt_clean": "Elmo de Cavaleiro",
+          "icon": "/icon/T8_HEAD_PLATE_SET2"
+        },
+        "chest": {
+          "name_en": "Judicator Armor",
+          "id": "T8_ARMOR_PLATE_KEEPER",
+          "pt": "Armadura Judicante do Ancião",
+          "pt_clean": "Armadura Judicante",
+          "icon": "/icon/T8_ARMOR_PLATE_KEEPER"
+        },
+        "shoes": {
+          "name_en": "Royal Sandals",
+          "id": "T8_SHOES_CLOTH_ROYAL",
+          "pt": "Sandálias Reais do Ancião",
+          "pt_clean": "Sandálias Reais",
+          "icon": "/icon/T8_SHOES_CLOTH_ROYAL"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Maça Pesada",
+      "execution_pt": "Fique colado no seu grupo e espere o chamado de engaje. Use Compressor de Ar pra puxar o aglomerado inimigo pra dentro, emende Salto Profundo pra atordoar a pilha e Solo Sagrado pra silenciar os curandeiros e magos deles. Segure o Escudo de Força do peito pra proteger a linha e NUNCA engaje sozinho na frente.",
+      "note_pt": "É a build carro-chefe da Maça em ZvZ/facção. Troque o Q pra Esmagada Ameaçadora se quiser mais dano em avanços pequenos; Botas de Soldado no lugar de Sandálias Reais se estiver morrendo por imobilização. O Imunidade ao deslocamento do Elmo de Cavaleiro te deixa imune a CC no momento do engaje.",
+      "image": "/builds/macas-heavy-mace-faccao-zvz.png"
+    },
+    {
+      "tree": "Maças",
+      "buildName": "Camlann Mace",
+      "content": "Corrompida 1v1",
+      "role": "tank/CC",
+      "abilities": {
+        "q": "Sacred Ground",
+        "w": "Snare Charge",
+        "e": "Vendetta",
+        "passive": "Stunning Strike",
+        "q_pt": "Solo Sagrado",
+        "w_pt": "Investida Ardilosa",
+        "e_pt": "Vingança",
+        "passive_pt": "Golpe Atordoante"
+      },
+      "execution": "Abra com Snare Charge pra colar no invasor e cortar o recuo dele, jogue Sacred Ground em cima pra silenciar e emende Vendetta pra prender e executar. Guarde a limpeza de CC do Hood of Tenacity pro momento em que ele tentar te atordoar, e vá catando os santuários de defesa antes de forçar a luta.",
+      "note": "A Camlann é a rainha do CC no 1v1 corrompido — trava total. Se o alvo for muito ágil, troque Guardian Armor por Robe of Purity pra se curar na sustentação; o Enfeeble Aura do Guardian derruba o dano de quem bate físico pesado.",
+      "items": {
+        "weapon": {
+          "name_en": "Camlann Mace",
+          "id": "T8_2H_MACE_MORGANA",
+          "pt": "Maça Cambriana do Ancião",
+          "pt_clean": "Maça Cambriana",
+          "icon": "/icon/T8_2H_MACE_MORGANA"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hood of Tenacity",
+          "id": "T8_HEAD_LEATHER_AVALON",
+          "pt": "Capuz da Tenacidade do Ancião",
+          "pt_clean": "Capuz da Tenacidade",
+          "icon": "/icon/T8_HEAD_LEATHER_AVALON"
+        },
+        "chest": {
+          "name_en": "Guardian Armor",
+          "id": "T8_ARMOR_PLATE_SET3",
+          "pt": "Armadura de Guardião do Ancião",
+          "pt_clean": "Armadura de Guardião",
+          "icon": "/icon/T8_ARMOR_PLATE_SET3"
+        },
+        "shoes": {
+          "name_en": "Guardian Boots",
+          "id": "T8_SHOES_PLATE_SET3",
+          "pt": "Botas de Guardião do Ancião",
+          "pt_clean": "Botas de Guardião",
+          "icon": "/icon/T8_SHOES_PLATE_SET3"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Maça Cambriana",
+      "execution_pt": "Abra com Investida Ardilosa pra colar no invasor e cortar o recuo dele, jogue Solo Sagrado em cima pra silenciar e emende Vingança pra prender e executar. Guarde a limpeza de CC do Capuz da Tenacidade pro momento em que ele tentar te atordoar, e vá catando os santuários de defesa antes de forçar a luta.",
+      "note_pt": "A Camlann é a rainha do CC no 1v1 corrompido — trava total. Se o alvo for muito ágil, troque Armadura de Guardião por Robe da Pureza pra se curar na sustentação; o Aura Debilitante do Guardião derruba o dano de quem bate físico pesado.",
+      "image": "/builds/macas-camlann-mace-corrompida-1v1.png"
+    },
+    {
+      "tree": "Maças",
+      "buildName": "Bedrock Mace",
+      "content": "Openworld/Brumas",
+      "role": "dano/ganker",
+      "abilities": {
+        "q": "Threatening Smash",
+        "w": "Snare Charge",
+        "e": "Brute Force",
+        "passive": "Life Leech",
+        "q_pt": "Esmagada Ameaçadora",
+        "w_pt": "Investida Ardilosa",
+        "e_pt": "Força Bruta",
+        "passive_pt": "Parasita de Vida"
+      },
+      "execution": "Escolha alvos isolados nas Brumas. Use Snare Charge pra prender quem tenta fugir, o Cripple da Tocha pra manter o alvo lento e Brute Force pra jogar o inimigo contra parede/mob e travar no atordoamento. O Life Leech somado ao Bloodlust do Mercenary Jacket te segura vivo no 1v1; se vier uma emboscada em cima, use o próprio Brute Force como escape.",
+      "note": "É arma de CONTROLE, não de dano bruto — o abate vem do posicionamento do empurrão. Pra iniciante segurar mais tempo, a Poção de Cura já resolve; troque a Tocha por Shield (Escudo) se estiver apanhando muito em rota cheia.",
+      "items": {
+        "weapon": {
+          "name_en": "Bedrock Mace",
+          "id": "T8_MAIN_ROCKMACE_KEEPER",
+          "pt": "Maça Pétrea do Ancião",
+          "pt_clean": "Maça Pétrea",
+          "icon": "/icon/T8_MAIN_ROCKMACE_KEEPER"
+        },
+        "offhand": {
+          "name_en": "Torch",
+          "id": "T8_OFF_TORCH",
+          "pt": "Tocha do Ancião",
+          "pt_clean": "Tocha",
+          "icon": "/icon/T8_OFF_TORCH"
+        },
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Mercenary Jacket",
+          "id": "T8_ARMOR_LEATHER_SET1",
+          "pt": "Casaco de Mercenário do Ancião",
+          "pt_clean": "Casaco de Mercenário",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET1"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Demon Cape",
+          "id": "T8_CAPEITEM_DEMON",
+          "pt": "Capa Demoníaca do Ancião",
+          "pt_clean": "Capa Demoníaca",
+          "icon": "/icon/T8_CAPEITEM_DEMON"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Roast Pork",
+          "id": "T7_MEAL_ROAST",
+          "pt": "Porco Assado",
+          "pt_clean": "Porco Assado",
+          "icon": "/icon/T7_MEAL_ROAST"
+        }
+      },
+      "buildName_pt": "Maça Pétrea",
+      "execution_pt": "Escolha alvos isolados nas Brumas. Use Investida Ardilosa pra prender quem tenta fugir, o Aleijar da Tocha pra manter o alvo lento e Força Bruta pra jogar o inimigo contra parede/mob e travar no atordoamento. O Parasita de Vida somado ao Bloodlust do Casaco de Mercenário do Calouro te segura vivo no 1v1; se vier uma emboscada em cima, use o próprio Força Bruta como escape.",
+      "note_pt": "É arma de CONTROLE, não de dano bruto — o abate vem do posicionamento do empurrão. Pra iniciante segurar mais tempo, a Poção de Cura já resolve; troque a Tocha por Escudo do Calouro (Escudo) se estiver apanhando muito em rota cheia.",
+      "image": "/builds/macas-bedrock-mace-openworld-brumas.png"
+    },
+    {
+      "tree": "Maças",
+      "buildName": "Mace",
+      "content": "Hellgate 5v5",
+      "role": "tank/peeler",
+      "abilities": {
+        "q": "Sacred Ground",
+        "w": "Snare Charge",
+        "e": "Deep Leap",
+        "passive": "Energetic",
+        "q_pt": "Solo Sagrado",
+        "w_pt": "Investida Ardilosa",
+        "e_pt": "Salto Profundo",
+        "passive_pt": "Energético"
+      },
+      "execution": "Fique em cima do curandeiro inimigo. Use Facebreaker pra agarrar o alvo prioritário (cura/DPS), Snare Charge pra colar, Deep Leap pra atordoar e Sacred Ground pra silenciar a cura deles. O Rooting Smash das Guardian Boots prende o time inteiro numa virada, e o Force Shield do peito protege seu curandeiro.",
+      "note": "Comunicação é tudo no 5v5 — chame o alvo ANTES de agarrar com Facebreaker. Se o time inimigo tem muito CC, troque Assassin Hood por Hood of Tenacity pra limpar o atordoamento.",
+      "items": {
+        "weapon": {
+          "name_en": "Mace",
+          "id": "T8_MAIN_MACE",
+          "pt": "Maça do Ancião",
+          "pt_clean": "Maça",
+          "icon": "/icon/T8_MAIN_MACE"
+        },
+        "offhand": {
+          "name_en": "Facebreaker",
+          "id": "T8_OFF_SPIKEDSHIELD_MORGANA",
+          "pt": "Quebra-rostos do Ancião",
+          "pt_clean": "Quebra-rostos",
+          "icon": "/icon/T8_OFF_SPIKEDSHIELD_MORGANA"
+        },
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Judicator Armor",
+          "id": "T8_ARMOR_PLATE_KEEPER",
+          "pt": "Armadura Judicante do Ancião",
+          "pt_clean": "Armadura Judicante",
+          "icon": "/icon/T8_ARMOR_PLATE_KEEPER"
+        },
+        "shoes": {
+          "name_en": "Guardian Boots",
+          "id": "T8_SHOES_PLATE_SET3",
+          "pt": "Botas de Guardião do Ancião",
+          "pt_clean": "Botas de Guardião",
+          "icon": "/icon/T8_SHOES_PLATE_SET3"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Maça",
+      "execution_pt": "Fique em cima do curandeiro inimigo. Use Quebra-rostos pra agarrar o alvo prioritário (cura/DPS), Investida Ardilosa pra colar, Salto Profundo pra atordoar e Solo Sagrado pra silenciar a cura deles. O Golpe Enraizante das Botas de Guardião prende o time inteiro numa virada, e o Escudo de Força do peito protege seu curandeiro.",
+      "note_pt": "Comunicação é tudo no 5v5 — chame o alvo ANTES de agarrar com Quebra-rostos. Se o time inimigo tem muito CC, troque Capuz de Assassino por Capuz da Tenacidade pra limpar o atordoamento.",
+      "image": "/builds/macas-mace-hellgate-5v5.png"
+    },
+    {
+      "tree": "Maças",
+      "buildName": "Incubus Mace",
+      "content": "Abyssal 3v3",
+      "role": "tank/utilidade",
+      "abilities": {
+        "q": "Sacred Ground",
+        "w": "Snare Charge",
+        "e": "Shrinking Curse",
+        "passive": "Energetic",
+        "q_pt": "Solo Sagrado",
+        "w_pt": "Investida Ardilosa",
+        "e_pt": "Maldição do Encolhimento",
+        "passive_pt": "Energético"
+      },
+      "execution": "Engaje com Snare Charge, jogue Shrinking Curse no alvo pra baixar o HP máximo dele e facilitar o abate do time, e use Sacred Ground pra silenciar. O Cleric Cowl limpa o CC de um aliado em apuros; segure o Enfeeble Aura do Guardian Armor pra cortar o dano do time inimigo nas trocas.",
+      "note": "Foque SEMPRE o mesmo alvo com o time — o Shrinking Curse só compensa se todo mundo bater nele. O Sarcophagus ajuda na energia pra você não secar no meio da luta longa.",
+      "items": {
+        "weapon": {
+          "name_en": "Incubus Mace",
+          "id": "T8_MAIN_MACE_HELL",
+          "pt": "Maça de Íncubo do Ancião",
+          "pt_clean": "Maça de Íncubo",
+          "icon": "/icon/T8_MAIN_MACE_HELL"
+        },
+        "offhand": {
+          "name_en": "Sarcophagus",
+          "id": "T8_OFF_TOWERSHIELD_UNDEAD",
+          "pt": "Sarcófago do Ancião",
+          "pt_clean": "Sarcófago",
+          "icon": "/icon/T8_OFF_TOWERSHIELD_UNDEAD"
+        },
+        "head": {
+          "name_en": "Cleric Cowl",
+          "id": "T8_HEAD_CLOTH_SET2",
+          "pt": "Capote de Clérigo do Ancião",
+          "pt_clean": "Capote de Clérigo",
+          "icon": "/icon/T8_HEAD_CLOTH_SET2"
+        },
+        "chest": {
+          "name_en": "Guardian Armor",
+          "id": "T8_ARMOR_PLATE_SET3",
+          "pt": "Armadura de Guardião do Ancião",
+          "pt_clean": "Armadura de Guardião",
+          "icon": "/icon/T8_ARMOR_PLATE_SET3"
+        },
+        "shoes": {
+          "name_en": "Guardian Boots",
+          "id": "T8_SHOES_PLATE_SET3",
+          "pt": "Botas de Guardião do Ancião",
+          "pt_clean": "Botas de Guardião",
+          "icon": "/icon/T8_SHOES_PLATE_SET3"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Maça de Íncubo",
+      "execution_pt": "Engaje com Investida Ardilosa, jogue Maldição do Encolhimento no alvo pra baixar o HP máximo dele e facilitar o abate do time, e use Solo Sagrado pra silenciar. O Capote de Clérigo limpa o CC de um aliado em apuros; segure o Aura Debilitante do Armadura de Guardião pra cortar o dano do time inimigo nas trocas.",
+      "note_pt": "Foque SEMPRE o mesmo alvo com o time — o Maldição do Encolhimento só compensa se todo mundo bater nele. O Sarcófago ajuda na energia pra você não secar no meio da luta longa.",
+      "image": "/builds/macas-incubus-mace-abyssal-3v3.png"
+    },
+    {
+      "tree": "Maças",
+      "buildName": "Camlann Mace",
+      "content": "Arena 5v5",
+      "role": "tank/engajador",
+      "abilities": {
+        "q": "Sacred Ground",
+        "w": "Snare Charge",
+        "e": "Vendetta",
+        "passive": "Stunning Strike",
+        "q_pt": "Solo Sagrado",
+        "w_pt": "Investida Ardilosa",
+        "e_pt": "Vingança",
+        "passive_pt": "Golpe Atordoante"
+      },
+      "execution": "Espere o alvo prioritário gastar o escape, engaje com Snare Charge pra atordoar, silencie com Sacred Ground e prenda com Vendetta pro seu time focar. O Displacement Immunity do Knight Helmet te deixa imune a CC no engaje, e o Force Shield protege a equipe na virada.",
+      "note": "Arena é o treino mais barato pro ZvZ — mesma pegada de engaje e CC. Troque Royal Sandals por Guardian Boots (Rooting Smash) se quiser prender o time inteiro em vez de purgar o CC de você mesmo.",
+      "items": {
+        "weapon": {
+          "name_en": "Camlann Mace",
+          "id": "T8_2H_MACE_MORGANA",
+          "pt": "Maça Cambriana do Ancião",
+          "pt_clean": "Maça Cambriana",
+          "icon": "/icon/T8_2H_MACE_MORGANA"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Knight Helmet",
+          "id": "T8_HEAD_PLATE_SET2",
+          "pt": "Elmo de Cavaleiro do Ancião",
+          "pt_clean": "Elmo de Cavaleiro",
+          "icon": "/icon/T8_HEAD_PLATE_SET2"
+        },
+        "chest": {
+          "name_en": "Judicator Armor",
+          "id": "T8_ARMOR_PLATE_KEEPER",
+          "pt": "Armadura Judicante do Ancião",
+          "pt_clean": "Armadura Judicante",
+          "icon": "/icon/T8_ARMOR_PLATE_KEEPER"
+        },
+        "shoes": {
+          "name_en": "Royal Sandals",
+          "id": "T8_SHOES_CLOTH_ROYAL",
+          "pt": "Sandálias Reais do Ancião",
+          "pt_clean": "Sandálias Reais",
+          "icon": "/icon/T8_SHOES_CLOTH_ROYAL"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Maça Cambriana",
+      "execution_pt": "Espere o alvo prioritário gastar o escape, engaje com Investida Ardilosa pra atordoar, silencie com Solo Sagrado e prenda com Vingança pro seu time focar. O Imunidade ao deslocamento do Elmo de Cavaleiro te deixa imune a CC no engaje, e o Escudo de Força protege a equipe na virada.",
+      "note_pt": "Arena é o treino mais barato pro ZvZ — mesma pegada de engaje e CC. Troque Sandálias Reais por Botas de Guardião (Golpe Enraizante) se quiser prender o time inteiro em vez de purgar o CC de você mesmo.",
+      "image": "/builds/macas-camlann-mace-arena-5v5.png"
+    },
+    {
+      "tree": "Bestas",
+      "buildName": "Weeping Repeater",
+      "content": "Faccao/ZvZ",
+      "role": "dano a distancia (RDPS)",
+      "abilities": {
+        "q": "Explosive Bolt",
+        "w": "Sunder Shot",
+        "e": "Obsessive Burst",
+        "passive": "Well-Prepared",
+        "q_pt": "Virote Explosivo",
+        "w_pt": "Tiro Fendente",
+        "e_pt": "Eclosão Obsessiva",
+        "passive_pt": "Bem preparado"
+      },
+      "execution": "Fique atras da tropa, sempre colado no grupo, e espere a chamada do lider de tropa. Jogue Explosive Bolt na bola inimiga, encaixe Sunder Shot pra furar a armadura e finalize com Obsessive Burst: o passivo Well-Prepared reseta o Explosive Bolt e voce solta outro em seguida. Nunca avance sozinho, seu papel e despejar dano em area e recuar.",
+      "note": "Cowl of Purity limpa CC e prata do inimigo (Demon Armor). Se a guild pedir mais defesa, troque o peito por Robe of Purity; a capa pode virar Martlock Cape (escudo). Iniciante: respeite o IP minimo que a guild exige pra ZvZ.",
+      "items": {
+        "weapon": {
+          "name_en": "Weeping Repeater",
+          "id": "T8_2H_REPEATINGCROSSBOW_UNDEAD",
+          "pt": "Repetidor Lamentoso do Ancião",
+          "pt_clean": "Repetidor Lamentoso",
+          "icon": "/icon/T8_2H_REPEATINGCROSSBOW_UNDEAD"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Cowl of Purity",
+          "id": "T8_HEAD_CLOTH_AVALON",
+          "pt": "Capote da Pureza do Ancião",
+          "pt_clean": "Capote da Pureza",
+          "icon": "/icon/T8_HEAD_CLOTH_AVALON"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Royal Sandals",
+          "id": "T8_SHOES_CLOTH_ROYAL",
+          "pt": "Sandálias Reais do Ancião",
+          "pt_clean": "Sandálias Reais",
+          "icon": "/icon/T8_SHOES_CLOTH_ROYAL"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Repetidor Lamentoso",
+      "execution_pt": "Fique atras da tropa, sempre colado no grupo, e espere a chamada do lider de tropa. Jogue Virote Explosivo na bola inimiga, encaixe Tiro Fendente pra furar a armadura e finalize com Eclosão Obsessiva: o passivo Bem preparado reseta o Virote Explosivo e voce solta outro em seguida. Nunca avance sozinho, seu papel e despejar dano em area e recuar.",
+      "note_pt": "Capote da Pureza limpa CC e prata do inimigo (Armadura Demônia). Se a guild pedir mais defesa, troque o peito por Robe da Pureza; a capa pode virar Capa de Martlock (escudo). Iniciante: respeite o IP minimo que a guild exige pra ZvZ.",
+      "image": "/builds/bestas-weeping-repeater-faccao-zvz.png"
+    },
+    {
+      "tree": "Bestas",
+      "buildName": "Siegebow",
+      "content": "Faccao/ZvZ",
+      "role": "dano defensivo/pick",
+      "abilities": {
+        "q": "Explosive Bolt",
+        "w": "Caltrops",
+        "e": "Vicious Barrage",
+        "passive": "Well-Prepared",
+        "q_pt": "Virote Explosivo",
+        "w_pt": "Estrepes",
+        "e_pt": "Barreira Perversa",
+        "passive_pt": "Bem preparado"
+      },
+      "execution": "Build de posicao defensiva (castelo, ponto de territorio). Fique parado atras e canalize Vicious Barrage nos alvos isolados, sao 3 estouros em 3s com dano verdadeiro pela vida do inimigo. Solte Caltrops pra frear quem tenta te alcancar e Explosive Bolt na aglomeracao. Use Immortal (capuz) ANTES de tomar o foco: atravessa a bola sem morrer por 6s.",
+      "note": "Siegebow nao tem mobilidade, so entre em luta com a tropa junto. O peito Hunter Jacket da Haste pra sustentar a canalizacao do Vicious Barrage. Se estiver morrendo cedo, troque Gigantify por Resistance Potion. Otima primeira build de ZvZ pra iniciante por ser simples.",
+      "items": {
+        "weapon": {
+          "name_en": "Siegebow",
+          "id": "T8_2H_CROSSBOWLARGE_MORGANA",
+          "pt": "Arco de Cerco do Ancião",
+          "pt_clean": "Arco de Cerco",
+          "icon": "/icon/T8_2H_CROSSBOWLARGE_MORGANA"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Mistwalker Hood",
+          "id": "T8_HEAD_LEATHER_FEY",
+          "pt": "Capuz de Andarilho da Névoa do Ancião",
+          "pt_clean": "Capuz de Andarilho da Névoa",
+          "icon": "/icon/T8_HEAD_LEATHER_FEY"
+        },
+        "chest": {
+          "name_en": "Hunter Jacket",
+          "id": "T8_ARMOR_LEATHER_SET2",
+          "pt": "Casaco de Caçador do Ancião",
+          "pt_clean": "Casaco de Caçador",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET2"
+        },
+        "shoes": {
+          "name_en": "Royal Sandals",
+          "id": "T8_SHOES_CLOTH_ROYAL",
+          "pt": "Sandálias Reais do Ancião",
+          "pt_clean": "Sandálias Reais",
+          "icon": "/icon/T8_SHOES_CLOTH_ROYAL"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Arco de Cerco",
+      "execution_pt": "Build de posicao defensiva (castelo, ponto de territorio). Fique parado atras e canalize Barreira Perversa nos alvos isolados, sao 3 estouros em 3s com dano verdadeiro pela vida do inimigo. Solte Estrepes pra frear quem tenta te alcancar e Virote Explosivo na aglomeracao. Use Immortal (capuz) ANTES de tomar o foco: atravessa a bola sem morrer por 6s.",
+      "note_pt": "Arco de Cerco nao tem mobilidade, so entre em luta com a tropa junto. O peito Casaco de Caçador da Haste pra sustentar a canalizacao do Barreira Perversa. Se estiver morrendo cedo, troque de Crescimento por Poção de Resistência. Otima primeira build de ZvZ pra iniciante por ser simples.",
+      "image": "/builds/bestas-siegebow-faccao-zvz.png"
+    },
+    {
+      "tree": "Bestas",
+      "buildName": "Crossbow",
+      "content": "Openworld/Brumas",
+      "role": "dano/burst solo",
+      "abilities": {
+        "q": "Explosive Bolt",
+        "w": "Sunder Shot",
+        "e": "Snipe Shot",
+        "passive": "Well-Prepared",
+        "q_pt": "Virote Explosivo",
+        "w_pt": "Tiro Fendente",
+        "e_pt": "Tiro de Precisão",
+        "passive_pt": "Bem preparado"
+      },
+      "execution": "Solo nas Brumas e mundo aberto: abra com Sunder Shot pra reduzir a defesa do alvo, encaixe Snipe Shot pro pico de dano e jogue Explosive Bolt no meio pra fechar. Well-Prepared reseta o Explosive Bolt, entao mantenha as habilidades girando pra despejar mais. Segure distancia e use Rejuvenating Sprint (botas) e Emergency Shield (elmo) pra sobreviver a explosao de dano inimiga.",
+      "note": "Pra sobreviver mais, troque Gigantify por Resistance Potion. Contra varios, Everlasting Spirit (peito Cleric Robe) segura sua energia e a capa Keeper acelera o ataque do Snipe. Bonus: essa build tambem desmonta bem em emboscadas de mundo aberto.",
+      "items": {
+        "weapon": {
+          "name_en": "Crossbow",
+          "id": "T8_2H_CROSSBOW",
+          "pt": "Besta do Ancião",
+          "pt_clean": "Besta",
+          "icon": "/icon/T8_2H_CROSSBOW"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Guardian Helmet",
+          "id": "T8_HEAD_PLATE_SET3",
+          "pt": "Elmo de Guardião do Ancião",
+          "pt_clean": "Elmo de Guardião",
+          "icon": "/icon/T8_HEAD_PLATE_SET3"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Keeper Cape",
+          "id": "T8_CAPEITEM_KEEPER",
+          "pt": "Capa Protetora do Ancião",
+          "pt_clean": "Capa Protetora",
+          "icon": "/icon/T8_CAPEITEM_KEEPER"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Besta",
+      "execution_pt": "Solo nas Brumas e mundo aberto: abra com Tiro Fendente pra reduzir a defesa do alvo, encaixe Tiro de Precisão pro pico de dano e jogue Virote Explosivo no meio pra fechar. Bem preparado reseta o Virote Explosivo, entao mantenha as habilidades girando pra despejar mais. Segure distancia e use Rejuvenating Sprint (botas) e Emergency Escudo do Calouro (elmo) pra sobreviver a explosao de dano inimiga.",
+      "note_pt": "Pra sobreviver mais, troque de Crescimento por Poção de Resistência. Contra varios, Everlasting Spirit (peito Robe de Clérigo) segura sua energia e a capa Keeper acelera o ataque do Snipe. Bonus: essa build tambem desmonta bem em emboscadas de mundo aberto.",
+      "image": "/builds/bestas-crossbow-openworld-brumas.png"
+    },
+    {
+      "tree": "Bestas",
+      "buildName": "Boltcasters",
+      "content": "Corrompida 1v1",
+      "role": "dano/assassino (burst)",
+      "abilities": {
+        "q": "Auto Fire",
+        "w": "Silence Shot",
+        "e": "Deathward Climax",
+        "passive": "Well-Prepared",
+        "q_pt": "Fogo Automático",
+        "w_pt": "Tiro Silenciador",
+        "e_pt": "Clímax Mortífero",
+        "passive_pt": "Bem preparado"
+      },
+      "execution": "Nas Corrompidas 1v1: empilhe dano de perto com Auto Fire, jogue Silence Shot pra calar o inimigo (trava cura e fuga) e detone Deathward Climax pra matar antes dele reagir. Bloodlust do peito (Mercenary Jacket) te cura conforme voce causa dano e Emergency Shield (elmo) segura a explosao de dano dele. Se o Deathward errar, recue e reengaje.",
+      "note": "A capa Martlock (escudo) pode virar Undead Cape se voce apanhar muito CC. Resistance Potion e o padrao pro 1v1. Iniciante: treine o momento de calar com Silence Shot ANTES de canalizar o Deathward Climax, e nao gaste o E fora de alcance.",
+      "items": {
+        "weapon": {
+          "name_en": "Boltcasters",
+          "id": "T8_2H_DUALCROSSBOW_HELL",
+          "pt": "Lança-virotes do Ancião",
+          "pt_clean": "Lança-virotes",
+          "icon": "/icon/T8_2H_DUALCROSSBOW_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Guardian Helmet",
+          "id": "T8_HEAD_PLATE_SET3",
+          "pt": "Elmo de Guardião do Ancião",
+          "pt_clean": "Elmo de Guardião",
+          "icon": "/icon/T8_HEAD_PLATE_SET3"
+        },
+        "chest": {
+          "name_en": "Mercenary Jacket",
+          "id": "T8_ARMOR_LEATHER_SET1",
+          "pt": "Casaco de Mercenário do Ancião",
+          "pt_clean": "Casaco de Mercenário",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET1"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Lança-virotes",
+      "execution_pt": "Nas Corrompidas 1v1: empilhe dano de perto com Fogo Automático, jogue Tiro Silenciador pra calar o inimigo (trava cura e fuga) e detone Clímax Mortífero pra matar antes dele reagir. Bloodlust do peito (Casaco de Mercenário do Calouro) te cura conforme voce causa dano e Emergency Escudo do Calouro (elmo) segura a explosao de dano dele. Se o Deathward errar, recue e reengaje.",
+      "note_pt": "A capa Martlock (escudo) pode virar Capa Morta-Viva se voce apanhar muito CC. Poção de Resistência e o padrao pro 1v1. Iniciante: treine o momento de calar com Tiro Silenciador ANTES de canalizar o Clímax Mortífero, e nao gaste o E fora de alcance.",
+      "image": "/builds/bestas-boltcasters-corrompida-1v1.png"
+    },
+    {
+      "tree": "Bestas",
+      "buildName": "Arclight Blasters",
+      "content": "Abyssal 3v3",
+      "role": "dano em area/burst",
+      "abilities": {
+        "q": "Explosive Bolt",
+        "w": "Caltrops",
+        "e": "Flickershots",
+        "passive": "Well-Prepared",
+        "q_pt": "Virote Explosivo",
+        "w_pt": "Estrepes",
+        "e_pt": "Tiros Ligeiros",
+        "passive_pt": "Bem preparado"
+      },
+      "execution": "Nas Profundezas 3v3: jogue Caltrops pra ditar a distancia e frear os corpo-a-corpo, entao canalize Flickershots (da pra usar 3x) pra estourar dano em area dificil de esquivar, ganhando resistencia no momento certo. Wild Magic (peito Feyscale) vira Ring of Fire pra prender o inimigo perto e voce despejar o Flickershots. Explosive Bolt fecha com a recarga do Well-Prepared.",
+      "note": "Mantenha Undead Cape pra ignorar/limpar CC nas trocas. Hunter Hood (Retaliate) empurra quem cola em voce. Se o time inimigo tiver muito dano em rajada, troque Gigantify por Resistance Potion. Arma versatil: tambem brilha nas Brumas e solo de mundo aberto.",
+      "items": {
+        "weapon": {
+          "name_en": "Arclight Blasters",
+          "id": "T8_2H_DUALCROSSBOW_CRYSTAL",
+          "pt": "Detonadores Reluzentes do Ancião",
+          "pt_clean": "Detonadores Reluzentes",
+          "icon": "/icon/T8_2H_DUALCROSSBOW_CRYSTAL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Feyscale Robe",
+          "id": "T8_ARMOR_CLOTH_FEY",
+          "pt": "Robe Feérico do Ancião",
+          "pt_clean": "Robe Feérico",
+          "icon": "/icon/T8_ARMOR_CLOTH_FEY"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Undead Cape",
+          "id": "T8_CAPEITEM_UNDEAD",
+          "pt": "Capa Morta-Viva do Ancião",
+          "pt_clean": "Capa Morta-Viva",
+          "icon": "/icon/T8_CAPEITEM_UNDEAD"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Detonadores Reluzentes",
+      "execution_pt": "Nas Profundezas 3v3: jogue Estrepes pra ditar a distancia e frear os corpo-a-corpo, entao canalize Tiros Ligeiros (da pra usar 3x) pra estourar dano em area dificil de esquivar, ganhando resistencia no momento certo. Wild Magic (peito Feyscale) vira Ring of Fire pra prender o inimigo perto e voce despejar o Tiros Ligeiros. Virote Explosivo fecha com a recarga do Bem preparado.",
+      "note_pt": "Mantenha Capa Morta-Viva pra ignorar/limpar CC nas trocas. Capuz de Caçador (Retaliate) empurra quem cola em voce. Se o time inimigo tiver muito dano em rajada, troque de Crescimento por Poção de Resistência. Arma versatil: tambem brilha nas Brumas e solo de mundo aberto.",
+      "image": "/builds/bestas-arclight-blasters-abyssal-3v3.png"
+    },
+    {
+      "tree": "Bestas",
+      "buildName": "Energy Shaper",
+      "content": "Hellgate 5v5",
+      "role": "utilidade/anti-sustentacao (RDPS)",
+      "abilities": {
+        "q": "Explosive Bolt",
+        "w": "Caltrops",
+        "e": "Divine Engine",
+        "passive": "Well-Prepared",
+        "q_pt": "Virote Explosivo",
+        "w_pt": "Estrepes",
+        "e_pt": "Motor Divino",
+        "passive_pt": "Bem preparado"
+      },
+      "execution": "No Hellgate 5v5 seu diferencial e o Divine Engine: solte o Divine Engine no aglomerado pra drenar a energia do time inimigo (mata a sustentacao dos curadores) e canalize dano por cima. Caltrops afasta os corpo-a-corpo e Explosive Bolt bate em area com a recarga do Well-Prepared. Fique colado no time e use Everlasting Spirit (peito) pra nao ficar sem energia.",
+      "note": "Energy Shaper e faminto por energia: Everlasting Spirit e essencial. Undead Cape limpa raiz e CC do portao. Se o time inimigo tiver muito dano em rajada, troque Soldier Boots por Royal Sandals (Defenseless Rush) pra reposicionar. Iniciante: mire acertar o Divine Engine na bola, nao caçar abate.",
+      "items": {
+        "weapon": {
+          "name_en": "Energy Shaper",
+          "id": "T8_2H_CROSSBOW_CANNON_AVALON",
+          "pt": "Modelador de Energia do Ancião",
+          "pt_clean": "Modelador de Energia",
+          "icon": "/icon/T8_2H_CROSSBOW_CANNON_AVALON"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Cowl of Purity",
+          "id": "T8_HEAD_CLOTH_AVALON",
+          "pt": "Capote da Pureza do Ancião",
+          "pt_clean": "Capote da Pureza",
+          "icon": "/icon/T8_HEAD_CLOTH_AVALON"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Undead Cape",
+          "id": "T8_CAPEITEM_UNDEAD",
+          "pt": "Capa Morta-Viva do Ancião",
+          "pt_clean": "Capa Morta-Viva",
+          "icon": "/icon/T8_CAPEITEM_UNDEAD"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Modelador de Energia",
+      "execution_pt": "No Hellgate 5v5 seu diferencial e o Motor Divino: solte o Motor Divino no aglomerado pra drenar a energia do time inimigo (mata a sustentacao dos curadores) e canalize dano por cima. Estrepes afasta os corpo-a-corpo e Virote Explosivo bate em area com a recarga do Bem preparado. Fique colado no time e use Everlasting Spirit (peito) pra nao ficar sem energia.",
+      "note_pt": "Modelador de Energia e faminto por energia: Everlasting Spirit e essencial. Capa Morta-Viva limpa raiz e CC do portao. Se o time inimigo tiver muito dano em rajada, troque Botas de Soldado por Sandálias Reais (Ímpeto Indefensável) pra reposicionar. Iniciante: mire acertar o Motor Divino na bola, nao caçar abate.",
+      "image": "/builds/bestas-energy-shaper-hellgate-5v5.png"
+    },
+    {
+      "tree": "Cajados Sagrados",
+      "buildName": "Great Holy Staff",
+      "content": "Faccao/ZvZ",
+      "role": "healer/cura de massa (backline)",
+      "abilities": {
+        "q": "Holy Flash",
+        "w": "Holy Orb",
+        "e": "Holy Explosion",
+        "passive": "Adrenaline Driven Charity",
+        "q_pt": "Luz Sagrada",
+        "w_pt": "Orbe Sagrada",
+        "e_pt": "Explosão Sagrada",
+        "passive_pt": "Caridade Intensificada"
+      },
+      "execution": "Fica colado na backline do zerg e mantem o grupo vivo alternando Holy Flash (cura em cone ate 5 aliados) e Holy Orb. Guarda o Holy Explosion pra quando o inimigo mergulha a backline: e uma cura instantanea em area ao seu redor que ainda arremessa os melee pra longe, resetando o dive e segurando o grupo. O Knight Helmet (imunidade a deslocamento) protege o time pra atravessar choke.",
+      "note": "E a cura padrao de faccao/ZvZ e a mais facil de aprender. Alternativas: cape Fort Sterling Cape (reduz cooldown) ou Martlock Cape (limpa CC); troque o chest por Robe of Purity se estiver morrendo pra melee que entra na backline.",
+      "items": {
+        "weapon": {
+          "name_en": "Great Holy Staff",
+          "id": "T8_2H_HOLYSTAFF",
+          "pt": "Cajado Sagrado Elevado do Ancião",
+          "pt_clean": "Cajado Sagrado Elevado",
+          "icon": "/icon/T8_2H_HOLYSTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Knight Helmet",
+          "id": "T8_HEAD_PLATE_SET2",
+          "pt": "Elmo de Cavaleiro do Ancião",
+          "pt_clean": "Elmo de Cavaleiro",
+          "icon": "/icon/T8_HEAD_PLATE_SET2"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Scholar Sandals",
+          "id": "T8_SHOES_CLOTH_SET1",
+          "pt": "Sandálias de Erudito do Ancião",
+          "pt_clean": "Sandálias de Erudito",
+          "icon": "/icon/T8_SHOES_CLOTH_SET1"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Cajado Sagrado",
+      "execution_pt": "Fica colado na backline do zerg e mantem o grupo vivo alternando Luz Sagrada (cura em cone ate 5 aliados) e Orbe Sagrada. Guarda o Explosão Sagrada pra quando o inimigo mergulha a backline: e uma cura instantanea em area ao seu redor que ainda arremessa os melee pra longe, resetando o dive e segurando o grupo. O Elmo de Cavaleiro (imunidade a deslocamento) protege o time pra atravessar choke.",
+      "note_pt": "E a cura padrao de faccao/ZvZ e a mais facil de aprender. Alternativas: cape Capa de Fort Sterling (reduz cooldown) ou Capa de Martlock (limpa CC); troque o chest por Robe da Pureza se estiver morrendo pra melee que entra na backline.",
+      "image": "/builds/cajados-sagrados-great-holy-staff-faccao-zvz.png"
+    },
+    {
+      "tree": "Cajados Sagrados",
+      "buildName": "Fallen Staff",
+      "content": "Faccao/ZvZ",
+      "role": "healer/limpeza de CC (backline)",
+      "abilities": {
+        "q": "Holy Flash",
+        "w": "Holy Orb",
+        "e": "Salvation",
+        "passive": "Adrenaline Driven Charity",
+        "q_pt": "Luz Sagrada",
+        "w_pt": "Orbe Sagrada",
+        "e_pt": "Salvação",
+        "passive_pt": "Caridade Intensificada"
+      },
+      "execution": "E o healer de LIMPEZA do zerg: alterna Holy Flash e Holy Orb pra manter a vida e solta Salvation quando o inimigo trava o grupo com CC/roots, limpando os debuffs em area e curando por baixo. Anda junto do shotcaller e sincroniza o Salvation com o momento em que o time vai avancar ou recuar.",
+      "note": "Combina com o Great Holy Staff numa comp: um foca cura de massa, o Fallen foca cleanse. Se quiser mais purge, troque a cape por Martlock Cape. Mesmo esqueleto de armadura do Great Holy, entao e barato de manter na guild.",
+      "items": {
+        "weapon": {
+          "name_en": "Fallen Staff",
+          "id": "T8_2H_HOLYSTAFF_HELL",
+          "pt": "Cajado Corrompido do Ancião",
+          "pt_clean": "Cajado Corrompido",
+          "icon": "/icon/T8_2H_HOLYSTAFF_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Knight Helmet",
+          "id": "T8_HEAD_PLATE_SET2",
+          "pt": "Elmo de Cavaleiro do Ancião",
+          "pt_clean": "Elmo de Cavaleiro",
+          "icon": "/icon/T8_HEAD_PLATE_SET2"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Scholar Sandals",
+          "id": "T8_SHOES_CLOTH_SET1",
+          "pt": "Sandálias de Erudito do Ancião",
+          "pt_clean": "Sandálias de Erudito",
+          "icon": "/icon/T8_SHOES_CLOTH_SET1"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Cajado Corrompido",
+      "execution_pt": "E o healer de LIMPEZA do zerg: alterna Luz Sagrada e Orbe Sagrada pra manter a vida e solta Salvação quando o inimigo trava o grupo com CC/roots, limpando os debuffs em area e curando por baixo. Anda junto do shotcaller e sincroniza o Salvação com o momento em que o time vai avancar ou recuar.",
+      "note_pt": "Combina com o Cajado Sagrado Elevado numa comp: um foca cura de massa, o Cajado Corrompido foca cleanse. Se quiser mais purge, troque a cape por Capa de Martlock. Mesmo esqueleto de armadura do Cajado Sagrado Elevado, entao e barato de manter na guild.",
+      "image": "/builds/cajados-sagrados-fallen-staff-faccao-zvz.png"
+    },
+    {
+      "tree": "Cajados Sagrados",
+      "buildName": "Hallowfall",
+      "content": "Hellgate 5v5",
+      "role": "healer movel/auto-peel",
+      "abilities": {
+        "q": "Holy Flash",
+        "w": "Holy Orb",
+        "e": "Divine Intervention",
+        "passive": "Adrenaline Driven Charity",
+        "q_pt": "Luz Sagrada",
+        "w_pt": "Orbe Sagrada",
+        "e_pt": "Intervenção Divina",
+        "passive_pt": "Caridade Intensificada"
+      },
+      "execution": "E o healer que se defende sozinho no 5v5 fechado: o Mistcaller lentifica quem pula em cima de voce e o Robe of Purity (barreira) empurra o melee pra longe. Cura o time com Holy Flash + Holy Orb e usa Divine Intervention como salvamento de emergencia (pula imune ao dano, cura em area e arremessa os inimigos). Assassin Hood reduz os cooldowns pra curar mais.",
+      "note": "Serve tambem pra Arena 5v5 e Openworld com o mesmo setup. Se o inimigo tiver muito CC, troque o Assassin Hood por Knight Helmet (imunidade a deslocamento). O W pode virar Sacred Pulse pra cura em area mais forte em briga colada.",
+      "items": {
+        "weapon": {
+          "name_en": "Hallowfall",
+          "id": "T8_MAIN_HOLYSTAFF_AVALON",
+          "pt": "Queda Santa do Ancião",
+          "pt_clean": "Queda Santa",
+          "icon": "/icon/T8_MAIN_HOLYSTAFF_AVALON"
+        },
+        "offhand": {
+          "name_en": "Mistcaller",
+          "id": "T8_OFF_HORN_KEEPER",
+          "pt": "Brumário do Ancião",
+          "pt_clean": "Brumário",
+          "icon": "/icon/T8_OFF_HORN_KEEPER"
+        },
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Robe of Purity",
+          "id": "T8_ARMOR_CLOTH_AVALON",
+          "pt": "Robe da Pureza do Ancião",
+          "pt_clean": "Robe da Pureza",
+          "icon": "/icon/T8_ARMOR_CLOTH_AVALON"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Queda Santa",
+      "execution_pt": "E o healer que se defende sozinho no 5v5 fechado: o Brumário lentifica quem pula em cima de voce e o Robe da Pureza (barreira) empurra o melee pra longe. Cura o time com Luz Sagrada + Orbe Sagrada e usa Intervenção Divina como salvamento de emergencia (pula imune ao dano, cura em area e arremessa os inimigos). Capuz de Assassino reduz os cooldowns pra curar mais.",
+      "note_pt": "Serve tambem pra Arena 5v5 e Openworld com o mesmo setup. Se o inimigo tiver muito CC, troque o Capuz de Assassino por Elmo de Cavaleiro (imunidade a deslocamento). O W pode virar Pulsação Sagrada pra cura em area mais forte em briga colada.",
+      "image": "/builds/cajados-sagrados-hallowfall-hellgate-5v5.png"
+    },
+    {
+      "tree": "Cajados Sagrados",
+      "buildName": "Redemption Staff",
+      "content": "Arena 5v5",
+      "role": "healer/burst de area",
+      "abilities": {
+        "q": "Holy Flash",
+        "w": "Holy Orb",
+        "e": "Celestial Sphere",
+        "passive": "Adrenaline Driven Charity",
+        "q_pt": "Luz Sagrada",
+        "w_pt": "Orbe Sagrada",
+        "e_pt": "Esfera Celestial",
+        "passive_pt": "Caridade Intensificada"
+      },
+      "execution": "Healer de burst pra Arena Cristalina ranqueada: mantem Holy Flash + Holy Orb no time e joga o Celestial Sphere no aglomerado pra uma cura forte em area no momento do foco inimigo. O Royal Cowl resolve o problema de mana da Redemption, a Brecilien Cape limpa o CC de cima de voce e o Mercenary Shoes da o reposicionamento.",
+      "note": "Otimo pra entrar em ranked solo. Contra alvo unico ou Dire Wolf, troque o W pra Holy Beam. Se faltar energia em lutas longas, use Lymhurst Cape no lugar da Brecilien.",
+      "items": {
+        "weapon": {
+          "name_en": "Redemption Staff",
+          "id": "T8_2H_HOLYSTAFF_UNDEAD",
+          "pt": "Cajado da Redenção do Ancião",
+          "pt_clean": "Cajado da Redenção",
+          "icon": "/icon/T8_2H_HOLYSTAFF_UNDEAD"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Royal Cowl",
+          "id": "T8_HEAD_CLOTH_ROYAL",
+          "pt": "Capote Real do Ancião",
+          "pt_clean": "Capote Real",
+          "icon": "/icon/T8_HEAD_CLOTH_ROYAL"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Brecilien Cape",
+          "id": "T8_CAPEITEM_FW_BRECILIEN",
+          "pt": "Capa de Brecilien do Ancião",
+          "pt_clean": "Capa de Brecilien",
+          "icon": "/icon/T8_CAPEITEM_FW_BRECILIEN"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Cajado da Redenção",
+      "execution_pt": "Healer de burst pra Arena Cristalina ranqueada: mantem Luz Sagrada + Orbe Sagrada no time e joga o Esfera Celestial no aglomerado pra uma cura forte em area no momento do foco inimigo. O Capote Real resolve o problema de mana da Redenção, a Capa de Brecilien limpa o CC de cima de voce e o Sapatos de Mercenário do Calouro da o reposicionamento.",
+      "note_pt": "Otimo pra entrar em ranked solo. Contra alvo unico ou Dire Wolf, troque o W pra Raio Sagrado. Se faltar energia em lutas longas, use Capa de Lymhurst no lugar da Brecilien.",
+      "image": "/builds/cajados-sagrados-redemption-staff-arena-5v5.png"
+    },
+    {
+      "tree": "Cajados Sagrados",
+      "buildName": "Divine Staff",
+      "content": "Abyssal 3v3",
+      "role": "healer/proteção salva-vidas",
+      "abilities": {
+        "q": "Generous Heal",
+        "w": "Holy Beam",
+        "e": "Divine Protection",
+        "passive": "Adrenaline Driven Charity",
+        "q_pt": "Cura Generosa",
+        "w_pt": "Raio Sagrado",
+        "e_pt": "Proteção Divina",
+        "passive_pt": "Caridade Intensificada"
+      },
+      "execution": "E o seguro-morte do 3v3: joga o Divine Protection no aliado que esta sendo focado, um escudo forte que absorve o burst inteiro por alguns segundos e ganha tempo pra sua cura chegar. Mantem a vida com Generous Heal (cura forte de alvo unico) e Holy Beam. Assassin Hood deixa o E pronto mais rapido e Shoes of Tenacity limpa o CC que travaria sua cura.",
+      "note": "Grupo pequeno pede cura focada, por isso Generous Heal no lugar de Holy Flash. Se estiver com pouca energia, use Cleric Robe no lugar do Robe of Purity. Serve tambem pra Hellgate 2v2/5v5 pelo mesmo motivo (proteger o alvo focado com escudo).",
+      "items": {
+        "weapon": {
+          "name_en": "Divine Staff",
+          "id": "T8_2H_DIVINESTAFF",
+          "pt": "Cajado Divino do Ancião",
+          "pt_clean": "Cajado Divino",
+          "icon": "/icon/T8_2H_DIVINESTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Robe of Purity",
+          "id": "T8_ARMOR_CLOTH_AVALON",
+          "pt": "Robe da Pureza do Ancião",
+          "pt_clean": "Robe da Pureza",
+          "icon": "/icon/T8_ARMOR_CLOTH_AVALON"
+        },
+        "shoes": {
+          "name_en": "Shoes of Tenacity",
+          "id": "T8_SHOES_LEATHER_AVALON",
+          "pt": "Sapatos da Tenacidade do Ancião",
+          "pt_clean": "Sapatos da Tenacidade",
+          "icon": "/icon/T8_SHOES_LEATHER_AVALON"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Cajado Divino",
+      "execution_pt": "E o seguro-morte do 3v3: joga o Proteção Divina no aliado que esta sendo focado, um escudo forte que absorve o burst inteiro por alguns segundos e ganha tempo pra sua cura chegar. Mantem a vida com Cura Generosa (cura forte de alvo unico) e Raio Sagrado. Capuz de Assassino deixa o E pronto mais rapido e Sapatos da Tenacidade limpa o CC que travaria sua cura.",
+      "note_pt": "Grupo pequeno pede cura focada, por isso Cura Generosa no lugar de Luz Sagrada. Se estiver com pouca energia, use Robe de Clérigo no lugar do Robe da Pureza. Serve tambem pra Hellgate 2v2/5v5 pelo mesmo motivo (proteger o alvo focado com escudo).",
+      "image": "/builds/cajados-sagrados-divine-staff-abyssal-3v3.png"
+    },
+    {
+      "tree": "Cajados Sagrados",
+      "buildName": "Lifetouch Staff",
+      "content": "Openworld/Brumas",
+      "role": "healer/sustain (dupla)",
+      "abilities": {
+        "q": "Holy Flash",
+        "w": "Holy Blessing",
+        "e": "Holy Touch",
+        "passive": "Adrenaline Driven Charity",
+        "q_pt": "Luz Sagrada",
+        "w_pt": "Bênção Sagrada",
+        "e_pt": "Toque Sagrado",
+        "passive_pt": "Caridade Intensificada"
+      },
+      "execution": "Healer de Brumas/openworld em dupla: o E Holy Touch canaliza cura mesmo se voce levar stun ou silencio e ainda limpa CC, o que te mantem vivo quando um ganker mergulha. Holy Flash cura voce e o parceiro juntos, Holy Blessing sustenta com cura ao longo do tempo e o Mistcaller lentifica o inimigo pra voces fugirem ou revidarem.",
+      "note": "O Lifetouch e famoso por ser quase imortal (por isso e temido ate em Corrompida 1v1); em dupla foque em segurar o parceiro vivo. Off-hand Tome of Spells se quiser mais cooldown; troque a food por Beef Stew pra ganhar vida maxima se a dupla for muito cacada.",
+      "items": {
+        "weapon": {
+          "name_en": "Lifetouch Staff",
+          "id": "T8_MAIN_HOLYSTAFF_MORGANA",
+          "pt": "Cajado Avivador do Ancião",
+          "pt_clean": "Cajado Avivador",
+          "icon": "/icon/T8_MAIN_HOLYSTAFF_MORGANA"
+        },
+        "offhand": {
+          "name_en": "Mistcaller",
+          "id": "T8_OFF_HORN_KEEPER",
+          "pt": "Brumário do Ancião",
+          "pt_clean": "Brumário",
+          "icon": "/icon/T8_OFF_HORN_KEEPER"
+        },
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Robe of Purity",
+          "id": "T8_ARMOR_CLOTH_AVALON",
+          "pt": "Robe da Pureza do Ancião",
+          "pt_clean": "Robe da Pureza",
+          "icon": "/icon/T8_ARMOR_CLOTH_AVALON"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Cajado Avivador",
+      "execution_pt": "Healer de Brumas/openworld em dupla: o E Toque Sagrado canaliza cura mesmo se voce levar stun ou silencio e ainda limpa CC, o que te mantem vivo quando um ganker mergulha. Luz Sagrada cura voce e o parceiro juntos, Bênção Sagrada sustenta com cura ao longo do tempo e o Brumário lentifica o inimigo pra voces fugirem ou revidarem.",
+      "note_pt": "O Lifetouch e famoso por ser quase imortal (por isso e temido ate em Corrompida 1v1); em dupla foque em segurar o parceiro vivo. Off-hand Tomo de Feitiços se quiser mais cooldown; troque a food por Guisado de Carne pra ganhar vida maxima se a dupla for muito cacada.",
+      "image": "/builds/cajados-sagrados-lifetouch-staff-openworld-brumas.png"
+    },
+    {
+      "tree": "Lanças",
+      "buildName": "Spear",
+      "content": "Corrompida 1v1",
+      "role": "dano/duelista solo",
+      "abilities": {
+        "q": "Lunging Strike",
+        "w": "Cripple",
+        "e": "Reckless Charge",
+        "passive": "Life Leech",
+        "q_pt": "Golpe de Investida",
+        "w_pt": "Aleijar",
+        "e_pt": "Investida Precipitada",
+        "passive_pt": "Parasita de Vida"
+      },
+      "execution": "Empilhe 3 cargas de Spirit Spear batendo Lunging Strike (Q) em distância média, então feche com Cripple (W) pra lentar e estoure Reckless Charge (E) — o dano escala com as cargas acumuladas. Use Ambush (do Assassin Jacket) pra sumir: reposicione quando a luta virar contra você ou entre invisível para amplificar a explosão de dano. Rejuvenating Sprint (botas) e Life Leech (passiva) te seguram na fuga com kite.",
+      "note": "Build de teto de habilidade ALTO — pede kite e sequência precisa, não é a primeira escolha de quem está começando (mande o iniciante começar pela Daybreaker). Muisak troca por Mistcaller se quiser mais controle; Soldier Boots viram Knight Boots pra mais resistência. Comida: Beef Stew ou Pork Omelette.",
+      "items": {
+        "weapon": {
+          "name_en": "Spear",
+          "id": "T8_MAIN_SPEAR",
+          "pt": "Lança do Ancião",
+          "pt_clean": "Lança",
+          "icon": "/icon/T8_MAIN_SPEAR"
+        },
+        "offhand": {
+          "name_en": "Muisak",
+          "id": "T8_OFF_DEMONSKULL_HELL",
+          "pt": "Muisec do Ancião",
+          "pt_clean": "Muisec",
+          "icon": "/icon/T8_OFF_DEMONSKULL_HELL"
+        },
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Assassin Jacket",
+          "id": "T8_ARMOR_LEATHER_SET3",
+          "pt": "Casaco de Assassino do Ancião",
+          "pt_clean": "Casaco de Assassino",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET3"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Lança",
+      "execution_pt": "Empilhe 3 cargas de Lança do Espírito batendo Golpe de Investida (Q) em distância média, então feche com Aleijar (W) pra lentar e estoure Investida Precipitada (E) — o dano escala com as cargas acumuladas. Use Ambush (do Casaco de Assassino) pra sumir: reposicione quando a luta virar contra você ou entre invisível para amplificar a explosão de dano. Rejuvenating Sprint (botas) e Parasita de Vida (passiva) te seguram na fuga com kite.",
+      "note_pt": "Build de teto de habilidade ALTO — pede kite e sequência precisa, não é a primeira escolha de quem está começando (mande o iniciante começar pela Alvorada). Muisec troca por Brumário se quiser mais controle; Botas de Soldado viram Botas de Cavaleiro pra mais resistência. Comida: Guisado de Carne ou Omelete de Porco.",
+      "image": "/builds/lancas-spear-corrompida-1v1.png"
+    },
+    {
+      "tree": "Lanças",
+      "buildName": "Daybreaker",
+      "content": "Openworld/Brumas",
+      "role": "dano/roaming e ganker",
+      "abilities": {
+        "q": "Lunging Strike",
+        "w": "Impaler",
+        "e": "Breakthrough",
+        "passive": "Life Leech",
+        "q_pt": "Golpe de Investida",
+        "w_pt": "Empalador",
+        "e_pt": "Ruptura",
+        "passive_pt": "Parasita de Vida"
+      },
+      "execution": "Foco em rotação (roaming) e emboscada nas Brumas e no mundo aberto. Empilhe Spirit Spear com Lunging Strike (Q) pra turbinar os ataques básicos, prenda o alvo com Impaler (W) e finalize com Breakthrough (E). Ambush (Assassin Jacket) é sua abertura de gank: entra invisível, aplica a explosão de dano — ou escapa se o alvo tiver reforço. Life Leech + Rejuvenating Sprint sustentam duelos longos e caçadas nas ilhas de bruma.",
+      "note": "Segura bem em Brumas solo/dupla, Corrompida e até Greater Mist com um curandeiro. Equipamento quase idêntico ao da lança de 1 mão, mas mais perdoador — é POR AQUI que o iniciante deve começar na classe antes de encarar a Spear pura. A Thetford Cape (dano) pode virar uma capa de cidade defensiva conforme o risco.",
+      "items": {
+        "weapon": {
+          "name_en": "Daybreaker",
+          "id": "T8_MAIN_SPEAR_LANCE_AVALON",
+          "pt": "Alvorada do Ancião",
+          "pt_clean": "Alvorada",
+          "icon": "/icon/T8_MAIN_SPEAR_LANCE_AVALON"
+        },
+        "offhand": {
+          "name_en": "Muisak",
+          "id": "T8_OFF_DEMONSKULL_HELL",
+          "pt": "Muisec do Ancião",
+          "pt_clean": "Muisec",
+          "icon": "/icon/T8_OFF_DEMONSKULL_HELL"
+        },
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Assassin Jacket",
+          "id": "T8_ARMOR_LEATHER_SET3",
+          "pt": "Casaco de Assassino do Ancião",
+          "pt_clean": "Casaco de Assassino",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET3"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Alvorada",
+      "execution_pt": "Foco em rotação (roaming) e emboscada nas Brumas e no mundo aberto. Empilhe Lança do Espírito com Golpe de Investida (Q) pra turbinar os ataques básicos, prenda o alvo com Empalador (W) e finalize com Ruptura (E). Ambush (Casaco de Assassino) é sua abertura de gank: entra invisível, aplica a explosão de dano — ou escapa se o alvo tiver reforço. Parasita de Vida + Rejuvenating Sprint sustentam duelos longos e caçadas nas ilhas de bruma.",
+      "note_pt": "Segura bem em Brumas solo/dupla, Corrompida e até Greater Mist com um curandeiro. Equipamento quase idêntico ao da lança de 1 mão, mas mais perdoador — é POR AQUI que o iniciante deve começar na classe antes de encarar a Lança pura. A Capa de Thetford (dano) pode virar uma capa de cidade defensiva conforme o risco.",
+      "image": "/builds/lancas-daybreaker-openworld-brumas.png"
+    },
+    {
+      "tree": "Lanças",
+      "buildName": "Spirithunter",
+      "content": "Faccao/ZvZ",
+      "role": "dano à distância / poke de zerg",
+      "abilities": {
+        "q": "Lunging Strike",
+        "w": "Impaler",
+        "e": "Corrupting Steel",
+        "passive": "Slow Poison",
+        "q_pt": "Golpe de Investida",
+        "w_pt": "Empalador",
+        "e_pt": "Aço Corrompido",
+        "passive_pt": "Veneno Desacelerador"
+      },
+      "execution": "Fique na linha de frente do grupo, mantendo distância. Faça pressão constante (poke) com Lunging Strike (Q) e, quando o inimigo aglomerar, jogue Corrupting Steel (E) dentro do aperto/corredor — o rastro de dano em área castiga a massa parada. Impaler (W) enraíza antes do E; Defenseless Rush (botas Royal) faz o avanço, Life Steal Aura (Hellion) e Slow Poison seguram você na troca. Use Meditation (elmo) pra devolver energia e repetir o ciclo.",
+      "note": "Clássico atemporal de lança em ZvZ pelo alcance e pelo controle de root. O gargalo é MANA — não gaste o E à toa. Resistance Potion contra o dano em área da massa (Gigantify se quiser mais presença física). Deadwater Eel Stew pela resistência. Arma de 2 mãos, sem off-hand.",
+      "items": {
+        "weapon": {
+          "name_en": "Spirithunter",
+          "id": "T8_2H_HARPOON_HELL",
+          "pt": "Caça-espíritos do Ancião",
+          "pt_clean": "Caça-espíritos",
+          "icon": "/icon/T8_2H_HARPOON_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Royal Sandals",
+          "id": "T8_SHOES_CLOTH_ROYAL",
+          "pt": "Sandálias Reais do Ancião",
+          "pt_clean": "Sandálias Reais",
+          "icon": "/icon/T8_SHOES_CLOTH_ROYAL"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      },
+      "buildName_pt": "Caça-espíritos",
+      "execution_pt": "Fique na linha de frente do grupo, mantendo distância. Faça pressão constante (poke) com Golpe de Investida (Q) e, quando o inimigo aglomerar, jogue Aço Corrompido (E) dentro do aperto/corredor — o rastro de dano em área castiga a massa parada. Empalador (W) enraíza antes do E; Ímpeto Indefensável (botas Royal) faz o avanço, Aura Sugadora de Vida (Casaco Inferial) e Veneno Desacelerador seguram você na troca. Use Meditação (elmo) pra devolver energia e repetir o ciclo.",
+      "note_pt": "Clássico atemporal de lança em ZvZ pelo alcance e pelo controle de root. O gargalo é MANA — não gaste o E à toa. Poção de Resistência contra o dano em área da massa (de Crescimento se quiser mais presença física). Guisado de Enguia de Água-podre pela resistência. Arma de 2 mãos, sem off-hand.",
+      "image": "/builds/lancas-spirithunter-faccao-zvz.png"
+    },
+    {
+      "tree": "Lanças",
+      "buildName": "Rift Glaive",
+      "content": "Faccao/ZvZ",
+      "role": "dano em área / bombardeiro",
+      "abilities": {
+        "q": "Spirit Spear",
+        "w": "Inner Focus",
+        "e": "Razor's Edge",
+        "passive": "Slow Poison",
+        "q_pt": "Lança do Espírito",
+        "w_pt": "Foco Interior",
+        "e_pt": "Fio da Navalha",
+        "passive_pt": "Veneno Desacelerador"
+      },
+      "execution": "Arma de bomba e das MAIS fáceis de aprender em esquadrão de bomba. Antes de entrar, empilhe Spirit Spear (Q) 3x pra ganhar alcance e dano. No sinal do líder (caller), ative Inner Focus (W: dano + velocidade), Immortal (elmo Mistwalker) pra não morrer no avanço, Dynamic Defense (peito Tenacity) pro bônus de dano e solte Razor's Edge (E) em cima do aglomerado inimigo. Recue pra zerar a recarga e repita o ciclo.",
+      "note": "Só entra em ZvZ organizado seguindo o LÍDER (caller) — nunca bombeie sozinho, você morre. Resistance ou Gigantify Potion. Arma nova e perdoadora: é a MELHOR primeira arma de zerg pra galera iniciante da guild. Arma de 2 mãos, sem off-hand.",
+      "items": {
+        "weapon": {
+          "name_en": "Rift Glaive",
+          "id": "T8_2H_GLAIVE_CRYSTAL",
+          "pt": "Archa Fraturada do Ancião",
+          "pt_clean": "Archa Fraturada",
+          "icon": "/icon/T8_2H_GLAIVE_CRYSTAL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Mistwalker Hood",
+          "id": "T8_HEAD_LEATHER_FEY",
+          "pt": "Capuz de Andarilho da Névoa do Ancião",
+          "pt_clean": "Capuz de Andarilho da Névoa",
+          "icon": "/icon/T8_HEAD_LEATHER_FEY"
+        },
+        "chest": {
+          "name_en": "Jacket of Tenacity",
+          "id": "T8_ARMOR_LEATHER_AVALON",
+          "pt": "Casaco da Tenacidade do Ancião",
+          "pt_clean": "Casaco da Tenacidade",
+          "icon": "/icon/T8_ARMOR_LEATHER_AVALON"
+        },
+        "shoes": {
+          "name_en": "Graveguard Boots",
+          "id": "T8_SHOES_PLATE_UNDEAD",
+          "pt": "Botas de Guarda-tumbas do Ancião",
+          "pt_clean": "Botas de Guarda-tumbas",
+          "icon": "/icon/T8_SHOES_PLATE_UNDEAD"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Archa Fraturada",
+      "execution_pt": "Arma de bomba e das MAIS fáceis de aprender em esquadrão de bomba. Antes de entrar, empilhe Lança do Espírito (Q) 3x pra ganhar alcance e dano. No sinal do líder (caller), ative Foco Interior (W: dano + velocidade), Immortal (elmo Mistwalker) pra não morrer no avanço, Dynamic Defense (peito Tenacity) pro bônus de dano e solte Fio da Navalha (E) em cima do aglomerado inimigo. Recue pra zerar a recarga e repita o ciclo.",
+      "note_pt": "Só entra em ZvZ organizado seguindo o LÍDER (caller) — nunca bombeie sozinho, você morre. Resistance ou Poção de Crescimento. Arma nova e perdoadora: é a MELHOR primeira arma de zerg pra galera iniciante da guild. Arma de 2 mãos, sem off-hand.",
+      "image": "/builds/lancas-rift-glaive-faccao-zvz.png"
+    },
+    {
+      "tree": "Lanças",
+      "buildName": "Heron Spear",
+      "content": "Arena 5v5",
+      "role": "dano/versatilidade em grupo pequeno",
+      "abilities": {
+        "q": "Lunging Strike",
+        "w": "Forest of Spears",
+        "e": "Spear Throw",
+        "passive": "Life Leech",
+        "q_pt": "Golpe de Investida",
+        "w_pt": "Floresta de Lanças",
+        "e_pt": "Arremesso de Lança",
+        "passive_pt": "Parasita de Vida"
+      },
+      "execution": "A lança mais móvel — ótima pra Arena de Cristal e pra pegar objetivo/bandeira antes do inimigo. Empilhe Spirit Spear com Lunging Strike (Q), use Forest of Spears (W) pra pressão em área e Spear Throw (E) como dano à distância e controle pra prender quem tenta fugir. Energy Shield (Scholar Cowl) e Life Steal Aura (Hellion) te seguram; Raging Blink (Stalker) reposiciona. Jogue no meio-termo: pressione sem entregar a posição.",
+      "note": "A MESMA build serve pra Hellgate 5v5 e Faccao — arma faz-tudo de grupo pequeno. Boa explosão de dano e autocura, mas mobilidade fraca fora do Raging Blink, então jogue posicionado. Muisak pode virar Mistcaller ou Cryptcandle conforme o controle que faltar no seu time.",
+      "items": {
+        "weapon": {
+          "name_en": "Heron Spear",
+          "id": "T8_MAIN_SPEAR_KEEPER",
+          "pt": "Lança Garceira do Ancião",
+          "pt_clean": "Lança Garceira",
+          "icon": "/icon/T8_MAIN_SPEAR_KEEPER"
+        },
+        "offhand": {
+          "name_en": "Muisak",
+          "id": "T8_OFF_DEMONSKULL_HELL",
+          "pt": "Muisec do Ancião",
+          "pt_clean": "Muisec",
+          "icon": "/icon/T8_OFF_DEMONSKULL_HELL"
+        },
+        "head": {
+          "name_en": "Scholar Cowl",
+          "id": "T8_HEAD_CLOTH_SET1",
+          "pt": "Capote de Erudito do Ancião",
+          "pt_clean": "Capote de Erudito",
+          "icon": "/icon/T8_HEAD_CLOTH_SET1"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Lança Garceira",
+      "execution_pt": "A lança mais móvel — ótima pra Arena de Cristal e pra pegar objetivo/bandeira antes do inimigo. Empilhe Lança do Espírito com Golpe de Investida (Q), use Floresta de Lanças (W) pra pressão em área e Arremesso de Lança (E) como dano à distância e controle pra prender quem tenta fugir. Escudo de Energia (Capote de Erudito) e Aura Sugadora de Vida (Casaco Inferial) te seguram; Lampejo Feroz (Perseguidor) reposiciona. Jogue no meio-termo: pressione sem entregar a posição.",
+      "note_pt": "A MESMA build serve pra Hellgate 5v5 e Faccao — arma faz-tudo de grupo pequeno. Boa explosão de dano e autocura, mas mobilidade fraca fora do Lampejo Feroz, então jogue posicionado. Muisec pode virar Brumário ou Lume Críptico conforme o controle que faltar no seu time.",
+      "image": "/builds/lancas-heron-spear-arena-5v5.png"
+    },
+    {
+      "tree": "Lanças",
+      "buildName": "Trinity Spear",
+      "content": "Hellgate 5v5",
+      "role": "dano em área / trava-alvo (lockdown)",
+      "abilities": {
+        "q": "Lunging Strike",
+        "w": "Harpoon",
+        "e": "Spectral Trident",
+        "passive": "Life Leech",
+        "q_pt": "Golpe de Investida",
+        "w_pt": "Arpão",
+        "e_pt": "Tridente Espectral",
+        "passive_pt": "Parasita de Vida"
+      },
+      "execution": "Foco em travar alvo e dano em área no grupo pequeno. Empilhe Spirit Spear com Lunging Strike (Q). O combo assinatura é Harpoon (W) puxando/segurando o alvo seguido de Spectral Trident (E) enraizando — aí o time inteiro foca e derrete. Raging Blink (Stalker) fecha distância pra aplicar o Harpoon, Meditation (Assassin Hood) devolve energia e Life Steal Aura (Hellion) sustenta na troca.",
+      "note": "O combo Harpoon → Spectral Trident é DEVASTADOR, mas o E tem animação lenta e área de root pequena — treine o tempo, é build de teto alto e brilha só com um time que aproveite o alvo travado. Também roda Corrompida e pequena escala de mundo aberto. Arma de 2 mãos, sem off-hand.",
+      "items": {
+        "weapon": {
+          "name_en": "Trinity Spear",
+          "id": "T8_2H_TRIDENT_UNDEAD",
+          "pt": "Lança Trina do Ancião",
+          "pt_clean": "Lança Trina",
+          "icon": "/icon/T8_2H_TRIDENT_UNDEAD"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Stalker Shoes",
+          "id": "T8_SHOES_LEATHER_MORGANA",
+          "pt": "Sapatos de Espreitador do Ancião",
+          "pt_clean": "Sapatos de Espreitador",
+          "icon": "/icon/T8_SHOES_LEATHER_MORGANA"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Lança Trina",
+      "execution_pt": "Foco em travar alvo e dano em área no grupo pequeno. Empilhe Lança do Espírito com Golpe de Investida (Q). O combo assinatura é Arpão (W) puxando/segurando o alvo seguido de Tridente Espectral (E) enraizando — aí o time inteiro foca e derrete. Lampejo Feroz (Perseguidor) fecha distância pra aplicar o Arpão, Meditação (Capuz de Assassino) devolve energia e Aura Sugadora de Vida (Casaco Inferial) sustenta na troca.",
+      "note_pt": "O combo Arpão → Tridente Espectral é DEVASTADOR, mas o E tem animação lenta e área de root pequena — treine o tempo, é build de teto alto e brilha só com um time que aproveite o alvo travado. Também roda Corrompida e pequena escala de mundo aberto. Arma de 2 mãos, sem off-hand.",
+      "image": "/builds/lancas-trinity-spear-hellgate-5v5.png"
+    },
+    {
+      "tree": "Luvas de Combate",
+      "buildName": "Fists of Avalon",
+      "content": "Openworld/Brumas",
+      "role": "dano/duelista móvel",
+      "abilities": {
+        "q": "Dragon Leap",
+        "w": "Triple Kick",
+        "e": "Purifying Combination",
+        "passive": "Hard to Catch",
+        "q_pt": "Salto do Dragão",
+        "w_pt": "Chute Triplo",
+        "e_pt": "Combinação Purificante",
+        "passive_pt": "Inalcançável"
+      },
+      "execution": "Use Dragon Leap (Q) para colar no alvo e Triple Kick (W) para reposicionar e não deixar ele fugir. Guarde o Purifying Combination (E) para acertar o segundo estágio (a explosão em linha) com o inimigo preso, e recue com os saltos se levar dano. A mobilidade é a sua defesa: mantenha os deslocamentos sempre prontos.",
+      "note": "A build mais amigável pra iniciante nas brumas/mundo aberto: ganha na mobilidade mesmo contra armas meta. Troque a capa por Thetford Cape se quiser mais resistência a atordoamento; use Cleansing Potion no lugar da Gigantify em zonas de muito CC. Pra caçar, mantenha a Undead Cape, que cura ao matar.",
+      "items": {
+        "weapon": {
+          "name_en": "Fists of Avalon",
+          "id": "T8_2H_KNUCKLES_AVALON",
+          "pt": "Punhos de Avalon do Ancião",
+          "pt_clean": "Punhos de Avalon",
+          "icon": "/icon/T8_2H_KNUCKLES_AVALON"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Cowl of Purity",
+          "id": "T8_HEAD_CLOTH_AVALON",
+          "pt": "Capote da Pureza do Ancião",
+          "pt_clean": "Capote da Pureza",
+          "icon": "/icon/T8_HEAD_CLOTH_AVALON"
+        },
+        "chest": {
+          "name_en": "Mistwalker Jacket",
+          "id": "T8_ARMOR_LEATHER_FEY",
+          "pt": "Casaco de Andarilho da Névoa do Ancião",
+          "pt_clean": "Casaco de Andarilho da Névoa",
+          "icon": "/icon/T8_ARMOR_LEATHER_FEY"
+        },
+        "shoes": {
+          "name_en": "Scholar Sandals",
+          "id": "T8_SHOES_CLOTH_SET1",
+          "pt": "Sandálias de Erudito do Ancião",
+          "pt_clean": "Sandálias de Erudito",
+          "icon": "/icon/T8_SHOES_CLOTH_SET1"
+        },
+        "cape": {
+          "name_en": "Undead Cape",
+          "id": "T8_CAPEITEM_UNDEAD",
+          "pt": "Capa Morta-Viva do Ancião",
+          "pt_clean": "Capa Morta-Viva",
+          "icon": "/icon/T8_CAPEITEM_UNDEAD"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Punhos de Avalon",
+      "execution_pt": "Use Salto do Dragão (Q) para colar no alvo e Chute Triplo (W) para reposicionar e não deixar ele fugir. Guarde o Combinação Purificante (E) para acertar o segundo estágio (a explosão em linha) com o inimigo preso, e recue com os saltos se levar dano. A mobilidade é a sua defesa: mantenha os deslocamentos sempre prontos.",
+      "note_pt": "A build mais amigável pra iniciante nas brumas/mundo aberto: ganha na mobilidade mesmo contra armas meta. Troque a capa por Capa de Thetford se quiser mais resistência a atordoamento; use Poção Purificadora no lugar da de Crescimento em zonas de muito CC. Pra caçar, mantenha a Capa Morta-Viva, que cura ao matar.",
+      "image": "/builds/luvas-de-combate-fists-of-avalon-openworld-brumas.png"
+    },
+    {
+      "tree": "Luvas de Combate",
+      "buildName": "Brawler Gloves",
+      "content": "Corrompida 1v1",
+      "role": "dano/duelista explosivo",
+      "abilities": {
+        "q": "Dragon Leap",
+        "w": "Devastating Combo",
+        "e": "Blazing Geyser",
+        "passive": "Hard to Catch",
+        "q_pt": "Salto do Dragão",
+        "w_pt": "Combo Devastador",
+        "e_pt": "Gêiser Ardente",
+        "passive_pt": "Inalcançável"
+      },
+      "execution": "Abra com Dragon Leap (Q) e trave o alvo com Devastating Combo (W) pra garantir o Blazing Geyser (E), sua maior fonte de dano. Assim que o E cair, use o Meditation da Assassin Hood pra resetar e soltar um segundo Blazing Geyser, o que derruba até os mais tanques. Não gaste os saltos à toa: eles fecham distância e escapam da explosão inimiga.",
+      "note": "Clássico duelista de masmorra corrompida: baixo custo e alto teto. Cleric Robe dá fôlego contra dano contínuo; troque por Hellion Jacket se preferir sugar vida em vez de escudo. Gigantify aumenta o estouro, mas Healing Potion segura duelos longos. Contra alvos que se curam muito, encaixe uma Morgana Cape.",
+      "items": {
+        "weapon": {
+          "name_en": "Brawler Gloves",
+          "id": "T8_2H_KNUCKLES_SET1",
+          "pt": "Luvas de Lutador do Ancião",
+          "pt_clean": "Luvas de Lutador",
+          "icon": "/icon/T8_2H_KNUCKLES_SET1"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Assassin Shoes",
+          "id": "T8_SHOES_LEATHER_SET3",
+          "pt": "Sapatos de Assassino do Ancião",
+          "pt_clean": "Sapatos de Assassino",
+          "icon": "/icon/T8_SHOES_LEATHER_SET3"
+        },
+        "cape": {
+          "name_en": "Keeper Cape",
+          "id": "T8_CAPEITEM_KEEPER",
+          "pt": "Capa Protetora do Ancião",
+          "pt_clean": "Capa Protetora",
+          "icon": "/icon/T8_CAPEITEM_KEEPER"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Luvas de Lutador",
+      "execution_pt": "Abra com Salto do Dragão (Q) e trave o alvo com Combo Devastador (W) pra garantir o Gêiser Ardente (E), sua maior fonte de dano. Assim que o E cair, use o Meditação da Capuz de Assassino pra resetar e soltar um segundo Gêiser Ardente, o que derruba até os mais tanques. Não gaste os saltos à toa: eles fecham distância e escapam da explosão inimiga.",
+      "note_pt": "Clássico duelista de masmorra corrompida: baixo custo e alto teto. Robe de Clérigo dá fôlego contra dano contínuo; troque por Casaco Inferial se preferir sugar vida em vez de escudo. de Crescimento aumenta o estouro, mas Poção de Cura segura duelos longos. Contra alvos que se curam muito, encaixe uma Capa de Morgana.",
+      "image": "/builds/luvas-de-combate-brawler-gloves-corrompida-1v1.png"
+    },
+    {
+      "tree": "Luvas de Combate",
+      "buildName": "Ursine Maulers",
+      "content": "Faccao/ZvZ",
+      "role": "dano em área/DPS de zerg",
+      "abilities": {
+        "q": "Dragon Leap",
+        "w": "Triple Kick",
+        "e": "Hundred Striking Fists",
+        "passive": "Hard to Catch",
+        "q_pt": "Salto do Dragão",
+        "w_pt": "Chute Triplo",
+        "e_pt": "Punhos dos Cem Golpes",
+        "passive_pt": "Inalcançável"
+      },
+      "execution": "Fique atrás da linha de frente e solte o Hundred Striking Fists (E) em cima do aglomerado inimigo: é um canal longo de dano em área, então só comece quando estiver seguro (de preferência defendendo território). Use Dragon Leap (Q) e Triple Kick (W) apenas pra reposicionar e escapar de bombas. Ative o Life Steal Aura (peito) antes de canalizar pra se sustentar.",
+      "note": "A luva de ZvZ mais consagrada. Na defesa de castelo/território você canaliza o E inteiro sem ser interrompido, e ali ela brilha. Se o time jogar muito móvel, o Hellfire Hands cumpre papel parecido reposicionando melhor. Troque Hellion por Cleric Robe se o time precisar de energia.",
+      "items": {
+        "weapon": {
+          "name_en": "Ursine Maulers",
+          "id": "T8_2H_KNUCKLES_KEEPER",
+          "pt": "Luvas Ursinas do Ancião",
+          "pt_clean": "Luvas Ursinas",
+          "icon": "/icon/T8_2H_KNUCKLES_KEEPER"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Royal Sandals",
+          "id": "T8_SHOES_CLOTH_ROYAL",
+          "pt": "Sandálias Reais do Ancião",
+          "pt_clean": "Sandálias Reais",
+          "icon": "/icon/T8_SHOES_CLOTH_ROYAL"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Luvas Ursinas",
+      "execution_pt": "Fique atrás da linha de frente e solte o Punhos dos Cem Golpes (E) em cima do aglomerado inimigo: é um canal longo de dano em área, então só comece quando estiver seguro (de preferência defendendo território). Use Salto do Dragão (Q) e Chute Triplo (W) apenas pra reposicionar e escapar de bombas. Ative o Aura Sugadora de Vida (peito) antes de canalizar pra se sustentar.",
+      "note_pt": "A luva de ZvZ mais consagrada. Na defesa de castelo/território você canaliza o E inteiro sem ser interrompido, e ali ela brilha. Se o time jogar muito móvel, o Mãos Infernais cumpre papel parecido reposicionando melhor. Troque Casaco Inferial por Robe de Clérigo se o time precisar de energia.",
+      "image": "/builds/luvas-de-combate-ursine-maulers-faccao-zvz.png"
+    },
+    {
+      "tree": "Luvas de Combate",
+      "buildName": "Hellfire Hands",
+      "content": "Faccao/ZvZ",
+      "role": "dano em área/anti-cura",
+      "abilities": {
+        "q": "Dragon Leap",
+        "w": "Triple Kick",
+        "e": "Infernal Boulder",
+        "passive": "Hard to Catch",
+        "q_pt": "Salto do Dragão",
+        "w_pt": "Chute Triplo",
+        "e_pt": "Pedregulho Infernal",
+        "passive_pt": "Inalcançável"
+      },
+      "execution": "Jogue o Infernal Boulder (E) na massa inimiga: além do dano em área, ele reduz a cura recebida (anti-cura), enfraquecendo os healers adversários. Use Dragon Leap (Q) e Triple Kick (W) pra posicionar a bola e recuar em seguida. Solte a Life Steal Aura (peito) pra não derreter quando virar foco.",
+      "note": "A alternativa anti-cura ao Ursine: prefira Hellfire quando o time inimigo tem muita cura sustentando o zerg. Em conteúdo menor, Mercenary Jacket (Ballista Support Fire) atordoa antes do E. Resistance Potion é padrão de ZvZ; troque por Cleansing se estiver tomando muito CC.",
+      "items": {
+        "weapon": {
+          "name_en": "Hellfire Hands",
+          "id": "T8_2H_KNUCKLES_HELL",
+          "pt": "Mãos Infernais do Ancião",
+          "pt_clean": "Mãos Infernais",
+          "icon": "/icon/T8_2H_KNUCKLES_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Royal Sandals",
+          "id": "T8_SHOES_CLOTH_ROYAL",
+          "pt": "Sandálias Reais do Ancião",
+          "pt_clean": "Sandálias Reais",
+          "icon": "/icon/T8_SHOES_CLOTH_ROYAL"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Mãos Infernais",
+      "execution_pt": "Jogue o Pedregulho Infernal (E) na massa inimiga: além do dano em área, ele reduz a cura recebida (anti-cura), enfraquecendo os healers adversários. Use Salto do Dragão (Q) e Chute Triplo (W) pra posicionar a bola e recuar em seguida. Solte a Aura Sugadora de Vida (peito) pra não derreter quando virar foco.",
+      "note_pt": "A alternativa anti-cura ao Ursine: prefira Hellfire quando o time inimigo tem muita cura sustentando o zerg. Em conteúdo menor, Casaco de Mercenário do Calouro (Ballista Support Fire) atordoa antes do E. Poção de Resistência é padrão de ZvZ; troque por Cleansing se estiver tomando muito CC.",
+      "image": "/builds/luvas-de-combate-hellfire-hands-faccao-zvz.png"
+    },
+    {
+      "tree": "Luvas de Combate",
+      "buildName": "Spiked Gauntlets",
+      "content": "Openworld/Brumas",
+      "role": "ganker/explosão solo",
+      "abilities": {
+        "q": "Dragon Leap",
+        "w": "Devastating Combo",
+        "e": "Gravitational Collapse",
+        "passive": "Hard to Catch",
+        "q_pt": "Salto do Dragão",
+        "w_pt": "Combo Devastador",
+        "e_pt": "Colapso Gravitacional",
+        "passive_pt": "Inalcançável"
+      },
+      "execution": "Espere o alvo isolado, cole com Dragon Leap (Q) e trave com Devastating Combo (W) pra acertar o Gravitational Collapse (E), que dá dano extra e 75% de lentidão em quem usa armadura de placa. Use o Meditation da Assassin Hood pra resetar o E e soltar um segundo, o que costuma matar na hora. O Bloodlust (botas) cura a cada golpe se o gank virar 1vX.",
+      "note": "Ganker de mundo aberto/brumas: contra tanks de placa o dano é ainda maior. Stalker Jacket (Rush) dá um segundo avanço pra perseguir; troque por Hellion Jacket se quiser mais sustentação. Gigantify pra matar de um golpe; Cleansing Potion se caçar em zona de muito CC. Demon Cape faz bola de neve encadeando mortes.",
+      "items": {
+        "weapon": {
+          "name_en": "Spiked Gauntlets",
+          "id": "T8_2H_KNUCKLES_SET3",
+          "pt": "Manoplas Cravadas do Ancião",
+          "pt_clean": "Manoplas Cravadas",
+          "icon": "/icon/T8_2H_KNUCKLES_SET3"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Stalker Jacket",
+          "id": "T8_ARMOR_LEATHER_MORGANA",
+          "pt": "Casaco de Espreitador do Ancião",
+          "pt_clean": "Casaco de Espreitador",
+          "icon": "/icon/T8_ARMOR_LEATHER_MORGANA"
+        },
+        "shoes": {
+          "name_en": "Assassin Shoes",
+          "id": "T8_SHOES_LEATHER_SET3",
+          "pt": "Sapatos de Assassino do Ancião",
+          "pt_clean": "Sapatos de Assassino",
+          "icon": "/icon/T8_SHOES_LEATHER_SET3"
+        },
+        "cape": {
+          "name_en": "Demon Cape",
+          "id": "T8_CAPEITEM_DEMON",
+          "pt": "Capa Demoníaca do Ancião",
+          "pt_clean": "Capa Demoníaca",
+          "icon": "/icon/T8_CAPEITEM_DEMON"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Manoplas Cravadas",
+      "execution_pt": "Espere o alvo isolado, cole com Salto do Dragão (Q) e trave com Combo Devastador (W) pra acertar o Colapso Gravitacional (E), que dá dano extra e 75% de lentidão em quem usa armadura de placa. Use o Meditação da Capuz de Assassino pra resetar o E e soltar um segundo, o que costuma matar na hora. O Bloodlust (botas) cura a cada golpe se o gank virar 1vX.",
+      "note_pt": "Ganker de mundo aberto/brumas: contra tanks de placa o dano é ainda maior. Casaco de Espreitador (Arremetida) dá um segundo avanço pra perseguir; troque por Casaco Inferial se quiser mais sustentação. de Crescimento pra matar de um golpe; Poção Purificadora se caçar em zona de muito CC. Capa Demoníaca faz bola de neve encadeando mortes.",
+      "image": "/builds/luvas-de-combate-spiked-gauntlets-openworld-brumas.png"
+    },
+    {
+      "tree": "Luvas de Combate",
+      "buildName": "Ravenstrike Cestus",
+      "content": "Arena 5v5",
+      "role": "dano em área/CC",
+      "abilities": {
+        "q": "Dragon Leap",
+        "w": "Triple Kick",
+        "e": "Earth Crusher",
+        "passive": "Hard to Catch",
+        "q_pt": "Salto do Dragão",
+        "w_pt": "Chute Triplo",
+        "e_pt": "Esmaga-terra",
+        "passive_pt": "Inalcançável"
+      },
+      "execution": "No início do combate use Dragon Leap (Q) pra alcançar a retaguarda inimiga e solte o Earth Crusher (E) pra dano em área e controle no aglomerado. Triple Kick (W) mantém a pressão e atrapalha o reposicionamento deles. Reseta o E com o Meditation da Assassin Hood quando conseguir pegar 2 ou mais alvos juntos.",
+      "note": "Foco em luta em equipe: quanto mais gente junta, melhor o Earth Crusher. Guardian Armor deixa mais tanque se o time precisar de um engajador; Hellion Jacket sustenta a equipe em área. Serve também em ZvZ menor. Martlock Cape dá escudo no momento do engajamento.",
+      "items": {
+        "weapon": {
+          "name_en": "Ravenstrike Cestus",
+          "id": "T8_2H_KNUCKLES_MORGANA",
+          "pt": "Cestus Golpeadores do Ancião",
+          "pt_clean": "Cestus Golpeadores",
+          "icon": "/icon/T8_2H_KNUCKLES_MORGANA"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Assassin Hood",
+          "id": "T8_HEAD_LEATHER_SET3",
+          "pt": "Capuz de Assassino do Ancião",
+          "pt_clean": "Capuz de Assassino",
+          "icon": "/icon/T8_HEAD_LEATHER_SET3"
+        },
+        "chest": {
+          "name_en": "Hellion Jacket",
+          "id": "T8_ARMOR_LEATHER_HELL",
+          "pt": "Casaco Inferial do Ancião",
+          "pt_clean": "Casaco Inferial",
+          "icon": "/icon/T8_ARMOR_LEATHER_HELL"
+        },
+        "shoes": {
+          "name_en": "Royal Sandals",
+          "id": "T8_SHOES_CLOTH_ROYAL",
+          "pt": "Sandálias Reais do Ancião",
+          "pt_clean": "Sandálias Reais",
+          "icon": "/icon/T8_SHOES_CLOTH_ROYAL"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Cestus Golpeadores",
+      "execution_pt": "No início do combate use Salto do Dragão (Q) pra alcançar a retaguarda inimiga e solte o Esmaga-terra (E) pra dano em área e controle no aglomerado. Chute Triplo (W) mantém a pressão e atrapalha o reposicionamento deles. Reseta o E com o Meditação da Capuz de Assassino quando conseguir pegar 2 ou mais alvos juntos.",
+      "note_pt": "Foco em luta em equipe: quanto mais gente junta, melhor o Esmaga-terra. Armadura de Guardião deixa mais tanque se o time precisar de um engajador; Casaco Inferial sustenta a equipe em área. Serve também em ZvZ menor. Capa de Martlock dá escudo no momento do engajamento.",
+      "image": "/builds/luvas-de-combate-ravenstrike-cestus-arena-5v5.png"
+    },
+    {
+      "tree": "Cajados de Fogo",
+      "buildName": "Wildfire Staff",
+      "content": "Openworld/Brumas",
+      "role": "dano/burst e roaming",
+      "abilities": {
+        "q": "Fire Bolt",
+        "w": "Flame Blast",
+        "e": "Magma Sphere",
+        "passive": "Aggressive Caster",
+        "q_pt": "Seta de Fogo",
+        "w_pt": "Explosão de Chamas",
+        "e_pt": "Esfera de Lava",
+        "passive_pt": "Lançador Agressivo"
+      },
+      "execution": "Abre com Fire Bolt e, quando precisar chegar no alvo (ou escapar), lanca o Flame Blast em si mesmo pra ganhar os 60% de velocidade. Mira o Magma Sphere no chao do inimigo, que e o seu maior dano. Conforme voce encadeia magias o Aggressive Caster acumula e o Fire Bolt passa a sair bem mais rapido enquanto persegue. Guarda o Everlasting Spirit (do Cleric Robe) pra limpar CC e aguentar quando sentir o burst inimigo chegando, e usa o Rejuvenating Sprint (das Soldier Boots) pra reposicionar e curar de leve. Toma a Gigantify Potion antes de comprometer na luta.",
+      "note": "Cajado de DUAS MAOS, entao nao leva off-hand. Alternativas: elmo Guardian Helmet pra mais vida, ou a Healing Potion no lugar da Gigantify se for jogar mais defensivo nas Brumas. Bom pra pegar alvos moveis por causa da velocidade do Flame Blast.",
+      "items": {
+        "weapon": {
+          "name_en": "Wildfire Staff",
+          "id": "T8_MAIN_FIRESTAFF_KEEPER",
+          "pt": "Cajado Incendiário do Ancião",
+          "pt_clean": "Cajado Incendiário",
+          "icon": "/icon/T8_MAIN_FIRESTAFF_KEEPER"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Keeper Cape",
+          "id": "T8_CAPEITEM_KEEPER",
+          "pt": "Capa Protetora do Ancião",
+          "pt_clean": "Capa Protetora",
+          "icon": "/icon/T8_CAPEITEM_KEEPER"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Cajado Incendiário",
+      "execution_pt": "Abre com Seta de Fogo e, quando precisar chegar no alvo (ou escapar), lanca o Explosão de Chamas em si mesmo pra ganhar os 60% de velocidade. Mira o Esfera de Lava no chao do inimigo, que e o seu maior dano. Conforme voce encadeia magias o Lançador Agressivo acumula e o Seta de Fogo passa a sair bem mais rapido enquanto persegue. Guarda o Everlasting Spirit (do Robe de Clérigo) pra limpar CC e aguentar quando sentir o burst inimigo chegando, e usa o Rejuvenating Sprint (das Botas de Soldado) pra reposicionar e curar de leve. Toma a Poção de Crescimento antes de comprometer na luta.",
+      "note_pt": "Cajado de DUAS MAOS, entao nao leva off-hand. Alternativas: elmo Elmo de Guardião pra mais vida, ou a Poção de Cura no lugar da de Crescimento se for jogar mais defensivo nas Brumas. Bom pra pegar alvos moveis por causa da velocidade do Explosão de Chamas.",
+      "image": "/builds/cajados-de-fogo-wildfire-staff-openworld-brumas.png"
+    },
+    {
+      "tree": "Cajados de Fogo",
+      "buildName": "Fire Staff",
+      "content": "Openworld/Brumas",
+      "role": "dano/iniciante",
+      "abilities": {
+        "q": "Fire Bolt",
+        "w": "Wall of Flames",
+        "e": "Pyroblast",
+        "passive": "Aggressive Caster",
+        "q_pt": "Seta de Fogo",
+        "w_pt": "Parede de Chamas",
+        "e_pt": "Ignimpacto",
+        "passive_pt": "Lançador Agressivo"
+      },
+      "execution": "Regra de ouro: 3x Fire Bolt e depois Pyroblast pra ativar o Aggressive Caster; com ele ligado o Fire Bolt sai bem mais rapido, entao continue spammando Fire Bolt. Usa a Wall of Flames pra se proteger enquanto cospe dano e obrigar o inimigo a dar a volta. Guarda o Everlasting Spirit (do Cleric Robe) pra aguentar o burst e o Rejuvenating Sprint (das Soldier Boots) pra kitar. Pyroblast tem otimo alcance e ainda estoura em area de 4m no alvo.",
+      "note": "Build simples e barata, ideal pra iniciante aprender mago solo nas Brumas. Off-hands alternativos: Muisak (mais dano), Eye of Secrets (poke) ou Torch (reset de posicao). Peito Feyscale Robe e a versao mais cara e traz o Wild Magic (utilidade extra, tipo Ring of Fire/Storm Shield); capa Morgana Cape reduz o tempo de conjuracao (em troca de mais mana). Pocoes Healing Potion ou Energy Potion tambem servem.",
+      "items": {
+        "weapon": {
+          "name_en": "Fire Staff",
+          "id": "T8_MAIN_FIRESTAFF",
+          "pt": "Cajado de Fogo do Ancião",
+          "pt_clean": "Cajado de Fogo",
+          "icon": "/icon/T8_MAIN_FIRESTAFF"
+        },
+        "offhand": {
+          "name_en": "Rosalia's Diary",
+          "id": "T8_OFF_BOOK",
+          "pt": "Diário de Rosalia",
+          "pt_clean": "Diário de Rosalia",
+          "icon": "/icon/T8_OFF_BOOK"
+        },
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Keeper Cape",
+          "id": "T8_CAPEITEM_KEEPER",
+          "pt": "Capa Protetora do Ancião",
+          "pt_clean": "Capa Protetora",
+          "icon": "/icon/T8_CAPEITEM_KEEPER"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Cajado de Fogo",
+      "execution_pt": "Regra de ouro: 3x Seta de Fogo e depois Ignimpacto pra ativar o Lançador Agressivo; com ele ligado o Seta de Fogo sai bem mais rapido, entao continue spammando Seta de Fogo. Usa a Parede de Chamas pra se proteger enquanto cospe dano e obrigar o inimigo a dar a volta. Guarda o Everlasting Spirit (do Robe de Clérigo) pra aguentar o burst e o Rejuvenating Sprint (das Botas de Soldado) pra kitar. Ignimpacto tem otimo alcance e ainda estoura em area de 4m no alvo.",
+      "note_pt": "Build simples e barata, ideal pra iniciante aprender mago solo nas Brumas. Off-hands alternativos: Muisec (mais dano), Olho dos Segredos (poke) ou Tocha (reset de posicao). Peito Robe Feérico e a versao mais cara e traz o Wild Magic (utilidade extra, tipo Ring of Fire/Storm Escudo do Calouro); capa Capa de Morgana reduz o tempo de conjuracao (em troca de mais mana). Pocoes Poção de Cura ou Poção de Energia tambem servem.",
+      "image": "/builds/cajados-de-fogo-fire-staff-openworld-brumas.png"
+    },
+    {
+      "tree": "Cajados de Gelo",
+      "buildName": "Frost Staff",
+      "content": "Openworld/Brumas",
+      "role": "controle/ganker",
+      "abilities": {
+        "q": "Frozen Surge",
+        "w": "Frost Nova",
+        "e": "Freezing Wind",
+        "passive": "Energetic",
+        "q_pt": "Surto Congelado",
+        "w_pt": "Explosão Congelante",
+        "e_pt": "Vento Congelante",
+        "passive_pt": "Energético"
+      },
+      "execution": "Corra em cima do alvo com Rejuvenating Sprint (botas) e prenda com Freezing Wind assim que estiver no alcance — o root trava a fuga. Emende Frost Nova pra manter o alvo preso e mantenha Frozen Surge nele o tempo todo, empilhando lentidao e dano. Ative o Mistcaller pra se blindar contra silencio e controle enquanto continua castando sem ser interrompido. De 2 a 3 autoataques entre as skills pra recuperar energia. Se a luta virar, ative o Undead Cape (Vanisher) e suma.",
+      "note": "Build de 1 mao (com off-hand), a mais barata e perdoavel pra quem esta comecando a rodar as Brumas gankando. O off-hand Mistcaller pode virar Leering Cane (mais dano) ou Torch (limpeza mais rapida). A Resistance Potion segura o dano em rajada do inimigo — troque por Healing Potion se preferir mais sustentacao. Capa Undead pra fuga; Lymhurst Cape se enfrentar muito controle.",
+      "items": {
+        "weapon": {
+          "name_en": "Frost Staff",
+          "id": "T8_MAIN_FROSTSTAFF",
+          "pt": "Cajado de Gelo do Ancião",
+          "pt_clean": "Cajado de Gelo",
+          "icon": "/icon/T8_MAIN_FROSTSTAFF"
+        },
+        "offhand": {
+          "name_en": "Mistcaller",
+          "id": "T8_OFF_HORN_KEEPER",
+          "pt": "Brumário do Ancião",
+          "pt_clean": "Brumário",
+          "icon": "/icon/T8_OFF_HORN_KEEPER"
+        },
+        "head": {
+          "name_en": "Fiend Cowl",
+          "id": "T8_HEAD_CLOTH_HELL",
+          "pt": "Capote Malévolo do Ancião",
+          "pt_clean": "Capote Malévolo",
+          "icon": "/icon/T8_HEAD_CLOTH_HELL"
+        },
+        "chest": {
+          "name_en": "Graveguard Armor",
+          "id": "T8_ARMOR_PLATE_UNDEAD",
+          "pt": "Armadura de Guarda-tumbas do Ancião",
+          "pt_clean": "Armadura de Guarda-tumbas",
+          "icon": "/icon/T8_ARMOR_PLATE_UNDEAD"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Undead Cape",
+          "id": "T8_CAPEITEM_UNDEAD",
+          "pt": "Capa Morta-Viva do Ancião",
+          "pt_clean": "Capa Morta-Viva",
+          "icon": "/icon/T8_CAPEITEM_UNDEAD"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Cajado de Gelo",
+      "execution_pt": "Corra em cima do alvo com Rejuvenating Sprint (botas) e prenda com Vento Congelante assim que estiver no alcance — o root trava a fuga. Emende Explosão Congelante pra manter o alvo preso e mantenha Surto Congelado nele o tempo todo, empilhando lentidao e dano. Ative o Brumário pra se blindar contra silencio e controle enquanto continua castando sem ser interrompido. De 2 a 3 autoataques entre as skills pra recuperar energia. Se a luta virar, ative o Capa Morta-Viva (Vanisher) e suma.",
+      "note_pt": "Build de 1 mao (com off-hand), a mais barata e perdoavel pra quem esta comecando a rodar as Brumas gankando. O off-hand Brumário pode virar Bengala Maligna (mais dano) ou Tocha (limpeza mais rapida). A Poção de Resistência segura o dano em rajada do inimigo — troque por Poção de Cura se preferir mais sustentacao. Capa Undead pra fuga; Capa de Lymhurst se enfrentar muito controle.",
+      "image": "/builds/cajados-de-gelo-frost-staff-openworld-brumas.png"
+    },
+    {
+      "tree": "Cajados de Gelo",
+      "buildName": "Chillhowl",
+      "content": "Openworld/Brumas",
+      "role": "dano/kite solo",
+      "abilities": {
+        "q": "Frozen Surge",
+        "w": "Frost Nova",
+        "e": "Glacial Prison",
+        "passive": "Energetic",
+        "q_pt": "Surto Congelado",
+        "w_pt": "Explosão Congelante",
+        "e_pt": "Prisão Glacial",
+        "passive_pt": "Energético"
+      },
+      "execution": "Kite puro: mantenha distancia maxima e martele Frozen Surge pra empilhar lentidao e derreter a vida do alvo. Quando ele encostar, solte Frost Nova pra travar e recue. O E Glacial Prison prende o inimigo num bloco de gelo — use com o alvo em pouca vida ou pra fechar a sequencia: Prison, depois 2x Frozen Surge e Frost Nova se precisar. O Chillhowl empilha lentidao forte e castiga alvos gelados, entao cada acerto doi mais conforme voce mantem o controle. Use Ambush (peito Assassin) pra ganhar velocidade e ditar a distancia.",
+      "note": "Arma de 2 maos, entao sem off-hand. Uma das melhores escolhas pra Brumas solo (nivel S), mas e artefato (mais cara): domine a Frost Staff de 1 mao antes de subir pra ela. Healing Potion pra trocas longas; Resistance Potion contra muito dano em rajada. Capa Undead (Vanisher) pra escapar de emboscada; Lymhurst Cape contra composicoes de controle pesado.",
+      "items": {
+        "weapon": {
+          "name_en": "Chillhowl",
+          "id": "T8_MAIN_FROSTSTAFF_AVALON",
+          "pt": "Uivo Frio do Ancião",
+          "pt_clean": "Uivo Frio",
+          "icon": "/icon/T8_MAIN_FROSTSTAFF_AVALON"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Assassin Jacket",
+          "id": "T8_ARMOR_LEATHER_SET3",
+          "pt": "Casaco de Assassino do Ancião",
+          "pt_clean": "Casaco de Assassino",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET3"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Undead Cape",
+          "id": "T8_CAPEITEM_UNDEAD",
+          "pt": "Capa Morta-Viva do Ancião",
+          "pt_clean": "Capa Morta-Viva",
+          "icon": "/icon/T8_CAPEITEM_UNDEAD"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Uivo Frio",
+      "execution_pt": "Kite puro: mantenha distancia maxima e martele Surto Congelado pra empilhar lentidao e derreter a vida do alvo. Quando ele encostar, solte Explosão Congelante pra travar e recue. O E Prisão Glacial prende o inimigo num bloco de gelo — use com o alvo em pouca vida ou pra fechar a sequencia: Prison, depois 2x Surto Congelado e Explosão Congelante se precisar. O Uivo Frio empilha lentidao forte e castiga alvos gelados, entao cada acerto doi mais conforme voce mantem o controle. Use Ambush (peito Assassino) pra ganhar velocidade e ditar a distancia.",
+      "note_pt": "Arma de 2 maos, entao sem off-hand. Uma das melhores escolhas pra Brumas solo (nivel S), mas e artefato (mais cara): domine a Cajado de Gelo de 1 mao antes de subir pra ela. Poção de Cura pra trocas longas; Poção de Resistência contra muito dano em rajada. Capa Undead (Vanisher) pra escapar de emboscada; Capa de Lymhurst contra composicoes de controle pesado.",
+      "image": "/builds/cajados-de-gelo-chillhowl-openworld-brumas.png"
+    },
+    {
+      "tree": "Arcos",
+      "buildName": "Bow",
+      "content": "Openworld/Brumas",
+      "role": "dano à distância / kite",
+      "abilities": {
+        "q": "Multishot",
+        "w": "Frost Shot",
+        "e": "Enchanted Quiver",
+        "passive": "Piercing Arrows",
+        "q_pt": "Multidisparo",
+        "w_pt": "Tiro de Gelo",
+        "e_pt": "Aljava Encantada",
+        "passive_pt": "Flechas Perfurantes"
+      },
+      "execution": "Estilo kite puro: mantenha SEMPRE a distância máxima do alvo. Abra com Enchanted Quiver (E) para ganhar velocidade de ataque e flechas encantadas (reative o E em até 8s para um avanço curto de reposicionamento), use Frost Shot (W) para desacelerar quem tenta encostar enquanto recua, e solte Multishot (Q) para dano em cone com empurrão. As botas Knight Boots (Shield Charge) servem para engajar ou escapar de quem fecha a distância, e o peito Mercenary Jacket (Bloodlust) te cura quando VOCÊ causa dano (não quando toma). Nunca fique parado: o passivo Piercing Arrows reduz a defesa das criaturas a cada auto-ataque (ótimo para limpar as Brumas), então mantenha o fogo contínuo enquanto kita.",
+      "note": "Arma de 2 mãos, sem off-hand. É a build mais perdoável e barata da classe, ideal pra iniciante aprender a kitar. Trocas: botas Guardian Boots ou Soldier Boots; capa Avalonian Cape; poção Gigantify Potion. Para mais dano, troque o Q por Poisoned Arrow, ou o W por Explosive Arrows em cenários de dano explosivo.",
+      "items": {
+        "weapon": {
+          "name_en": "Bow",
+          "id": "T8_2H_BOW",
+          "pt": "Arco do Ancião",
+          "pt_clean": "Arco",
+          "icon": "/icon/T8_2H_BOW"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Mercenary Jacket",
+          "id": "T8_ARMOR_LEATHER_SET1",
+          "pt": "Casaco de Mercenário do Ancião",
+          "pt_clean": "Casaco de Mercenário",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET1"
+        },
+        "shoes": {
+          "name_en": "Knight Boots",
+          "id": "T8_SHOES_PLATE_SET2",
+          "pt": "Botas de Cavaleiro do Ancião",
+          "pt_clean": "Botas de Cavaleiro",
+          "icon": "/icon/T8_SHOES_PLATE_SET2"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Arco",
+      "execution_pt": "Estilo kite puro: mantenha SEMPRE a distância máxima do alvo. Abra com Aljava Encantada (E) para ganhar velocidade de ataque e flechas encantadas (reative o E em até 8s para um avanço curto de reposicionamento), use Tiro de Gelo (W) para desacelerar quem tenta encostar enquanto recua, e solte Multidisparo (Q) para dano em cone com empurrão. As botas Botas de Cavaleiro (Investida com Escudo) servem para engajar ou escapar de quem fecha a distância, e o peito Casaco de Mercenário do Calouro (Bloodlust) te cura quando VOCÊ causa dano (não quando toma). Nunca fique parado: o passivo Flechas Perfurantes reduz a defesa das criaturas a cada auto-ataque (ótimo para limpar as Brumas), então mantenha o fogo contínuo enquanto kita.",
+      "note_pt": "Arma de 2 mãos, sem off-hand. É a build mais perdoável e barata da classe, ideal pra iniciante aprender a kitar. Trocas: botas Botas de Guardião ou Botas de Soldado; capa Capa Avaloniana; poção Poção de Crescimento. Para mais dano, troque o Q por Flecha Envenenada, ou o W por Flechas Explosivas em cenários de dano explosivo.",
+      "image": "/builds/arcos-bow-openworld-brumas.png"
+    },
+    {
+      "tree": "Arcos",
+      "buildName": "Bow of Badon",
+      "content": "Openworld/Brumas",
+      "role": "dano/burst-kite",
+      "abilities": {
+        "q": "Poisoned Arrow",
+        "w": "Frost Shot",
+        "e": "Raging Storm",
+        "passive": "Piercing Arrows",
+        "q_pt": "Flecha Envenenada",
+        "w_pt": "Tiro de Gelo",
+        "e_pt": "Tempestade Furiosa",
+        "passive_pt": "Flechas Perfurantes"
+      },
+      "execution": "Rei do dano explosivo seguro na caça solo (o E não pode mais ser refletido, então é um dos estouros de dano mais confiáveis contra corpo a corpo). Mantenha Poisoned Arrow (Q) SEMPRE aplicado no alvo e use Frost Shot (W) para kitar e desacelerar quem persegue. Posicione Raging Storm (E) de forma que o inimigo seja obrigado a atravessar a zona de dano, ou solte por cima de quem encostou. Assassin Jacket (Ambush) dá invisibilidade para reposicionar ou emboscar, Cowl of Purity (Avalonian Beam) rende dano extra e Soldier Boots (Rejuvenating Sprint) garante fuga e cura contínua. A Undead Cape te salva automaticamente quando sua vida fica baixa (por volta de 15%).",
+      "note": "Arma de 2 mãos, sem off-hand. É um degrau acima do Bow simples: pede boa noção de posicionamento do E, mas entrega muito mais potencial de abate. Trocas: Knight Boots no lugar das Soldier Boots; contra corpo a corpo muito móvel, troque o Q por Multishot; contra curandeiro parado, use Explosive Arrows.",
+      "items": {
+        "weapon": {
+          "name_en": "Bow of Badon",
+          "id": "T8_2H_BOW_KEEPER",
+          "pt": "Arco Badônico do Ancião",
+          "pt_clean": "Arco Badônico",
+          "icon": "/icon/T8_2H_BOW_KEEPER"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Cowl of Purity",
+          "id": "T8_HEAD_CLOTH_AVALON",
+          "pt": "Capote da Pureza do Ancião",
+          "pt_clean": "Capote da Pureza",
+          "icon": "/icon/T8_HEAD_CLOTH_AVALON"
+        },
+        "chest": {
+          "name_en": "Assassin Jacket",
+          "id": "T8_ARMOR_LEATHER_SET3",
+          "pt": "Casaco de Assassino do Ancião",
+          "pt_clean": "Casaco de Assassino",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET3"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Undead Cape",
+          "id": "T8_CAPEITEM_UNDEAD",
+          "pt": "Capa Morta-Viva do Ancião",
+          "pt_clean": "Capa Morta-Viva",
+          "icon": "/icon/T8_CAPEITEM_UNDEAD"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Arco Badônico",
+      "execution_pt": "Rei do dano explosivo seguro na caça solo (o E não pode mais ser refletido, então é um dos estouros de dano mais confiáveis contra corpo a corpo). Mantenha Flecha Envenenada (Q) SEMPRE aplicado no alvo e use Tiro de Gelo (W) para kitar e desacelerar quem persegue. Posicione Tempestade Furiosa (E) de forma que o inimigo seja obrigado a atravessar a zona de dano, ou solte por cima de quem encostou. Casaco de Assassino (Ambush) dá invisibilidade para reposicionar ou emboscar, Capote da Pureza (Avaloniana Beam) rende dano extra e Botas de Soldado (Rejuvenating Sprint) garante fuga e cura contínua. A Capa Morta-Viva te salva automaticamente quando sua vida fica baixa (por volta de 15%).",
+      "note_pt": "Arma de 2 mãos, sem off-hand. É um degrau acima do Bow simples: pede boa noção de posicionamento do E, mas entrega muito mais potencial de abate. Trocas: Botas de Cavaleiro no lugar das Botas de Soldado; contra corpo a corpo muito móvel, troque o Q por Multidisparo; contra curandeiro parado, use Flechas Explosivas.",
+      "image": "/builds/arcos-bow-of-badon-openworld-brumas.png"
+    },
+    {
+      "tree": "Cajados da Natureza",
+      "buildName": "Great Nature Staff",
+      "content": "Openworld/Brumas",
+      "role": "healer/suporte de grupo",
+      "abilities": {
+        "q": "Rejuvenation",
+        "w": "Rejuvenating Breeze",
+        "e": "Living Armor",
+        "passive": "Aggression",
+        "q_pt": "Rejuvenescimento",
+        "w_pt": "Brisa Rejuvenescedora",
+        "e_pt": "Armadura viva",
+        "passive_pt": "Agressão"
+      },
+      "execution": "É o healer mais barato e perdoador da classe, ideal pra grupo de facção, roaming e brumas em bola. Fique no meio-atrás do grupo. Abra jogando o W (Rejuvenating Breeze) pra espalhar as cargas de cura na galera e mantenha o Q (Rejuvenation) girando em quem está tomando dano. Guarde o E (Living Armor) pra quando o time levar burst ou pro engage inimigo, porque é um escudo de grupo. Nunca pare de andar: cure em movimento e, se te focarem, use o Break Free da bota pra sair do stun e recuar.",
+      "note": "A Martlock Cape reduz o tempo de CC (mais segura pra iniciante); troque pela Lymhurst Cape se faltar energia. O Scholar Cowl dá energia; troque pelo Guardian Helmet se te caçarem muito. A comida Pork Omelette é quase obrigatória (menos cooldown, mais cast). Suba a maestria de Natureza antes de subir de tier: T6/T7 já segura bem no mundo aberto.",
+      "items": {
+        "weapon": {
+          "name_en": "Great Nature Staff",
+          "id": "T8_2H_NATURESTAFF",
+          "pt": "Cajado da Natureza Elevado do Ancião",
+          "pt_clean": "Cajado da Natureza Elevado",
+          "icon": "/icon/T8_2H_NATURESTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Scholar Cowl",
+          "id": "T8_HEAD_CLOTH_SET1",
+          "pt": "Capote de Erudito do Ancião",
+          "pt_clean": "Capote de Erudito",
+          "icon": "/icon/T8_HEAD_CLOTH_SET1"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Cajado da Natureza",
+      "execution_pt": "É o healer mais barato e perdoador da classe, ideal pra grupo de facção, roaming e brumas em bola. Fique no meio-atrás do grupo. Abra jogando o W (Brisa Rejuvenescedora) pra espalhar as cargas de cura na galera e mantenha o Q (Rejuvenescimento) girando em quem está tomando dano. Guarde o E (Armadura viva) pra quando o time levar burst ou pro engage inimigo, porque é um escudo de grupo. Nunca pare de andar: cure em movimento e, se te focarem, use o Break Free da bota pra sair do stun e recuar.",
+      "note_pt": "A Capa de Martlock reduz o tempo de CC (mais segura pra iniciante); troque pela Capa de Lymhurst se faltar energia. O Capote de Erudito dá energia; troque pelo Elmo de Guardião se te caçarem muito. A comida Omelete de Porco é quase obrigatória (menos cooldown, mais cast). Suba a maestria de Natureza antes de subir de tier: T6/T7 já segura bem no mundo aberto.",
+      "image": "/builds/cajados-da-natureza-great-nature-staff-openworld-brumas.png"
+    },
+    {
+      "tree": "Cajados da Natureza",
+      "buildName": "Blight Staff",
+      "content": "Openworld/Brumas",
+      "role": "healer móvel (brumas/pequena escala)",
+      "abilities": {
+        "q": "Rejuvenation",
+        "w": "Rejuvenating Breeze",
+        "e": "Elevated Nature",
+        "passive": "Aggression",
+        "q_pt": "Rejuvenescimento",
+        "w_pt": "Brisa Rejuvenescedora",
+        "e_pt": "Natureza Elevada",
+        "passive_pt": "Agressão"
+      },
+      "execution": "Healer de maior taxa de vitória em pequena escala e brumas, com foco em mobilidade. Kite o tempo todo. Solte o W (Rejuvenating Breeze) pra distribuir cura e mantenha o Q (Rejuvenation) em cima do tank e do dano. O E (Elevated Nature) cura quem está em volta enquanto você corre, então use ao reposicionar sob pressão. Fique nas costas, use o Break Free da bota pra sair de stun e o Energy Emission da Robe of Purity pra empurrar quem pular em cima de você.",
+      "note": "Pede mais posicionamento que a Great Nature, então é o segundo passo do healer iniciante. A poção Gigantify dá vida e imunidade a knockback no all-in inimigo. Se a energia acabar, a Lymhurst Cape e a passiva Aggression seguram. Troque a Robe of Purity pela Cleric Robe se preferir autocura em vez de cleanse; T7 já é ótimo pras Brumas.",
+      "items": {
+        "weapon": {
+          "name_en": "Blight Staff",
+          "id": "T8_2H_NATURESTAFF_HELL",
+          "pt": "Cajado Pustulento do Ancião",
+          "pt_clean": "Cajado Pustulento",
+          "icon": "/icon/T8_2H_NATURESTAFF_HELL"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Scholar Cowl",
+          "id": "T8_HEAD_CLOTH_SET1",
+          "pt": "Capote de Erudito do Ancião",
+          "pt_clean": "Capote de Erudito",
+          "icon": "/icon/T8_HEAD_CLOTH_SET1"
+        },
+        "chest": {
+          "name_en": "Robe of Purity",
+          "id": "T8_ARMOR_CLOTH_AVALON",
+          "pt": "Robe da Pureza do Ancião",
+          "pt_clean": "Robe da Pureza",
+          "icon": "/icon/T8_ARMOR_CLOTH_AVALON"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Lymhurst Cape",
+          "id": "T8_CAPEITEM_FW_LYMHURST",
+          "pt": "Capa de Lymhurst do Ancião",
+          "pt_clean": "Capa de Lymhurst",
+          "icon": "/icon/T8_CAPEITEM_FW_LYMHURST"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Cajado Pustulento",
+      "execution_pt": "Healer de maior taxa de vitória em pequena escala e brumas, com foco em mobilidade. Kite o tempo todo. Solte o W (Brisa Rejuvenescedora) pra distribuir cura e mantenha o Q (Rejuvenescimento) em cima do tank e do dano. O E (Natureza Elevada) cura quem está em volta enquanto você corre, então use ao reposicionar sob pressão. Fique nas costas, use o Break Free da bota pra sair de stun e o Energy Emission da Robe da Pureza pra empurrar quem pular em cima de você.",
+      "note_pt": "Pede mais posicionamento que a Great Nature, então é o segundo passo do healer iniciante. A poção de Crescimento dá vida e imunidade a knockback no all-in inimigo. Se a energia acabar, a Capa de Lymhurst e a passiva Agressão seguram. Troque a Robe da Pureza pela Robe de Clérigo se preferir autocura em vez de cleanse; T7 já é ótimo pras Brumas.",
+      "image": "/builds/cajados-da-natureza-blight-staff-openworld-brumas.png"
+    },
+    {
+      "tree": "Cajados Amaldiçoados (Amaldiçoados)",
+      "buildName": "Cursed Staff",
+      "content": "Openworld/Brumas",
+      "role": "dano à distância / DoT / roaming",
+      "abilities": {
+        "q": "Vile Curse",
+        "w": "Desecrate",
+        "e": "Death Curse",
+        "passive": "Bane",
+        "q_pt": "Maldição Vil",
+        "w_pt": "Profanação",
+        "e_pt": "Maldição Mortal",
+        "passive_pt": "Prejudicar"
+      },
+      "execution": "Abra empilhando Vile Curse (Q) no alvo para acumular as cargas de maldição enquanto anda para trás, fugindo do dano inimigo. Quando o alvo colar ou tentar escapar, jogue Desecrate (W) no chão para atrasá-lo. Continue empilhando Vile Curse até 3-4 cargas e então DETONE com Death Curse (E) para o burst. Mantenha a distância com a corrida das Soldier Boots (Rejuvenating Sprint) e segure o Shield para sobreviver se for encurralado. Tome Gigantify quando levar mergulho de melee.",
+      "note": "Off-hand Shield dá sobrevivência pro iniciante; quando pegar confiança, troque por Torch (mais dano) ou Muisak. Cleric Robe cura e limpa CC no engajamento; alternativa Mage Robe pra mais burst. Caerleon Cape é um coringa (proca com vários inimigos por perto), então no 1v1 puro das Brumas rende pouco — considere uma capa focada em DoT/sobrevivência. Domine o Cursed Staff normal ANTES de migrar pros artefatos (Lifecurse/Damnation) — mesmas cargas de maldição, transição fácil.",
+      "items": {
+        "weapon": {
+          "name_en": "Cursed Staff",
+          "id": "T8_MAIN_CURSEDSTAFF",
+          "pt": "Cajado Amaldiçoado do Ancião",
+          "pt_clean": "Cajado Amaldiçoado",
+          "icon": "/icon/T8_MAIN_CURSEDSTAFF"
+        },
+        "offhand": {
+          "name_en": "Shield",
+          "id": "T8_OFF_SHIELD",
+          "pt": "Escudo do Ancião",
+          "pt_clean": "Escudo",
+          "icon": "/icon/T8_OFF_SHIELD"
+        },
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Caerleon Cape",
+          "id": "T8_CAPEITEM_FW_CAERLEON",
+          "pt": "Capa de Caerleon do Ancião",
+          "pt_clean": "Capa de Caerleon",
+          "icon": "/icon/T8_CAPEITEM_FW_CAERLEON"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Cajado Amaldiçoado",
+      "execution_pt": "Abra empilhando Maldição Vil (Q) no alvo para acumular as cargas de maldição enquanto anda para trás, fugindo do dano inimigo. Quando o alvo colar ou tentar escapar, jogue Profanação (W) no chão para atrasá-lo. Continue empilhando Maldição Vil até 3-4 cargas e então DETONE com Maldição Mortal (E) para o burst. Mantenha a distância com a corrida das Botas de Soldado (Rejuvenating Sprint) e segure o Escudo do Calouro para sobreviver se for encurralado. Tome de Crescimento quando levar mergulho de melee.",
+      "note_pt": "Off-hand Escudo do Calouro dá sobrevivência pro iniciante; quando pegar confiança, troque por Tocha (mais dano) ou Muisec. Robe de Clérigo cura e limpa CC no engajamento; alternativa Robe de Mago pra mais burst. Capa de Caerleon é um coringa (proca com vários inimigos por perto), então no 1v1 puro das Brumas rende pouco — considere uma capa focada em DoT/sobrevivência. Domine o Cajado Amaldiçoado normal ANTES de migrar pros artefatos (Cajado Execrado/Danação) — mesmas cargas de maldição, transição fácil.",
+      "image": "/builds/cajados-amaldicoados-amaldicoados-cursed-staff-openworld-brumas.png"
+    },
+    {
+      "tree": "Cajados Amaldiçoados (Amaldiçoados)",
+      "buildName": "Great Cursed Staff",
+      "content": "Openworld/Brumas",
+      "role": "dano à distância / kite em área / anti-melee",
+      "abilities": {
+        "q": "Vile Curse",
+        "w": "Desecrate",
+        "e": "Area of Decay",
+        "passive": "Bane",
+        "q_pt": "Maldição Vil",
+        "w_pt": "Profanação",
+        "e_pt": "Área de Podridão",
+        "passive_pt": "Prejudicar"
+      },
+      "execution": "Kite puro: comece empilhando Vile Curse (Q) enquanto RECUA para manter distância e acumular as cargas de maldição. Quando o melee colar, prenda com Desecrate (W) e então canalize Area of Decay (E) por cima dele para o dano máximo em área — brutal contra quem não tem como te alcançar de forma confiável. Entre cooldowns, siga empilhando Q. Use a corrida das Soldier Boots para reposicionar. Gigantify quando for pego.",
+      "note": "Arma de DUAS MÃOS (sem off-hand). Assassin Jacket (Ambush) dá invisibilidade curta pra resetar ou fugir; Mercenary Jacket é alternativa mais defensiva pro iniciante. Excelente nas Brumas 1v1 contra melee; sofre contra mobilidade alta (montarias/dash). Beef Sandwich reduz cooldown das skills; Pork Omelette é alternativa de resistência.",
+      "items": {
+        "weapon": {
+          "name_en": "Great Cursed Staff",
+          "id": "T8_2H_CURSEDSTAFF",
+          "pt": "Cajado Amaldiçoado Elevado do Ancião",
+          "pt_clean": "Cajado Amaldiçoado Elevado",
+          "icon": "/icon/T8_2H_CURSEDSTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Assassin Jacket",
+          "id": "T8_ARMOR_LEATHER_SET3",
+          "pt": "Casaco de Assassino do Ancião",
+          "pt_clean": "Casaco de Assassino",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET3"
+        },
+        "shoes": {
+          "name_en": "Soldier Boots",
+          "id": "T8_SHOES_PLATE_SET1",
+          "pt": "Botas de Soldado do Ancião",
+          "pt_clean": "Botas de Soldado",
+          "icon": "/icon/T8_SHOES_PLATE_SET1"
+        },
+        "cape": {
+          "name_en": "Caerleon Cape",
+          "id": "T8_CAPEITEM_FW_CAERLEON",
+          "pt": "Capa de Caerleon do Ancião",
+          "pt_clean": "Capa de Caerleon",
+          "icon": "/icon/T8_CAPEITEM_FW_CAERLEON"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Beef Sandwich",
+          "id": "T8_MEAL_SANDWICH",
+          "pt": "Sanduíche de Carne",
+          "pt_clean": "Sanduíche de Carne",
+          "icon": "/icon/T8_MEAL_SANDWICH"
+        }
+      },
+      "buildName_pt": "Cajado Amaldiçoado",
+      "execution_pt": "Kite puro: comece empilhando Maldição Vil (Q) enquanto RECUA para manter distância e acumular as cargas de maldição. Quando o melee colar, prenda com Profanação (W) e então canalize Área de Podridão (E) por cima dele para o dano máximo em área — brutal contra quem não tem como te alcançar de forma confiável. Entre cooldowns, siga empilhando Q. Use a corrida das Botas de Soldado para reposicionar. de Crescimento quando for pego.",
+      "note_pt": "Arma de DUAS MÃOS (sem off-hand). Casaco de Assassino (Ambush) dá invisibilidade curta pra resetar ou fugir; Casaco de Mercenário do Calouro é alternativa mais defensiva pro iniciante. Excelente nas Brumas 1v1 contra melee; sofre contra mobilidade alta (montarias/dash). Sanduíche de Carne reduz cooldown das skills; Omelete de Porco é alternativa de resistência.",
+      "image": "/builds/cajados-amaldicoados-amaldicoados-great-cursed-staff-openworld-brumas.png"
+    },
+    {
+      "tree": "Bordões (Quarterstaffs)",
+      "buildName": "Quarterstaff",
+      "content": "Openworld/Brumas",
+      "role": "dano sustentado/duelista (iniciante)",
+      "abilities": {
+        "q": "Whirling Strikes",
+        "w": "Stun Run",
+        "e": "Vault Leap",
+        "passive": "Energetic",
+        "q_pt": "Golpes Giratórios",
+        "w_pt": "Corrida Atordoante",
+        "e_pt": "Salto Seguro",
+        "passive_pt": "Energético"
+      },
+      "execution": "Fique girando Whirling Strikes (Q) coladinho no alvo pra empilhar o Force Pulse e manter dano constante junto dos ataques básicos, e abra a briga com Stun Run (W) pra atordoar e grudar. Guarde Vault Leap (E) pra fechar distância, empurrar o alvo ou escapar de uma emboscada — em 1v1 fique em cima do inimigo e, contra grupo, use W e E pra chutar e correr. O passivo Energetic devolve energia a cada habilidade usada, então você quase nunca fica sem energia.",
+      "note": "Conjunto barato e perdoador, ideal pra iniciante. A Stalker Jacket dá o avanço Shadow Edge (fuga); troque pela Hunter Jacket se quiser cura ao acertar golpes (Bloodlust). A Capa Martlock te dá um escudo (Shield of Protection) quando você é atingido por controle de grupo, ajudando a sobreviver a atordoamentos. Suba a comida pra Deadwater Eel Stew quando puder — ela resiste a controle de grupo e cura. Arma de duas mãos, sem item de mão secundária.",
+      "items": {
+        "weapon": {
+          "name_en": "Quarterstaff",
+          "id": "T8_2H_QUARTERSTAFF",
+          "pt": "Bordão do Ancião",
+          "pt_clean": "Bordão",
+          "icon": "/icon/T8_2H_QUARTERSTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Mercenary Hood",
+          "id": "T8_HEAD_LEATHER_SET1",
+          "pt": "Capuz de Mercenário do Ancião",
+          "pt_clean": "Capuz de Mercenário",
+          "icon": "/icon/T8_HEAD_LEATHER_SET1"
+        },
+        "chest": {
+          "name_en": "Stalker Jacket",
+          "id": "T8_ARMOR_LEATHER_MORGANA",
+          "pt": "Casaco de Espreitador do Ancião",
+          "pt_clean": "Casaco de Espreitador",
+          "icon": "/icon/T8_ARMOR_LEATHER_MORGANA"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Bordão",
+      "execution_pt": "Fique girando Golpes Giratórios (Q) coladinho no alvo pra empilhar o Pulso de Força e manter dano constante junto dos ataques básicos, e abra a briga com Corrida Atordoante (W) pra atordoar e grudar. Guarde Salto Seguro (E) pra fechar distância, empurrar o alvo ou escapar de uma emboscada — em 1v1 fique em cima do inimigo e, contra grupo, use W e E pra chutar e correr. O passivo Energético devolve energia a cada habilidade usada, então você quase nunca fica sem energia.",
+      "note_pt": "Conjunto barato e perdoador, ideal pra iniciante. A Casaco de Espreitador dá o avanço Shadow Edge (fuga); troque pela Casaco de Caçador se quiser cura ao acertar golpes (Bloodlust). A Capa Martlock te dá um escudo (Escudo do Calouro of Protection) quando você é atingido por controle de grupo, ajudando a sobreviver a atordoamentos. Suba a comida pra Guisado de Enguia de Água-podre quando puder — ela resiste a controle de grupo e cura. Arma de duas mãos, sem item de mão secundária.",
+      "image": "/builds/bordoes-quarterstaffs-quarterstaff-openworld-brumas.png"
+    },
+    {
+      "tree": "Bordões (Quarterstaffs)",
+      "buildName": "Double Bladed Staff",
+      "content": "Openworld/Brumas",
+      "role": "perseguidor/ganker móvel",
+      "abilities": {
+        "q": "Whirling Strikes",
+        "w": "Stun Run",
+        "e": "Soaring Swipe",
+        "passive": "Energetic",
+        "q_pt": "Golpes Giratórios",
+        "w_pt": "Corrida Atordoante",
+        "e_pt": "Pancada Elevada",
+        "passive_pt": "Energético"
+      },
+      "execution": "Essa é a arma de perseguição das Brumas: use Soaring Swipe (E) pra saltar em cima de quem tenta fugir e Stun Run (W) pra travar o alvo, girando Whirling Strikes (Q) e empilhando Force Pulse pro pico de dano. Escolha alvos isolados, engaje forte e, se virar 1vX, use a mobilidade pra desengajar. O passivo Energetic somado ao Rejuvenating Sprint das botas te dá fôlego pra caçar sem ficar sem energia.",
+      "note": "A Double Bladed Staff é considerada top de linha (S-tier) pra caçar sozinho pela perseguição imbatível. A Hunter Jacket cura conforme você acerta golpes (Bloodlust), ótima sustentação no mundo aberto; troque pela Stalker Jacket (avanço Shadow Edge) se preferir fuga. A Resistance Potion aguenta a explosão de dano inimiga; use a Healing Potion se preferir cura pura. A Capa Thetford solta Chain Lightning nos alvos próximos, reforçando o pico de dano. Arma de duas mãos, sem item de mão secundária.",
+      "items": {
+        "weapon": {
+          "name_en": "Double Bladed Staff",
+          "id": "T8_2H_DOUBLEBLADEDSTAFF",
+          "pt": "Cajado Bilaminado do Ancião",
+          "pt_clean": "Cajado Bilaminado",
+          "icon": "/icon/T8_2H_DOUBLEBLADEDSTAFF"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Hunter Jacket",
+          "id": "T8_ARMOR_LEATHER_SET2",
+          "pt": "Casaco de Caçador do Ancião",
+          "pt_clean": "Casaco de Caçador",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET2"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Resistance Potion",
+          "id": "T5_POTION_STONESKIN",
+          "pt": "Poção de Resistência",
+          "pt_clean": "Poção de Resistência",
+          "icon": "/icon/T5_POTION_STONESKIN"
+        },
+        "food": {
+          "name_en": "Deadwater Eel Stew",
+          "id": "T8_MEAL_STEW_FISH",
+          "pt": "Guisado de Enguia de Água-podre",
+          "pt_clean": "Guisado de Enguia de Água-podre",
+          "icon": "/icon/T8_MEAL_STEW_FISH"
+        }
+      },
+      "buildName_pt": "Cajado Bilaminado",
+      "execution_pt": "Essa é a arma de perseguição das Brumas: use Pancada Elevada (E) pra saltar em cima de quem tenta fugir e Corrida Atordoante (W) pra travar o alvo, girando Golpes Giratórios (Q) e empilhando Pulso de Força pro pico de dano. Escolha alvos isolados, engaje forte e, se virar 1vX, use a mobilidade pra desengajar. O passivo Energético somado ao Rejuvenating Sprint das botas te dá fôlego pra caçar sem ficar sem energia.",
+      "note_pt": "A Cajado Bilaminado é considerada top de linha (S-tier) pra caçar sozinho pela perseguição imbatível. A Casaco de Caçador cura conforme você acerta golpes (Bloodlust), ótima sustentação no mundo aberto; troque pela Casaco de Espreitador (avanço Shadow Edge) se preferir fuga. A Poção de Resistência aguenta a explosão de dano inimiga; use a Poção de Cura se preferir cura pura. A Capa Thetford solta Chain Lightning nos alvos próximos, reforçando o pico de dano. Arma de duas mãos, sem item de mão secundária.",
+      "image": "/builds/bordoes-quarterstaffs-double-bladed-staff-openworld-brumas.png"
+    },
+    {
+      "tree": "Machados",
+      "buildName": "Battleaxe",
+      "content": "Openworld/Brumas",
+      "role": "bruiser/duelista resistente (se cura)",
+      "abilities": {
+        "q": "Rending Rage",
+        "w": "Battle Rush",
+        "e": "Blood Bandit",
+        "passive": "Deep Cuts",
+        "q_pt": "Fúria Dilacerante",
+        "w_pt": "Impulso de Batalha",
+        "e_pt": "Bandido de Sangue",
+        "passive_pt": "Cortes Fundos"
+      },
+      "execution": "Abra com Battle Rush pra fechar distancia e com Energetic Sprint pra colar no alvo, empilhando sangramentos com os ataques automaticos (Deep Cuts) e as ativas. Com 3 ou mais cargas de sangramento, solte Blood Bandit pra estourar dano e se curar ao mesmo tempo. Guarde o Purging Shield (Cleric Robe) pra anular a explosao de dano do inimigo na hora em que ele te engajar.",
+      "note": "Arma de 1 mao: o Muisak corta a cura inimiga (otimo em 1v1). O Cleric Robe da o Purging Shield pra segurar a explosao de dano; se quiser mais sangramento e dano, troque a Martlock Cape pela Thetford Cape. E a build mais barata e perdoavel pra iniciante das Brumas: resistente e com auto-cura no Blood Bandit.",
+      "items": {
+        "weapon": {
+          "name_en": "Battleaxe",
+          "id": "T8_MAIN_AXE",
+          "pt": "Machado de Guerra do Ancião",
+          "pt_clean": "Machado de Guerra",
+          "icon": "/icon/T8_MAIN_AXE"
+        },
+        "offhand": {
+          "name_en": "Muisak",
+          "id": "T8_OFF_DEMONSKULL_HELL",
+          "pt": "Muisec do Ancião",
+          "pt_clean": "Muisec",
+          "icon": "/icon/T8_OFF_DEMONSKULL_HELL"
+        },
+        "head": {
+          "name_en": "Hunter Hood",
+          "id": "T8_HEAD_LEATHER_SET2",
+          "pt": "Capuz de Caçador do Ancião",
+          "pt_clean": "Capuz de Caçador",
+          "icon": "/icon/T8_HEAD_LEATHER_SET2"
+        },
+        "chest": {
+          "name_en": "Cleric Robe",
+          "id": "T8_ARMOR_CLOTH_SET2",
+          "pt": "Robe de Clérigo do Ancião",
+          "pt_clean": "Robe de Clérigo",
+          "icon": "/icon/T8_ARMOR_CLOTH_SET2"
+        },
+        "shoes": {
+          "name_en": "Scholar Sandals",
+          "id": "T8_SHOES_CLOTH_SET1",
+          "pt": "Sandálias de Erudito do Ancião",
+          "pt_clean": "Sandálias de Erudito",
+          "icon": "/icon/T8_SHOES_CLOTH_SET1"
+        },
+        "cape": {
+          "name_en": "Martlock Cape",
+          "id": "T8_CAPEITEM_FW_MARTLOCK",
+          "pt": "Capa de Martlock do Ancião",
+          "pt_clean": "Capa de Martlock",
+          "icon": "/icon/T8_CAPEITEM_FW_MARTLOCK"
+        },
+        "potion": {
+          "name_en": "Healing Potion",
+          "id": "T4_POTION_HEAL",
+          "pt": "Poção de Cura",
+          "pt_clean": "Poção de Cura",
+          "icon": "/icon/T4_POTION_HEAL"
+        },
+        "food": {
+          "name_en": "Beef Stew",
+          "id": "T8_MEAL_STEW",
+          "pt": "Guisado de Carne",
+          "pt_clean": "Guisado de Carne",
+          "icon": "/icon/T8_MEAL_STEW"
+        }
+      },
+      "buildName_pt": "Machado de Guerra",
+      "execution_pt": "Abra com Impulso de Batalha pra fechar distancia e com Energético Sprint pra colar no alvo, empilhando sangramentos com os ataques automaticos (Cortes Fundos) e as ativas. Com 3 ou mais cargas de sangramento, solte Bandido de Sangue pra estourar dano e se curar ao mesmo tempo. Guarde o Purging Escudo do Calouro (Robe de Clérigo) pra anular a explosao de dano do inimigo na hora em que ele te engajar.",
+      "note_pt": "Arma de 1 mao: o Muisec corta a cura inimiga (otimo em 1v1). O Robe de Clérigo da o Purging Escudo do Calouro pra segurar a explosao de dano; se quiser mais sangramento e dano, troque a Capa de Martlock pela Capa de Thetford. E a build mais barata e perdoavel pra iniciante das Brumas: resistente e com auto-cura no Bandido de Sangue.",
+      "image": "/builds/machados-battleaxe-openworld-brumas.png"
+    },
+    {
+      "tree": "Machados",
+      "buildName": "Bear Paws",
+      "content": "Openworld/Brumas",
+      "role": "ganker/dive (dano de mergulho)",
+      "abilities": {
+        "q": "Rending Rage",
+        "w": "Adrenaline Boost",
+        "e": "Razor Cut",
+        "passive": "Deep Cuts",
+        "q_pt": "Fúria Dilacerante",
+        "w_pt": "Pico de Adrenalina",
+        "e_pt": "Corte Laminar",
+        "passive_pt": "Cortes Fundos"
+      },
+      "execution": "Fique invisivel com Ambush (Assassin Jacket) e espere o alvo passar, entao use Defenseless Rush (Mercenary Shoes) pra alcancar e derrubar a montaria. Cole no alvo com Adrenaline Boost (velocidade e dano) e mergulhe com Razor Cut pra dano alto mais sangramento de dano real. Use Purge (Fiend Cowl) pra tirar as fugas do inimigo e termine martelando Rending Rage com o Deep Cuts empilhando por baixo.",
+      "note": "Arma de 2 maos (sem arma secundaria). Nao tem auto-cura e o piso de habilidade e alto: rende mais em emboscadas de dupla ou grupo do que em 1v1 aberto. A Gigantify Potion garante o abate; se voce e iniciante e morre muito, troque pra Healing Potion. A comida Beef Stew serve de alternativa mais barata ao Pork Omelette.",
+      "items": {
+        "weapon": {
+          "name_en": "Bear Paws",
+          "id": "T8_2H_DUALAXE_KEEPER",
+          "pt": "Patas de Urso do Ancião",
+          "pt_clean": "Patas de Urso",
+          "icon": "/icon/T8_2H_DUALAXE_KEEPER"
+        },
+        "offhand": null,
+        "head": {
+          "name_en": "Fiend Cowl",
+          "id": "T8_HEAD_CLOTH_HELL",
+          "pt": "Capote Malévolo do Ancião",
+          "pt_clean": "Capote Malévolo",
+          "icon": "/icon/T8_HEAD_CLOTH_HELL"
+        },
+        "chest": {
+          "name_en": "Assassin Jacket",
+          "id": "T8_ARMOR_LEATHER_SET3",
+          "pt": "Casaco de Assassino do Ancião",
+          "pt_clean": "Casaco de Assassino",
+          "icon": "/icon/T8_ARMOR_LEATHER_SET3"
+        },
+        "shoes": {
+          "name_en": "Mercenary Shoes",
+          "id": "T8_SHOES_LEATHER_SET1",
+          "pt": "Sapatos de Mercenário do Ancião",
+          "pt_clean": "Sapatos de Mercenário",
+          "icon": "/icon/T8_SHOES_LEATHER_SET1"
+        },
+        "cape": {
+          "name_en": "Thetford Cape",
+          "id": "T8_CAPEITEM_FW_THETFORD",
+          "pt": "Capa de Thetford do Ancião",
+          "pt_clean": "Capa de Thetford",
+          "icon": "/icon/T8_CAPEITEM_FW_THETFORD"
+        },
+        "potion": {
+          "name_en": "Gigantify Potion",
+          "id": "T5_POTION_REVIVE",
+          "pt": "Poção de Crescimento",
+          "pt_clean": "Poção de Crescimento",
+          "icon": "/icon/T5_POTION_REVIVE"
+        },
+        "food": {
+          "name_en": "Pork Omelette",
+          "id": "T7_MEAL_OMELETTE",
+          "pt": "Omelete de Porco",
+          "pt_clean": "Omelete de Porco",
+          "icon": "/icon/T7_MEAL_OMELETTE"
+        }
+      },
+      "buildName_pt": "Patas de Urso",
+      "execution_pt": "Fique invisivel com Ambush (Casaco de Assassino) e espere o alvo passar, entao use Ímpeto Indefensável (Sapatos de Mercenário do Calouro) pra alcancar e derrubar a montaria. Cole no alvo com Pico de Adrenalina (velocidade e dano) e mergulhe com Corte Laminar pra dano alto mais sangramento de dano real. Use Purge (Capote Malévolo) pra tirar as fugas do inimigo e termine martelando Fúria Dilacerante com o Cortes Fundos empilhando por baixo.",
+      "note_pt": "Arma de 2 maos (sem arma secundaria). Nao tem auto-cura e o piso de habilidade e alto: rende mais em emboscadas de dupla ou grupo do que em 1v1 aberto. A Poção de Crescimento garante o abate; se voce e iniciante e morre muito, troque pra Poção de Cura. A comida Guisado de Carne serve de alternativa mais barata ao Omelete de Porco.",
+      "image": "/builds/machados-bear-paws-openworld-brumas.png"
     }
   ]
 }

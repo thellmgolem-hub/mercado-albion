@@ -197,20 +197,30 @@ def friendly_error(exc: ApiError) -> str:
 # Dados estáticos (data/builds.json, gerado por scripts/build_builds_data.py):
 # cada build já vem com os itens resolvidos em PT-BR oficial + id + ícone.
 BUILD_TREES = [
+    # cajados
     ("Fogo", "Cajados de Fogo"),
     ("Gelo", "Cajados de Gelo"),
-    ("Arcos", "Arcos"),
     ("Natureza", "Cajados da Natureza"),
+    ("Sagrado", "Cajados Sagrados"),
     ("Amaldiçoados", "Cajados Amaldiçoados (Amaldiçoados)"),
-    ("Bordões", "Bordões (Quarterstaffs)"),
+    # à distância
+    ("Arcos", "Arcos"),
+    ("Bestas", "Bestas"),
+    # corpo a corpo
+    ("Espadas", "Espadas"),
     ("Machados", "Machados"),
+    ("Maças", "Maças"),
+    ("Lanças", "Lanças"),
+    ("Bordões", "Bordões (Quarterstaffs)"),
+    ("Luvas de Combate", "Luvas de Combate"),
 ]
 BUILD_CONTENTS = [
     ("Facção / ZvZ", "Faccao/ZvZ"),
-    ("Arena 5v5", "Arena 5v5"),
+    ("Open World / Brumas", "Openworld/Brumas"),
+    ("Corrompida 1v1", "Corrompida 1v1"),
     ("Hellgate 5v5", "Hellgate 5v5"),
     ("Abyssal 3v3", "Abyssal 3v3"),
-    ("Corrompida 1v1", "Corrompida 1v1"),
+    ("Arena 5v5", "Arena 5v5"),
 ]
 _TREE_LABEL = {v: lbl for lbl, v in BUILD_TREES}
 _CONTENT_LABEL = {v: lbl for lbl, v in BUILD_CONTENTS}
@@ -241,6 +251,30 @@ def find_builds(tree_value, content_value=None):
     if content_value:
         out = [b for b in out if b.get("content") == content_value]
     return out
+
+
+def build_catalog_text(tree_value):
+    """Menu de TODAS as builds de uma árvore, agrupadas por conteúdo (só nome PT).
+    Usado no 'Todos os conteúdos' — o usuário vê o cardápio e escolhe um conteúdo
+    p/ abrir a build completa (com itens e imagem)."""
+    builds = find_builds(tree_value)
+    if not builds:
+        return None
+    tree_lbl = _TREE_LABEL.get(tree_value, tree_value)
+    # ordena os conteúdos pela ordem de BUILD_CONTENTS; extras vão pro fim
+    order = {v: i for i, (_l, v) in enumerate(BUILD_CONTENTS)}
+    by_content = {}
+    for b in builds:
+        by_content.setdefault(b.get("content"), []).append(b)
+    lines = [f"**Builds de {tree_lbl}** — escolha um conteúdo p/ ver a build "
+             f"completa (itens + imagem):", ""]
+    for content in sorted(by_content, key=lambda c: order.get(c, 99)):
+        lines.append(f"__{_CONTENT_LABEL.get(content, content)}__")
+        for b in by_content[content]:
+            nome = b.get("buildName_pt") or b.get("buildName", "?")
+            lines.append(f"• {nome}")
+        lines.append("")
+    return "\n".join(lines).strip()
 
 
 def build_title(build):
@@ -1869,12 +1903,24 @@ def build_bot(api: ApiClient):
     @app_commands.choices(
         arma=[app_commands.Choice(name=lbl, value=val)
               for lbl, val in BUILD_TREES],
-        conteudo=[app_commands.Choice(name=lbl, value=val)
-                  for lbl, val in BUILD_CONTENTS])
+        conteudo=([app_commands.Choice(name="Todos os conteúdos", value="todos")]
+                  + [app_commands.Choice(name=lbl, value=val)
+                     for lbl, val in BUILD_CONTENTS]))
     async def builds_cmd(interaction: discord.Interaction, arma: str,
                          conteudo: str = None):
         await interaction.response.defer(ephemeral=True, thinking=True)
         try:
+            # sem conteúdo OU "Todos os conteúdos" → cardápio (lista de todas as
+            # builds da classe); o usuário escolhe um conteúdo p/ abrir a completa.
+            if not conteudo or conteudo == "todos":
+                catalogo = build_catalog_text(arma)
+                if not catalogo:
+                    await interaction.followup.send(
+                        f"Ainda não há build de **{_TREE_LABEL.get(arma, arma)}**.",
+                        ephemeral=True)
+                else:
+                    await interaction.followup.send(catalogo[:1990], ephemeral=True)
+                return
             matches = find_builds(arma, conteudo)
             if not matches:
                 tree_lbl = _TREE_LABEL.get(arma, arma)
