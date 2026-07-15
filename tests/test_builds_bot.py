@@ -639,6 +639,37 @@ class KillfeedBotTests(unittest.TestCase):
         self.assertIn("Operarius", out)
         self.assertIn("ligado", out)
 
+
+class ServerLayersTests(unittest.TestCase):
+    """Camadas: Visitante fora; Aprendiz é o 1º nível DENTRO da guild."""
+
+    def test_papeis_dos_mesteres(self):
+        nomes = [n for n, _c, _d in bot.SERVER_ROLES]
+        for esperado in ("Visitante", "Aprendiz", "Oficial", "Mestre"):
+            self.assertIn(esperado, nomes)
+        # Visitante NÃO enxerga o interno; Aprendiz enxerga (é de dentro)
+        self.assertNotIn("Visitante", bot.RING_INTERNO)
+        self.assertIn("Aprendiz", bot.RING_INTERNO)
+        # comando é só da oficialidade
+        self.assertEqual(set(bot.RING_STAFF), {"Oficial", "Mestre"})
+        self.assertNotIn("Aprendiz", bot.RING_STAFF)
+
+    def test_plano_tem_os_tres_aneis(self):
+        rings = [b["ring"] for b in bot.SERVER_PLAN]
+        self.assertEqual(rings, ["publico", "interno", "staff"])
+        # o Mural (#conquistas) mora na área interna
+        interno = next(b for b in bot.SERVER_PLAN if b["ring"] == "interno")
+        self.assertIn("conquistas", [c["name"] for c in interno["channels"]])
+        # #recrutamento fica no PÚBLICO (é onde o Visitante se candidata)
+        pub = next(b for b in bot.SERVER_PLAN if b["ring"] == "publico")
+        self.assertIn("recrutamento", [c["name"] for c in pub["channels"]])
+
+    def test_resumo_menciona_cargos_e_categorias(self):
+        s = bot.server_plan_summary()
+        for t in ("@Visitante", "@Aprendiz", "@Oficial", "@Mestre",
+                  "ENTRADA", "GUILDA", "COMANDO", "#conquistas"):
+            self.assertIn(t, s)
+
     def test_personagem_registra_resolvido(self):
         class Api:
             async def post(self, path, json=None):

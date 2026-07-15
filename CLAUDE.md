@@ -103,6 +103,24 @@ KillfeedBotTests (test_builds_bot). Config é single-org por ora (mesma pendênc
 ALTA-1 do /api/admin). Fama por atividade (LifetimeStatistics do /players/{id})
 fica p/ próxima leva (/fama; Albion 2D é só UI sobre esse mesmo endpoint).
 
+## Camadas do servidor Discord (organização)
+
+Três ANÉIS de acesso, decididos com o usuário: **Visitante** (entrou no Discord
+mas NÃO é do projeto — só a área pública) → **Aprendiz** (1º nível DENTRO da
+guild) → **Oficial** (responsável por área/mester) → **Mestre** (liderança). A
+linha de progressão é a dos mesteres (aprendiz→oficial→mestre); o Visitante fica
+fora do portão. Dados em tools/discord_bot.py: `SERVER_ROLES`, `RING_INTERNO`
+(Aprendiz+), `RING_STAFF` (Oficial/Mestre), `SERVER_PLAN` (📢 ENTRADA público /
+🛡️ GUILDA interno / ⚙️ COMANDO staff). `server_plan_summary()` é puro (testável);
+`apply_server_plan(guild, discord)` cria só o que FALTA — nunca apaga nem move o
+que já existe — e configura a permissão na CATEGORIA (canais herdam; ajustar
+canal a canal gera buraco de acesso). Comandos: **/camadas** (mostra o plano) e
+**/organizar-servidor** (aplica; gate = dono do servidor ou admin do Discord).
+Exige que o bot tenha Gerenciar Cargos + Gerenciar Canais (o convite original só
+deu Send Messages=2048) — o comando devolve instrução PT se levar Forbidden.
+Testes: ServerLayersTests (test_builds_bot). Onboarding/Regras nativos do Discord
+(pré-requisito: ativar "Community") ficam por conta do usuário na UI.
+
 ## Para fazer análises mercadológicas (pedido comum do usuário)
 
 Use a CLI — ela cuida de cache, throttle e taxas:

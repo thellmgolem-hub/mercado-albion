@@ -376,6 +376,10 @@ HELP_SECTIONS = [
         ("/mural-status", "mostra a configuração do mural"),
         ("/mural-remover", "para de vigiar uma guilda"),
     ]),
+    ("🏛️ Organização (admin)", [
+        ("/camadas", "mostra as camadas: Visitante → Aprendiz → Oficial → Mestre"),
+        ("/organizar-servidor", "cria os cargos e canais das camadas de uma vez"),
+    ]),
 ]
 # Título do embed do guia — usado no /ajuda, no guia automático E como marcador
 # p/ reencontrar a própria mensagem no canal (idempotência sem depender de disco).
@@ -1486,6 +1490,116 @@ async def handle_personagem(api, discord_user_id, nick=None):
             f"killboard (normal se você jogou pouco ou a grafia difere).{hint}")
 
 
+# ------------------------------------------- camadas do servidor (organização)
+# Três ANÉIS de acesso concêntricos. O de fora é o Visitante (entrou no Discord
+# mas ainda NÃO é do projeto); Aprendiz é o 1º degrau DENTRO da guild. A linha
+# de progressão é a dos mesteres: Aprendiz -> Oficial -> Mestre.
+# A permissão é sempre configurada na CATEGORIA (os canais herdam) — ajustar
+# canal a canal é o que gera buraco de acesso.
+SERVER_ROLES = [
+    # (nome, cor, para que serve)
+    ("Mestre", 0xC9A24B, "liderança da guild"),
+    ("Oficial", 0x3B82F6, "responsável por uma área (mester)"),
+    ("Aprendiz", 0x22C55E, "1º nível DENTRO do projeto"),
+    ("Visitante", 0x9CA3AF, "entrou no Discord, ainda não é do projeto"),
+]
+RING_INTERNO = ("Aprendiz", "Oficial", "Mestre")   # quem vê a área da guild
+RING_STAFF = ("Oficial", "Mestre")                 # quem vê o comando
+
+SERVER_PLAN = [
+    {"cat": "📢 ENTRADA", "ring": "publico", "channels": [
+        {"name": "regras", "type": "text", "readonly": True},
+        {"name": "comece-aqui", "type": "text", "readonly": True},
+        {"name": "recrutamento", "type": "text"},
+        {"name": "avisos", "type": "text", "readonly": True},
+        {"name": "Lobby", "type": "voice"},
+    ]},
+    {"cat": "🛡️ GUILDA", "ring": "interno", "channels": [
+        {"name": "geral", "type": "text"},
+        {"name": "conquistas", "type": "text"},
+        {"name": "mercado-e-flips", "type": "text"},
+        {"name": "tributo-e-metas", "type": "text"},
+        {"name": "producao-e-logistica", "type": "text"},
+    ]},
+    {"cat": "⚙️ COMANDO", "ring": "staff", "channels": [
+        {"name": "comando", "type": "text"},
+        {"name": "recrutamento-interno", "type": "text"},
+        {"name": "logs-do-bot", "type": "text"},
+    ]},
+]
+
+_RING_PT = {"publico": "todos (inclui Visitante)",
+            "interno": "Aprendiz, Oficial e Mestre",
+            "staff": "só Oficial e Mestre"}
+
+
+def server_plan_summary():
+    """Texto do que as camadas criam — puro, testável, usado no /organizar."""
+    out = ["**Cargos**"]
+    for name, _cor, para in SERVER_ROLES:
+        out.append(f"• @{name} — {para}")
+    out.append("")
+    out.append("**Categorias** (permissão na categoria; os canais herdam)")
+    for b in SERVER_PLAN:
+        out.append(f"• {b['cat']} — vê: {_RING_PT[b['ring']]}")
+        out.append("   " + ", ".join("#" + c["name"] for c in b["channels"]))
+    return "\n".join(out)
+
+
+async def apply_server_plan(guild, dsc):
+    """Cria cargos/categorias/canais que FALTAM e ajusta a permissão da
+    categoria. NUNCA apaga nem move o que já existe. `dsc` é o módulo discord
+    (injetável). Devolve o relatório do que fez."""
+    report = []
+    roles = {r.name: r for r in guild.roles}
+    for name, cor, _para in SERVER_ROLES:
+        if name in roles:
+            report.append(f"@{name}: já existia")
+            continue
+        roles[name] = await guild.create_role(
+            name=name, colour=dsc.Colour(cor), hoist=True,
+            reason="camadas da guild")
+        report.append(f"@{name}: criado")
+    everyone = guild.default_role
+
+    def overwrites(ring):
+        ow = {}
+        if ring == "publico":
+            return ow                     # todos veem: herda o padrão
+        ow[everyone] = dsc.PermissionOverwrite(view_channel=False)
+        for rn in (RING_INTERNO if ring == "interno" else RING_STAFF):
+            if roles.get(rn):
+                ow[roles[rn]] = dsc.PermissionOverwrite(view_channel=True)
+        return ow
+
+    cats = {c.name: c for c in guild.categories}
+    existing = {c.name.lower() for c in guild.channels}
+    for b in SERVER_PLAN:
+        cat = cats.get(b["cat"])
+        if cat is None:
+            cat = await guild.create_category(
+                b["cat"], overwrites=overwrites(b["ring"]),
+                reason="camadas da guild")
+            report.append(f"{b['cat']}: categoria criada")
+        else:
+            await cat.edit(overwrites=overwrites(b["ring"]))
+            report.append(f"{b['cat']}: permissões ajustadas")
+        for ch in b["channels"]:
+            if ch["name"].lower() in existing:
+                report.append(f"   #{ch['name']}: já existia (não mexi)")
+                continue
+            if ch["type"] == "voice":
+                await guild.create_voice_channel(
+                    ch["name"], category=cat, reason="camadas da guild")
+            else:
+                new = await guild.create_text_channel(
+                    ch["name"], category=cat, reason="camadas da guild")
+                if ch.get("readonly"):   # só a staff escreve nos murais fixos
+                    await new.set_permissions(everyone, send_messages=False)
+            report.append(f"   #{ch['name']}: criado")
+    return report
+
+
 # ------------------------------------------------------ casca discord.py 2.x
 def build_bot(api: ApiClient):
     """Monta o Client + CommandTree ligando cada slash command ao handler puro."""
@@ -1969,6 +2083,40 @@ def build_bot(api: ApiClient):
         await _respond(interaction,
                        handle_mural_status(api, interaction.user.id),
                        ephemeral=True)
+
+    # ------------------------------------------- camadas do servidor (admin)
+    @tree.command(name="camadas",
+                  description="Mostra as camadas (Visitante/Aprendiz/Oficial/Mestre) que serão criadas")
+    async def camadas_cmd(interaction: discord.Interaction):
+        async def _plan():
+            return ("🏛️ **Camadas da guild** — o que o `/organizar-servidor` cria:\n\n"
+                    + server_plan_summary()
+                    + "\n\n_Não apaga nem move nada: só cria o que falta._")
+        await _respond(interaction, _plan(), ephemeral=True)
+
+    @tree.command(name="organizar-servidor",
+                  description="Cria os cargos e canais das camadas da guild (admin)")
+    async def organizar_servidor_cmd(interaction: discord.Interaction):
+        async def _run():
+            perms = getattr(interaction.user, "guild_permissions", None)
+            is_owner = bool(interaction.guild
+                            and interaction.guild.owner_id == interaction.user.id)
+            if not (is_owner or (perms and perms.administrator)):
+                return "❌ Só o dono do servidor ou um admin pode organizar as camadas."
+            try:
+                report = await apply_server_plan(interaction.guild, discord)
+            except discord.Forbidden:
+                return ("❌ O bot não tem permissão pra criar cargos/canais.\n\n"
+                        "Vá em **Configurações do Servidor → Cargos → Mercado "
+                        "Albion** e ligue **Gerenciar Cargos** e **Gerenciar "
+                        "Canais** (e deixe o cargo dele acima de Mestre na "
+                        "lista). Depois rode `/organizar-servidor` de novo.")
+            except Exception as exc:
+                return f"❌ Falhou ao organizar: `{exc!r}`"
+            return ("🏛️ **Camadas aplicadas**\n" + code_block("\n".join(report))
+                    + "\nAgora dê `@Aprendiz` a quem já é do projeto e "
+                      "`@Visitante` a quem ainda não é.")
+        await _respond(interaction, _run(), ephemeral=True)
 
     # ------------------------------------------- públicos (mercado/quadro)
     @tree.command(name="quadro",
