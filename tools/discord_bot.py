@@ -253,30 +253,6 @@ def find_builds(tree_value, content_value=None):
     return out
 
 
-def build_catalog_text(tree_value):
-    """Menu de TODAS as builds de uma árvore, agrupadas por conteúdo (só nome PT).
-    Usado no 'Todos os conteúdos' — o usuário vê o cardápio e escolhe um conteúdo
-    p/ abrir a build completa (com itens e imagem)."""
-    builds = find_builds(tree_value)
-    if not builds:
-        return None
-    tree_lbl = _TREE_LABEL.get(tree_value, tree_value)
-    # ordena os conteúdos pela ordem de BUILD_CONTENTS; extras vão pro fim
-    order = {v: i for i, (_l, v) in enumerate(BUILD_CONTENTS)}
-    by_content = {}
-    for b in builds:
-        by_content.setdefault(b.get("content"), []).append(b)
-    lines = [f"**Builds de {tree_lbl}** — escolha um conteúdo p/ ver a build "
-             f"completa (itens + imagem):", ""]
-    for content in sorted(by_content, key=lambda c: order.get(c, 99)):
-        lines.append(f"__{_CONTENT_LABEL.get(content, content)}__")
-        for b in by_content[content]:
-            nome = b.get("buildName_pt") or b.get("buildName", "?")
-            lines.append(f"• {nome}")
-        lines.append("")
-    return "\n".join(lines).strip()
-
-
 def build_title(build):
     # nome da build em PT (buildName_pt, do nome PT da arma); cai pro EN só se
     # faltar — guilda 100% BR não vê título em inglês.
@@ -1910,17 +1886,10 @@ def build_bot(api: ApiClient):
                          conteudo: str = None):
         await interaction.response.defer(ephemeral=True, thinking=True)
         try:
-            # sem conteúdo OU "Todos os conteúdos" → cardápio (lista de todas as
-            # builds da classe); o usuário escolhe um conteúdo p/ abrir a completa.
-            if not conteudo or conteudo == "todos":
-                catalogo = build_catalog_text(arma)
-                if not catalogo:
-                    await interaction.followup.send(
-                        f"Ainda não há build de **{_TREE_LABEL.get(arma, arma)}**.",
-                        ephemeral=True)
-                else:
-                    await interaction.followup.send(catalogo[:1990], ephemeral=True)
-                return
+            # "Todos os conteúdos" (ou sem escolher) = mostra TODAS as builds da
+            # classe, com card + imagem — igual a escolher a classe fazia antes.
+            if conteudo == "todos":
+                conteudo = None
             matches = find_builds(arma, conteudo)
             if not matches:
                 tree_lbl = _TREE_LABEL.get(arma, arma)
@@ -1933,7 +1902,7 @@ def build_bot(api: ApiClient):
                 return
             embeds, files = [], []
             total = 0                     # Discord: soma de TODOS os embeds <= 6000
-            for b in matches[:6]:
+            for b in matches[:10]:        # Discord: máx 10 embeds/anexos por msg
                 desc = (b.get("role") or "").strip()
                 desc = ((desc + "\n\n" if desc else "") + build_card_text(b))[:4000]
                 title = build_title(b)
@@ -1950,9 +1919,10 @@ def build_bot(api: ApiClient):
                     emb.set_image(url=f"attachment://{f.filename}")
                 embeds.append(emb)
             note = None
-            if not conteudo and len(matches) > len(embeds):
-                note = (f"(mostrando {len(embeds)} de {len(matches)} — escolha um "
-                        f"conteúdo p/ filtrar)")
+            if len(matches) > len(embeds):
+                note = (f"São {len(matches)} builds de {_TREE_LABEL.get(arma, arma)}; "
+                        f"mostrei {len(embeds)} (limite do Discord). Escolha um "
+                        f"conteúdo específico pra ver as demais.")
             await interaction.followup.send(content=note, embeds=embeds,
                                             files=files, ephemeral=True)
         except Exception:
