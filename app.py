@@ -813,6 +813,7 @@ def status():
 
 _INTEL_LOCK = threading.Lock()
 _KILLFEED_LOCK = threading.Lock()
+_KILLFEED_MAX_GUILDS = 5      # teto de guildas vigiadas por org (poll + /search)
 
 
 def _sweep_token(request: Request, token: str) -> str:
@@ -3133,17 +3134,24 @@ def _killfeed_all_configs() -> list[dict]:
                 aodp.db.rollback()
             except Exception:
                 pass
-    watch: dict[int, list] = {}
+    watch: dict[int, dict] = {}
     for r in wrows:
-        watch.setdefault(int(r[0]), []).append({"id": r[1], "name": r[2]})
+        watch.setdefault(int(r[0]), {})[r[1]] = r[2]   # dedup por guild_id
     out = []
     for r in srows:
         oid = int(r[0])
         if not int(r[3] or 0) or not r[1]:      # inativo ou sem canal
             continue
+        # gate de plano: org sem 'operacao' ativo (expirou/revogado) não recebe
+        # o feed — a expiração é preguiçosa, então filtra-se aqui no poll.
+        try:
+            _org_entitlement(oid, "operacao")
+        except AuthError:
+            continue
+        guilds = [{"id": gid, "name": nm}
+                  for gid, nm in watch.get(oid, {}).items()]
         out.append({"org_id": oid, "channel_id": r[1],
-                    "min_fame": int(r[2] or 0),
-                    "guilds": watch.get(oid, [])})
+                    "min_fame": int(r[2] or 0), "guilds": guilds})
     return out
 
 
@@ -3187,7 +3195,11 @@ def killfeed_poll(request: Request):
                      if wid else None)})
         groups.append({"org_id": oid, "channel_id": ch_by_org.get(oid),
                        "kills": enriched})
+    if res.get("saturated"):
+        log.warning("[killfeed] SATURADO: burst > janela lida ou teto anti-flood; "
+                    "possivel gap de abates nesta rodada.")
     return {"ok": res.get("ok", 1), "primed": res.get("primed", False),
+            "saturated": res.get("saturated", False),
             "configs": res.get("configs", 0), "groups": groups}
 
 
@@ -3253,6 +3265,25 @@ def killfeed_config_set(body: KillfeedConfigBody, request: Request):
         cname, gid = resolved["name"], resolved["id"]
         cnorm = gameinfo.norm_guild(cname)
         with aodp.db_lock:
+            # teto por org (limita /search e o tempo do poll); COUNT no PG volta
+            # Decimal -> int(). Não conta esta guilda (re-add do mesmo id = ok).
+            n = aodp.db.execute(
+                "SELECT COUNT(*) FROM killfeed_watch WHERE org_id=? "
+                "AND guild_id<>?", [org, gid]).fetchone()
+            if int((n[0] if n else 0) or 0) >= _KILLFEED_MAX_GUILDS:
+                try:
+                    aodp.db.rollback()
+                except Exception:
+                    pass
+                raise HTTPException(
+                    400, f"Limite de {_KILLFEED_MAX_GUILDS} guildas vigiadas por "
+                    "servidor. Remova uma antes de adicionar outra.")
+            # guilda renomeada no jogo? o Id persiste — substitui a linha antiga
+            # (mesmo id, nome diferente) em vez de acumular (senão o abate sairia
+            # em dobro no poll).
+            aodp.db.execute(
+                "DELETE FROM killfeed_watch WHERE org_id=? AND guild_id=? "
+                "AND guild_name_norm<>?", [org, gid, cnorm])
             store.upsert(
                 aodp.db, "killfeed_watch",
                 ["org_id", "guild_name", "guild_name_norm", "guild_id",

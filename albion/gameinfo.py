@@ -442,40 +442,47 @@ def poll_killfeed(aodp, configs, client: GameinfoClient | None = None,
     active = [c for c in configs if c.get("channel_id") and c.get("guilds")]
     if not active:
         return {"ok": True, "primed": False, "configs": 0, "groups": {}}
-    # guild_id -> {name, orgs: [config...]} (uma consulta por guilda, mesmo que
-    # várias orgs a vigiem)
+    # guild_id -> {name, orgs: {org_id: config}} — uma consulta por guilda; o
+    # dict por org_id DEDUPLICA se a mesma org vigia o mesmo id em 2 linhas
+    # (guilda renomeada), senão cada abate sairia em dobro.
     by_guild = {}
     for c in active:
         for g in c["guilds"]:
             gid = g.get("id")
             if not gid:
                 continue
-            ent = by_guild.setdefault(gid, {"name": g.get("name"), "orgs": []})
-            ent["orgs"].append(c)
+            ent = by_guild.setdefault(gid, {"name": g.get("name"), "orgs": {}})
+            ent["orgs"][c["org_id"]] = c
     client = client or GameinfoClient(aodp.server)
     groups = {}          # org_id -> [kill, ...]
-    ok, error, primed = 1, None, False
+    ok, error, primed, saturated = 1, None, False, False
     for gid, ent in by_guild.items():
         source = f"killfeed:{gid}"
-        known = _checkpoint(aodp, source)
-        newest = known
+        prime_src = f"killfeed_primed:{gid}"
         try:
-            if known == 0:                 # prima: só marca o topo, sem postar
-                page = client.events_by_guild(gid, 0)
-                for e in page or []:
+            known = _checkpoint(aodp, source)
+            # 1ª rodada DESTA guilda: prima o cursor e marca 'primed' (sentinela
+            # separada do cursor — cursor 0 não distingue "novo" de "ocioso").
+            # Sem postar histórico; o 1º abate real entra pelo caminho normal.
+            if not _checkpoint(aodp, prime_src):
+                newest0 = 0
+                for e in client.events_by_guild(gid, 0) or []:
                     if e.get("EventId"):
-                        newest = max(newest, e["EventId"])
-                if newest > 0:
-                    _save_checkpoint(aodp, source, newest)
+                        newest0 = max(newest0, e["EventId"])
+                _save_checkpoint(aodp, source, newest0)
+                _save_checkpoint(aodp, prime_src, 1)
                 primed = True
                 continue
-            fresh = []
+            fresh, seen = [], set()
+            newest = known
+            reached = False
             for pg in range(max_pages):
                 offset = pg * PAGE_SIZE
                 if offset > MAX_OFFSET:
                     break
                 events = client.events_by_guild(gid, offset)
                 if not events:
+                    reached = True
                     break
                 page_min = None
                 for e in events:
@@ -484,29 +491,44 @@ def poll_killfeed(aodp, configs, client: GameinfoClient | None = None,
                         continue
                     page_min = eid if page_min is None else min(page_min, eid)
                     newest = max(newest, eid)
-                    if eid <= known:
-                        continue
-                    killer = e.get("Killer") or {}
-                    fresh.append(_kill_row(e, killer))
+                    if eid <= known or eid in seen:
+                        continue            # dedup: janela desliza no sleep(1)
+                    seen.add(eid)
+                    fresh.append(_kill_row(e, e.get("Killer") or {}))
                 if page_min is not None and page_min <= known:
+                    reached = True
                     break                   # alcançou o checkpoint: acabou
-                time.sleep(1)               # cortesia: ~1 req/s antes da próxima pág.
-            for row in fresh:
-                for c in ent["orgs"]:
-                    if row["fame"] < int(c.get("min_fame") or 0):
-                        continue
-                    groups.setdefault(c["org_id"], []).append(row)
+                if len(events) < PAGE_SIZE:
+                    reached = True
+                    break                   # página parcial: não há próxima
+                time.sleep(1)               # cortesia: ~1 req/s antes da próx. pág.
+            if not reached and newest > known:
+                saturated = True            # burst > janela lida: possível gap
+            fresh.sort(key=lambda r: r["event_id"])   # cronológico
+            if len(fresh) > cap:
+                fresh = fresh[-cap:]        # teto anti-flood
+                saturated = True            # cortou os mais antigos: avisa
+            # AT-MOST-ONCE: só emite DEPOIS que o checkpoint persiste. Se o save
+            # estourar, o except pega ANTES do append -> nada é postado e a
+            # guilda é reprocessada no próximo poll (perda aceitável, sem
+            # duplicata). Nunca "avança antes de postar".
             if newest > known:
                 _save_checkpoint(aodp, source, newest)
+            for row in fresh:
+                for oid, c in ent["orgs"].items():
+                    if row["fame"] < int(c.get("min_fame") or 0):
+                        continue
+                    groups.setdefault(oid, []).append(row)
         except Exception as exc:
             ok, error = 0, repr(exc)[:300]
-    # ordem cronológica (mais antigo primeiro) e teto anti-flood por org
-    for oid, rows in groups.items():
-        rows.sort(key=lambda r: r["event_id"])
-        if len(rows) > cap:
-            groups[oid] = rows[-cap:]
-    return {"ok": ok, "primed": primed, "configs": len(active),
-            "groups": groups, "error": error}
+            # Postgres: escrita falha deixa a conexão em transação abortada e
+            # envenena a próxima guilda; limpa antes de seguir.
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    return {"ok": ok, "primed": primed, "saturated": saturated,
+            "configs": len(active), "groups": groups, "error": error}
 
 
 def ingest_battles(aodp, client: GameinfoClient | None = None,

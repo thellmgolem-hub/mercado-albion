@@ -2414,6 +2414,61 @@ class KillfeedPollTests(unittest.TestCase):
             finally:
                 aodp.db.close()
 
+    def test_same_guild_id_two_names_no_double(self):
+        # guilda renomeada: 2 linhas, MESMO guild_id -> o abate sai UMA vez
+        from albion import gameinfo
+        cfg = [{"org_id": 1, "channel_id": "1", "min_fame": 0,
+                "guilds": [{"id": "G1", "name": "Operarius"},
+                           {"id": "G1", "name": "Operarii"}]}]
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                gameinfo.poll_killfeed(
+                    aodp, cfg, client=self._Fake({"G1": {0: [self._ev(100)]}}))
+                r = gameinfo.poll_killfeed(
+                    aodp, cfg, client=self._Fake({"G1": {0: [self._ev(110)]}}))
+                self.assertEqual(len(r["groups"].get(1, [])), 1)
+            finally:
+                aodp.db.close()
+
+    def test_idle_prime_posts_first_real_kill(self):
+        # guilda ociosa ao ligar: prima; o 1º abate real depois É celebrado
+        from albion import gameinfo
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                r1 = gameinfo.poll_killfeed(
+                    aodp, self._cfg(), client=self._Fake({"G1": {0: []}}))
+                self.assertTrue(r1["primed"])
+                self.assertEqual(r1["groups"], {})
+                r2 = gameinfo.poll_killfeed(
+                    aodp, self._cfg(),
+                    client=self._Fake({"G1": {0: [self._ev(500)]}}))
+                self.assertEqual([k["event_id"] for k in r2["groups"][1]], [500])
+            finally:
+                aodp.db.close()
+
+    def test_page_overlap_dedup(self):
+        # abate na fronteira de página (janela desliza no sleep) sai UMA vez
+        from albion import gameinfo
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                gameinfo.poll_killfeed(
+                    aodp, self._cfg(),
+                    client=self._Fake({"G1": {0: [self._ev(100)]}}))  # prima em 100
+                page0 = [self._ev(e, victim=f"v{e}") for e in range(200, 149, -1)]
+                page1 = [self._ev(150, victim="v150"),
+                         self._ev(149, victim="v149")]   # 150 repete a pág. 0
+                r = gameinfo.poll_killfeed(
+                    aodp, self._cfg(),
+                    client=self._Fake({"G1": {0: page0, 1: page1}}), cap=1000)
+                ids = [k["event_id"] for k in r["groups"][1]]
+                self.assertEqual(len(ids), len(set(ids)))   # sem duplicata
+                self.assertEqual(ids.count(150), 1)
+            finally:
+                aodp.db.close()
+
     def test_resolve_guild_exact_and_candidates(self):
         from albion import gameinfo
 

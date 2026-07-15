@@ -1670,30 +1670,38 @@ def build_bot(api: ApiClient):
                 ch_id, kills = g.get("channel_id"), g.get("kills") or []
                 if not ch_id or not kills:
                     continue
+                # Isolamento por org: canal inacessível / sem permissão de enviar
+                # / rate-limit numa org NUNCA pode abortar as outras. Um erro no
+                # envio encerra ESTA org (o checkpoint já avançou no servidor —
+                # perda aceitável) e segue para a próxima.
                 try:
                     channel = (self.get_channel(int(ch_id))
                                or await self.fetch_channel(int(ch_id)))
+                    batch = []
+                    for k in kills:
+                        title, desc, thumb, color = killfeed_embed_data(k)
+                        emb = discord.Embed(title=title, description=desc,
+                                            color=color)
+                        if thumb:
+                            emb.set_thumbnail(url=thumb)
+                        ts = k.get("timestamp")
+                        if ts:
+                            emb.set_footer(
+                                text=f"{ts[:19].replace('T', ' ')} UTC")
+                        batch.append(emb)
+                        if len(batch) == 10:   # limite do Discord por mensagem
+                            await channel.send(
+                                embeds=batch,
+                                allowed_mentions=discord.AllowedMentions.none())
+                            batch = []
+                    if batch:
+                        await channel.send(
+                            embeds=batch,
+                            allowed_mentions=discord.AllowedMentions.none())
                 except Exception as exc:
-                    print(f"[bot] mural: canal {ch_id} inacessível ({exc!r})",
-                          flush=True)
+                    print(f"[bot] mural: falha na org {g.get('org_id')} / canal "
+                          f"{ch_id} ({exc!r}); sigo p/ a próxima", flush=True)
                     continue
-                batch = []
-                for k in kills:
-                    title, desc, thumb, color = killfeed_embed_data(k)
-                    emb = discord.Embed(title=title, description=desc,
-                                        color=color)
-                    if thumb:
-                        emb.set_thumbnail(url=thumb)
-                    ts = k.get("timestamp")
-                    if ts:
-                        emb.set_footer(
-                            text=f"{ts[:19].replace('T', ' ')} UTC")
-                    batch.append(emb)
-                    if len(batch) == 10:      # limite do Discord por mensagem
-                        await channel.send(embeds=batch)
-                        batch = []
-                if batch:
-                    await channel.send(embeds=batch)
 
         async def refresh_board(self):
             try:
