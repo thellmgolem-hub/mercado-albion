@@ -747,7 +747,7 @@ function flipColumns(withVolume) {
       html: (o) => `<span class="silver ${o.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(o.profit)}</span>`,
     },
     {
-      key: 'roi', label: 'ROI %', value: (o) => o.roi_pct,
+      key: 'roi', label: 'Retorno %', value: (o) => o.roi_pct,
       html: (o) => o.roi_pct == null ? '—' : `${o.roi_pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`,
     },
     {
@@ -830,7 +830,7 @@ function recommendationColumns() {
       html: (o) => `<span class="silver ${o.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(o.profit)}</span>`,
     },
     {
-      key: 'roi', label: 'ROI %', value: (o) => o.roi_pct,
+      key: 'roi', label: 'Retorno %', value: (o) => o.roi_pct,
       html: (o) => o.roi_pct == null ? '—' : `${o.roi_pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`,
     },
     {
@@ -1021,7 +1021,7 @@ function renderRecommendationTable(tableId, statusId, rows, meta, emptyText) {
          em <b>Atualizar</b>. Se demorar, rode <code>python analyze.py collect --cat bags</code>.
          <br><br>Enquanto isso, a aba <b>Flips</b> já funciona — usa só os preços atuais.`
       : `<b>${esc(emptyText)}.</b><br>Tente afrouxar os filtros (volume/dia, idade dos dados,
-         ROI) ou ampliar a categoria/tier.`;
+         retorno) ou ampliar a categoria/tier.`;
     $(tableId).innerHTML = `<div class="empty-state"><div class="ico">📭</div><div>${body}</div></div>`;
     const cov2 = cov.price_items != null
       ? ` · cobertura: ${fmt(cov.price_items)}/${fmt(cov.catalog_items)} com preço, ${fmt(cov.history_items)} com histórico`
@@ -1673,7 +1673,7 @@ function advisorSummaryHtml(s, cityKey) {
     pill('Orçamento usado', `<span class="silver">${fmt(s.orcamento_usado)}</span>`),
     pill('Sobra', `<span class="silver muted">${fmt(s.orcamento_restante)}</span>`),
     pill('Lucro estimado', `<span class="silver profit-pos">${fmt(s.lucro_total_estimado)}</span>`),
-    pill('ROI total', `<span class="profit-pos">${fmtPct(s.roi_total_pct)}</span>`),
+    pill('Retorno total', `<span class="profit-pos">${fmtPct(s.roi_total_pct)}</span>`),
   ].join('');
 }
 
@@ -1722,7 +1722,7 @@ function advisorColumns() {
       html: (o) => `<span class="silver ${o.lucro_liquido >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(o.lucro_liquido)}</span>`,
     },
     {
-      key: 'roi', label: 'ROI %', value: (o) => o.roi_pct,
+      key: 'roi', label: 'Retorno %', value: (o) => o.roi_pct,
       html: (o) => o.roi_pct == null ? '—'
         : `${o.roi_pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`,
     },
@@ -3333,7 +3333,7 @@ function prodRenderResult(calc) {
   if (pl.showCosts) {
     costs = `<div class="pl-cards pl-cost-cards">
       ${card(`<span class="silver">${fmt(calc.profit)}</span>`, 'Lucro líquido', 'big ' + (calc.profit >= 0 ? 'pos' : 'neg'))}
-      ${card(calc.roi == null ? '—' : fmtPct(calc.roi), 'ROI')}
+      ${card(calc.roi == null ? '—' : fmtPct(calc.roi), 'Retorno')}
       ${card(`<span class="silver">${fmt(calc.revenue)}</span>`, 'Receita (venda)')}
       ${card(`<span class="silver">${fmt(calc.buyCost)}</span>`, 'Custo de compra')}
     </div>`;

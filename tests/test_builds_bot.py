@@ -396,7 +396,7 @@ class AdvancedHandlerTests(unittest.TestCase):
         out = self._run(bot.handle_escanear(Api(), "weapons", 6))
         self.assertIn("Arco", out)
         self.assertIn("Martlock", out)
-        self.assertIn("ROI 18.0%", out)
+        self.assertIn("retorno 18.0%", out)         # ROI traduzido
         self.assertIn("preço visto", out)          # idade do dado visível
 
     def test_recomendar_mostra_idade_do_dado(self):
@@ -545,7 +545,7 @@ class AdvancedHandlerTests(unittest.TestCase):
         self.assertIn("Produzir 20× Machado Grande", out)
         self.assertIn("Tábuas de Pinho", out)
         self.assertIn("LUCRO", out)
-        self.assertIn("ROI 56.3%", out)
+        self.assertIn("retorno 56.3%", out)
 
         class NoRecipe:
             async def get(self, path, params=None):

@@ -585,7 +585,7 @@ async def handle_flip(api, orcamento: float, cidade: str) -> str:
     summ = res.get("summary") or {}
     head = (f"Flips p/ {fmt_silver(orcamento)} de prata em {cidade}\n"
             f"lucro estimado: {fmt_silver(summ.get('lucro_total_estimado'))} "
-            f"(ROI {summ.get('roi_total_pct', 0)}%) | "
+            f"(retorno {summ.get('roi_total_pct', 0)}%) | "
             f"usa {fmt_silver(summ.get('orcamento_usado'))} do orçamento\n")
     if not shopping:
         return code_block(
@@ -598,7 +598,7 @@ async def handle_flip(api, orcamento: float, cidade: str) -> str:
             f"    compra {ln['buy_city']} {fmt_silver(ln['buy_price'])} -> "
             f"vende {ln['sell_city']} {fmt_silver(ln['sell_price'])}\n"
             f"    {ln['units']}x | lucro {fmt_silver(ln['lucro_liquido'])} "
-            f"(ROI {ln['roi_pct']}%)\n"
+            f"(retorno {ln['roi_pct']}%)\n"
             f"    preço visto: compra {fmt_data_hora(ln.get('buy_age_min'))} · "
             f"venda {fmt_data_hora(ln.get('sell_age_min'))}")
     if len(shopping) > 10:
@@ -884,7 +884,7 @@ async def handle_recomendar(api) -> str:
         roi = o.get("roi_pct") or o.get("roi")
         lines.append(f"{i}. {name} — {o.get('buy_city', '?')} -> "
                      f"{o.get('sell_city', '?')} | lucro {fmt_silver(lucro)}"
-                     + (f" (ROI {roi}%)" if roi is not None else ""))
+                     + (f" (retorno {roi}%)" if roi is not None else ""))
         lines.append(f"    preço visto: compra {fmt_data_hora(o.get('buy_age_min'))}"
                      f" · venda {fmt_data_hora(o.get('sell_age_min'))}")
     lines += ["", "preço visto = hora (BR) em que cada ponta foi coletada.",
@@ -1101,7 +1101,7 @@ async def handle_escanear(api, categoria: str, tier_min: int = None) -> str:
         tag = f" T{t}.{o.get('ench') or 0}" if t else ""
         lines.append(f"- {_nome(o)}{tag}: {o.get('buy_city', '?')} -> "
                      f"{o.get('sell_city', '?')} lucro {fmt_silver(o.get('profit'))} "
-                     f"(ROI {o.get('roi_pct')}%)")
+                     f"(retorno {o.get('roi_pct')}%)")
         lines.append(f"    preço visto: compra {fmt_data_hora(o.get('buy_age_min'))}"
                      f" · venda {fmt_data_hora(o.get('sell_age_min'))}")
     lines += ["", "preço visto = hora (BR) em que cada ponta foi coletada."]
@@ -1312,7 +1312,7 @@ async def handle_produzir(api, item: str, qty: int = 1) -> str:
     if res.get("focus_points"):
         lines.append(f"Foco necessário: {fmt_silver(res.get('focus_points'))} pontos")
     if res.get("revenue"):
-        roi = (f" (ROI {res.get('roi_pct')}%)"
+        roi = (f" (retorno {res.get('roi_pct')}%)"
                if res.get("roi_pct") is not None else "")
         lines.append(f"Se vender tudo: receita {fmt_silver(res.get('revenue'))} · "
                      f"LUCRO {fmt_silver(res.get('profit'))}{roi}")
