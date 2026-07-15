@@ -2435,6 +2435,28 @@ class KillfeedPollTests(unittest.TestCase):
         self.assertIsNone(none)
         self.assertEqual(cands, ["Operarius Academy"])
 
+    def test_resolve_player_exact_and_candidates(self):
+        from albion import gameinfo
+
+        class FakeSearch:
+            def __init__(self, players):
+                self._p = players
+
+            def search(self, q):
+                return {"guilds": [], "players": self._p}
+
+        got, _ = gameinfo.resolve_player(
+            "olegislador",
+            client=FakeSearch([{"Id": "P1", "Name": "olegislador",
+                                "GuildName": "Operarius"},
+                               {"Id": "P2", "Name": "olegislador2"}]))
+        self.assertEqual(got, {"id": "P1", "name": "olegislador",
+                               "guild": "Operarius"})
+        none, cands = gameinfo.resolve_player(
+            "calixt", client=FakeSearch([{"Id": "P3", "Name": "calixta00"}]))
+        self.assertIsNone(none)
+        self.assertEqual(cands, ["calixta00"])
+
 
 if __name__ == "__main__":
     unittest.main()

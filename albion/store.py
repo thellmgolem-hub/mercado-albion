@@ -389,6 +389,14 @@ CREATE TABLE IF NOT EXISTS killfeed_watch (
   added_at        REAL,
   PRIMARY KEY (org_id, guild_name_norm)
 );
+CREATE TABLE IF NOT EXISTS member_characters (
+  account_id     INTEGER PRIMARY KEY,
+  org_id         INTEGER NOT NULL,
+  char_name      TEXT NOT NULL,
+  char_name_norm TEXT NOT NULL,
+  char_id        TEXT,
+  updated_at     REAL
+);
 """
 
 # Postgres: mesmos campos, tipos nativos. SERIAL para positions.id.
@@ -496,6 +504,14 @@ CREATE TABLE IF NOT EXISTS killfeed_watch (
   guild_id        TEXT,
   added_at        DOUBLE PRECISION,
   PRIMARY KEY (org_id, guild_name_norm)
+);
+CREATE TABLE IF NOT EXISTS member_characters (
+  account_id     INTEGER PRIMARY KEY,
+  org_id         INTEGER NOT NULL,
+  char_name      TEXT NOT NULL,
+  char_name_norm TEXT NOT NULL,
+  char_id        TEXT,
+  updated_at     DOUBLE PRECISION
 );
 """
 

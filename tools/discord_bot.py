@@ -358,6 +358,7 @@ HELP_SECTIONS = [
     ]),
     ("🎯 Tributo da guild", [
         ("/vincular", "liga seu Discord à sua conta. Peça o código a um oficial"),
+        ("/personagem", "registra seu nick do Albion (pras metas e seu perfil)"),
         ("/minhas-metas", "suas metas da semana. Só você vê"),
         ("/meu-status", "seu relógio de tributo. Só você vê"),
         ("/reportar", "avisa que você entregou algo. "
@@ -1453,6 +1454,38 @@ async def handle_mural_status(api, discord_user_id):
     return "\n".join(lines)
 
 
+# --------------------------------------------- vínculo conta -> personagem
+async def handle_personagem(api, discord_user_id, nick=None):
+    """Sem nick: mostra o personagem registrado. Com nick: registra/atualiza."""
+    if not nick or not nick.strip():
+        try:
+            r = await api.get("/api/discord/character",
+                              params={"discord_user_id": discord_user_id})
+        except ApiError as e:
+            return friendly_error(e)
+        if r.get("char_name"):
+            extra = ("" if r.get("char_id")
+                     else " (ainda não achei no killboard — normal se for novo)")
+            return (f"🎮 Seu personagem registrado: **{r['char_name']}**.{extra}\n"
+                    "Pra trocar: `/personagem nick:<seu nick>`.")
+        return ("Você ainda não registrou seu personagem. Use "
+                "`/personagem nick:<seu nick no Albion>`.")
+    try:
+        r = await api.post("/api/discord/character", json={
+            "discord_user_id": discord_user_id, "char_name": nick.strip()})
+    except ApiError as e:
+        return friendly_error(e)
+    if r.get("resolved"):
+        g = r.get("guild")
+        return (f"✅ Personagem **{r['char_name']}** registrado"
+                + (f" (guilda {g})" if g else "")
+                + ". Vai servir pras metas e pro seu perfil de fama.")
+    cands = r.get("candidates") or []
+    hint = f" Parecidos: {', '.join(cands)}." if cands else ""
+    return (f"✅ Anotei **{r['char_name']}**, mas ainda não achei esse nick no "
+            f"killboard (normal se você jogou pouco ou a grafia difere).{hint}")
+
+
 # ------------------------------------------------------ casca discord.py 2.x
 def build_bot(api: ApiClient):
     """Monta o Client + CommandTree ligando cada slash command ao handler puro."""
@@ -1844,6 +1877,14 @@ def build_bot(api: ApiClient):
     async def meu_status_cmd(interaction: discord.Interaction):
         await _respond(interaction,
                        handle_meu_status(api, interaction.user.id),
+                       ephemeral=True)
+
+    @tree.command(name="personagem",
+                  description="Registra/mostra seu personagem do Albion")
+    @app_commands.describe(nick="Seu nick EXATO no jogo (vazio = ver o atual)")
+    async def personagem_cmd(interaction: discord.Interaction, nick: str = None):
+        await _respond(interaction,
+                       handle_personagem(api, interaction.user.id, nick),
                        ephemeral=True)
 
     @tree.command(name="reportar",

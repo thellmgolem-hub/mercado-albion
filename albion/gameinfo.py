@@ -411,6 +411,21 @@ def resolve_guild(name, client: GameinfoClient | None = None, server=None):
     return None, [g.get("Name") for g in guilds if g.get("Name")][:6]
 
 
+def resolve_player(name, client: GameinfoClient | None = None, server=None):
+    """Resolve o NICK de um personagem para {id, name, guild} via /search
+    (players[]). (dict, None) no acerto exato; (None, candidatos) quando não há
+    match exato. Base p/ vincular conta->personagem e p/ o futuro /fama."""
+    client = client or GameinfoClient(server or config.DEFAULT_SERVER)
+    data = client.search(name) or {}
+    players = data.get("players") or []
+    nn = norm_guild(name)
+    for p in players:
+        if norm_guild(p.get("Name")) == nn and p.get("Id"):
+            return {"id": p.get("Id"), "name": p.get("Name"),
+                    "guild": p.get("GuildName")}, None
+    return None, [p.get("Name") for p in players if p.get("Name")][:6]
+
+
 def poll_killfeed(aodp, configs, client: GameinfoClient | None = None,
                   max_pages: int = 4, cap: int = 25) -> dict:
     """Devolve os abates NOVOS de cada guilda vigiada (golpe final = vitória),

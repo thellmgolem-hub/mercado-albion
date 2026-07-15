@@ -2993,6 +2993,90 @@ def discord_board(request: Request, discord_user_id: int = Query(gt=0)):
     return {"week_start": week, "org_id": org, "members": members}
 
 
+# ------------------------------------------- vínculo conta -> personagem Albion
+# Cada membro registra o próprio nick do jogo; resolvemos p/ o player Id do
+# gameinfo (confirma a grafia) — base p/ metas por membro e p/ o /fama futuro.
+class DiscordCharacterBody(BaseModel):
+    discord_user_id: int = Field(gt=0)
+    char_name: str = Field(min_length=1, max_length=32)
+
+
+def _member_character(account_id: int):
+    with aodp.db_lock:
+        try:
+            row = aodp.db.execute(
+                "SELECT char_name, char_id FROM member_characters "
+                "WHERE account_id=?", [account_id]).fetchone()
+        finally:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    return {"char_name": row[0], "char_id": row[1]} if row else None
+
+
+@app.get("/api/discord/character")
+def discord_character_get(request: Request, discord_user_id: int = Query(gt=0)):
+    """Personagem já registrado do membro vinculado (escopo discord_read)."""
+    _require_service_scope(request, "discord_read")
+    a = _discord_member(discord_user_id)
+    ch = _member_character(int(a["id"]))
+    return {"account_id": int(a["id"]), "char_name": (ch or {}).get("char_name"),
+            "char_id": (ch or {}).get("char_id"), "found": bool(ch)}
+
+
+@app.post("/api/discord/character")
+def discord_character_set(body: DiscordCharacterBody, request: Request):
+    """Membro registra o PRÓPRIO nick do Albion (escopo discord_read). Resolve
+    no gameinfo /search p/ confirmar a grafia e guardar o player Id."""
+    from albion import gameinfo
+    _require_service_scope(request, "discord_read")
+    a = _discord_member(body.discord_user_id)
+    org = int(a.get("org_id") or 1)
+    _org_entitlement(org, "operacao")
+    resolved, cands = _api_guard(lambda: gameinfo.resolve_player(
+        body.char_name, server=aodp.server))
+    name = resolved["name"] if resolved else body.char_name.strip()
+    cid = resolved["id"] if resolved else None
+    norm = gameinfo.norm_guild(name)
+    now = time.time()
+    with aodp.db_lock:
+        store.upsert(
+            aodp.db, "member_characters",
+            ["account_id", "org_id", "char_name", "char_name_norm", "char_id",
+             "updated_at"],
+            [(int(a["id"]), org, name, norm, cid, now)], ["account_id"])
+        aodp.db.commit()
+    return {"ok": True, "char_name": name, "char_id": cid,
+            "resolved": bool(resolved),
+            "guild": resolved.get("guild") if resolved else None,
+            "candidates": None if resolved else cands}
+
+
+@app.get("/api/discord/roster")
+def discord_roster(request: Request, discord_user_id: int = Query(gt=0)):
+    """Roster da org do operador: membros ativos × personagem registrado
+    (escopo guild_audit + papel operador)."""
+    _require_service_scope(request, "guild_audit")
+    _, org = _discord_operator(discord_user_id)
+    with aodp.db_lock:
+        try:
+            rows = aodp.db.execute(
+                "SELECT ac.id, ac.username, mc.char_name, mc.char_id "
+                "FROM auth_accounts ac "
+                "LEFT JOIN member_characters mc ON mc.account_id = ac.id "
+                "WHERE ac.org_id=? AND ac.active=1 ORDER BY ac.username",
+                [org]).fetchall()
+        finally:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    return {"org_id": org, "members": [
+        {"account_id": r[0], "username": r[1], "char_name": r[2],
+         "char_id": r[3]} for r in rows]}
+
+
 # ----------------------------------------------- Mural de Conquistas (killfeed)
 # Feed do Discord que celebra SÓ vitórias: posta quando um MEMBRO dá o golpe
 # final em outro jogador (nunca quando morre). O bot chama /poll num laço curto

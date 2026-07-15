@@ -639,6 +639,33 @@ class KillfeedBotTests(unittest.TestCase):
         self.assertIn("Operarius", out)
         self.assertIn("ligado", out)
 
+    def test_personagem_registra_resolvido(self):
+        class Api:
+            async def post(self, path, json=None):
+                assert json["char_name"] == "olegislador"
+                return {"ok": True, "char_name": "olegislador", "char_id": "P1",
+                        "resolved": True, "guild": "Operarius"}
+        out = asyncio.run(bot.handle_personagem(Api(), 1, "olegislador"))
+        self.assertIn("olegislador", out)
+        self.assertIn("Operarius", out)
+
+    def test_personagem_nao_achado_avisa(self):
+        class Api:
+            async def post(self, path, json=None):
+                return {"ok": True, "char_name": "calixta00", "char_id": None,
+                        "resolved": False, "candidates": ["calixta007"]}
+        out = asyncio.run(bot.handle_personagem(Api(), 1, "calixta00"))
+        self.assertIn("calixta00", out)
+        self.assertIn("killboard", out)
+
+    def test_personagem_sem_nick_mostra_atual(self):
+        class Api:
+            async def get(self, path, params=None):
+                return {"char_name": "olegislador", "char_id": "P1",
+                        "found": True}
+        out = asyncio.run(bot.handle_personagem(Api(), 1))
+        self.assertIn("olegislador", out)
+
 
 if __name__ == "__main__":
     unittest.main()
