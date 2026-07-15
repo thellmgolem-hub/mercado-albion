@@ -2313,5 +2313,128 @@ class HistoryVwapScopeTests(unittest.TestCase):
         self.assertNotIn("item_id IN", captured["sql"])
 
 
+class KillfeedPollTests(unittest.TestCase):
+    """Mural de Conquistas: poll_killfeed filtra os abates da guilda vigiada,
+    prima na 1ª rodada e é idempotente por checkpoint (guild-scoped)."""
+
+    @staticmethod
+    def _ev(eid, killer_name="Hedon", killer_guild="Operarius",
+            guild_id="G1", victim="Alvo", fame=50000, mates=None):
+        e = {
+            "EventId": eid, "TimeStamp": "2026-07-15T12:00:00.000Z",
+            "Type": "KILL", "KillArea": "OPEN_WORLD",
+            "TotalVictimKillFame": fame, "numberOfParticipants": 1,
+            "Killer": {"Id": "k", "Name": killer_name, "GuildId": guild_id,
+                       "GuildName": killer_guild, "AverageItemPower": 1300,
+                       "Equipment": {"MainHand": {"Type": "T6_MAIN_SWORD@2"}}},
+            "Victim": {"Id": "v", "Name": victim, "GuildName": "Inimigos",
+                       "AllianceName": "ALLY", "AverageItemPower": 1200},
+            "Participants": [],
+        }
+        for m in (mates or []):
+            e["Participants"].append({"Name": m, "GuildName": killer_guild})
+        return e
+
+    class _Fake:
+        """Cliente gameinfo falso: guild-scoped events por guild_id."""
+        def __init__(self, pages):
+            self.pages = pages     # {guild_id: {offset_index: [events]}}
+            self.calls = []
+
+        def events_by_guild(self, guild_id, offset=0):
+            self.calls.append((guild_id, offset))
+            return self.pages.get(guild_id, {}).get(offset // 51, [])
+
+    def _cfg(self, org=1, ch="123", gid="G1", name="Operarius", min_fame=0):
+        return [{"org_id": org, "channel_id": ch, "min_fame": min_fame,
+                 "guilds": [{"id": gid, "name": name}]}]
+
+    def test_prime_then_new_kills(self):
+        from albion import gameinfo
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                # 1ª rodada: só prima o cursor no evento mais recente (100)
+                fake1 = self._Fake({"G1": {0: [self._ev(100), self._ev(99)]}})
+                r1 = gameinfo.poll_killfeed(aodp, self._cfg(), client=fake1)
+                self.assertTrue(r1["primed"])
+                self.assertEqual(r1["groups"], {})
+                # 2ª rodada: eventos novos (102, 101) viram posts p/ a org 1
+                fake2 = self._Fake({"G1": {0: [self._ev(102, victim="X"),
+                                               self._ev(101, victim="Y")]}})
+                r2 = gameinfo.poll_killfeed(aodp, self._cfg(), client=fake2)
+                self.assertFalse(r2["primed"])
+                kills = r2["groups"].get(1)
+                self.assertEqual(len(kills), 2)
+                self.assertEqual([k["event_id"] for k in kills], [101, 102])
+                self.assertEqual(kills[0]["killer"], "Hedon")
+                self.assertEqual(kills[0]["victim"], "Y")
+                self.assertEqual(kills[0]["killer_weapon_id"], "T6_MAIN_SWORD@2")
+                # 3ª rodada sem novidade: nada a postar (idempotente)
+                fake3 = self._Fake({"G1": {0: [self._ev(102), self._ev(101)]}})
+                r3 = gameinfo.poll_killfeed(aodp, self._cfg(), client=fake3)
+                self.assertEqual(r3["groups"], {})
+            finally:
+                aodp.db.close()
+
+    def test_min_fame_filters(self):
+        from albion import gameinfo
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                gameinfo.poll_killfeed(
+                    aodp, self._cfg(min_fame=100000),
+                    client=self._Fake({"G1": {0: [self._ev(100)]}}))
+                # abate de 50k fica abaixo do piso 100k -> não posta
+                r = gameinfo.poll_killfeed(
+                    aodp, self._cfg(min_fame=100000),
+                    client=self._Fake({"G1": {0: [self._ev(105, fame=50000),
+                                                   self._ev(104, fame=200000)]}}))
+                kills = r["groups"].get(1, [])
+                self.assertEqual(len(kills), 1)
+                self.assertEqual(kills[0]["fame"], 200000)
+            finally:
+                aodp.db.close()
+
+    def test_guildmates_credit(self):
+        from albion import gameinfo
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                gameinfo.poll_killfeed(
+                    aodp, self._cfg(),
+                    client=self._Fake({"G1": {0: [self._ev(100)]}}))
+                r = gameinfo.poll_killfeed(
+                    aodp, self._cfg(),
+                    client=self._Fake({"G1": {0: [self._ev(
+                        110, mates=["Alba", "Cid", "Hedon"])]}}))
+                mates = r["groups"][1][0]["guildmates"]
+                # o próprio killer sai da lista; companheiros de guilda ficam
+                self.assertEqual(mates, ["Alba", "Cid"])
+            finally:
+                aodp.db.close()
+
+    def test_resolve_guild_exact_and_candidates(self):
+        from albion import gameinfo
+
+        class FakeSearch:
+            def __init__(self, guilds):
+                self._g = guilds
+
+            def search(self, q):
+                return {"guilds": self._g, "players": []}
+
+        exact = gameinfo.resolve_guild(
+            "operarius",
+            client=FakeSearch([{"Id": "G1", "Name": "Operarius"},
+                               {"Id": "G2", "Name": "Operarius Academy"}]))
+        self.assertEqual(exact, ({"id": "G1", "name": "Operarius"}, None))
+        # sem match exato -> devolve candidatos p/ o usuário corrigir
+        none, cands = gameinfo.resolve_guild(
+            "operari", client=FakeSearch([{"Id": "G2", "Name": "Operarius Academy"}]))
+        self.assertIsNone(none)
+        self.assertEqual(cands, ["Operarius Academy"])
+
+
 if __name__ == "__main__":
     unittest.main()

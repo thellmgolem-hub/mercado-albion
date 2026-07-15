@@ -374,6 +374,21 @@ CREATE TABLE IF NOT EXISTS production_chains (
 );
 CREATE INDEX IF NOT EXISTS idx_production_chains_owner
   ON production_chains (owner_user_id);
+CREATE TABLE IF NOT EXISTS killfeed_settings (
+  org_id     INTEGER PRIMARY KEY,
+  channel_id TEXT,
+  min_fame   INTEGER NOT NULL DEFAULT 0,
+  active     INTEGER NOT NULL DEFAULT 1,
+  updated_at REAL
+);
+CREATE TABLE IF NOT EXISTS killfeed_watch (
+  org_id          INTEGER NOT NULL,
+  guild_name      TEXT NOT NULL,
+  guild_name_norm TEXT NOT NULL,
+  guild_id        TEXT,
+  added_at        REAL,
+  PRIMARY KEY (org_id, guild_name_norm)
+);
 """
 
 # Postgres: mesmos campos, tipos nativos. SERIAL para positions.id.
@@ -467,6 +482,21 @@ CREATE TABLE IF NOT EXISTS production_chains (
 );
 CREATE INDEX IF NOT EXISTS idx_production_chains_owner
   ON production_chains (owner_user_id);
+CREATE TABLE IF NOT EXISTS killfeed_settings (
+  org_id     INTEGER PRIMARY KEY,
+  channel_id TEXT,
+  min_fame   BIGINT NOT NULL DEFAULT 0,
+  active     INTEGER NOT NULL DEFAULT 1,
+  updated_at DOUBLE PRECISION
+);
+CREATE TABLE IF NOT EXISTS killfeed_watch (
+  org_id          INTEGER NOT NULL,
+  guild_name      TEXT NOT NULL,
+  guild_name_norm TEXT NOT NULL,
+  guild_id        TEXT,
+  added_at        DOUBLE PRECISION,
+  PRIMARY KEY (org_id, guild_name_norm)
+);
 """
 
 

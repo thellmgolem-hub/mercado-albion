@@ -82,6 +82,27 @@ coletor, backup via tools/backup_db.py, CI em .github/workflows/tests.yml.
   Próximas fases (bot gateway, vínculo membro→conta, tributo via Discord):
   docs/AUDITORIA_2026-07-02.md seção Discord.
 
+## Mural de Conquistas (killfeed SÓ de vitórias) — Discord
+
+Feed que celebra SÓ quando um MEMBRO dá o golpe final em outro jogador (nunca
+mortes — pra ninguém passar vergonha). Tabelas duais em store.py: `killfeed_settings`
+(org_id PK, channel_id, min_fame, active) e `killfeed_watch` (org_id, guild_name,
+guild_name_norm, **guild_id**). Config por org via comandos **/mural-canal**
+(usa o canal atual), **/mural-guilda** (resolve o NOME→Id no gameinfo /search e
+confirma a grafia; guarda o Id, não o nome), **/mural-status**, **/mural-remover** —
+todos gate duplo (escopo guild_audit + papel operador via _discord_operator).
+Fonte: `GET /events?guildId=` (guild-scoped, só kills; SEM firehose global), com
+checkpoint POR GUILDA em public_ingest_checkpoints (source `killfeed:<guild_id>`;
+1ª rodada só PRIMA, não despeja histórico). O bot roda um laço (_start_killfeed_task,
+~2,5 min) que chama `/api/killfeed/poll` (escopo discord_read; enriquece com
+nome/ícone PT da arma do killer) e posta embeds (killfeed_embed_data, puro). O
+poll avança o checkpoint no servidor: se o post falhar, o abate é perdido
+(aceitável p/ feed comemorativo). albion/gameinfo.py: poll_killfeed, resolve_guild,
+events_by_guild, search, norm_guild. Testes: KillfeedPollTests (test_core),
+KillfeedBotTests (test_builds_bot). Config é single-org por ora (mesma pendência
+ALTA-1 do /api/admin). Fama por atividade (LifetimeStatistics do /players/{id})
+fica p/ próxima leva (/fama; Albion 2D é só UI sobre esse mesmo endpoint).
+
 ## Para fazer análises mercadológicas (pedido comum do usuário)
 
 Use a CLI — ela cuida de cache, throttle e taxas:

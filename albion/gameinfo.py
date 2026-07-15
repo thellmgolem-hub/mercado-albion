@@ -45,6 +45,16 @@ class GameinfoClient:
     def events_page(self, offset: int):
         return self._get("/events", {"limit": PAGE_SIZE, "offset": offset})
 
+    def events_by_guild(self, guild_id: str, offset: int = 0):
+        """Só os abates em que a guilda dada deu o golpe final (killer-side).
+        Verificado: 50/50 eventos com Killer.GuildId == guild_id, 0 mortes."""
+        return self._get("/events", {"guildId": guild_id,
+                                     "limit": PAGE_SIZE, "offset": offset})
+
+    def search(self, query: str):
+        """Busca nomes (substring, case-insensitive): {guilds:[...], players:[...]}."""
+        return self._get("/search", {"q": query})
+
     def battles_page(self, offset: int):
         return self._get("/battles", {"limit": PAGE_SIZE, "offset": offset,
                                       "sort": "recent"})
@@ -322,6 +332,166 @@ def materialize_kill_demand_daily(aodp) -> int:
             [tuple(r) for r in rows])
         aodp.db.commit()
     return len(rows)
+
+
+# --------------------------------------------------- Mural de Conquistas (kills)
+# Feed do Discord que celebra SÓ as vitórias: um post quando um membro dá o
+# golpe final em outro jogador (nunca quando morre). No piloto Postgres não
+# guardamos eventos crus, então varremos o /events fresco a cada ciclo e
+# filtramos pelo NOME da guilda do killer. Idempotente por checkpoint próprio
+# ('killfeed'), separado do 'demand_lean' p/ não interferir na ingestão magra.
+
+def norm_guild(s) -> str:
+    """Normaliza nome de guilda p/ casar/deduplicar (casefold + espaços)."""
+    return " ".join(str(s or "").split()).casefold()
+
+
+def _guildmates(event, killer_guild_norm, killer_name):
+    """Companheiros de guilda do killer que participaram do abate (crédito ao
+    grupo), fora o próprio killer. Vazio em kill solo."""
+    out = []
+    for p in event.get("Participants") or []:
+        if not isinstance(p, dict):
+            continue
+        name = p.get("Name")
+        if not name or name == killer_name:
+            continue
+        if norm_guild(p.get("GuildName")) == killer_guild_norm and killer_guild_norm:
+            out.append(name)
+    # remove duplicados preservando ordem
+    seen, uniq = set(), []
+    for n in out:
+        if n not in seen:
+            seen.add(n)
+            uniq.append(n)
+    return uniq
+
+
+def _kill_row(event, killer):
+    eq = killer.get("Equipment") or {}
+    main = (eq.get("MainHand") or {}).get("Type") if isinstance(eq, dict) else None
+    victim = event.get("Victim") or {}
+    try:
+        fame = int(event.get("TotalVictimKillFame") or 0)
+    except (TypeError, ValueError):
+        fame = 0
+    kg_norm = norm_guild(killer.get("GuildName"))
+    return {
+        "event_id": event.get("EventId"),
+        "timestamp": event.get("TimeStamp"),
+        "kill_area": event.get("KillArea"),
+        "fame": fame,
+        "participants": event.get("numberOfParticipants"),
+        "killer": killer.get("Name"),
+        "killer_guild": killer.get("GuildName"),
+        "killer_ip": killer.get("AverageItemPower"),
+        "killer_weapon_id": main,
+        "victim": victim.get("Name"),
+        "victim_guild": victim.get("GuildName"),
+        "victim_alliance": victim.get("AllianceName"),
+        "victim_ip": victim.get("AverageItemPower"),
+        "guildmates": _guildmates(event, kg_norm, killer.get("Name")),
+    }
+
+
+def resolve_guild(name, client: GameinfoClient | None = None, server=None):
+    """Resolve o NOME de uma guilda para {id, name} canônico via /search.
+
+    Devolve (dict, None) no acerto EXATO (casefold), ou (None, candidatos) —
+    lista de nomes próximos — quando não há match exato, pra o usuário corrigir
+    a grafia. Guardar o Id (não o nome) é o certo: existem guildas-clone com
+    grafia parecida (ex.: 'I' maiúsculo no lugar de 'l')."""
+    client = client or GameinfoClient(server or config.DEFAULT_SERVER)
+    data = client.search(name) or {}
+    guilds = data.get("guilds") or []
+    nn = norm_guild(name)
+    for g in guilds:
+        if norm_guild(g.get("Name")) == nn and g.get("Id"):
+            return {"id": g.get("Id"), "name": g.get("Name")}, None
+    return None, [g.get("Name") for g in guilds if g.get("Name")][:6]
+
+
+def poll_killfeed(aodp, configs, client: GameinfoClient | None = None,
+                  max_pages: int = 4, cap: int = 25) -> dict:
+    """Devolve os abates NOVOS de cada guilda vigiada (golpe final = vitória),
+    agrupados por org (canal do Discord). NÃO posta — só entrega os dados.
+
+    Usa a consulta guild-scoped `/events?guildId=` (só kills da guilda, sem o
+    firehose global), com checkpoint POR GUILDA ('killfeed:<guild_id>', maior
+    EventId processado). Na 1ª rodada de cada guilda apenas PRIMA o cursor no
+    evento mais recente e não posta histórico — o mural só celebra abates
+    DEPOIS de ligado.
+
+    `configs`: lista de {org_id, channel_id, min_fame, guilds:[{id, name}]}.
+    """
+    active = [c for c in configs if c.get("channel_id") and c.get("guilds")]
+    if not active:
+        return {"ok": True, "primed": False, "configs": 0, "groups": {}}
+    # guild_id -> {name, orgs: [config...]} (uma consulta por guilda, mesmo que
+    # várias orgs a vigiem)
+    by_guild = {}
+    for c in active:
+        for g in c["guilds"]:
+            gid = g.get("id")
+            if not gid:
+                continue
+            ent = by_guild.setdefault(gid, {"name": g.get("name"), "orgs": []})
+            ent["orgs"].append(c)
+    client = client or GameinfoClient(aodp.server)
+    groups = {}          # org_id -> [kill, ...]
+    ok, error, primed = 1, None, False
+    for gid, ent in by_guild.items():
+        source = f"killfeed:{gid}"
+        known = _checkpoint(aodp, source)
+        newest = known
+        try:
+            if known == 0:                 # prima: só marca o topo, sem postar
+                page = client.events_by_guild(gid, 0)
+                for e in page or []:
+                    if e.get("EventId"):
+                        newest = max(newest, e["EventId"])
+                if newest > 0:
+                    _save_checkpoint(aodp, source, newest)
+                primed = True
+                continue
+            fresh = []
+            for pg in range(max_pages):
+                offset = pg * PAGE_SIZE
+                if offset > MAX_OFFSET:
+                    break
+                events = client.events_by_guild(gid, offset)
+                if not events:
+                    break
+                page_min = None
+                for e in events:
+                    eid = e.get("EventId")
+                    if not eid:
+                        continue
+                    page_min = eid if page_min is None else min(page_min, eid)
+                    newest = max(newest, eid)
+                    if eid <= known:
+                        continue
+                    killer = e.get("Killer") or {}
+                    fresh.append(_kill_row(e, killer))
+                if page_min is not None and page_min <= known:
+                    break                   # alcançou o checkpoint: acabou
+                time.sleep(1)               # cortesia: ~1 req/s antes da próxima pág.
+            for row in fresh:
+                for c in ent["orgs"]:
+                    if row["fame"] < int(c.get("min_fame") or 0):
+                        continue
+                    groups.setdefault(c["org_id"], []).append(row)
+            if newest > known:
+                _save_checkpoint(aodp, source, newest)
+        except Exception as exc:
+            ok, error = 0, repr(exc)[:300]
+    # ordem cronológica (mais antigo primeiro) e teto anti-flood por org
+    for oid, rows in groups.items():
+        rows.sort(key=lambda r: r["event_id"])
+        if len(rows) > cap:
+            groups[oid] = rows[-cap:]
+    return {"ok": ok, "primed": primed, "configs": len(active),
+            "groups": groups, "error": error}
 
 
 def ingest_battles(aodp, client: GameinfoClient | None = None,

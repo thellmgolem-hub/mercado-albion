@@ -585,5 +585,60 @@ class AdvancedHandlerTests(unittest.TestCase):
                       self._run(bot.handle_sinais(NoHist(), "arco longo")))
 
 
+class KillfeedBotTests(unittest.TestCase):
+    """Mural de Conquistas: embed celebra a vitória; comandos configuram."""
+
+    def test_embed_data_celebra_vitoria(self):
+        kill = {
+            "killer": "Hedon", "victim": "Bogul", "victim_guild": "Inimigos",
+            "victim_alliance": "ALLY", "killer_weapon_pt": "Espada Larga",
+            "fame": 123456, "kill_area": "MIST", "killer_ip": 1300,
+            "victim_ip": 1250, "guildmates": ["Alba", "Cid"],
+            "killer_weapon_icon": "https://render.albiononline.com/v1/item/x.png",
+        }
+        title, desc, thumb, color = bot.killfeed_embed_data(kill)
+        self.assertIn("Hedon", title)
+        self.assertIn("abateu", title)
+        self.assertIn("Bogul", title)
+        # nunca fala de morte de membro; mostra arma, local PT e companheiros
+        self.assertNotIn("morreu", (title + desc).lower())
+        self.assertIn("Espada Larga", desc)
+        self.assertIn("Brumas", desc)              # MIST -> Brumas
+        self.assertIn("Alba", desc)
+        self.assertEqual(thumb, kill["killer_weapon_icon"])
+
+    def test_embed_data_campos_faltando_nao_quebram(self):
+        title, desc, thumb, color = bot.killfeed_embed_data(
+            {"killer": "X", "victim": "Y"})
+        self.assertIn("X", title)
+        self.assertIsNone(thumb)
+
+    def test_mural_guilda_confirma(self):
+        class Api:
+            async def post(self, path, json=None):
+                assert json["action"] == "add_guild"
+                return {"ok": True, "channel_id": "42",
+                        "guilds": ["Operarius"], "active": True}
+        out = asyncio.run(bot.handle_mural_guilda(Api(), 1, "operarius"))
+        self.assertIn("Operarius", out)
+        self.assertNotIn("Falta o canal", out)     # já tem canal
+
+    def test_mural_guilda_sem_canal_avisa(self):
+        class Api:
+            async def post(self, path, json=None):
+                return {"ok": True, "channel_id": None, "guilds": ["Operarius"]}
+        out = asyncio.run(bot.handle_mural_guilda(Api(), 1, "operarius"))
+        self.assertIn("Falta o canal", out)
+
+    def test_mural_status_pronto(self):
+        class Api:
+            async def get(self, path, params=None):
+                return {"channel_id": "42", "active": True,
+                        "guilds": ["Operarius"], "min_fame": 0}
+        out = asyncio.run(bot.handle_mural_status(Api(), 1))
+        self.assertIn("Operarius", out)
+        self.assertIn("ligado", out)
+
+
 if __name__ == "__main__":
     unittest.main()

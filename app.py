@@ -812,6 +812,7 @@ def status():
 
 
 _INTEL_LOCK = threading.Lock()
+_KILLFEED_LOCK = threading.Lock()
 
 
 def _sweep_token(request: Request, token: str) -> str:
@@ -2990,6 +2991,201 @@ def discord_board(request: Request, discord_user_id: int = Query(gt=0)):
             "days_left": st.get("days_left"), "paused": st.get("paused"),
             "metas": metas_by_member.get(int(acc_id), [])})
     return {"week_start": week, "org_id": org, "members": members}
+
+
+# ----------------------------------------------- Mural de Conquistas (killfeed)
+# Feed do Discord que celebra SÓ vitórias: posta quando um MEMBRO dá o golpe
+# final em outro jogador (nunca quando morre). O bot chama /poll num laço curto
+# e posta os embeds; a config (canal + guildas vigiadas) vem de comandos /mural-*
+# do próprio operador vinculado (org-scoped). Poll varre o /events fresco porque
+# o piloto Postgres não guarda eventos crus.
+
+def _killfeed_settings_row(org: int) -> dict:
+    with aodp.db_lock:
+        try:
+            row = aodp.db.execute(
+                "SELECT channel_id, min_fame, active FROM killfeed_settings "
+                "WHERE org_id=?", [org]).fetchone()
+        finally:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    if row:
+        return {"channel_id": row[0], "min_fame": int(row[1] or 0),
+                "active": int(row[2] or 0)}
+    return {"channel_id": None, "min_fame": 0, "active": 1}
+
+
+def _killfeed_config_view(org: int) -> dict:
+    s = _killfeed_settings_row(org)
+    with aodp.db_lock:
+        try:
+            rows = aodp.db.execute(
+                "SELECT guild_name FROM killfeed_watch WHERE org_id=? "
+                "ORDER BY guild_name", [org]).fetchall()
+        finally:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    return {"org_id": org, "channel_id": s["channel_id"],
+            "min_fame": s["min_fame"], "active": bool(s["active"]),
+            "guilds": [r[0] for r in rows]}
+
+
+def _killfeed_all_configs() -> list[dict]:
+    """Configs ativas de TODAS as orgs (canal + guildas vigiadas com id)."""
+    with aodp.db_lock:
+        try:
+            srows = aodp.db.execute(
+                "SELECT org_id, channel_id, min_fame, active "
+                "FROM killfeed_settings").fetchall()
+            wrows = aodp.db.execute(
+                "SELECT org_id, guild_id, guild_name FROM killfeed_watch "
+                "WHERE guild_id IS NOT NULL").fetchall()
+        finally:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    watch: dict[int, list] = {}
+    for r in wrows:
+        watch.setdefault(int(r[0]), []).append({"id": r[1], "name": r[2]})
+    out = []
+    for r in srows:
+        oid = int(r[0])
+        if not int(r[3] or 0) or not r[1]:      # inativo ou sem canal
+            continue
+        out.append({"org_id": oid, "channel_id": r[1],
+                    "min_fame": int(r[2] or 0),
+                    "guilds": watch.get(oid, [])})
+    return out
+
+
+def _weapon_pt(weapon_id):
+    """Nome PT-BR da arma do killer (ignora o sufixo de encanto @N)."""
+    if not weapon_id:
+        return None
+    base = str(weapon_id).split("@")[0]
+    meta = db.get(weapon_id) or db.get(base)
+    return meta.get("pt") if meta else None
+
+
+@app.get("/api/killfeed/poll")
+@app.post("/api/killfeed/poll")
+def killfeed_poll(request: Request):
+    """Um toque do Mural: varre os eventos recentes e devolve os abates de
+    MEMBRO (golpe final), por org+canal, já com o nome/ícone da arma do killer.
+    Escopo de serviço discord_read; o bot chama num laço e posta os embeds."""
+    from albion import gameinfo
+    _require_service_scope(request, "discord_read")
+    configs = _killfeed_all_configs()
+    if not any(c["guilds"] for c in configs):
+        return {"ok": True, "configs": 0, "groups": []}
+    if not _KILLFEED_LOCK.acquire(blocking=False):
+        return {"ok": True, "skipped": "ja em execucao", "groups": []}
+    try:
+        res = _api_guard(lambda: gameinfo.poll_killfeed(aodp, configs))
+    finally:
+        _KILLFEED_LOCK.release()
+    ch_by_org = {c["org_id"]: c["channel_id"] for c in configs}
+    groups = []
+    for oid, kills in (res.get("groups") or {}).items():
+        enriched = []
+        for k in kills:
+            wid = k.get("killer_weapon_id")
+            enriched.append({
+                **k,
+                "killer_weapon_pt": _weapon_pt(wid),
+                "killer_weapon_icon":
+                    (f"https://render.albiononline.com/v1/item/{wid}.png"
+                     if wid else None)})
+        groups.append({"org_id": oid, "channel_id": ch_by_org.get(oid),
+                       "kills": enriched})
+    return {"ok": res.get("ok", 1), "primed": res.get("primed", False),
+            "configs": res.get("configs", 0), "groups": groups}
+
+
+class KillfeedConfigBody(BaseModel):
+    discord_user_id: int = Field(gt=0)
+    action: str = Field(min_length=1, max_length=32)
+    channel_id: str | None = Field(default=None, max_length=32)
+    guild_name: str | None = Field(default=None, max_length=64)
+    active: bool | None = None
+    min_fame: int | None = Field(default=None, ge=0)
+
+
+@app.get("/api/killfeed/config")
+def killfeed_config_get(request: Request, discord_user_id: int = Query(gt=0)):
+    """Config do Mural da org do operador vinculado (gate duplo: escopo
+    guild_audit + papel operador)."""
+    _require_service_scope(request, "guild_audit")
+    _, org = _discord_operator(discord_user_id)
+    return _killfeed_config_view(org)
+
+
+@app.post("/api/killfeed/config")
+def killfeed_config_set(body: KillfeedConfigBody, request: Request):
+    """Ajusta o Mural (canal / guilda vigiada / ativo / fama mínima) pelo bot.
+    Escopo guild_audit + papel operador; sempre na org do vinculado."""
+    from albion import gameinfo
+    _require_service_scope(request, "guild_audit")
+    _, org = _discord_operator(body.discord_user_id)
+    now = time.time()
+    s = _killfeed_settings_row(org)
+    action = body.action
+    if action == "set_channel":
+        if not body.channel_id:
+            raise HTTPException(400, "channel_id obrigatório")
+        s["channel_id"], s["active"] = str(body.channel_id), 1
+    elif action == "set_active":
+        s["active"] = 1 if body.active else 0
+    elif action == "set_min_fame":
+        s["min_fame"] = int(body.min_fame or 0)
+    elif action == "remove_guild":
+        name = (body.guild_name or "").strip()
+        if not name:
+            raise HTTPException(400, "guild_name obrigatório")
+        norm = gameinfo.norm_guild(name)
+        with aodp.db_lock:
+            aodp.db.execute(
+                "DELETE FROM killfeed_watch WHERE org_id=? "
+                "AND guild_name_norm=?", [org, norm])
+            aodp.db.commit()
+    elif action == "add_guild":
+        name = (body.guild_name or "").strip()
+        if not name:
+            raise HTTPException(400, "guild_name obrigatório")
+        # resolve o NOME -> Id canônico (confirma que a guilda existe e pega a
+        # grafia exata); guardamos o Id, não o nome (existem guildas-clone).
+        resolved, cands = _api_guard(lambda: gameinfo.resolve_guild(
+            name, server=aodp.server))
+        if not resolved:
+            hint = ("; parecidas: " + ", ".join(cands)) if cands else ""
+            raise HTTPException(
+                404, f"Guilda '{name}' não encontrada no killboard{hint}. "
+                "Confira a grafia EXATA do nome no jogo.")
+        cname, gid = resolved["name"], resolved["id"]
+        cnorm = gameinfo.norm_guild(cname)
+        with aodp.db_lock:
+            store.upsert(
+                aodp.db, "killfeed_watch",
+                ["org_id", "guild_name", "guild_name_norm", "guild_id",
+                 "added_at"],
+                [(org, cname, cnorm, gid, now)],
+                ["org_id", "guild_name_norm"])
+            aodp.db.commit()
+    else:
+        raise HTTPException(400, f"ação desconhecida: {action}")
+    with aodp.db_lock:
+        store.upsert(
+            aodp.db, "killfeed_settings",
+            ["org_id", "channel_id", "min_fame", "active", "updated_at"],
+            [(org, s["channel_id"], s["min_fame"], s["active"], now)],
+            ["org_id"])
+        aodp.db.commit()
+    return {"ok": True, **_killfeed_config_view(org)}
 
 
 # ------------------------------------------------------- coleta automática

@@ -58,6 +58,16 @@ LABORER_FAMILIES = ["WOOD", "ORE", "STONE", "HIDE", "FIBER", "FISHERMAN",
 STATE_PT = {"em_dia": "Em dia", "pendente": "Pendente (aguardando auditoria)",
             "atrasado": "Atrasado", "desligado": "Desligado"}
 
+# Mural de Conquistas: intervalo do laço que busca abates novos e posta
+KILLFEED_INTERVAL = 150   # segundos (~2,5 min; abaixo dos 1000 ev/20min de pico)
+# KillArea da API -> rótulo PT-BR do local do abate (Location vem nulo)
+KILLAREA_PT = {
+    "OPEN_WORLD": "mundo aberto", "MIST": "Brumas", "MISTS": "Brumas",
+    "CORRUPTED_DUNGEON": "masmorra corrompida", "HELLGATE": "portal infernal",
+    "ARENA": "arena", "EXPEDITION": "expedição", "GVG": "GvG",
+    "AVALON_DUNGEON": "masmorra avaloniana", "ABBEY": "abadia",
+}
+
 
 # ------------------------------------------------------------ cliente da API
 class ApiError(Exception):
@@ -358,6 +368,12 @@ HELP_SECTIONS = [
         ("/pendentes", "a fila de reportes esperando aprovação"),
         ("/aprovar", "aprova um reporte e zera o relógio do membro"),
         ("/rejeitar", "rejeita um reporte, e o relógio volta a correr"),
+    ]),
+    ("⚔️ Mural de Conquistas (oficiais)", [
+        ("/mural-canal", "usa o canal atual pra celebrar os abates da guild"),
+        ("/mural-guilda", "escolhe a guilda a vigiar (nome exato do jogo)"),
+        ("/mural-status", "mostra a configuração do mural"),
+        ("/mural-remover", "para de vigiar uma guilda"),
     ]),
 ]
 # Título do embed do guia — usado no /ajuda, no guia automático E como marcador
@@ -1331,6 +1347,112 @@ async def handle_produzir(api, item: str, qty: int = 1) -> str:
     return code_block("\n".join(lines))
 
 
+# ------------------------------------------------- Mural de Conquistas (killfeed)
+def _killarea_pt(area):
+    if not area:
+        return None
+    return KILLAREA_PT.get(str(area).upper(),
+                           str(area).replace("_", " ").lower())
+
+
+def killfeed_embed_data(kill):
+    """(título, descrição, url_do_ícone, cor) de um abate — PURO e testável.
+    Celebra a vitória; nunca menciona morte de membro (o feed só traz kills)."""
+    killer = kill.get("killer") or "Um membro"
+    victim = kill.get("victim") or "um inimigo"
+    title = f"⚔️ {killer} abateu {victim}!"
+    lines = []
+    vg = kill.get("victim_guild")
+    va = kill.get("victim_alliance")
+    alvo = f"🎯 Vítima: **{victim}**"
+    if vg:
+        alvo += f" [{vg}]"
+    if va:
+        alvo += f" ({va})"
+    lines.append(alvo)
+    weapon = kill.get("killer_weapon_pt")
+    if weapon:
+        lines.append(f"🗡️ Arma: {weapon}")
+    fame = kill.get("fame")
+    if fame:
+        lines.append(f"🏆 Fama do abate: {fmt_silver(fame)}")
+    area = _killarea_pt(kill.get("kill_area"))
+    if area:
+        lines.append(f"📍 Local: {area}")
+    mates = kill.get("guildmates") or []
+    if mates:
+        lines.append(f"🤝 Com: {', '.join(mates[:6])}"
+                     + (" e mais…" if len(mates) > 6 else ""))
+    ip, vip = kill.get("killer_ip"), kill.get("victim_ip")
+    if ip or vip:
+        lines.append(f"⚙️ IP {round(ip or 0)} vs {round(vip or 0)}")
+    return title, "\n".join(lines), kill.get("killer_weapon_icon"), 0xF1C40F
+
+
+async def handle_mural_canal(api, discord_user_id, channel_id):
+    try:
+        r = await api.post("/api/killfeed/config", json={
+            "discord_user_id": discord_user_id, "action": "set_channel",
+            "channel_id": str(channel_id)})
+    except ApiError as e:
+        return friendly_error(e)
+    guilds = r.get("guilds") or []
+    if guilds:
+        return (f"✅ **Mural de Conquistas** ligado NESTE canal. Vou comemorar "
+                f"aqui cada abate de: {', '.join(guilds)}.")
+    return ("✅ **Mural de Conquistas** ligado NESTE canal.\n\n⚠️ Falta dizer "
+            "qual guilda vigiar: use `/mural-guilda nome:<sua guilda>` com a "
+            "grafia EXATA do nome no jogo.")
+
+
+async def handle_mural_guilda(api, discord_user_id, nome):
+    try:
+        r = await api.post("/api/killfeed/config", json={
+            "discord_user_id": discord_user_id, "action": "add_guild",
+            "guild_name": nome})
+    except ApiError as e:
+        return friendly_error(e)
+    guilds = r.get("guilds") or []
+    tip = ("" if r.get("channel_id") else
+           "\n\n⚠️ Falta o canal: rode `/mural-canal` no canal onde quer os posts.")
+    return (f"✅ Vigiando **{', '.join(guilds)}**. Agora o Mural comemora quando "
+            f"um membro dessa guilda abater outro jogador." + tip)
+
+
+async def handle_mural_remover(api, discord_user_id, nome):
+    try:
+        r = await api.post("/api/killfeed/config", json={
+            "discord_user_id": discord_user_id, "action": "remove_guild",
+            "guild_name": nome})
+    except ApiError as e:
+        return friendly_error(e)
+    guilds = r.get("guilds") or []
+    return (f"✅ Removi **{nome}**. Guildas vigiadas: "
+            f"{', '.join(guilds) if guilds else '— (nenhuma)'}.")
+
+
+async def handle_mural_status(api, discord_user_id):
+    try:
+        r = await api.get("/api/killfeed/config",
+                          params={"discord_user_id": discord_user_id})
+    except ApiError as e:
+        return friendly_error(e)
+    ch = r.get("channel_id")
+    guilds = r.get("guilds") or []
+    lines = [
+        "📜 **Mural de Conquistas**",
+        f"• Canal: {('<#' + str(ch) + '>') if ch else '— (use /mural-canal)'}",
+        f"• Estado: {'ligado ✅' if r.get('active') else 'desligado ⏸️'}",
+        f"• Guildas vigiadas: {', '.join(guilds) if guilds else '— (use /mural-guilda)'}",
+    ]
+    if r.get("min_fame"):
+        lines.append(f"• Fama mínima p/ postar: {fmt_silver(r['min_fame'])}")
+    if ch and guilds:
+        lines.append("\nTudo pronto — os abates novos vão aparecer aqui em "
+                     "até ~3 min. 🎉")
+    return "\n".join(lines)
+
+
 # ------------------------------------------------------ casca discord.py 2.x
 def build_bot(api: ApiClient):
     """Monta o Client + CommandTree ligando cada slash command ao handler puro."""
@@ -1375,6 +1497,7 @@ def build_bot(api: ApiClient):
             print(f"[bot] conectado como {self.user} "
                   f"(API {api._client.base_url})", flush=True)
             self._start_board_task()
+            self._start_killfeed_task()
             import asyncio
             asyncio.create_task(self._post_guide())
 
@@ -1487,6 +1610,57 @@ def build_bot(api: ApiClient):
             import asyncio
             if getattr(self, "_board_started", False):
                 asyncio.create_task(self.refresh_board())
+
+        # ---------------- Mural de Conquistas (laço que posta abates novos)
+        # Roda sempre; o servidor auto-limita (poll não bate no gameinfo sem
+        # guilda vigiada). Canal e guilda vêm dos comandos /mural-* (por org).
+        def _start_killfeed_task(self):
+            if getattr(self, "_killfeed_started", False):
+                return
+            self._killfeed_started = True
+            import asyncio
+
+            async def loop():
+                await asyncio.sleep(25)     # deixa o boot assentar
+                while True:
+                    try:
+                        await self._killfeed_tick()
+                    except Exception as exc:
+                        print(f"[bot] mural tick falhou: {exc!r}", flush=True)
+                    await asyncio.sleep(KILLFEED_INTERVAL)
+            asyncio.create_task(loop())
+
+        async def _killfeed_tick(self):
+            import discord
+            res = await api.get("/api/killfeed/poll")
+            for g in res.get("groups") or []:
+                ch_id, kills = g.get("channel_id"), g.get("kills") or []
+                if not ch_id or not kills:
+                    continue
+                try:
+                    channel = (self.get_channel(int(ch_id))
+                               or await self.fetch_channel(int(ch_id)))
+                except Exception as exc:
+                    print(f"[bot] mural: canal {ch_id} inacessível ({exc!r})",
+                          flush=True)
+                    continue
+                batch = []
+                for k in kills:
+                    title, desc, thumb, color = killfeed_embed_data(k)
+                    emb = discord.Embed(title=title, description=desc,
+                                        color=color)
+                    if thumb:
+                        emb.set_thumbnail(url=thumb)
+                    ts = k.get("timestamp")
+                    if ts:
+                        emb.set_footer(
+                            text=f"{ts[:19].replace('T', ' ')} UTC")
+                    batch.append(emb)
+                    if len(batch) == 10:      # limite do Discord por mensagem
+                        await channel.send(embeds=batch)
+                        batch = []
+                if batch:
+                    await channel.send(embeds=batch)
 
         async def refresh_board(self):
             try:
@@ -1714,6 +1888,38 @@ def build_bot(api: ApiClient):
                        handle_rejeitar(api, interaction.user.id, id, nota=nota),
                        ephemeral=True)
         bot.schedule_board_refresh()
+
+    # ------------------------------------------- Mural de Conquistas (admin)
+    @tree.command(name="mural-canal",
+                  description="Usa ESTE canal como Mural de Conquistas (admin)")
+    async def mural_canal_cmd(interaction: discord.Interaction):
+        await _respond(interaction,
+                       handle_mural_canal(api, interaction.user.id,
+                                          interaction.channel_id),
+                       ephemeral=True)
+
+    @tree.command(name="mural-guilda",
+                  description="Vigia uma guilda: celebra os abates dela (admin)")
+    @app_commands.describe(nome="Nome EXATO da guilda no jogo")
+    async def mural_guilda_cmd(interaction: discord.Interaction, nome: str):
+        await _respond(interaction,
+                       handle_mural_guilda(api, interaction.user.id, nome),
+                       ephemeral=True)
+
+    @tree.command(name="mural-remover",
+                  description="Para de vigiar uma guilda no Mural (admin)")
+    @app_commands.describe(nome="Nome da guilda a remover")
+    async def mural_remover_cmd(interaction: discord.Interaction, nome: str):
+        await _respond(interaction,
+                       handle_mural_remover(api, interaction.user.id, nome),
+                       ephemeral=True)
+
+    @tree.command(name="mural-status",
+                  description="Mostra a configuração do Mural de Conquistas (admin)")
+    async def mural_status_cmd(interaction: discord.Interaction):
+        await _respond(interaction,
+                       handle_mural_status(api, interaction.user.id),
+                       ephemeral=True)
 
     # ------------------------------------------- públicos (mercado/quadro)
     @tree.command(name="quadro",
