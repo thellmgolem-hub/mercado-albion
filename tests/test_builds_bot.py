@@ -391,11 +391,29 @@ class AdvancedHandlerTests(unittest.TestCase):
                 return {"items_scanned": 100, "items_total": 100, "opportunities": [
                     {"item_id": "T6_2H_BOW", "name_pt": "Arco", "tier": 6, "ench": 1,
                      "buy_city": "Martlock", "sell_city": "Caerleon", "profit": 25000,
-                     "roi_pct": 18.0, "flip_score": 20000}]}
+                     "roi_pct": 18.0, "flip_score": 20000,
+                     "buy_age_min": 30, "sell_age_min": 90}]}
         out = self._run(bot.handle_escanear(Api(), "weapons", 6))
         self.assertIn("Arco", out)
         self.assertIn("Martlock", out)
         self.assertIn("ROI 18.0%", out)
+        self.assertIn("preço visto", out)          # idade do dado visível
+
+    def test_recomendar_mostra_idade_do_dado(self):
+        # regressão do bug do Callisto: /recomendar tem que mostrar há quanto
+        # tempo o preço de cada ponta foi coletado.
+        class Api:
+            async def get(self, path, params=None):
+                assert path == "/api/recommendations"
+                return {"opportunities": [
+                    {"item_id": "T4_BAG", "name_pt": "Bolsa", "buy_city": "Lymhurst",
+                     "sell_city": "Martlock", "profit": 1500, "roi_pct": 12.0,
+                     "buy_age_min": 20, "sell_age_min": 200}]}
+        out = self._run(bot.handle_recomendar(Api()))
+        self.assertIn("Bolsa", out)
+        self.assertIn("preço visto", out)
+        self.assertIn("compra", out)
+        self.assertIn("venda", out)
 
     def test_logistica_tres_views(self):
         class BM:

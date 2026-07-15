@@ -885,7 +885,10 @@ async def handle_recomendar(api) -> str:
         lines.append(f"{i}. {name} — {o.get('buy_city', '?')} -> "
                      f"{o.get('sell_city', '?')} | lucro {fmt_silver(lucro)}"
                      + (f" (ROI {roi}%)" if roi is not None else ""))
-    lines += ["", "Detalhes e filtros: aba Início da plataforma."]
+        lines.append(f"    preço visto: compra {fmt_data_hora(o.get('buy_age_min'))}"
+                     f" · venda {fmt_data_hora(o.get('sell_age_min'))}")
+    lines += ["", "preço visto = hora (BR) em que cada ponta foi coletada.",
+              "Detalhes e filtros: aba Início da plataforma."]
     return code_block("\n".join(lines))
 
 
@@ -1099,6 +1102,9 @@ async def handle_escanear(api, categoria: str, tier_min: int = None) -> str:
         lines.append(f"- {_nome(o)}{tag}: {o.get('buy_city', '?')} -> "
                      f"{o.get('sell_city', '?')} lucro {fmt_silver(o.get('profit'))} "
                      f"(ROI {o.get('roi_pct')}%)")
+        lines.append(f"    preço visto: compra {fmt_data_hora(o.get('buy_age_min'))}"
+                     f" · venda {fmt_data_hora(o.get('sell_age_min'))}")
+    lines += ["", "preço visto = hora (BR) em que cada ponta foi coletada."]
     return code_block("\n".join(lines))
 
 
