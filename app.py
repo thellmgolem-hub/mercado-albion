@@ -127,6 +127,7 @@ async def _lifespan(app: FastAPI):
     dos antigos eventos de startup, comportamento preservado."""
     log.info("servidor iniciando (backend=%s)", store.backend())
     _start_auto_collector()   # no-op na nuvem/testes (guardas internas)
+    _start_cloud_watchdog()   # no-op no SQLite/testes (guardas internas)
     bot_task = None
     if os.environ.get("DISCORD_BOT_TOKEN", "").strip():
         bot_task = asyncio.create_task(_run_discord_bot_inproc())
@@ -302,10 +303,153 @@ def collect_status():
     return {"running": bool(p["running"]), "done": p["done"], "total": p["total"]}
 
 
+# ------------------------------------------ vigia da coleta (nuvem, standby)
+# Incidente 17/jul: o cron-job.org desativou o job sozinho (após 500s do banco
+# congelado) e a coleta MORREU EM SILÊNCIO o dia inteiro. O vigia elimina essa
+# dependência: enquanto o cron externo bate normal, fica em STANDBY (zero
+# duplicação — sweep_reserve é atômico de todo jeito); se o cron atrasar
+# >2,5 min, ASSUME a coleta por dentro; quando o cron volta, devolve sozinho.
+# Também cobre o killboard (intel) que nunca teve cron próprio.
+_WATCHDOG = {"started": False, "mode": "standby", "takeovers": 0,
+             "last_intel_attempt": 0.0}
+_BOOT_TS = time.time()
+_CRON_LATE_S = 150          # 2,5 min sem tick do cron => assume
+
+
+def _cron_late(age_s) -> bool:
+    """Decide se o vigia deve assumir a coleta (PURO, testável).
+
+    age_s = segundos desde o último tick do sweep; None = nunca houve tick."""
+    return age_s is None or age_s > _CRON_LATE_S
+
+
+def _last_sweep_age() -> float | None:
+    """Idade (s) do último tick do sweep (sweep_state.updated_at, epoch)."""
+    try:
+        with aodp.db_lock:
+            try:
+                row = aodp.db.execute(
+                    "SELECT updated_at FROM sweep_state WHERE server=?",
+                    [aodp.server]).fetchone()
+            finally:
+                try:
+                    aodp.db.rollback()
+                except Exception:
+                    pass
+        if row and row[0]:
+            return max(0.0, time.time() - float(row[0]))
+    except Exception:
+        pass
+    return None
+
+
+def _last_intel_age() -> float | None:
+    """Idade (s) da última ingestão de killboard (checkpoint demand_lean)."""
+    try:
+        with aodp.db_lock:
+            try:
+                row = aodp.db.execute(
+                    "SELECT last_success_at FROM public_ingest_checkpoints "
+                    "WHERE server=? AND source='demand_lean'",
+                    [aodp.server]).fetchone()
+            finally:
+                try:
+                    aodp.db.rollback()
+                except Exception:
+                    pass
+        if row and row[0]:
+            return max(0.0, time.time() - float(row[0]))
+    except Exception:
+        pass
+    return None
+
+
+def _start_cloud_watchdog():
+    """Liga o vigia (só nuvem/Postgres; nunca em testes)."""
+    if _WATCHDOG["started"]:
+        return
+    if getattr(aodp.db, "backend", "sqlite") != "postgres":
+        return
+    if os.environ.get("ALBION_NO_WATCHDOG") == "1":
+        return
+    if "unittest" in sys.modules or "pytest" in sys.modules:
+        return
+    _WATCHDOG["started"] = True
+
+    def loop():
+        time.sleep(90)     # deixa o boot assentar e o cron dar o 1º tick
+        while True:
+            try:
+                age = _last_sweep_age()
+                if _cron_late(age):
+                    if _WATCHDOG["mode"] != "ativo":
+                        _WATCHDOG["mode"] = "ativo"
+                        _WATCHDOG["takeovers"] += 1
+                        print("[vigia] cron externo sumiu "
+                              f"(último tick há {age and round(age)}s) — "
+                              "assumindo a coleta interna.", flush=True)
+                    _sweep_tick_core(config.SWEEP_ITEMS_PER_TICK)
+                elif _WATCHDOG["mode"] != "standby":
+                    _WATCHDOG["mode"] = "standby"
+                    print("[vigia] cron externo voltou — standby.", flush=True)
+                # killboard: sem cron próprio; roda a cada AUTO_INTEL_INTERVAL
+                # com cooldown de tentativa (mesmo se falhar, não martela)
+                now = time.time()
+                intel_gap = config.AUTO_INTEL_INTERVAL_MIN * 60
+                iage = _last_intel_age()
+                if ((iage is None or iage > intel_gap)
+                        and now - _WATCHDOG["last_intel_attempt"] >= intel_gap):
+                    _WATCHDOG["last_intel_attempt"] = now
+                    _intel_tick_core()
+            except Exception as exc:      # o vigia NUNCA morre
+                log.warning("[vigia] tick falhou: %s", repr(exc)[:200])
+            time.sleep(60)
+
+    threading.Thread(target=loop, daemon=True, name="cloud-watchdog").start()
+    print("[vigia] ligado: assume a coleta se o cron externo parar.",
+          flush=True)
+
+
+@app.get("/api/health")
+def health():
+    """Saúde da plataforma — PÚBLICO (sem dados sensíveis) p/ monitorar de fora
+    e alimentar o /saude do bot. Barato: nenhuma varredura de tabela grande."""
+    db_ok = True
+    try:
+        with aodp.db_lock:
+            try:
+                aodp.db.execute("SELECT 1").fetchone()
+            finally:
+                try:
+                    aodp.db.rollback()
+                except Exception:
+                    pass
+    except Exception:
+        db_ok = False
+    size_mb = _db_size_mb_cached()
+    mode = store.sweep_mode(size_mb, config.DB_SOFT_LIMIT_MB,
+                            config.DB_HARD_LIMIT_MB)
+    sweep_age = _last_sweep_age()
+    intel_age = _last_intel_age()
+    collecting = sweep_age is not None and sweep_age < 300
+    return {
+        "ok": bool(db_ok and (collecting or mode == "hard")),
+        "db_ok": db_ok,
+        "db_mb": round(size_mb, 1) if size_mb is not None else None,
+        "db_mode": mode,
+        "coleta_ok": collecting,
+        "sweep_age_s": round(sweep_age) if sweep_age is not None else None,
+        "intel_age_s": round(intel_age) if intel_age is not None else None,
+        "vigia": _WATCHDOG["mode"] if _WATCHDOG["started"] else "desligado",
+        "uptime_s": round(time.time() - _BOOT_TS),
+        "backend": store.backend(),
+    }
+
+
 # /api/sweep e /api/intel-sweep são tocados por cron externo (sem sessão) —
 # protegidos por token próprio
 PUBLIC_AUTH_PATHS = {"/api/auth/login", "/api/auth/bootstrap-status",
-                     "/api/sweep", "/api/intel-sweep"}
+                     "/api/sweep", "/api/intel-sweep", "/api/health"}
 PROTECTED_DOC_PATHS = {"/docs", "/redoc", "/openapi.json"}
 
 
@@ -885,6 +1029,13 @@ def sweep(request: Request, token: str = "",
     Protegido por ALBION_SWEEP_TOKEN (header X-Sweep-Token ou ?token=).
     """
     _check_sweep_token(_sweep_token(request, token))
+    return _sweep_tick_core(count)
+
+
+def _sweep_tick_core(count: int):
+    """Um tick de coleta — compartilhado pelo endpoint (cron externo) e pelo
+    VIGIA interno (assume quando o cron morre). Idempotente e concorrência-
+    -segura via sweep_reserve (fatias atômicas)."""
     # AUTOLIMITE: mede o banco e se contém sozinho ANTES de gravar qualquer
     # coisa. O free do Supabase vira somente-leitura quando enche — e aí o app
     # inteiro congelava. soft = corta o histórico (o vilão do espaço) e poda;
@@ -968,8 +1119,13 @@ def intel_sweep(request: Request, token: str = ""):
     (sem eventos crus), depois poda dias além da retenção. Alimenta Guild
     (fazer-vs-comprar, regear, ranking de destruição) e Logística (reposição).
     """
-    from albion import gameinfo
     _check_sweep_token(_sweep_token(request, token))
+    return _intel_tick_core()
+
+
+def _intel_tick_core():
+    """Um tick de killboard magro — compartilhado pelo endpoint e pelo vigia."""
+    from albion import gameinfo
     # serializa a ingestão: dois toques concorrentes leriam o mesmo checkpoint e
     # contariam a demanda em DOBRO. Se já está rodando, devolve sem reprocessar.
     if not _INTEL_LOCK.acquire(blocking=False):

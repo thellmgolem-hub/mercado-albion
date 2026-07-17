@@ -2313,6 +2313,28 @@ class HistoryVwapScopeTests(unittest.TestCase):
         self.assertNotIn("item_id IN", captured["sql"])
 
 
+class WatchdogHealthTests(unittest.TestCase):
+    """Vigia da coleta + /api/health: a plataforma se cuida e se explica."""
+
+    def test_cron_late_decision(self):
+        # nunca houve tick -> assume; tick recente -> standby; atrasado -> assume
+        self.assertTrue(app._cron_late(None))
+        self.assertFalse(app._cron_late(30))
+        self.assertFalse(app._cron_late(app._CRON_LATE_S))
+        self.assertTrue(app._cron_late(app._CRON_LATE_S + 1))
+
+    def test_health_endpoint_shape_and_public(self):
+        client = TestClient(app.app)
+        r = client.get("/api/health")
+        self.assertEqual(r.status_code, 200)
+        h = r.json()
+        for k in ("ok", "db_ok", "db_mode", "coleta_ok", "vigia",
+                  "uptime_s", "backend"):
+            self.assertIn(k, h)
+        self.assertTrue(h["db_ok"])
+        self.assertIn("/api/health", app.PUBLIC_AUTH_PATHS)  # público p/ monitor
+
+
 class BoundedLockTests(unittest.TestCase):
     """Lock com espera máxima: engasgo do banco vira erro rápido, não freeze."""
 

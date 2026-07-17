@@ -667,6 +667,43 @@ class LocalItemSearchTests(unittest.TestCase):
         self.assertTrue(hits)
 
 
+class SaudeHandlerTests(unittest.TestCase):
+    """/saude: o estado da plataforma em linguagem de gente."""
+
+    def test_tudo_certo(self):
+        class Api:
+            async def get(self, path, params=None):
+                return {"ok": True, "db_ok": True, "db_mb": 180.0,
+                        "db_mode": "ok", "coleta_ok": True, "sweep_age_s": 45,
+                        "intel_age_s": 300, "vigia": "standby",
+                        "uptime_s": 7200, "backend": "postgres"}
+        out = asyncio.run(bot.handle_saude(Api()))
+        self.assertIn("Tudo certo", out)
+        self.assertIn("✅ ativa", out)
+        self.assertIn("180 MB", out)
+        self.assertIn("prontidão", out)
+
+    def test_coleta_parada_avisa(self):
+        class Api:
+            async def get(self, path, params=None):
+                return {"ok": False, "db_ok": True, "db_mb": 200.0,
+                        "db_mode": "ok", "coleta_ok": False,
+                        "sweep_age_s": 7200, "intel_age_s": None,
+                        "vigia": "ativo", "uptime_s": 60,
+                        "backend": "postgres"}
+        out = asyncio.run(bot.handle_saude(Api()))
+        self.assertIn("⚠️", out)
+        self.assertIn("parada", out)
+        self.assertIn("ASSUMIU", out)   # vigia segurando a coleta
+
+    def test_api_morta_nao_quebra(self):
+        class Api:
+            async def get(self, path, params=None):
+                raise RuntimeError("down")
+        out = asyncio.run(bot.handle_saude(Api()))
+        self.assertIn("🔴", out)
+
+
 class ServerLayersTests(unittest.TestCase):
     """Camadas: Visitante fora; Aprendiz é o 1º nível DENTRO da guild."""
 

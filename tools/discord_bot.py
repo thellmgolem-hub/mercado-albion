@@ -451,6 +451,7 @@ HELP_SECTIONS = [
     ("🏛️ Organização (admin)", [
         ("/camadas", "mostra as camadas: Visitante → Aprendiz → Oficial → Mestre"),
         ("/organizar-servidor", "cria os cargos e canais das camadas de uma vez"),
+        ("/saude", "checa se está tudo funcionando: coleta, banco e vigia"),
     ]),
 ]
 # Título do embed do guia — usado no /ajuda, no guia automático E como marcador
@@ -1508,6 +1509,54 @@ async def handle_mural_remover(api, discord_user_id, nome):
             f"{', '.join(guilds) if guilds else '— (nenhuma)'}.")
 
 
+def _fmt_age(seconds):
+    if seconds is None:
+        return "nunca"
+    s = int(seconds)
+    if s < 120:
+        return f"há {s}s"
+    if s < 7200:
+        return f"há {s // 60}min"
+    return f"há {s // 3600}h"
+
+
+async def handle_saude(api):
+    """Saúde da plataforma em linguagem de gente (via /api/health)."""
+    try:
+        h = await api.get("/api/health")
+    except ApiError as e:
+        return friendly_error(e)
+    except Exception:
+        return "🔴 A plataforma não respondeu — me avisa que eu olho."
+    linhas = ["🩺 **Saúde da plataforma**"]
+    linhas.append("• Banco de dados: "
+                  + ("✅ respondendo" if h.get("db_ok") else "🔴 com problema"))
+    if h.get("coleta_ok"):
+        linhas.append(f"• Coleta de preços: ✅ ativa "
+                      f"(último ciclo {_fmt_age(h.get('sweep_age_s'))})")
+    elif h.get("db_mode") == "hard":
+        linhas.append("• Coleta de preços: ⏸️ pausada pelo autolimite de disco "
+                      "(leituras normais)")
+    else:
+        linhas.append(f"• Coleta de preços: ⚠️ parada "
+                      f"(último ciclo {_fmt_age(h.get('sweep_age_s'))})")
+    if h.get("db_mb") is not None:
+        modo = {"ok": "", "soft": " · modo econômico",
+                "hard": " · CHEIO"}.get(h.get("db_mode"), "")
+        linhas.append(f"• Espaço do banco: {h['db_mb']:.0f} MB{modo}")
+    vigia = h.get("vigia")
+    if vigia == "ativo":
+        linhas.append("• Vigia interno: 🛡️ ASSUMIU a coleta (cron externo fora)")
+    elif vigia == "standby":
+        linhas.append("• Vigia interno: ✅ de prontidão")
+    linhas.append(f"• Killboard: último ciclo {_fmt_age(h.get('intel_age_s'))}")
+    up = int(h.get("uptime_s") or 0)
+    linhas.append(f"• No ar sem reiniciar: {_fmt_age(up).replace('há ', '')}")
+    geral = "✅ Tudo certo!" if h.get("ok") else "⚠️ Tem coisa fora do lugar."
+    linhas.append(f"\n{geral}")
+    return "\n".join(linhas)
+
+
 async def handle_mural_status(api, discord_user_id):
     try:
         r = await api.get("/api/killfeed/config",
@@ -2188,6 +2237,11 @@ def build_bot(api: ApiClient):
         await _respond(interaction,
                        handle_mural_status(api, interaction.user.id),
                        ephemeral=True)
+
+    @tree.command(name="saude",
+                  description="Saúde da plataforma: coleta, banco e vigia")
+    async def saude_cmd(interaction: discord.Interaction):
+        await _respond(interaction, handle_saude(api), ephemeral=True)
 
     # ------------------------------------------- camadas do servidor (admin)
     @tree.command(name="camadas",
