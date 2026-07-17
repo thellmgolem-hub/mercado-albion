@@ -56,6 +56,22 @@ A plataforma virou multi-org (SaaS p/ outras guilds + assinantes analytics-only)
   ANTES de aceitar a 2ª guild (junto: username_norm global vs por-org; org nova
   nasce inactive). Testes: MultiTenantIsolationTests em tests/test_core.py.
 
+## Incidente 2026-07-15 (app congelou) — defesas permanentes
+
+Query pendurada no pooler (sem timeout) segurava o db_lock e congelava o app
+INTEIRO (site+bot+autocomplete) até reinício manual. Defesas em vigor:
+- store.connect (PG): connect_timeout=10s, TCP keepalives (~60s p/ rede morta),
+  statement_timeout=20s via `options` com fallback se o pooler recusar;
+  _PgConn reconecta e re-tenta 1x quando a conexão morre (upserts idempotentes).
+- **AUTOLIMITE de disco**: /api/sweep mede o banco (store.db_size_mb, cache
+  5min) e decide por store.sweep_mode (puro): >=ALBION_DB_SOFT_MB (340) corta
+  o HISTÓRICO e poda a cada tick; >=ALBION_DB_HARD_MB (420) pausa a coleta
+  (leituras seguem). Nunca mais encher até o Supabase virar read-only.
+- Autocomplete do bot é LOCAL (local_item_search sobre data/items_db.json em
+  memória; t4/@2/4.2 filtram; sem @N colapsa no base) — o picker funciona
+  mesmo com a API fora; HTTP é só fallback. Testes: DbSelfLimitTests,
+  LocalItemSearchTests.
+
 ## Auditoria 2026-07-02
 
 Relatório completo (22 achados verificados + roadmap produto/Discord) em
