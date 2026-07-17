@@ -71,6 +71,18 @@ INTEIRO (site+bot+autocomplete) até reinício manual. Defesas em vigor:
   memória; t4/@2/4.2 filtram; sem @N colapsa no base) — o picker funciona
   mesmo com a API fora; HTTP é só fallback. Testes: DbSelfLimitTests,
   LocalItemSearchTests.
+- **Keep-alive próprio** (_start_keepalive_task no bot): pinga a URL pública
+  (RENDER_EXTERNAL_URL) a cada 4min — slash command NÃO conta como tráfego no
+  Render e o free tier dormia NO MEIO do uso quando o cron externo morria.
+- **VIGIA da coleta** (_start_cloud_watchdog, app.py; só PG): se o cron externo
+  atrasar >2,5min (_cron_late), assume a coleta interna com o mesmo
+  _sweep_tick_core (sweep_reserve atômico = zero duplicação) e volta a standby
+  quando o cron retorna; roda o intel (killboard) a cada 10min — nunca houve 2º
+  cron. **/api/health é PÚBLICO** (PUBLIC_AUTH_PATHS): db/coleta/disco/vigia/
+  uptime sem login — é como verificar a prod de fora. **/saude** no bot mostra
+  isso em PT. Doutrina: o app se mantém acordado, se coleta, se limita, se
+  cura e se explica — o cron-job.org é redundância, não dependência. Testes:
+  WatchdogHealthTests, SaudeHandlerTests.
 
 ## Auditoria 2026-07-02
 
