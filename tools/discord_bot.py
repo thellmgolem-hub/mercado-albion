@@ -1717,8 +1717,37 @@ def build_bot(api: ApiClient):
                   f"(API {api._client.base_url})", flush=True)
             self._start_board_task()
             self._start_killfeed_task()
+            self._start_keepalive_task()
             import asyncio
             asyncio.create_task(self._post_guide())
+
+        # ---------------- keep-alive (free tier do Render dorme sem tráfego)
+        # Slash command NÃO conta como tráfego HTTP (vai pelo gateway do bot),
+        # então o app dormia NO MEIO do uso quando o cron externo falhava — e
+        # "O aplicativo não respondeu" pra quem usava (incidente 17/jul, 17:47).
+        # O bot pinga a PRÓPRIA URL pública (passa pelo roteador do Render =
+        # conta como tráfego) e o app nunca mais dorme sozinho. O cron externo
+        # segue responsável só pela COLETA (/api/sweep).
+        def _start_keepalive_task(self):
+            if getattr(self, "_keepalive_started", False):
+                return
+            public = (os.environ.get("ALBION_PUBLIC_URL")
+                      or os.environ.get("RENDER_EXTERNAL_URL") or "").strip()
+            if not public:
+                return                    # local/dev: não precisa
+            self._keepalive_started = True
+            import asyncio
+
+            async def loop():
+                url = public.rstrip("/") + "/"
+                while True:
+                    try:
+                        async with httpx.AsyncClient(timeout=30) as cli:
+                            await cli.get(url)
+                    except Exception as exc:
+                        print(f"[bot] keep-alive falhou: {exc!r}", flush=True)
+                    await asyncio.sleep(240)   # 4 min << 15 min do spin-down
+            asyncio.create_task(loop())
 
         # ------------------------------------------- estado idempotente
         # O id da mensagem (guia/quadro) é gravado em data/bot_state.json APENAS
