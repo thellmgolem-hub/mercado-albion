@@ -2313,6 +2313,31 @@ class HistoryVwapScopeTests(unittest.TestCase):
         self.assertNotIn("item_id IN", captured["sql"])
 
 
+class BoundedLockTests(unittest.TestCase):
+    """Lock com espera máxima: engasgo do banco vira erro rápido, não freeze."""
+
+    def test_waiter_gets_timeout_not_freeze(self):
+        from albion import store as st
+        lk = st.BoundedLock(timeout=0.2)
+        self.assertTrue(lk.acquire())          # "dono" segura (query pendurada)
+        t0 = __import__("time").time()
+        with self.assertRaises(TimeoutError):
+            with lk:                            # quem espera não congela
+                pass
+        self.assertLess(__import__("time").time() - t0, 2.0)
+        lk.release()
+        with lk:                                # liberou: volta ao normal
+            self.assertTrue(lk.locked())
+        self.assertFalse(lk.locked())
+
+    def test_non_blocking_acquire(self):
+        from albion import store as st
+        lk = st.BoundedLock(timeout=0.2)
+        self.assertTrue(lk.acquire(blocking=False))
+        self.assertFalse(lk.acquire(blocking=False))
+        lk.release()
+
+
 class DbSelfLimitTests(unittest.TestCase):
     """Autolimite de disco: o sweep se contém sozinho pelo tamanho do banco."""
 

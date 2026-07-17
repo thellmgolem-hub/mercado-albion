@@ -546,6 +546,16 @@ async def _auth_exception_handler(_request, exc):
     return _auth_json(exc)
 
 
+@app.exception_handler(TimeoutError)
+async def _db_busy_handler(_request, exc):
+    """Espera pelo db_lock estourou o teto (BoundedLock): o banco está num
+    engasgo passageiro. Resposta rápida e honesta em vez de pendurar a thread —
+    o frontend/bot mostram 'tente de novo' e o app segue vivo."""
+    return JSONResponse(status_code=503, content={
+        "detail": "Banco de dados ocupado neste instante — tente de novo em "
+                  "alguns segundos.", "code": "db_busy"})
+
+
 @app.get("/api/auth/bootstrap-status")
 def auth_bootstrap_status():
     # NÃO expõe account_count a não-autenticados (era reconhecimento numa LAN);

@@ -67,7 +67,14 @@ class AODP:
         # Camada dual: SQLite local (db_path) ou Postgres (env DATABASE_URL).
         # Em prod (nuvem) o db_path é ignorado em favor do Postgres.
         self.db = store.connect(path=db_path)
-        self.db_lock = threading.Lock()
+        # Postgres (nuvem): lock com espera MÁXIMA — um engasgo do banco vira
+        # erro rápido em quem espera, nunca congela o app (incidente 15/jul).
+        # SQLite local mantém Lock puro: operações longas legítimas (VACUUM,
+        # recarga profunda) seguram o lock por minutos sem ser defeito.
+        if getattr(self.db, "backend", "sqlite") == "postgres":
+            self.db_lock = store.BoundedLock(30.0)
+        else:
+            self.db_lock = threading.Lock()
         self._init_db()
 
     # ---------------------------------------------------------------- DB

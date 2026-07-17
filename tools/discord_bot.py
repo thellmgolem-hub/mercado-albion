@@ -260,6 +260,9 @@ def friendly_error(exc: ApiError) -> str:
         "entitlement_expired": ("O plano 'operação' da sua organização expirou "
                                 "— fale com o admin da guild."),
     }
+    if exc.code == "db_busy":
+        return ("⏳ O banco de dados está ocupado neste instante. Tenta de "
+                "novo em uns segundos que já volta.")
     if exc.code in msgs:
         return msgs[exc.code]
     if exc.status == 404:

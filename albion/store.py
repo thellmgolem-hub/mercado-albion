@@ -341,6 +341,47 @@ def upsert_add(conn, table: str, columns: list[str], rows,
     conn.executemany(sql, rows)
 
 
+# ------------------------------------------------------------------- lock
+class BoundedLock:
+    """Lock de banco com ESPERA MÁXIMA (defesa final do incidente 15/jul).
+
+    Quando uma query engasga no Postgres, o dono do lock fica preso até o
+    statement_timeout/keepalive matar a query (~20-60s). Sem teto de espera,
+    cada requisição que chega nesse meio tempo estaciona ATRÁS do lock, o pool
+    de threads esgota e o app INTEIRO (com o bot embarcado) congela. Com o
+    teto: quem espera demais recebe TimeoutError na hora — o endpoint responde
+    erro amigável ("banco ocupado, tente já já") e o app segue vivo servindo
+    estáticos, autocomplete local e as próximas requisições.
+
+    Uso idêntico a threading.Lock (`with aodp.db_lock:`)."""
+
+    def __init__(self, timeout: float = 30.0):
+        self._lock = threading.Lock()
+        self.timeout = timeout
+
+    def acquire(self, blocking: bool = True, timeout: float | None = None):
+        if not blocking:
+            return self._lock.acquire(False)
+        return self._lock.acquire(True, self.timeout if timeout is None
+                                  else timeout)
+
+    def release(self):
+        self._lock.release()
+
+    def locked(self):
+        return self._lock.locked()
+
+    def __enter__(self):
+        if not self._lock.acquire(True, self.timeout):
+            raise TimeoutError(
+                "banco de dados ocupado (espera excedeu o teto); tente de novo")
+        return self
+
+    def __exit__(self, *exc):
+        self._lock.release()
+        return False
+
+
 # ----------------------------------------------------------------- tamanho
 def db_size_mb(conn) -> float | None:
     """Tamanho do banco em MB (Postgres: pg_database_size; SQLite: arquivo).
