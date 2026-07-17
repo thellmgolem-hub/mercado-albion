@@ -851,6 +851,17 @@ def _market_universe():
 
 # epoch da última poda do sweep (0 = poda já no 1º tick após o boot)
 _SWEEP_LAST_PRUNE = 0.0
+# cache da medição de tamanho do banco (medir custa 1 query; 1x/5min basta)
+_DB_SIZE_CACHE = {"at": 0.0, "mb": None}
+
+
+def _db_size_mb_cached() -> float | None:
+    now = time.time()
+    if now - _DB_SIZE_CACHE["at"] > 300:
+        _DB_SIZE_CACHE["at"] = now
+        with aodp.db_lock:
+            _DB_SIZE_CACHE["mb"] = store.db_size_mb(aodp.db)
+    return _DB_SIZE_CACHE["mb"]
 
 
 @app.get("/api/sweep")
@@ -864,6 +875,24 @@ def sweep(request: Request, token: str = "",
     Protegido por ALBION_SWEEP_TOKEN (header X-Sweep-Token ou ?token=).
     """
     _check_sweep_token(_sweep_token(request, token))
+    # AUTOLIMITE: mede o banco e se contém sozinho ANTES de gravar qualquer
+    # coisa. O free do Supabase vira somente-leitura quando enche — e aí o app
+    # inteiro congelava. soft = corta o histórico (o vilão do espaço) e poda;
+    # hard = pausa a coleta (o site continua lendo normal).
+    size_mb = _db_size_mb_cached()
+    mode = store.sweep_mode(size_mb, config.DB_SOFT_LIMIT_MB,
+                            config.DB_HARD_LIMIT_MB)
+    if mode == "hard":
+        out = {"ok": True, "paused": "autolimite: banco cheio",
+               "db_mb": round(size_mb, 1), "mode": mode}
+        log.warning("[sweep] PAUSADO por autolimite: %.0f MB >= %.0f MB",
+                    size_mb, config.DB_HARD_LIMIT_MB)
+        try:
+            out["prune"] = aodp.snapshot_prune(vacuum=False)
+            out["history_prune"] = aodp.history_prune()
+        except Exception as exc:
+            out["prune_error"] = str(exc)[:200]
+        return out
     universe = _market_universe()
     n = len(universe)
     if not n:
@@ -876,17 +905,29 @@ def sweep(request: Request, token: str = "",
         return {"ok": True, "universe": n, "took": 0,
                 "next_cursor": res["new_cursor"], "cycle": res["cycle"]}
     pr = _api_guard(lambda: aodp.get_prices(slice_ids, max_age=0))
-    hi = _api_guard(lambda: aodp.get_history(
-        slice_ids, time_scale=24, days=config.SWEEP_HISTORY_DAYS,
-        max_age=config.SWEEP_HISTORY_TTL))
+    if mode == "soft":
+        hi = []       # acima do limite brando: só preços (histórico é o vilão)
+        log.warning("[sweep] modo BRANDO por autolimite: %.0f MB >= %.0f MB "
+                    "(histórico suspenso)", size_mb, config.DB_SOFT_LIMIT_MB)
+    else:
+        hi = _api_guard(lambda: aodp.get_history(
+            slice_ids, time_scale=24, days=config.SWEEP_HISTORY_DAYS,
+            max_age=config.SWEEP_HISTORY_TTL))
     out = {
         "ok": True, "universe": n, "from_cursor": res["start"],
         "took": len(slice_ids), "next_cursor": res["new_cursor"],
         "cycle": res["cycle"], "price_rows": len(pr),
-        "history_series": len(hi),
+        "history_series": len(hi), "mode": mode,
+        "db_mb": round(size_mb, 1) if size_mb is not None else None,
         "progress_pct": round(100 * res["new_cursor"] / n, 1)
         if res["new_cursor"] else 100.0,
     }
+    if mode == "soft":
+        # poda agressiva a cada tick até voltar pro verde
+        try:
+            out["history_prune"] = aodp.history_prune()
+        except Exception as exc:
+            out["history_prune"] = {"error": str(exc)[:200]}
     # Poda DIÁRIA best-effort (espelha o coletor local): sem ela o sweep
     # enchia o Postgres free sem limite. Estado só em memória — no pior caso
     # (reboot) roda uma poda extra, que sai barata quando não há nada a podar.

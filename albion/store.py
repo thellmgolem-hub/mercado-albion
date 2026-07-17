@@ -124,35 +124,80 @@ class _SqliteConn:
 
 
 class _PgConn:
-    """Casca sobre psycopg que fala o mesmo dialeto que `_SqliteConn`."""
+    """Casca sobre psycopg que fala o mesmo dialeto que `_SqliteConn`.
+
+    RESILIÊNCIA (incidente jul/2026): a conexão nasce com statement_timeout,
+    então NENHUMA query fica pendurada segurando o db_lock — um engasgo do
+    pooler vira exceção em segundos em vez de congelar o app inteiro (e o bot
+    embarcado junto). Se a conexão MORRE (pooler reiniciou, rede caiu), o
+    execute detecta o OperationalError, RECONECTA e tenta a query UMA vez —
+    todas as escritas do app são upserts idempotentes, então o retry é seguro;
+    sem isso o app ficava permanentemente quebrado até alguém reiniciar."""
 
     backend = "postgres"
 
-    def __init__(self, raw):
+    def __init__(self, raw, reopen=None):
         self.raw = raw
+        self._reopen = reopen           # callable que devolve uma conexão nova
 
     @staticmethod
     def _tr(sql: str) -> str:
         # 1) escapa % literal (psycopg usa %); 2) ? -> %s
         return sql.replace("%", "%%").replace("?", "%s")
 
+    def _is_dead(self, exc) -> bool:
+        import psycopg
+        if isinstance(exc, psycopg.OperationalError):
+            return True
+        return getattr(self.raw, "closed", False) or getattr(
+            self.raw, "broken", False)
+
+    def _reconnect(self):
+        if self._reopen is None:
+            return False
+        try:
+            self.raw.close()
+        except Exception:
+            pass
+        try:
+            self.raw = self._reopen()
+            print("[store] conexão Postgres reaberta após queda.", flush=True)
+            return True
+        except Exception as exc:
+            print(f"[store] reconexão falhou: {exc!r}", flush=True)
+            return False
+
+    def _run(self, fn):
+        try:
+            return fn()
+        except Exception as exc:
+            if self._is_dead(exc) and self._reconnect():
+                return fn()             # retry ÚNICO na conexão nova
+            raise
+
     def execute(self, sql, params=()):
-        cur = self.raw.cursor()
-        cur.execute(self._tr(sql), tuple(params))
-        if cur.description is not None:
-            cols = [d.name for d in cur.description]
-            rows = [Row(cols, list(v)) for v in cur.fetchall()]
+        def go():
+            cur = self.raw.cursor()
+            cur.execute(self._tr(sql), tuple(params))
+            if cur.description is not None:
+                cols = [d.name for d in cur.description]
+                rows = [Row(cols, list(v)) for v in cur.fetchall()]
+                rc = cur.rowcount
+                cur.close()
+                return _Cur(rows, rc)
             rc = cur.rowcount
             cur.close()
-            return _Cur(rows, rc)
-        rc = cur.rowcount
-        cur.close()
-        return _Cur([], rc)
+            return _Cur([], rc)
+        return self._run(go)
 
     def executemany(self, sql, seq):
-        cur = self.raw.cursor()
-        cur.executemany(self._tr(sql), [tuple(x) for x in seq])
-        cur.close()
+        rows = [tuple(x) for x in seq]
+
+        def go():
+            cur = self.raw.cursor()
+            cur.executemany(self._tr(sql), rows)
+            cur.close()
+        return self._run(go)
 
     def commit(self):
         self.raw.commit()
@@ -181,9 +226,34 @@ def connect(readonly: bool = False, path: str | Path | None = None):
         # Conexão gravável -> autocommit=False; quem escreve chama commit().
         # prepare_threshold=None desliga prepared statements: obrigatório no
         # pooler do Supabase em modo TRANSAÇÃO (porta 6543), que serverless usa.
-        conn = psycopg.connect(database_url(), autocommit=readonly,
-                               prepare_threshold=None)
-        return _PgConn(conn)
+        #
+        # TIMEOUTS (incidente jul/2026): sem statement_timeout, uma query
+        # pendurada no pooler segurava o db_lock PARA SEMPRE e congelava o app
+        # inteiro (site + bot). Agora: conectar tem 10s, query tem 20s,
+        # transação ociosa 30s, e keepalives detectam rede morta. Valores
+        # ajustáveis por env sem redeploy de código.
+        stmt_ms = int(os.environ.get("ALBION_PG_STATEMENT_TIMEOUT_MS", "20000"))
+        opts = (f"-c statement_timeout={stmt_ms} "
+                f"-c idle_in_transaction_session_timeout=30000")
+        base_kw = dict(autocommit=readonly, prepare_threshold=None,
+                       connect_timeout=10, keepalives=1, keepalives_idle=30,
+                       keepalives_interval=10, keepalives_count=3)
+
+        def _open():
+            # O pooler (PgBouncer/Supavisor em modo transação) pode REJEITAR o
+            # startup parameter `options`; nesse caso cai pra conexão sem ele —
+            # os keepalives de TCP (parâmetro do CLIENTE, sempre aceito) já
+            # bastam pra matar o travamento infinito de rede.
+            try:
+                return psycopg.connect(database_url(), options=opts, **base_kw)
+            except psycopg.OperationalError as exc:
+                if "options" not in str(exc).lower():
+                    raise
+                print("[store] pooler recusou 'options'; conectando sem "
+                      "statement_timeout (keepalives seguem ativos).",
+                      flush=True)
+                return psycopg.connect(database_url(), **base_kw)
+        return _PgConn(_open(), reopen=_open)
 
     import sqlite3
 
@@ -269,6 +339,41 @@ def upsert_add(conn, table: str, columns: list[str], rows,
         sql = (f"INSERT INTO {table} ({cols}) VALUES ({ph}) "
                f"ON CONFLICT ({on}) DO UPDATE SET {sets_pg}")
     conn.executemany(sql, rows)
+
+
+# ----------------------------------------------------------------- tamanho
+def db_size_mb(conn) -> float | None:
+    """Tamanho do banco em MB (Postgres: pg_database_size; SQLite: arquivo).
+
+    Base do AUTOLIMITE: o free tier do Supabase (500 MB) vira SOMENTE-LEITURA
+    quando enche — o app precisa se conter ANTES disso, sozinho. None se não
+    conseguir medir (nunca levanta)."""
+    try:
+        if getattr(conn, "backend", "sqlite") == "postgres":
+            row = conn.execute(
+                "SELECT pg_database_size(current_database())").fetchone()
+            return float(row[0]) / 1_048_576 if row else None
+        p = DEFAULT_SQLITE
+        return p.stat().st_size / 1_048_576 if p.exists() else 0.0
+    except Exception:
+        return None
+
+
+def sweep_mode(size_mb, soft_mb: float, hard_mb: float) -> str:
+    """Decide o modo do sweep pelo tamanho do banco (PURO, testável).
+
+    'ok'    -> coleta normal (preços + histórico)
+    'soft'  -> corta o histórico (o vilão do disco) e poda a cada tick
+    'hard'  -> PAUSA a coleta: o app continua respondendo (leituras), mas não
+               grava mais nada até a poda/vácuo liberar espaço
+    Sem medida (None) -> 'ok' (não trava a coleta por falha de medição)."""
+    if size_mb is None:
+        return "ok"
+    if size_mb >= hard_mb:
+        return "hard"
+    if size_mb >= soft_mb:
+        return "soft"
+    return "ok"
 
 
 # ------------------------------------------------------------------ datas

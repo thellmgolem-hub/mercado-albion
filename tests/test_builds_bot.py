@@ -640,6 +640,33 @@ class KillfeedBotTests(unittest.TestCase):
         self.assertIn("ligado", out)
 
 
+class LocalItemSearchTests(unittest.TestCase):
+    """Autocomplete local: nunca depende da API (incidente jul/2026)."""
+
+    def test_busca_basica_pt(self):
+        hits = bot.local_item_search("bolsa t4")
+        self.assertTrue(hits, "items_db.json deve estar no repo e achar 'bolsa'")
+        for it in hits:
+            self.assertEqual(it.get("tier"), 4)
+            self.assertIn("bolsa", bot._norm_txt(it.get("pt")))
+            self.assertFalse(it.get("ench"))     # sem @N: só variante base
+
+    def test_filtro_de_encanto(self):
+        hits = bot.local_item_search("bolsa 4.1")
+        self.assertTrue(hits)
+        for it in hits:
+            self.assertEqual(it.get("tier"), 4)
+            self.assertEqual(it.get("ench"), 1)
+
+    def test_termo_sem_resultado(self):
+        self.assertEqual(bot.local_item_search("zzzznaoexiste"), [])
+
+    def test_acentos_ignorados(self):
+        # "espada" deve achar independente de acento no nome PT
+        hits = bot.local_item_search("espada larga t5")
+        self.assertTrue(hits)
+
+
 class ServerLayersTests(unittest.TestCase):
     """Camadas: Visitante fora; Aprendiz é o 1º nível DENTRO da guild."""
 

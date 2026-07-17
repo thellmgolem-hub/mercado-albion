@@ -30,6 +30,7 @@ import os
 import re
 import sys
 import traceback
+import unicodedata
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
@@ -57,6 +58,74 @@ LABORER_FAMILIES = ["WOOD", "ORE", "STONE", "HIDE", "FIBER", "FISHERMAN",
 
 STATE_PT = {"em_dia": "Em dia", "pendente": "Pendente (aguardando auditoria)",
             "atrasado": "Atrasado", "desligado": "Desligado"}
+
+# ---------------------------------------------------- busca LOCAL de itens
+# O autocomplete NÃO pode depender da API: quando o app engasga, o picker some
+# e o comando fica inusável (incidente jul/2026). O bot carrega o
+# data/items_db.json (mesmo repo/máquina) e busca em memória — resposta <1ms,
+# sempre dentro do prazo de ~3s do Discord, mesmo com a API fora do ar.
+_ITEMS_CACHE = None
+_AC_TIER = re.compile(r"^t([1-8])$")
+_AC_ENCH = re.compile(r"^@([0-4])$")
+_AC_TE = re.compile(r"^([1-8])\.([0-4])$")
+
+
+def _norm_txt(s):
+    s = unicodedata.normalize("NFD", str(s or "").lower())
+    return "".join(c for c in s if unicodedata.category(c) != "Mn")
+
+
+def load_items_local():
+    global _ITEMS_CACHE
+    if _ITEMS_CACHE is None:
+        try:
+            raw = json.loads(
+                (Path(__file__).resolve().parent.parent / "data"
+                 / "items_db.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            raw = []
+        for it in raw:
+            it["_n"] = _norm_txt(
+                f"{it.get('pt', '')} {it.get('en', '')} {it.get('id', '')}")
+        _ITEMS_CACHE = raw
+    return _ITEMS_CACHE
+
+
+def local_item_search(q, limit=20):
+    """Busca de item p/ o autocomplete (PURA, testável): todos os tokens devem
+    aparecer no nome PT/EN/id; 't4', '@2' e '4.2' filtram tier/encanto; sem
+    '@N' no termo, as variantes encantadas colapsam no item-base."""
+    items = load_items_local()
+    if not items:
+        return []
+    tokens, tier, ench = [], None, None
+    for t in _norm_txt(q).split():
+        m = _AC_TE.match(t)
+        if m:
+            tier, ench = int(m.group(1)), int(m.group(2))
+            continue
+        m = _AC_TIER.match(t)
+        if m:
+            tier = int(m.group(1))
+            continue
+        m = _AC_ENCH.match(t)
+        if m:
+            ench = int(m.group(1))
+            continue
+        tokens.append(t)
+    out = []
+    for it in items:
+        if tier is not None and it.get("tier") != tier:
+            continue
+        if ench is not None and (it.get("ench") or 0) != ench:
+            continue
+        if ench is None and (it.get("ench") or 0):
+            continue                    # sem @N: só a variante base
+        if all(t in it["_n"] for t in tokens):
+            out.append(it)
+    # nome mais curto primeiro (match mais "cheio"), depois tier crescente
+    out.sort(key=lambda x: (len(x.get("pt") or ""), x.get("tier") or 9))
+    return out[:limit]
 
 # Mural de Conquistas: intervalo do laço que busca abates novos e posta
 KILLFEED_INTERVAL = 150   # segundos (~2,5 min; abaixo dos 1000 ev/20min de pico)
@@ -1868,14 +1937,18 @@ def build_bot(api: ApiClient):
         current = (current or "").strip()
         if len(current) < 2:
             return []
-        try:
-            res = await api.get("/api/search",
-                                params={"q": current, "limit": 20,
-                                        "group": "true"})
-        except Exception:
-            return []
+        # LOCAL primeiro (nunca falha nem estoura os 3s do Discord); API só
+        # como fallback raro se o items_db.json não estiver no disco.
+        hits = local_item_search(current, limit=20)
+        if not hits:
+            try:
+                hits = await api.get("/api/search",
+                                     params={"q": current, "limit": 20,
+                                             "group": "true"}) or []
+            except Exception:
+                return []
         out, seen = [], set()
-        for it in res:
+        for it in hits:
             iid = it.get("id")
             if not iid or iid in seen:
                 continue

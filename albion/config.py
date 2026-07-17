@@ -247,6 +247,12 @@ SWEEP_SKIP_CATEGORIES = {"vanity"}
 SWEEP_SKIP_SUBS = {"lootitem", "questitems", "trash", "hardcoreexpeditions"}
 # Token exigido no /api/sweep e /api/intel-sweep (defina em prod; vazio = dev)
 SWEEP_TOKEN = os.environ.get("ALBION_SWEEP_TOKEN", "")
+# --- AUTOLIMITE de disco (incidente jul/2026: Supabase 500MB encheu e virou
+# somente-leitura -> app congelou). O sweep mede o banco e se contém sozinho:
+# >= SOFT: para de gravar HISTÓRICO (o vilão do espaço) e poda a cada tick;
+# >= HARD: pausa a coleta inteira (o site continua lendo normalmente).
+DB_SOFT_LIMIT_MB = float(os.environ.get("ALBION_DB_SOFT_MB", "340"))
+DB_HARD_LIMIT_MB = float(os.environ.get("ALBION_DB_HARD_MB", "420"))
 # Retenção do agregado de killboard magro (kill_demand_daily). 45 dias mantém
 # a tabela pequena (cabe no Postgres free) e cobre a janela das análises.
 KILL_DEMAND_RETENTION_DAYS = 45

@@ -2313,6 +2313,33 @@ class HistoryVwapScopeTests(unittest.TestCase):
         self.assertNotIn("item_id IN", captured["sql"])
 
 
+class DbSelfLimitTests(unittest.TestCase):
+    """Autolimite de disco: o sweep se contém sozinho pelo tamanho do banco."""
+
+    def test_sweep_mode_thresholds(self):
+        from albion import store as st
+        self.assertEqual(st.sweep_mode(100, 340, 420), "ok")
+        self.assertEqual(st.sweep_mode(339.9, 340, 420), "ok")
+        self.assertEqual(st.sweep_mode(340, 340, 420), "soft")
+        self.assertEqual(st.sweep_mode(419.9, 340, 420), "soft")
+        self.assertEqual(st.sweep_mode(420, 340, 420), "hard")
+        self.assertEqual(st.sweep_mode(9999, 340, 420), "hard")
+        # falha de medição NUNCA trava a coleta
+        self.assertEqual(st.sweep_mode(None, 340, 420), "ok")
+
+    def test_db_size_mb_sqlite(self):
+        from albion import store as st
+        with TemporaryDirectory() as tmp:
+            aodp = AODP(db_path=Path(tmp) / "cache.db")
+            try:
+                # SQLite mede o arquivo DEFAULT (não o injetado); só garante
+                # que nunca levanta e devolve número ou None
+                size = st.db_size_mb(aodp.db)
+                self.assertTrue(size is None or size >= 0)
+            finally:
+                aodp.db.close()
+
+
 class KillfeedPollTests(unittest.TestCase):
     """Mural de Conquistas: poll_killfeed filtra os abates da guilda vigiada,
     prima na 1ª rodada e é idempotente por checkpoint (guild-scoped)."""
