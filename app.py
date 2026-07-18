@@ -3261,6 +3261,37 @@ def discord_character_set(body: DiscordCharacterBody, request: Request):
             "candidates": None if resolved else cands}
 
 
+@app.get("/api/fama")
+def fama(request: Request, nome: str | None = Query(default=None, max_length=32),
+         discord_user_id: int | None = Query(default=None, gt=0)):
+    """Fama por atividade de um personagem (killboard oficial; mesma fonte do
+    'Albion 2D'). Sem `nome`, usa o personagem REGISTRADO do membro vinculado
+    (/personagem). Escopo discord_read; dados podem ter ~1 dia de atraso."""
+    from albion import gameinfo
+    _require_service_scope(request, "discord_read")
+    nome = (nome or "").strip()
+    char_id = None
+    if not nome:
+        if not discord_user_id:
+            return {"found": False, "sem_registro": True}
+        try:
+            a = _discord_member(discord_user_id)
+        except AuthError:
+            return {"found": False, "sem_registro": True}
+        ch = _member_character(int(a["id"]))
+        if not ch or not ch.get("char_id"):
+            return {"found": False, "sem_registro": True}
+        char_id = ch["char_id"]
+    if char_id is None:
+        resolved, cands = _api_guard(lambda: gameinfo.resolve_player(
+            nome, server=aodp.server))
+        if not resolved:
+            return {"found": False, "candidatos": cands or []}
+        char_id = resolved["id"]
+    det = _api_guard(lambda: gameinfo.player_fame(char_id, server=aodp.server))
+    return {"found": True, **det}
+
+
 @app.get("/api/discord/roster")
 def discord_roster(request: Request, discord_user_id: int = Query(gt=0)):
     """Roster da org do operador: membros ativos × personagem registrado

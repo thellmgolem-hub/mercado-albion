@@ -431,6 +431,8 @@ HELP_SECTIONS = [
     ("🎯 Tributo da guild", [
         ("/vincular", "liga seu Discord à sua conta. Peça o código a um oficial"),
         ("/personagem", "registra seu nick do Albion (pras metas e seu perfil)"),
+        ("/fama", "sua fama por atividade: PvP, PvE, coleta, fabricação. "
+                  "Ex.: `/fama nick: olegislador`"),
         ("/minhas-metas", "suas metas da semana. Só você vê"),
         ("/meu-status", "seu relógio de tributo. Só você vê"),
         ("/reportar", "avisa que você entregou algo. "
@@ -1579,6 +1581,68 @@ async def handle_mural_status(api, discord_user_id):
     return "\n".join(lines)
 
 
+def _fama_fmt(v):
+    """Fama legível: 1.234 · 1,2M · 3,45B."""
+    try:
+        v = float(v or 0)
+    except (TypeError, ValueError):
+        return "-"
+    if v >= 1e9:
+        return f"{v / 1e9:.2f}B".replace(".", ",")
+    if v >= 1e6:
+        return f"{v / 1e6:.1f}M".replace(".", ",")
+    return fmt_silver(v)
+
+
+async def handle_fama(api, discord_user_id, nick=None):
+    """Fama por atividade (killboard oficial). Sem nick: usa o registrado."""
+    try:
+        params = {"discord_user_id": discord_user_id}
+        if nick:
+            params["nome"] = nick
+        r = await api.get("/api/fama", params=params)
+    except ApiError as e:
+        return friendly_error(e)
+    if not r.get("found"):
+        if r.get("sem_registro"):
+            return ("Você ainda não registrou seu personagem. Use "
+                    "`/personagem nick:<seu nick>` uma vez, ou chame "
+                    "`/fama nick:<personagem>` direto.")
+        cands = r.get("candidatos") or []
+        dica = (" Parecidos: " + ", ".join(cands)) if cands else \
+            " Confira a grafia exata do nick."
+        return f"Não achei o personagem **{nick}** no killboard.{dica}"
+    g = r.get("gather") or {}
+    linhas = [f"🏅 **{r.get('name')}**"
+              + (f" [{r.get('guild')}]" if r.get("guild") else "")]
+    linhas.append("")
+    linhas.append(f"⚔️ PvP (fama de abate): {_fama_fmt(r.get('kill_fame'))}")
+    linhas.append(f"🐉 PvE: {_fama_fmt(r.get('pve_total'))}")
+    extras_pve = []
+    if r.get("pve_mists"):
+        extras_pve.append(f"Brumas {_fama_fmt(r['pve_mists'])}")
+    if r.get("pve_corrupted"):
+        extras_pve.append(f"Corrompida {_fama_fmt(r['pve_corrupted'])}")
+    if extras_pve:
+        linhas.append("   " + " · ".join(extras_pve))
+    linhas.append(f"⛏️ Coleta: {_fama_fmt(r.get('gather_total'))}")
+    partes = [f"{rot} {_fama_fmt(v)}" for rot, v in (
+        ("Minério", g.get("minerio")), ("Madeira", g.get("madeira")),
+        ("Fibra", g.get("fibra")), ("Couro", g.get("couro")),
+        ("Pedra", g.get("pedra"))) if v]
+    if partes:
+        linhas.append("   " + " · ".join(partes))
+    linhas.append(f"🔨 Fabricação: {_fama_fmt(r.get('craft_total'))}")
+    if r.get("fishing"):
+        linhas.append(f"🎣 Pesca: {_fama_fmt(r['fishing'])}")
+    if r.get("farming"):
+        linhas.append(f"🌾 Fazenda: {_fama_fmt(r['farming'])}")
+    ts = (r.get("stats_at") or "")[:10]
+    if ts:
+        linhas.append(f"\n_Dados do killboard de {ts} (até ~1 dia de atraso)._")
+    return "\n".join(linhas)
+
+
 # --------------------------------------------- vínculo conta -> personagem
 async def handle_personagem(api, discord_user_id, nick=None):
     """Sem nick: mostra o personagem registrado. Com nick: registra/atualiza."""
@@ -2153,6 +2217,14 @@ def build_bot(api: ApiClient):
     async def meu_status_cmd(interaction: discord.Interaction):
         await _respond(interaction,
                        handle_meu_status(api, interaction.user.id),
+                       ephemeral=True)
+
+    @tree.command(name="fama",
+                  description="Fama por atividade: PvP, PvE, coleta, fabricação")
+    @app_commands.describe(nick="Nick no Albion (vazio = seu personagem registrado)")
+    async def fama_cmd(interaction: discord.Interaction, nick: str = None):
+        await _respond(interaction,
+                       handle_fama(api, interaction.user.id, nick),
                        ephemeral=True)
 
     @tree.command(name="personagem",

@@ -426,6 +426,50 @@ def resolve_player(name, client: GameinfoClient | None = None, server=None):
     return None, [p.get("Name") for p in players if p.get("Name")][:6]
 
 
+def player_fame(player_id, client: GameinfoClient | None = None, server=None):
+    """Fama POR ATIVIDADE de um personagem (GET /players/{id}).
+
+    Caminhos validados ao vivo (2026-07-15): PvP (KillFame/DeathFame/FameRatio)
+    fica no TOPO do objeto, NÃO dentro de LifetimeStatistics; PvE.Total é MAIOR
+    que a soma das subzonas (usar o Total direto); Gathering tem exatamente
+    Fiber/Hide/Ore/Rock/Wood + All (só Total/Royal/Outlands/Avalon); Crafting só
+    o Total presta; Fishing/Farming/CrystalLeague são inteiros soltos. Os dados
+    podem ter ~1 dia de atraso (LifetimeStatistics.Timestamp)."""
+    client = client or GameinfoClient(server or config.DEFAULT_SERVER)
+    d = client._get(f"/players/{player_id}", {}) or {}
+
+    def fam(x):
+        try:
+            return int(x or 0)
+        except (TypeError, ValueError):
+            return 0
+    ls = d.get("LifetimeStatistics") or {}
+    pve = ls.get("PvE") or {}
+    gat = ls.get("Gathering") or {}
+    gall = gat.get("All") or {}
+    return {
+        "name": d.get("Name"), "guild": d.get("GuildName"),
+        "alliance": d.get("AllianceName"),
+        "kill_fame": fam(d.get("KillFame")),
+        "death_fame": fam(d.get("DeathFame")),
+        "fame_ratio": float(d.get("FameRatio") or 0),
+        "pve_total": fam(pve.get("Total")),
+        "pve_mists": fam(pve.get("Mists")),
+        "pve_corrupted": fam(pve.get("CorruptedDungeon")),
+        "gather_total": fam(gall.get("Total")),
+        "gather": {"fibra": fam((gat.get("Fiber") or {}).get("Total")),
+                   "couro": fam((gat.get("Hide") or {}).get("Total")),
+                   "minerio": fam((gat.get("Ore") or {}).get("Total")),
+                   "pedra": fam((gat.get("Rock") or {}).get("Total")),
+                   "madeira": fam((gat.get("Wood") or {}).get("Total"))},
+        "craft_total": fam((ls.get("Crafting") or {}).get("Total")),
+        "fishing": fam(ls.get("FishingFame")),
+        "farming": fam(ls.get("FarmingFame")),
+        "crystal": fam(ls.get("CrystalLeague")),
+        "stats_at": ls.get("Timestamp"),
+    }
+
+
 def poll_killfeed(aodp, configs, client: GameinfoClient | None = None,
                   max_pages: int = 4, cap: int = 25) -> dict:
     """Devolve os abates NOVOS de cada guilda vigiada (golpe final = vitória),

@@ -667,6 +667,53 @@ class LocalItemSearchTests(unittest.TestCase):
         self.assertTrue(hits)
 
 
+class FamaHandlerTests(unittest.TestCase):
+    """/fama: fama por atividade em PT, com fallback pro nick registrado."""
+
+    _FAMA = {"found": True, "name": "olegislador", "guild": "Operarius",
+             "kill_fame": 1234567, "pve_total": 171159341, "pve_mists": 500000,
+             "pve_corrupted": 0, "gather_total": 2500000,
+             "gather": {"minerio": 1200000, "madeira": 800000, "fibra": 300000,
+                        "couro": 150000, "pedra": 50000},
+             "craft_total": 3188642383, "fishing": 0, "farming": 42000,
+             "crystal": 0, "stats_at": "2026-07-17T03:19:32Z"}
+
+    def test_fama_completa(self):
+        class Api:
+            async def get(self, path, params=None):
+                assert params.get("nome") == "olegislador"
+                return FamaHandlerTests._FAMA
+        out = asyncio.run(bot.handle_fama(Api(), 1, "olegislador"))
+        self.assertIn("olegislador", out)
+        self.assertIn("Operarius", out)
+        self.assertIn("1,2M", out)          # kill fame legível
+        self.assertIn("171,2M", out)        # PvE total
+        self.assertIn("3,19B", out)         # craft em bilhões
+        self.assertIn("Minério", out)
+        self.assertIn("2026-07-17", out)    # data dos dados
+        self.assertNotIn("Pesca", out)      # zero não polui
+
+    def test_nao_achado_sugere(self):
+        class Api:
+            async def get(self, path, params=None):
+                return {"found": False, "candidatos": ["olegislador"]}
+        out = asyncio.run(bot.handle_fama(Api(), 1, "olegisladorr"))
+        self.assertIn("Não achei", out)
+        self.assertIn("olegislador", out)
+
+    def test_sem_registro_orienta(self):
+        class Api:
+            async def get(self, path, params=None):
+                return {"found": False, "sem_registro": True}
+        out = asyncio.run(bot.handle_fama(Api(), 1))
+        self.assertIn("/personagem", out)
+
+    def test_fmt_escala(self):
+        self.assertEqual(bot._fama_fmt(999), "999")
+        self.assertEqual(bot._fama_fmt(1_500_000), "1,5M")
+        self.assertEqual(bot._fama_fmt(2_340_000_000), "2,34B")
+
+
 class SaudeHandlerTests(unittest.TestCase):
     """/saude: o estado da plataforma em linguagem de gente."""
 
