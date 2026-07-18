@@ -398,8 +398,9 @@ HELP_SECTIONS = [
         ("/historico", "gráfico da evolução do preço, comparando as cidades de maior giro"),
         ("/vender", "diz onde vale mais a pena vender"),
         ("/ouro", "cotação do ouro e como ela andou nas últimas 48h"),
-        ("/flip", "você diz quanta prata tem e ele monta a lista de compras. "
-                  "Ex.: `/flip 500000`"),
+        ("/flip", "você diz quanta prata tem e ele monta a lista de compras — "
+                  "por padrão só rotas SEGURAS (periferia real). "
+                  "Ex.: `/flip 500000` · Caerleon: `rota: Todas`"),
         ("/recomendar", "as 5 melhores oportunidades do momento"),
         ("/buscar", "acha o nome ou o id de um item"),
     ]),
@@ -687,13 +688,38 @@ async def handle_historico(api, termo: str, dias: int = 30) -> dict:
             "chart_url": quickchart_url(title, labeled)}
 
 
-async def handle_flip(api, orcamento: float, cidade: str) -> str:
-    """/flip — consultor de flips por orçamento (GET /api/flip-advisor)."""
-    res = await api.get("/api/flip-advisor",
-                        params={"budget": orcamento, "city": cidade})
+# cidades da PERIFERIA real (transporte por zona azul/amarela — sem Caerleon,
+# que exige atravessar zona vermelha/negra, e sem Brecilien, que fica nas Brumas)
+SAFE_FLIP_CITIES = ["Bridgewatch", "Fort Sterling", "Lymhurst",
+                    "Martlock", "Thetford"]
+DEFAULT_SAFE_CITY = "Lymhurst"    # base da guild
+
+
+async def handle_flip(api, orcamento: float, cidade: str,
+                      rota: str = "segura") -> str:
+    """/flip — consultor de flips por orçamento (GET /api/flip-advisor).
+
+    rota="segura" (padrão): compra e venda SÓ na periferia real — se a cidade
+    pedida for Caerleon/Brecilien (ou o padrão antigo), redireciona pra base da
+    guild e avisa. rota="todas": comportamento completo, Caerleon incluída.
+    """
+    segura = (rota != "todas")
+    aviso = ""
+    if segura and cidade not in SAFE_FLIP_CITIES:
+        aviso = (f"(rota segura: troquei a compra de {cidade} p/ "
+                 f"{DEFAULT_SAFE_CITY} — Caerleon/Brecilien exigem zona "
+                 "vermelha/Brumas)\n")
+        cidade = DEFAULT_SAFE_CITY
+    params = {"budget": orcamento, "city": cidade}
+    if segura:
+        params["safe_routes"] = "true"
+    res = await api.get("/api/flip-advisor", params=params)
     shopping = res.get("shopping_list") or []
     summ = res.get("summary") or {}
+    modo = ("rota SEGURA (periferia real, sem Caerleon)" if segura
+            else "TODAS as rotas (inclui Caerleon)")
     head = (f"Flips p/ {fmt_silver(orcamento)} de prata em {cidade}\n"
+            f"{modo}\n{aviso}"
             f"lucro estimado: {fmt_silver(summ.get('lucro_total_estimado'))} "
             f"(retorno {summ.get('roi_total_pct', 0)}%) | "
             f"usa {fmt_silver(summ.get('orcamento_usado'))} do orçamento\n")
@@ -2165,17 +2191,25 @@ def build_bot(api: ApiClient):
 
     @tree.command(name="flip",
                   description="Melhores compras p/ seu orçamento (flip advisor)")
-    @app_commands.describe(orcamento="Prata disponível (ex.: 500000)",
-                           cidade="Cidade onde você está (padrão: Caerleon)")
-    @app_commands.choices(cidade=[app_commands.Choice(name=c, value=c)
-                                  for c in FLIP_CITIES])
+    @app_commands.describe(
+        orcamento="Prata disponível (ex.: 500000)",
+        cidade="Cidade onde você está (padrão: Lymhurst na rota segura)",
+        rota="Segura = só periferia real (padrão) · Todas = inclui Caerleon")
+    @app_commands.choices(
+        cidade=[app_commands.Choice(name=c, value=c) for c in FLIP_CITIES],
+        rota=[app_commands.Choice(name="Segura — só periferia real (sem Caerleon)",
+                                  value="segura"),
+              app_commands.Choice(name="Todas — inclui Caerleon e Mercado Negro",
+                                  value="todas")])
     async def flip_cmd(interaction: discord.Interaction, orcamento: float,
-                       cidade: str = DEFAULT_FLIP_CITY):
+                       cidade: str = None, rota: str = "segura"):
         if orcamento <= 0:
             await interaction.response.send_message(
                 "O orçamento precisa ser maior que zero.", ephemeral=True)
             return
-        await _respond(interaction, handle_flip(api, orcamento, cidade))
+        if cidade is None:
+            cidade = DEFAULT_SAFE_CITY if rota != "todas" else DEFAULT_FLIP_CITY
+        await _respond(interaction, handle_flip(api, orcamento, cidade, rota))
 
     @tree.command(name="ilha",
                   description="Top 5 diários de trabalhador (margem vazio->cheio)")

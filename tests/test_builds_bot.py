@@ -667,6 +667,40 @@ class LocalItemSearchTests(unittest.TestCase):
         self.assertTrue(hits)
 
 
+class FlipRotaSeguraTests(unittest.TestCase):
+    """/flip: rota segura por padrão — Caerleon só quando pedido."""
+
+    class _Api:
+        def __init__(self):
+            self.params = None
+
+        async def get(self, path, params=None):
+            self.params = params
+            return {"shopping_list": [], "summary": {}}
+
+    def test_segura_redireciona_caerleon(self):
+        api = self._Api()
+        out = asyncio.run(bot.handle_flip(api, 500000, "Caerleon", "segura"))
+        self.assertEqual(api.params["city"], bot.DEFAULT_SAFE_CITY)
+        self.assertEqual(api.params.get("safe_routes"), "true")
+        self.assertIn("troquei a compra", out)
+        self.assertIn("SEGURA", out)
+
+    def test_segura_respeita_cidade_da_periferia(self):
+        api = self._Api()
+        out = asyncio.run(bot.handle_flip(api, 500000, "Martlock", "segura"))
+        self.assertEqual(api.params["city"], "Martlock")
+        self.assertEqual(api.params.get("safe_routes"), "true")
+        self.assertNotIn("troquei", out)
+
+    def test_todas_mantem_caerleon_sem_filtro(self):
+        api = self._Api()
+        out = asyncio.run(bot.handle_flip(api, 500000, "Caerleon", "todas"))
+        self.assertEqual(api.params["city"], "Caerleon")
+        self.assertNotIn("safe_routes", api.params)
+        self.assertIn("TODAS", out)
+
+
 class FamaHandlerTests(unittest.TestCase):
     """/fama: fama por atividade em PT, com fallback pro nick registrado."""
 

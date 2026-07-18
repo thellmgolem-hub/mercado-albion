@@ -64,11 +64,27 @@ def _read_prices(con, server, city_list, qualities, flipable):
     return [dict(r) for r in rows if r["item_id"] in flipable]
 
 
+def sell_scope_for(city, include_black_market=False, safe_routes=False):
+    """Cidades candidatas do LADO DA VENDA (PURA, testável).
+
+    Padrão: periferia real + a própria cidade (se royal) + Mercado Negro se
+    pedido. safe_routes=True: rota só por zona azul/amarela — Caerleon nunca
+    entra (nem como cidade própria) e o Mercado Negro (que fica EM Caerleon)
+    idem."""
+    scope = set(SAFE_ROYAL_CITIES)
+    if city in config.ROYAL_CITIES and not (safe_routes and city == "Caerleon"):
+        scope.add(city)
+    if include_black_market and not safe_routes:
+        scope.add(BLACK_MARKET)
+    return scope
+
+
 def _base_flags(premium, buy_mode, sell_mode, include_black_market,
-                history_days, capture_rate):
+                history_days, capture_rate, safe_routes=False):
     return {"premium": premium, "buy_mode": buy_mode, "sell_mode": sell_mode,
             "include_black_market": include_black_market,
-            "history_days": history_days, "capture_rate": capture_rate}
+            "history_days": history_days, "capture_rate": capture_rate,
+            "safe_routes": safe_routes}
 
 
 def _empty(city, budget, flags):
@@ -88,11 +104,14 @@ def advise(con, server, db, *, budget, city, qualities=(1,),
            premium=True, buy_mode="instant", sell_mode="order",
            include_black_market=False, history_days=7,
            capture_rate=None, min_profit=0, max_lines=40,
-           fresh_max_age_min=720, flipable=None):
+           fresh_max_age_min=720, flipable=None, safe_routes=False):
     """Consultor de flips por orçamento (cache-only, somente-leitura).
 
     con: conexão store.connect(readonly=True) (ou None -> contrato vazio).
     budget: prata disponível (>0). city: cidade de COMPRA (onde o jogador está).
+    safe_routes=True: rotas SÓ pela periferia real (transporte por zona
+    azul/amarela) — nunca vende em Caerleon nem no Mercado Negro, mesmo que a
+    cidade de compra seja Caerleon (o chamador deve redirecionar a compra).
     Devolve o dict do contrato (shopping_list + summary + flags).
     """
     budget = float(budget or 0)
@@ -102,20 +121,16 @@ def advise(con, server, db, *, budget, city, qualities=(1,),
     if buy_mode not in ("instant", "order") or sell_mode not in ("instant", "order"):
         raise ValueError("modo de compra/venda inválido")
     flags = _base_flags(premium, buy_mode, sell_mode, include_black_market,
-                        history_days, capture_rate)
+                        history_days, capture_rate, safe_routes)
     if con is None or budget <= 0:
         return _empty(city, budget, flags)
 
     if flipable is None:
         flipable = flipable_universe(db)
 
-    # Escopo: compra ancorada na cidade do jogador; venda varre as cidades reais
-    # seguras (+ a própria, se royal) e o Mercado Negro se pedido.
-    sell_scope = set(SAFE_ROYAL_CITIES)
-    if city in config.ROYAL_CITIES:
-        sell_scope.add(city)
-    if include_black_market:
-        sell_scope.add(BLACK_MARKET)
+    # Escopo: compra ancorada na cidade do jogador; venda via sell_scope_for
+    # (função pura — em safe_routes, Caerleon e o Mercado Negro ficam FORA).
+    sell_scope = sell_scope_for(city, include_black_market, safe_routes)
     city_list = sorted({city} | sell_scope)
 
     rows = _read_prices(con, server, city_list, qualities, flipable)

@@ -2504,11 +2504,13 @@ def flip_advisor(
     max_lines: int = Query(40, ge=1, le=200),
     fresh_max_age_min: int = Query(720, ge=0),
     refresh: bool = False,
+    safe_routes: bool = False,
 ):
     """Consultor de flips por orçamento: prata + cidade -> melhores compras.
 
     Lê o cache que o sweep mantém fresco (cache-only). `refresh=true` dispara 1
-    atualização limitada da cidade escolhida antes de calcular."""
+    atualização limitada da cidade escolhida antes de calcular. `safe_routes`
+    limita a venda à periferia real (sem Caerleon/Mercado Negro)."""
     if buy_mode not in ("instant", "order") or sell_mode not in ("instant", "order"):
         raise HTTPException(status_code=400, detail="modo de compra/venda inválido")
     quals = _csv_int(qualities) or [1]
@@ -2525,7 +2527,8 @@ def flip_advisor(
             premium=premium, buy_mode=buy_mode, sell_mode=sell_mode,
             include_black_market=include_black_market, history_days=history_days,
             min_profit=min_profit, max_lines=max_lines,
-            fresh_max_age_min=fresh_max_age_min, flipable=flipable)
+            fresh_max_age_min=fresh_max_age_min, flipable=flipable,
+            safe_routes=safe_routes)
         res["coverage"] = _cache_coverage(con)
         res["refreshed_city"] = bool(refresh)
         return res

@@ -115,6 +115,30 @@ class AdvisorTests(unittest.TestCase):
             advisor.advise(self.con, "Americas", self.db, budget=1000,
                            city="Martlock", buy_mode="x-invalid")
 
+    def test_safe_routes_exclui_caerleon_e_bm(self):
+        # função PURA do escopo de venda: é ela que decide as rotas candidatas
+        # padrão (city=Caerleon): vende na periferia + na própria Caerleon + BM
+        scope_all = advisor.sell_scope_for("Caerleon",
+                                           include_black_market=True)
+        self.assertIn("Caerleon", scope_all)
+        self.assertIn("Black Market", scope_all)
+        # rota SEGURA: Caerleon e Mercado Negro NUNCA entram na venda
+        scope_safe = advisor.sell_scope_for("Caerleon",
+                                            include_black_market=True,
+                                            safe_routes=True)
+        self.assertNotIn("Caerleon", scope_safe)
+        self.assertNotIn("Black Market", scope_safe)
+        self.assertEqual(scope_safe, set(advisor.SAFE_ROYAL_CITIES))
+        # cidade da periferia em rota segura: vende na periferia (incl. ela)
+        scope_ml = advisor.sell_scope_for("Martlock", safe_routes=True)
+        self.assertIn("Martlock", scope_ml)
+        self.assertNotIn("Caerleon", scope_ml)
+        # e o contrato do advise expõe a flag
+        res_safe = advisor.advise(self.con, "Americas", self.db,
+                                  budget=1000, city="Martlock",
+                                  flipable=self.flip, safe_routes=True)
+        self.assertTrue(res_safe["safe_routes"])
+
 
 if __name__ == "__main__":
     unittest.main()
