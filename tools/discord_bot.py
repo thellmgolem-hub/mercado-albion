@@ -292,9 +292,13 @@ BUILD_TREES = [
     ("Espadas", "Espadas"),
     ("Machados", "Machados"),
     ("Maças", "Maças"),
+    ("Martelos", "Martelos"),
     ("Lanças", "Lanças"),
+    ("Adagas", "Adagas"),
     ("Bordões", "Bordões (Quarterstaffs)"),
     ("Luvas de Combate", "Luvas de Combate"),
+    ("Arcanos", "Cajados Arcanos"),
+    ("Metamorfos", "Cajados Metamorfos"),
 ]
 BUILD_CONTENTS = [
     ("Facção / ZvZ", "Faccao/ZvZ"),
