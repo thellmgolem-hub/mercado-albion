@@ -458,6 +458,7 @@ HELP_SECTIONS = [
     ("🏛️ Organização (admin)", [
         ("/camadas", "mostra as camadas: Visitante → Aprendiz → Oficial → Mestre"),
         ("/organizar-servidor", "cria os cargos e canais das camadas de uma vez"),
+        ("/aprendiz-todos", "dá @Aprendiz a todos que já estão no servidor (migração)"),
         ("/saude", "checa se está tudo funcionando: coleta, banco e vigia"),
     ]),
 ]
@@ -1721,6 +1722,34 @@ SERVER_ROLES = [
 RING_INTERNO = ("Aprendiz", "Oficial", "Mestre")   # quem vê a área da guild
 RING_STAFF = ("Oficial", "Mestre")                 # quem vê o comando
 
+# Categorias ANTIGAS (pré-camadas) que passam a ser INTERNAS quando o
+# /organizar-servidor roda: visitante novo só vê a ENTRADA + COMECE AQUI.
+LEGACY_INTERNAL_CATS = ["📊 FERRAMENTAS", "🏰 GUILD", "💬 COMUNIDADE",
+                        "Canais de voz"]
+
+# Vitrine do visitante: as ÚNICAS ferramentas liberadas pra quem ainda não é
+# do projeto (sem cargo do anel interno). O resto convida pro recrutamento.
+VISITOR_COMMANDS = {"preco", "flip", "recomendar", "ajuda"}
+VISITOR_BLOCK_MSG = (
+    "🚪 Essa ferramenta é dos **membros da guild**.\n\n"
+    "Enquanto visitante você já pode experimentar: **/preco** (preço de "
+    "qualquer item), **/flip** (te digo o que comprar e revender com a prata "
+    "que você tem) e **/recomendar** (as melhores oportunidades do momento).\n\n"
+    "Curtiu? Passa no **#recrutamento** e fala com a gente — membro tem "
+    "acesso a TUDO: builds prontas, tributo, ilha, produção, mural e mais.")
+
+
+def is_member_ring(role_names) -> bool:
+    """True se o conjunto de nomes de cargo pertence ao anel interno (PURA)."""
+    return bool(set(role_names or []) & set(RING_INTERNO))
+
+
+def command_allowed_for(cmd_name, role_names) -> bool:
+    """Portão de comandos (PURO): visitante só usa a vitrine; membro usa tudo."""
+    if cmd_name in VISITOR_COMMANDS:
+        return True
+    return is_member_ring(role_names)
+
 SERVER_PLAN = [
     {"cat": "📢 ENTRADA", "ring": "publico", "channels": [
         {"name": "regras", "type": "text", "readonly": True},
@@ -1812,6 +1841,35 @@ async def apply_server_plan(guild, dsc):
                 if ch.get("readonly"):   # só a staff escreve nos murais fixos
                     await new.set_permissions(everyone, send_messages=False)
             report.append(f"   #{ch['name']}: criado")
+    # Categorias ANTIGAS viram INTERNAS: visitante novo só vê a ENTRADA e o
+    # COMECE AQUI até ser recrutado (ganhar @Aprendiz). Não mexe em canais.
+    for cat in guild.categories:
+        if cat.name in LEGACY_INTERNAL_CATS:
+            await cat.edit(overwrites=overwrites("interno"))
+            report.append(f"{cat.name}: trancada p/ membros (Aprendiz+)")
+    return report
+
+
+async def grant_apprentice_to_all(guild, dsc):
+    """Dá @Aprendiz a TODOS os humanos do servidor que ainda não têm cargo do
+    anel interno — migração de uma vez p/ quem entrou antes das camadas.
+    Novos entrantes NÃO são cobertos (é comando manual, não automático)."""
+    role = next((r for r in guild.roles if r.name == "Aprendiz"), None)
+    if role is None:
+        return ["@Aprendiz não existe — rode /organizar-servidor antes."]
+    report = []
+    async for m in guild.fetch_members(limit=None):
+        if m.bot:
+            continue
+        nomes = {r.name for r in m.roles}
+        if nomes & set(RING_INTERNO):
+            report.append(f"{m.display_name}: já era do anel interno")
+            continue
+        try:
+            await m.add_roles(role, reason="migração pré-camadas")
+            report.append(f"{m.display_name}: @Aprendiz dado")
+        except Exception as exc:
+            report.append(f"{m.display_name}: FALHOU ({exc!r})")
     return report
 
 
@@ -1821,12 +1879,34 @@ def build_bot(api: ApiClient):
     import discord
     from discord import app_commands
 
-    intents = discord.Intents.default()   # nada de privileged (members/presence)
+    intents = discord.Intents.default()
+    # Server Members Intent (privileged; ligado também no Developer Portal):
+    # necessário p/ /aprendiz-todos listar os membros na migração das camadas.
+    intents.members = True
+
+    class GateTree(app_commands.CommandTree):
+        """Portão global de comandos: visitante (sem cargo do anel interno) só
+        usa a vitrine (VISITOR_COMMANDS); o resto responde convidando pro
+        #recrutamento. Autocomplete e DMs de membros não são afetados."""
+
+        async def interaction_check(self, interaction):
+            if interaction.type != discord.InteractionType.application_command:
+                return True                      # autocomplete etc.: sempre
+            cmd = interaction.command.name if interaction.command else ""
+            roles = [r.name for r in getattr(interaction.user, "roles", [])]
+            if command_allowed_for(cmd, roles):
+                return True
+            try:
+                await interaction.response.send_message(
+                    VISITOR_BLOCK_MSG, ephemeral=True)
+            except Exception:
+                pass
+            return False
 
     class GuildBot(discord.Client):
         def __init__(self):
             super().__init__(intents=intents)
-            self.tree = app_commands.CommandTree(self)
+            self.tree = GateTree(self)
 
         async def setup_hook(self):
             # Um DISCORD_GUILD_ID malformado (ValueError no int) NÃO pode derrubar
@@ -2362,6 +2442,25 @@ def build_bot(api: ApiClient):
                     + server_plan_summary()
                     + "\n\n_Não apaga nem move nada: só cria o que falta._")
         await _respond(interaction, _plan(), ephemeral=True)
+
+    @tree.command(name="aprendiz-todos",
+                  description="Dá @Aprendiz a todos que já estão no servidor (admin; migração)")
+    async def aprendiz_todos_cmd(interaction: discord.Interaction):
+        async def _run():
+            perms = getattr(interaction.user, "guild_permissions", None)
+            is_owner = bool(interaction.guild
+                            and interaction.guild.owner_id == interaction.user.id)
+            if not (is_owner or (perms and perms.administrator)):
+                return "❌ Só o dono do servidor ou um admin pode fazer a migração."
+            try:
+                report = await grant_apprentice_to_all(interaction.guild, discord)
+            except discord.Forbidden:
+                return ("❌ Sem permissão: o bot precisa de Gerenciar Cargos e do "
+                        "Server Members Intent ligado no Developer Portal.")
+            except Exception as exc:
+                return f"❌ Falhou: `{exc!r}`"
+            return "👥 **Migração**\n" + code_block("\n".join(report))
+        await _respond(interaction, _run(), ephemeral=True)
 
     @tree.command(name="organizar-servidor",
                   description="Cria os cargos e canais das camadas da guild (admin)")

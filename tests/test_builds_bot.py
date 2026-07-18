@@ -667,6 +667,38 @@ class LocalItemSearchTests(unittest.TestCase):
         self.assertTrue(hits)
 
 
+class VisitorGateTests(unittest.TestCase):
+    """Portão do visitante: fora do anel interno, só a vitrine funciona."""
+
+    def test_visitante_so_usa_a_vitrine(self):
+        # sem cargo nenhum (ou só @Visitante): vitrine liberada, resto não
+        for cmd in ("preco", "flip", "recomendar", "ajuda"):
+            self.assertTrue(bot.command_allowed_for(cmd, []))
+            self.assertTrue(bot.command_allowed_for(cmd, ["Visitante"]))
+        for cmd in ("builds", "craftar", "quadro", "fama", "historico",
+                    "reportar", "mural-canal", "organizar-servidor"):
+            self.assertFalse(bot.command_allowed_for(cmd, []))
+            self.assertFalse(bot.command_allowed_for(cmd, ["Visitante"]))
+
+    def test_anel_interno_usa_tudo(self):
+        for papel in ("Aprendiz", "Oficial", "Mestre"):
+            for cmd in ("builds", "fama", "quadro", "flip", "mural-canal"):
+                self.assertTrue(bot.command_allowed_for(cmd, [papel]))
+
+    def test_mensagem_do_bloqueio_vende_o_peixe(self):
+        # convida pro recrutamento e cita as ferramentas liberadas
+        for t in ("/preco", "/flip", "/recomendar", "#recrutamento"):
+            self.assertIn(t, bot.VISITOR_BLOCK_MSG)
+
+    def test_categorias_antigas_viram_internas(self):
+        self.assertIn("📊 FERRAMENTAS", bot.LEGACY_INTERNAL_CATS)
+        self.assertIn("💬 COMUNIDADE", bot.LEGACY_INTERNAL_CATS)
+        self.assertIn("Canais de voz", bot.LEGACY_INTERNAL_CATS)
+        # a ENTRADA e o COMECE AQUI ficam públicos (o funil precisa deles)
+        self.assertNotIn("📢 ENTRADA", bot.LEGACY_INTERNAL_CATS)
+        self.assertNotIn("📖 COMECE AQUI", bot.LEGACY_INTERNAL_CATS)
+
+
 class FlipRotaSeguraTests(unittest.TestCase):
     """/flip: rota segura por padrão — Caerleon só quando pedido."""
 
