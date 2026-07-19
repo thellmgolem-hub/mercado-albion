@@ -1895,6 +1895,14 @@ def build_bot(api: ApiClient, members_intent: bool = True):
         async def interaction_check(self, interaction):
             if interaction.type != discord.InteractionType.application_command:
                 return True                      # autocomplete etc.: sempre
+            # dono do servidor e admins NUNCA são barrados (senão ninguém
+            # consegue rodar a própria migração /aprendiz-todos — aprendido
+            # ao vivo: o portão bloqueou o próprio dono)
+            perms = getattr(interaction.user, "guild_permissions", None)
+            if (perms and perms.administrator) or (
+                    interaction.guild
+                    and interaction.guild.owner_id == interaction.user.id):
+                return True
             cmd = interaction.command.name if interaction.command else ""
             roles = [r.name for r in getattr(interaction.user, "roles", [])]
             if command_allowed_for(cmd, roles):
