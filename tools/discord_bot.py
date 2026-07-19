@@ -1800,10 +1800,14 @@ async def apply_server_plan(guild, dsc):
         if name in roles:
             report.append(f"@{name}: já existia")
             continue
-        roles[name] = await guild.create_role(
-            name=name, colour=dsc.Colour(cor), hoist=True,
-            reason="camadas da guild")
-        report.append(f"@{name}: criado")
+        try:
+            roles[name] = await guild.create_role(
+                name=name, colour=dsc.Colour(cor), hoist=True,
+                reason="camadas da guild")
+            report.append(f"@{name}: criado")
+        except Exception as exc:
+            report.append(f"@{name}: FALHOU ({type(exc).__name__}: "
+                          f"{getattr(exc, 'text', exc)})")
     everyone = guild.default_role
 
     def overwrites(ring):
@@ -1823,29 +1827,35 @@ async def apply_server_plan(guild, dsc):
 
     cats = {c.name: c for c in guild.categories}
     existing = {c.name.lower() for c in guild.channels}
+    # Cada bloco (categoria + canais) é independente: erro em um NÃO derruba
+    # os outros, e o relatório diz o erro EXATO da API (diagnóstico > genérico).
     for b in SERVER_PLAN:
-        cat = cats.get(b["cat"])
-        if cat is None:
-            cat = await guild.create_category(
-                b["cat"], overwrites=overwrites(b["ring"]),
-                reason="camadas da guild")
-            report.append(f"{b['cat']}: categoria criada")
-        else:
-            await cat.edit(overwrites=overwrites(b["ring"]))
-            report.append(f"{b['cat']}: permissões ajustadas")
-        for ch in b["channels"]:
-            if ch["name"].lower() in existing:
-                report.append(f"   #{ch['name']}: já existia (não mexi)")
-                continue
-            if ch["type"] == "voice":
-                await guild.create_voice_channel(
-                    ch["name"], category=cat, reason="camadas da guild")
+        try:
+            cat = cats.get(b["cat"])
+            if cat is None:
+                cat = await guild.create_category(
+                    b["cat"], overwrites=overwrites(b["ring"]),
+                    reason="camadas da guild")
+                report.append(f"{b['cat']}: categoria criada")
             else:
-                new = await guild.create_text_channel(
-                    ch["name"], category=cat, reason="camadas da guild")
-                if ch.get("readonly"):   # só a staff escreve nos murais fixos
-                    await new.set_permissions(everyone, send_messages=False)
-            report.append(f"   #{ch['name']}: criado")
+                await cat.edit(overwrites=overwrites(b["ring"]))
+                report.append(f"{b['cat']}: permissões ajustadas")
+            for ch in b["channels"]:
+                if ch["name"].lower() in existing:
+                    report.append(f"   #{ch['name']}: já existia (não mexi)")
+                    continue
+                if ch["type"] == "voice":
+                    await guild.create_voice_channel(
+                        ch["name"], category=cat, reason="camadas da guild")
+                else:
+                    new = await guild.create_text_channel(
+                        ch["name"], category=cat, reason="camadas da guild")
+                    if ch.get("readonly"):  # só a staff escreve nos murais fixos
+                        await new.set_permissions(everyone, send_messages=False)
+                report.append(f"   #{ch['name']}: criado")
+        except Exception as exc:
+            report.append(f"{b['cat']}: FALHOU ({type(exc).__name__}: "
+                          f"{getattr(exc, 'text', exc)})")
     # Categorias ANTIGAS viram INTERNAS: visitante novo só vê a ENTRADA e o
     # COMECE AQUI até ser recrutado (ganhar @Aprendiz). Edita SÓ o bit "ver
     # canal" por cargo (set_permissions) — substituir overwrites inteiros
@@ -1863,7 +1873,8 @@ async def apply_server_plan(guild, dsc):
                 await cat.set_permissions(guild.me, view_channel=True)
             report.append(f"{cat.name}: trancada p/ membros (Aprendiz+)")
         except Exception as exc:
-            report.append(f"{cat.name}: FALHOU ({type(exc).__name__})")
+            report.append(f"{cat.name}: FALHOU ({type(exc).__name__}: "
+                          f"{getattr(exc, 'text', exc)})")
     return report
 
 
