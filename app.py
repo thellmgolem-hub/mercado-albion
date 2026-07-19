@@ -114,7 +114,19 @@ async def _run_discord_bot_inproc():
         api = _dbot.ApiClient(f"http://127.0.0.1:{port}", svc)
         bot = _dbot.build_bot(api)
         log.info("bot Discord embarcado: conectando (loopback :%s)", port)
-        await bot.start(token)
+        try:
+            await bot.start(token)
+        except Exception as exc:
+            # FAIL-SAFE do intent privilegiado (incidente 18/jul): se o portal
+            # não liberou o Server Members Intent, o bot NÃO pode morrer — cai
+            # p/ intents padrão (tudo funciona menos /aprendiz-todos, que avisa).
+            if type(exc).__name__ != "PrivilegedIntentsRequired":
+                raise
+            log.warning("Server Members Intent não liberado no portal — "
+                        "religando o bot SEM o intent (/aprendiz-todos fica "
+                        "indisponível até ligar o toggle).")
+            bot2 = _dbot.build_bot(api, members_intent=False)
+            await bot2.start(token)
     except Exception:
         log.exception("bot Discord embarcado morreu — servidor segue normal.")
 

@@ -1874,15 +1874,18 @@ async def grant_apprentice_to_all(guild, dsc):
 
 
 # ------------------------------------------------------ casca discord.py 2.x
-def build_bot(api: ApiClient):
-    """Monta o Client + CommandTree ligando cada slash command ao handler puro."""
+def build_bot(api: ApiClient, members_intent: bool = True):
+    """Monta o Client + CommandTree ligando cada slash command ao handler puro.
+
+    members_intent: pede o Server Members Intent (necessário SÓ p/ o
+    /aprendiz-todos listar membros). O chamador (app.py) religa sem ele se o
+    portal não tiver o toggle ligado — o bot nunca morre por causa disso."""
     import discord
     from discord import app_commands
 
     intents = discord.Intents.default()
-    # Server Members Intent (privileged; ligado também no Developer Portal):
-    # necessário p/ /aprendiz-todos listar os membros na migração das camadas.
-    intents.members = True
+    if members_intent:
+        intents.members = True
 
     class GateTree(app_commands.CommandTree):
         """Portão global de comandos: visitante (sem cargo do anel interno) só
