@@ -1842,11 +1842,21 @@ async def apply_server_plan(guild, dsc):
                     await new.set_permissions(everyone, send_messages=False)
             report.append(f"   #{ch['name']}: criado")
     # Categorias ANTIGAS viram INTERNAS: visitante novo só vê a ENTRADA e o
-    # COMECE AQUI até ser recrutado (ganhar @Aprendiz). Não mexe em canais.
+    # COMECE AQUI até ser recrutado (ganhar @Aprendiz). Edita SÓ o bit "ver
+    # canal" por cargo (set_permissions) — substituir overwrites inteiros
+    # (cat.edit) dá Forbidden quando a categoria tem entradas manuais antigas
+    # com permissões que o bot não gerencia. Erro em uma não trava as outras.
     for cat in guild.categories:
-        if cat.name in LEGACY_INTERNAL_CATS:
-            await cat.edit(overwrites=overwrites("interno"))
+        if cat.name not in LEGACY_INTERNAL_CATS:
+            continue
+        try:
+            await cat.set_permissions(everyone, view_channel=False)
+            for rn in RING_INTERNO:
+                if roles.get(rn):
+                    await cat.set_permissions(roles[rn], view_channel=True)
             report.append(f"{cat.name}: trancada p/ membros (Aprendiz+)")
+        except Exception as exc:
+            report.append(f"{cat.name}: FALHOU ({type(exc).__name__})")
     return report
 
 
