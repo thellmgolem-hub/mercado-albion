@@ -1,0 +1,32 @@
+name: deploy-hf
+
+# Sincroniza este repo -> Hugging Face Space (hospedagem GRÁTIS do app+bot).
+# Quando você configurar a variável HF_SPACE (= "owner/nome-do-space") e o
+# segredo HF_TOKEN (token de ESCRITA do HF), todo push no main empurra o código
+# pro Space, que rebuilda sozinho. Enquanto HF_SPACE estiver vazia, não roda.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-hf
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    if: ${{ vars.HF_SPACE != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # push completo (HF rejeita clone raso)
+      - name: empurra pro HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          git push --force \
+            "https://gh-actions:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}.git" \
+            HEAD:main

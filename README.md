@@ -1,3 +1,15 @@
+<!-- Metadados do Hugging Face Spaces (deploy grátis via SDK Docker). Inócuo no
+     GitHub; o HF lê este bloco pra subir o container na porta 7860. -->
+---
+title: Mercado Albion
+emoji: 🐳
+colorFrom: purple
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Mercado Albion — Américas
 
 Plataforma de inteligência de mercado do Albion Online (servidor das **Américas**),
