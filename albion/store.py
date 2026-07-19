@@ -139,6 +139,7 @@ class _PgConn:
     def __init__(self, raw, reopen=None):
         self.raw = raw
         self._reopen = reopen           # callable que devolve uma conexão nova
+        self._dirty = False             # há statement não-commitado nesta tx?
 
     @staticmethod
     def _tr(sql: str) -> str:
@@ -146,9 +147,19 @@ class _PgConn:
         return sql.replace("%", "%%").replace("?", "%s")
 
     def _is_dead(self, exc) -> bool:
-        import psycopg
-        if isinstance(exc, psycopg.OperationalError):
-            return True
+        # 57014 = query_canceled (statement_timeout): a conexão SEGUE VIVA.
+        # Tratar como morte faria reconectar + RE-EXECUTAR a MESMA query lenta,
+        # DOBRANDO o tempo (~40s) com o db_lock preso — o oposto da defesa do
+        # incidente jul/2026. Deixa subir: falha rápido (~20s) e solta o lock.
+        # (Checado ANTES de importar psycopg p/ o teste não exigir o driver.)
+        if getattr(exc, "sqlstate", None) == "57014":
+            return False
+        try:
+            import psycopg
+            if isinstance(exc, psycopg.OperationalError):
+                return True
+        except Exception:
+            pass
         return getattr(self.raw, "closed", False) or getattr(
             self.raw, "broken", False)
 
@@ -161,6 +172,7 @@ class _PgConn:
             pass
         try:
             self.raw = self._reopen()
+            self._dirty = False
             print("[store] conexão Postgres reaberta após queda.", flush=True)
             return True
         except Exception as exc:
@@ -168,10 +180,23 @@ class _PgConn:
             return False
 
     def _run(self, fn):
+        # Retry automático é SEGURO só quando nada não-commitado seria perdido:
+        # conexão autocommit (leituras) OU 1º statement da transação. Num bloco
+        # multi-statement (ex.: snapshot_prune = INSERT-agregado + DELETE dos
+        # brutos), reexecutar só o statement que falhou numa conexão NOVA
+        # perderia o anterior (buraco silencioso no agregado). Nesse caso a
+        # exceção sobe e o chamador re-roda o bloco INTEIRO (idempotente).
+        retry_ok = bool(getattr(self.raw, "autocommit", False)) or not self._dirty
         try:
             return fn()
         except Exception as exc:
-            if self._is_dead(exc) and self._reconnect():
+            if getattr(exc, "sqlstate", None) == "57014":
+                try:
+                    self.rollback()     # limpa a tx abortada — senão o próximo
+                except Exception:       # statement estoura InFailedSqlTransaction
+                    pass
+                raise                   # falha rápido, sem retry
+            if self._is_dead(exc) and retry_ok and self._reconnect():
                 return fn()             # retry ÚNICO na conexão nova
             raise
 
@@ -188,7 +213,10 @@ class _PgConn:
             rc = cur.rowcount
             cur.close()
             return _Cur([], rc)
-        return self._run(go)
+        r = self._run(go)
+        if not getattr(self.raw, "autocommit", False):
+            self._dirty = True          # escrita pendente até commit/rollback
+        return r
 
     def executemany(self, sql, seq):
         rows = [tuple(x) for x in seq]
@@ -197,13 +225,18 @@ class _PgConn:
             cur = self.raw.cursor()
             cur.executemany(self._tr(sql), rows)
             cur.close()
-        return self._run(go)
+        r = self._run(go)
+        if not getattr(self.raw, "autocommit", False):
+            self._dirty = True
+        return r
 
     def commit(self):
         self.raw.commit()
+        self._dirty = False
 
     def rollback(self):
         self.raw.rollback()
+        self._dirty = False
 
     def close(self):
         self.raw.close()
@@ -239,20 +272,46 @@ def connect(readonly: bool = False, path: str | Path | None = None):
                        connect_timeout=10, keepalives=1, keepalives_idle=30,
                        keepalives_interval=10, keepalives_count=3)
 
+        def _verify_timeout(conn):
+            # O pooler em modo TRANSAÇÃO pode ACEITAR a conexão e IGNORAR
+            # `options` SEM erro — aí o statement_timeout fica desligado em
+            # SILÊNCIO e a defesa central do incidente jul/2026 some sem aviso.
+            # Confirma que pegou; loga ALTO se não (o operador precisa saber).
+            try:
+                cur = conn.cursor()
+                cur.execute("SELECT current_setting('statement_timeout')")
+                got = (cur.fetchone() or ["?"])[0]
+                cur.close()
+                try:
+                    conn.rollback()      # não deixa tx aberta na conexão nova
+                except Exception:
+                    pass
+                if str(got) in ("0", "", "?"):
+                    print("[store] ALERTA: statement_timeout NAO ativo "
+                          f"(got={got!r}) — o pooler ignorou 'options'. Rode no "
+                          "Supabase: ALTER ROLE postgres SET statement_timeout="
+                          "'20s'; (backstop por sessão, honrado pelo pooler).",
+                          flush=True)
+            except Exception as exc:
+                print(f"[store] nao verifiquei statement_timeout: {exc!r}",
+                      flush=True)
+
         def _open():
             # O pooler (PgBouncer/Supavisor em modo transação) pode REJEITAR o
             # startup parameter `options`; nesse caso cai pra conexão sem ele —
             # os keepalives de TCP (parâmetro do CLIENTE, sempre aceito) já
             # bastam pra matar o travamento infinito de rede.
             try:
-                return psycopg.connect(database_url(), options=opts, **base_kw)
+                conn = psycopg.connect(database_url(), options=opts, **base_kw)
             except psycopg.OperationalError as exc:
                 if "options" not in str(exc).lower():
                     raise
                 print("[store] pooler recusou 'options'; conectando sem "
                       "statement_timeout (keepalives seguem ativos).",
                       flush=True)
-                return psycopg.connect(database_url(), **base_kw)
+                conn = psycopg.connect(database_url(), **base_kw)
+            _verify_timeout(conn)
+            return conn
         return _PgConn(_open(), reopen=_open)
 
     import sqlite3
@@ -407,9 +466,12 @@ def sweep_mode(size_mb, soft_mb: float, hard_mb: float) -> str:
     'soft'  -> corta o histórico (o vilão do disco) e poda a cada tick
     'hard'  -> PAUSA a coleta: o app continua respondendo (leituras), mas não
                grava mais nada até a poda/vácuo liberar espaço
-    Sem medida (None) -> 'ok' (não trava a coleta por falha de medição)."""
+    Sem medida (None) -> 'soft' (FAIL-CLOSED): se a medição de disco falhar, a
+    rede de segurança que impede o Supabase de virar somente-leitura (o
+    congelamento de jul/2026) NÃO pode desligar em silêncio. 'soft' corta só o
+    histórico (o vilão do espaço) e mantém preços — conservador, não paralisa."""
     if size_mb is None:
-        return "ok"
+        return "soft"
     if size_mb >= hard_mb:
         return "hard"
     if size_mb >= soft_mb:

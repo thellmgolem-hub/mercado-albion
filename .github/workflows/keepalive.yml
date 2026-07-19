@@ -23,4 +23,13 @@ jobs:
           git config user.name "coletor-keepalive"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit --allow-empty -m "keepalive: mantém os workflows agendados vivos"
-          git push
+          git push origin HEAD:main
+      - name: avisar se o keepalive falhar (senão os agendados morrem em silêncio)
+        if: failure()
+        env:
+          WEBHOOK: ${{ secrets.ALBION_ALERT_WEBHOOK }}
+        run: |
+          [ -z "$WEBHOOK" ] && exit 0
+          curl -s -H "Content-Type: application/json" \
+            -d '{"content":"⚠️ keepalive FALHOU — os workflows agendados (coletor/poda) podem ser DESATIVADOS em 60 dias. Confira o push ao branch main."}' \
+            "$WEBHOOK" >/dev/null || true

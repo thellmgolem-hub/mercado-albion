@@ -37,27 +37,40 @@ acordado). Nada de cartão. Tempo: ~30–45 min.
 3. Volte no Render → **Environment** → **apague** a variável
    `ALBION_BOOTSTRAP_ADMIN` (já cumpriu o papel).
 
-## 4) O cron (o coração) — cron-job.org, sem cartão
-> Segurança: o token vai por **header** `X-Sweep-Token`, não na URL — assim não
-> aparece em log nenhum (o app também roda com `--no-access-log`). A query
-> `?token=` ainda funciona por compatibilidade, mas prefira o header.
+## 4) A coleta — GitHub Actions (banda grátis), NÃO no Render
+> ⚠️ MUDANÇA IMPORTANTE (jul/2026): a coleta NÃO roda mais no Render. O Render
+> tem só **5 GB/mês de banda no free** e a coleta baixava ~25 GB/mês da AODP →
+> o serviço foi **SUSPENSO por banda**. A coleta agora roda no **GitHub Actions**
+> (banda grátis e ilimitada), gravando direto no Supabase. O Render só SERVE.
+> **NUNCA aponte um cron para `/api/sweep` ou `/api/intel-sweep`** — isso re-liga
+> o download no Render e re-cria o incidente.
 
-1. No Render → **Environment** → copie o valor de `ALBION_SWEEP_TOKEN`.
-2. cron-job.org → crie conta → **Create cronjob**:
-   - **URL**: `https://SUA-URL.onrender.com/api/sweep?count=100`
-   - **Schedule**: a cada **1 minuto**.
-   - Aba **Advanced / Headers** → adicione um header:
-     `X-Sweep-Token` = `SEU_TOKEN`
-3. Salve e **ative**. Pronto: a cada minuto ele busca 100 itens e mantém o app
-   acordado. Em ~1,5–2 h varre os ~10.400 itens e recicla, sozinho.
-4. **(Opcional, recomendado) Segundo cronjob — killboard.** Crie outro cronjob:
-   - **URL**: `https://SUA-URL.onrender.com/api/intel-sweep`
-   - **Schedule**: a cada **10 minutos**.
-   - **Headers**: `X-Sweep-Token` = `SEU_TOKEN` (o mesmo).
-   Esse alimenta o agregado de destruição (kill_demand_daily) que liga o hub
-   **Guild** (fazer-vs-comprar, regear, ranking de destruição) e o **mapa de
-   reposição** da Logística. Sem ele, essas telas ficam vazias (o resto funciona
-   normal).
+**Ligar a coleta (uma vez):**
+1. O repositório precisa ser **público** (destrava minutos ilimitados do Actions;
+   o código não tem segredo — o `DATABASE_URL` vai por Secret cifrado). Em repo
+   privado o teto de 2.000 min/mês estoura.
+2. No GitHub: **Settings → Secrets and variables → Actions → New secret** →
+   `DATABASE_URL` = a string do pooler do Supabase.
+3. Mesma tela, aba **Variables → New variable** → `COLETOR_ATIVO` = `1`.
+4. Pronto: `.github/workflows/coletor.yml` varre o mercado a cada 15 min e
+   `coletor-poda.yml` poda 1×/dia. O killboard (killfeed/demanda) vem junto no
+   mesmo job. Acompanhe em **Actions**.
+
+**No Render (env do serviço):** deixe `ALBION_NO_WATCHDOG=1` (já vem no
+render.yaml). Sem isso, o vigia interno reassume a coleta no vão entre jobs do
+Actions e **volta a gastar banda no Render**.
+
+**Manter o Render acordado + vigiar a saúde (opcional, redundância):** o cron-job.org,
+se usado, deve bater SÓ em `https://SUA-URL.onrender.com/api/health` a cada
+~10 min (endpoint público e leve). Isso acorda o Render e mantém o Supabase vivo,
+**sem baixar nada**. O keep-alive interno do bot já faz isso; o cron externo é
+redundância, não dependência.
+
+**Alarme (recomendado):** ligue o workflow `vigia-externo.yml` — crie a variável
+`PUBLIC_URL` (a URL do app) e o secret `ALBION_ALERT_WEBHOOK` (webhook de um canal
+de alertas). Ele checa a saúde a cada 15 min e AVISA no Discord se algo cair —
+você sabe antes da guilda. Ligue também os alertas de e-mail de cota nativos do
+**Render** e do **Supabase** (cobrem banda/disco sem depender de código).
 
 ## Conferir se está vivo
 - `https://SUA-URL.onrender.com/api/status` mostra `backend: postgres` e as

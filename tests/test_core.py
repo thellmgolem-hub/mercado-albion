@@ -2352,16 +2352,93 @@ class WatchdogHealthTests(unittest.TestCase):
         self.assertFalse(app._cron_late(app._CRON_LATE_S))
         self.assertTrue(app._cron_late(app._CRON_LATE_S + 1))
 
+    def test_watchdog_nao_assume_no_vao_normal_do_cron_de_15min(self):
+        # AUDITORIA jul/2026: o coletor roda no GitHub Actions a cada 15 min. O
+        # limiar do vigia TEM de folgar acima disso, senão ele assume a coleta no
+        # vão normal entre jobs e re-baixa da AODP NO RENDER (recria a banda que
+        # suspendeu a plataforma). 900s = 15 min: um vão normal NÃO pode ser late.
+        self.assertGreaterEqual(app._CRON_LATE_S, 900)
+        self.assertFalse(app._cron_late(600))    # 10 min sem tick = ainda normal
+        self.assertFalse(app._cron_late(900))    # 1 ciclo perdido = ainda cobre
+
     def test_health_endpoint_shape_and_public(self):
         client = TestClient(app.app)
         r = client.get("/api/health")
         self.assertEqual(r.status_code, 200)
         h = r.json()
         for k in ("ok", "db_ok", "db_mode", "coleta_ok", "vigia",
-                  "uptime_s", "backend"):
+                  "coletor_externo_ok", "intel_ok", "db_measure_ok",
+                  "bot_ok", "uptime_s", "backend"):
             self.assertIn(k, h)
         self.assertTrue(h["db_ok"])
         self.assertIn("/api/health", app.PUBLIC_AUTH_PATHS)  # público p/ monitor
+
+
+class PgConnResilienceTests(unittest.TestCase):
+    """_PgConn (auditoria jul/2026): statement_timeout NÃO é morte de conexão,
+    e o retry automático nunca perde statement de transação multi-linha."""
+
+    def _fake(self):
+        from albion import store as st
+
+        calls = {"reopen": 0, "rollback": 0}
+
+        class Raw:
+            autocommit = False
+            closed = False
+            broken = False
+
+            def rollback(self_):
+                calls["rollback"] += 1
+
+            def commit(self_):
+                pass
+
+            def close(self_):
+                pass
+
+        def reopen():
+            calls["reopen"] += 1
+            return Raw()
+
+        return st._PgConn(Raw(), reopen=reopen), calls
+
+    def test_statement_timeout_nao_reconecta_nem_reexecuta(self):
+        conn, calls = self._fake()
+
+        class QC(Exception):
+            sqlstate = "57014"          # query_canceled (statement_timeout)
+
+        def boom():
+            raise QC()
+        with self.assertRaises(QC):
+            conn._run(boom)             # sobe RÁPIDO, não dobra o tempo
+        self.assertEqual(calls["reopen"], 0)        # NÃO reconecta
+        self.assertGreaterEqual(calls["rollback"], 1)  # limpa a tx abortada
+
+    def test_is_dead_ignora_57014(self):
+        conn, _ = self._fake()
+
+        class QC(Exception):
+            sqlstate = "57014"
+        self.assertFalse(conn._is_dead(QC()))
+
+    def test_retry_nao_reexecuta_2o_statement_de_transacao(self):
+        # 1º statement já rodou (_dirty=True); se o 2º cai por conexão morta, o
+        # retry automático perderia o 1º — então NÃO reconecta, deixa subir p/ o
+        # chamador re-rodar o bloco INTEIRO (evita buraco silencioso no agregado).
+        conn, calls = self._fake()
+        conn._dirty = True
+        conn.raw.broken = True          # _is_dead -> True
+
+        class Dead(Exception):
+            sqlstate = "08006"          # connection_failure
+
+        def boom():
+            raise Dead()
+        with self.assertRaises(Dead):
+            conn._run(boom)
+        self.assertEqual(calls["reopen"], 0)        # não reconectou (dirty)
 
 
 class BoundedLockTests(unittest.TestCase):
@@ -2400,8 +2477,10 @@ class DbSelfLimitTests(unittest.TestCase):
         self.assertEqual(st.sweep_mode(419.9, 340, 420), "soft")
         self.assertEqual(st.sweep_mode(420, 340, 420), "hard")
         self.assertEqual(st.sweep_mode(9999, 340, 420), "hard")
-        # falha de medição NUNCA trava a coleta
-        self.assertEqual(st.sweep_mode(None, 340, 420), "ok")
+        # falha de medição = FAIL-CLOSED conservador (soft), não 'ok' silencioso:
+        # a rede que impede o Supabase de virar read-only não pode se desligar
+        # cega sem sinal (auditoria de estabilidade jul/2026).
+        self.assertEqual(st.sweep_mode(None, 340, 420), "soft")
 
     def test_db_size_mb_sqlite(self):
         from albion import store as st

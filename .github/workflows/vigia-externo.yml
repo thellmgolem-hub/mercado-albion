@@ -1,0 +1,65 @@
+name: vigia-externo
+
+# DEAD-MAN-SWITCH: bate no /api/health a cada 15 min DE FORA (infra independente
+# do Render/HF) e AVISA num webhook do Discord se a plataforma estiver doente ou
+# não responder. É o "a gente sabe ANTES da guilda". Roda mesmo com o app fora,
+# e o GitHub ainda manda e-mail se o run falhar (2º sinal, mesmo sem webhook).
+#
+# Requer (uma vez): variável PUBLIC_URL (a URL pública do app, ex.:
+# https://mercado-albion.onrender.com) e o secret ALBION_ALERT_WEBHOOK (webhook
+# de um canal de alertas). Enquanto PUBLIC_URL estiver vazia, não roda.
+
+on:
+  schedule:
+    - cron: '3,18,33,48 * * * *'   # a cada 15 min, em minuto quebrado
+  workflow_dispatch: {}
+
+concurrency:
+  group: vigia-externo
+  cancel-in-progress: true
+
+jobs:
+  check:
+    if: ${{ vars.PUBLIC_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: checar /api/health e alertar se doente
+        env:
+          PUBLIC_URL: ${{ vars.PUBLIC_URL }}
+          WEBHOOK: ${{ secrets.ALBION_ALERT_WEBHOOK }}
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request
+          url = os.environ["PUBLIC_URL"].rstrip("/") + "/api/health"
+          hook = os.environ.get("WEBHOOK", "")
+          probs, d = [], None
+          try:
+              with urllib.request.urlopen(url, timeout=25) as r:
+                  d = json.load(r)
+          except Exception as e:
+              probs = ["FORA DO AR — /api/health nao respondeu (%s)" % type(e).__name__]
+          if d is not None:
+              if not d.get("ok"): probs.append("saude ok=false")
+              if not d.get("db_ok"): probs.append("banco caiu")
+              if d.get("db_mode") == "hard": probs.append("disco CHEIO (coleta pausada)")
+              if d.get("db_mode") == "unknown": probs.append("medicao de disco falhando")
+              if d.get("coleta_ok") is False: probs.append("coleta PAROU (precos velhos)")
+              if d.get("coletor_externo_ok") is False:
+                  probs.append("coletor do Actions MORREU (vigia cobrindo, banda em risco)")
+              if d.get("intel_ok") is False: probs.append("killboard travado")
+              if d.get("bot_ok") is False: probs.append("bot Discord OFFLINE")
+          if probs:
+              msg = "⚠️ **Mercado Albion:** " + "; ".join(probs)
+              print(msg)
+              if hook:
+                  body = json.dumps({"content": msg}).encode()
+                  req = urllib.request.Request(
+                      hook, data=body, headers={"Content-Type": "application/json"})
+                  try:
+                      urllib.request.urlopen(req, timeout=15)
+                  except Exception as e:
+                      print("falha ao postar webhook:", e)
+              raise SystemExit(1)   # marca o run vermelho no Actions (e-mail extra)
+          print("saude ok")
+          PY

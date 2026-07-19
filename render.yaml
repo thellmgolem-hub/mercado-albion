@@ -7,14 +7,20 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    # --no-access-log: o cron bate no /api/sweep a cada minuto; sem isto o
-    # uvicorn gravaria a request line (com querystring) no log. O token vai por
-    # header (X-Sweep-Token), mas isto blinda contra qualquer segredo em URL.
+    # --no-access-log: blinda contra segredo em querystring no log.
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT --no-access-log
     envVars:
       # Versão do Python (psycopg[binary] tem wheels para 3.12)
       - key: PYTHON_VERSION
         value: "3.12.7"
+      # CRÍTICO (auditoria jul/2026): a COLETA roda no GitHub Actions
+      # (.github/workflows/coletor.yml), NÃO aqui. Sem esta env o vigia interno
+      # ASSUME a coleta no vão entre jobs do Actions e volta a baixar da AODP
+      # DE DENTRO DO RENDER — recriando a banda que suspendeu a plataforma. Com
+      # =1 o Render só SERVE (banda ~0). Se a coleta parar, o /api/health marca
+      # coleta_ok=false e o vigia externo (workflow) avisa.
+      - key: ALBION_NO_WATCHDOG
+        value: "1"
       # String de conexão do Supabase — use o POOLER (porta 6543, modo
       # Transaction). Cole no painel do Render (Environment).
       - key: DATABASE_URL

@@ -72,14 +72,22 @@ _setup_logging()
 log = logging.getLogger("albion.app")
 
 
+# Estado de vida do bot (exposto no /api/health p/ monitorar de fora).
+_BOT_STATE = {"connected": False, "last_ready": 0.0, "restarts": 0}
+
+
 async def _run_discord_bot_inproc():
     """Bot Discord DENTRO do processo do servidor (nuvem free: 1 serviço só).
 
     Liga quando DISCORD_BOT_TOKEN existe e discord.py está instalado. Provisiona
     o PRÓPRIO token de serviço (label 'inproc-bot', rotacionado a cada boot —
     nunca precisa de env de token de serviço) e fala com a API via loopback.
-    O cron de 1 min que mantém o Render acordado mantém o bot online 24/7.
-    Qualquer falha loga e desiste — jamais derruba o servidor."""
+
+    SUPERVISOR (auditoria jul/2026): antes, se bot.start() saísse por erro FATAL
+    (login falho, close code não-resumível, sessão invalidada), o bot ficava
+    MORTO o resto da vida do processo — em silêncio, enquanto o site seguia de
+    pé. Agora re-sobe com backoff, recriando o Client a cada tentativa (um
+    discord.Client fechado não reinicia). Jamais derruba o servidor."""
     token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
     if not token:
         return
@@ -89,19 +97,18 @@ async def _run_discord_bot_inproc():
         log.warning("DISCORD_BOT_TOKEN definido mas discord.py não instalado "
                     "(pip install discord.py) — bot embarcado desligado.")
         return
-    try:
-        import sys as _sys
-        tools_dir = str(Path(__file__).resolve().parent / "tools")
-        if tools_dir not in _sys.path:
-            _sys.path.insert(0, tools_dir)
-        import discord_bot as _dbot
+    import sys as _sys
+    tools_dir = str(Path(__file__).resolve().parent / "tools")
+    if tools_dir not in _sys.path:
+        _sys.path.insert(0, tools_dir)
+    import discord_bot as _dbot
 
-        # Label ÚNICO por boot: auth_service_tokens tem UNIQUE(label) GLOBAL,
-        # então a linha REVOGADA do boot anterior segue ocupando "inproc-bot"
-        # e reusar o label quebrava TODO reboot na nuvem (UniqueViolation ->
-        # bot morto silenciosamente). Revoga qualquer inproc ativo e cria com
-        # sufixo de época (1 linha revogada/deploy — auditável, sem conflito).
-        prefix = "inproc-bot"
+    # Label ÚNICO por boot: auth_service_tokens tem UNIQUE(label) GLOBAL, então a
+    # linha REVOGADA do boot anterior segue ocupando "inproc-bot" e reusar o
+    # label quebrava TODO reboot na nuvem (UniqueViolation). Provisiona UMA vez;
+    # o token não expira, então o supervisor reusa entre re-subidas.
+    prefix = "inproc-bot"
+    try:
         for t in auth_manager.list_service_tokens():
             if (str(t.get("name") or "").startswith(prefix)
                     and not t.get("revoked_at")):
@@ -110,25 +117,62 @@ async def _run_discord_bot_inproc():
             f"{prefix}-{int(time.time())}",
             ["discord_link", "discord_read",
              "guild_report", "guild_audit"])["token"]
-        port = os.environ.get("PORT", str(PORT))   # PORT do módulo (local 8528)
-        api = _dbot.ApiClient(f"http://127.0.0.1:{port}", svc)
-        bot = _dbot.build_bot(api)
-        log.info("bot Discord embarcado: conectando (loopback :%s)", port)
-        try:
-            await bot.start(token)
-        except Exception as exc:
-            # FAIL-SAFE do intent privilegiado (incidente 18/jul): se o portal
-            # não liberou o Server Members Intent, o bot NÃO pode morrer — cai
-            # p/ intents padrão (tudo funciona menos /aprendiz-todos, que avisa).
-            if type(exc).__name__ != "PrivilegedIntentsRequired":
-                raise
-            log.warning("Server Members Intent não liberado no portal — "
-                        "religando o bot SEM o intent (/aprendiz-todos fica "
-                        "indisponível até ligar o toggle).")
-            bot2 = _dbot.build_bot(api, members_intent=False)
-            await bot2.start(token)
     except Exception:
-        log.exception("bot Discord embarcado morreu — servidor segue normal.")
+        log.exception("não provisionei o token de serviço do bot — desligado.")
+        return
+    port = os.environ.get("PORT", str(PORT))       # PORT do módulo (local 8528)
+    api = _dbot.ApiClient(f"http://127.0.0.1:{port}", svc)
+
+    members_intent = True
+    backoff = 5
+    while True:
+        bot = None
+        try:
+            bot = _dbot.build_bot(api, members_intent=members_intent)
+
+            async def _on_ready():
+                _BOT_STATE["connected"] = True
+                _BOT_STATE["last_ready"] = time.time()
+
+            async def _on_resumed():
+                _BOT_STATE["connected"] = True
+
+            async def _on_disconnect():
+                _BOT_STATE["connected"] = False
+            bot.add_listener(_on_ready, "on_ready")
+            bot.add_listener(_on_resumed, "on_resumed")
+            bot.add_listener(_on_disconnect, "on_disconnect")
+
+            log.info("bot Discord embarcado: conectando (loopback :%s)", port)
+            await bot.start(token)
+            return                       # saída limpa do start() = fim normal
+        except asyncio.CancelledError:   # shutdown do app (lifespan cancelou)
+            if bot is not None:
+                try:
+                    await bot.close()
+                except Exception:
+                    pass
+            raise
+        except Exception as exc:
+            _BOT_STATE["connected"] = False
+            if bot is not None:
+                try:
+                    await bot.close()
+                except Exception:
+                    pass
+            # FAIL-SAFE do intent privilegiado (incidente 18/jul): se o portal
+            # não liberou o Server Members Intent, religa SEM o intent (tudo
+            # funciona menos /aprendiz-todos, que avisa). Não conta p/ backoff.
+            if (type(exc).__name__ == "PrivilegedIntentsRequired"
+                    and members_intent):
+                log.warning("Server Members Intent não liberado — religando "
+                            "SEM o intent (/aprendiz-todos indisponível).")
+                members_intent = False
+                continue
+            _BOT_STATE["restarts"] += 1
+            log.exception("bot Discord caiu — re-subindo em %ss.", backoff)
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, 300)   # teto de 5 min entre tentativas
 
 
 @asynccontextmanager
@@ -323,9 +367,20 @@ def collect_status():
 # >2,5 min, ASSUME a coleta por dentro; quando o cron volta, devolve sozinho.
 # Também cobre o killboard (intel) que nunca teve cron próprio.
 _WATCHDOG = {"started": False, "mode": "standby", "takeovers": 0,
-             "last_intel_attempt": 0.0}
+             "last_intel_attempt": 0.0, "ativo_desde": 0.0}
 _BOOT_TS = time.time()
-_CRON_LATE_S = 150          # 2,5 min sem tick do cron => assume
+# Quanto tempo sem tick do coletor externo antes de o vigia ASSUMIR a coleta.
+# ATENÇÃO (auditoria jul/2026): este limiar tem de ser MAIOR que o intervalo do
+# coletor no GitHub Actions (15 min) + a duração do job + o atraso de pico do
+# cron do Actions. Com 150s (calibrado p/ o antigo cron de 1 min) o vigia
+# assumia a coleta DE DENTRO DO RENDER no vão normal entre jobs — re-baixando da
+# AODP e recriando a banda que suspendeu a plataforma, além de MASCARAR a morte
+# do Actions (saúde ficava verde). 1800s (30 min = 2 ciclos perdidos) faz o
+# vigia só assumir quando o Actions morreu DE VERDADE.
+_CRON_LATE_S = int(os.environ.get("ALBION_CRON_LATE_S", "1800"))
+# Se o vigia ficar ATIVO (coletando no Render) por mais que isto, é sinal de que
+# o coletor externo morreu — o /api/health expõe isso p/ o alarme não ficar cego.
+_WATCHDOG_STUCK_S = int(os.environ.get("ALBION_WATCHDOG_STUCK_S", "1500"))
 
 
 def _cron_late(age_s) -> bool:
@@ -397,22 +452,27 @@ def _start_cloud_watchdog():
                     if _WATCHDOG["mode"] != "ativo":
                         _WATCHDOG["mode"] = "ativo"
                         _WATCHDOG["takeovers"] += 1
+                        _WATCHDOG["ativo_desde"] = time.time()
                         print("[vigia] cron externo sumiu "
                               f"(último tick há {age and round(age)}s) — "
                               "assumindo a coleta interna.", flush=True)
                     _sweep_tick_core(config.SWEEP_ITEMS_PER_TICK)
+                    # killboard: SÓ quando o coletor externo TAMBÉM sumiu (i.e.
+                    # aqui dentro). Fora do takeover o Render não baixa NADA —
+                    # o coletor do GitHub Actions já roda o intel 1×/job.
+                    # (auditoria: rodar intel a cada laço re-baixava o killboard
+                    # no Render mesmo com o Actions saudável.)
+                    now = time.time()
+                    intel_gap = config.AUTO_INTEL_INTERVAL_MIN * 60
+                    iage = _last_intel_age()
+                    if ((iage is None or iage > intel_gap)
+                            and now - _WATCHDOG["last_intel_attempt"] >= intel_gap):
+                        _WATCHDOG["last_intel_attempt"] = now
+                        _intel_tick_core()
                 elif _WATCHDOG["mode"] != "standby":
                     _WATCHDOG["mode"] = "standby"
+                    _WATCHDOG["ativo_desde"] = 0.0
                     print("[vigia] cron externo voltou — standby.", flush=True)
-                # killboard: sem cron próprio; roda a cada AUTO_INTEL_INTERVAL
-                # com cooldown de tentativa (mesmo se falhar, não martela)
-                now = time.time()
-                intel_gap = config.AUTO_INTEL_INTERVAL_MIN * 60
-                iage = _last_intel_age()
-                if ((iage is None or iage > intel_gap)
-                        and now - _WATCHDOG["last_intel_attempt"] >= intel_gap):
-                    _WATCHDOG["last_intel_attempt"] = now
-                    _intel_tick_core()
             except Exception as exc:      # o vigia NUNCA morre
                 log.warning("[vigia] tick falhou: %s", repr(exc)[:200])
             time.sleep(60)
@@ -439,20 +499,46 @@ def health():
     except Exception:
         db_ok = False
     size_mb = _db_size_mb_cached()
+    db_measure_ok = size_mb is not None
     mode = store.sweep_mode(size_mb, config.DB_SOFT_LIMIT_MB,
                             config.DB_HARD_LIMIT_MB)
     sweep_age = _last_sweep_age()
     intel_age = _last_intel_age()
     collecting = sweep_age is not None and sweep_age < 300
+    # Vigia ATIVO por muito tempo = o coletor externo (GitHub Actions) MORREU: a
+    # coleta segue fresca (o vigia cobre), MAS volta a gastar banda no Render —
+    # precisa AVISAR, senão a queda do Actions fica mascarada por saúde verde.
+    vigia_ativo_ha = (round(time.time() - _WATCHDOG["ativo_desde"])
+                      if _WATCHDOG.get("mode") == "ativo"
+                      and _WATCHDOG.get("ativo_desde") else None)
+    coletor_externo_ok = not (vigia_ativo_ha is not None
+                              and vigia_ativo_ha > _WATCHDOG_STUCK_S)
+    # Killboard é feed secundário: frescor vira campo próprio, não derruba o `ok`
+    # (que segue a coleta de PREÇOS, o feed econômico primário).
+    intel_stale = (intel_age is not None
+                   and intel_age > 3 * config.AUTO_INTEL_INTERVAL_MIN * 60)
     return {
-        "ok": bool(db_ok and (collecting or mode == "hard")),
+        # `ok` cobre: banco vivo + coletando (ou pausado por disco) + coletor
+        # externo não-morto. Um monitor externo só precisa olhar este campo.
+        "ok": bool(db_ok and (collecting or mode == "hard")
+                   and coletor_externo_ok),
         "db_ok": db_ok,
         "db_mb": round(size_mb, 1) if size_mb is not None else None,
-        "db_mode": mode,
+        # medição de disco falhando NÃO pode passar por 'ok' silencioso
+        "db_mode": mode if db_measure_ok else "unknown",
+        "db_measure_ok": db_measure_ok,
         "coleta_ok": collecting,
+        "coletor_externo_ok": coletor_externo_ok,
         "sweep_age_s": round(sweep_age) if sweep_age is not None else None,
         "intel_age_s": round(intel_age) if intel_age is not None else None,
+        "intel_ok": not intel_stale,
         "vigia": _WATCHDOG["mode"] if _WATCHDOG["started"] else "desligado",
+        "vigia_ativo_ha_s": vigia_ativo_ha,
+        "vigia_takeovers": _WATCHDOG.get("takeovers", 0),
+        # liveness do bot embarcado (None = bot desligado neste host)
+        "bot_ok": (_BOT_STATE["connected"]
+                   if os.environ.get("DISCORD_BOT_TOKEN", "").strip() else None),
+        "bot_restarts": _BOT_STATE["restarts"],
         "uptime_s": round(time.time() - _BOOT_TS),
         "backend": store.backend(),
     }

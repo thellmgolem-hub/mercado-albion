@@ -56,6 +56,40 @@ A plataforma virou multi-org (SaaS p/ outras guilds + assinantes analytics-only)
   ANTES de aceitar a 2ª guild (junto: username_norm global vs por-org; org nova
   nasce inactive). Testes: MultiTenantIsolationTests em tests/test_core.py.
 
+## Auditoria de estabilidade 2026-07-19 (pós-suspensão por banda) — correções
+
+Suspensão por BANDA no Render (coletor baixava 36 GB > 5 GB free). Coletor movido
+p/ GitHub Actions (tools/collector_tick.py, .github/workflows/coletor*.yml). Depois,
+auditoria multiagente (8 frentes, verificação adversarial) achou os riscos LATENTES
+que fariam a falha VOLTAR — corrigidos:
+- **Vigia re-coletava no Render** (recriava a banda): `_CRON_LATE_S` 150s→**1800s**
+  (env ALBION_CRON_LATE_S) — só assume se o Actions morrer >30min, não no vão
+  normal de 15min; o intel do vigia agora só roda DENTRO do takeover (não a cada
+  laço). `ALBION_NO_WATCHDOG=1` no render.yaml = postura primária (Render só serve).
+- **/api/health de-mascara a morte do coletor externo**: campos novos
+  `coletor_externo_ok` (vigia ativo >25min = Actions morto), `intel_ok`,
+  `db_measure_ok` (None→db_mode='unknown', não 'ok' silencioso), `bot_ok`/
+  `bot_restarts`. `coletor_externo_ok` entra no `ok` global.
+- **Dead-man-switch**: `.github/workflows/vigia-externo.yml` bate no /api/health
+  a cada 15min DE FORA e posta num webhook do Discord se cair (gate vars.PUBLIC_URL
+  + secret ALBION_ALERT_WEBHOOK). "Sabe antes da guilda."
+- **Bot supervisor**: _run_discord_bot_inproc agora re-sobe o bot com backoff
+  (recria o Client) em vez de morrer no 1º erro fatal; _BOT_STATE no /api/health.
+- **statement_timeout (57014) NÃO é morte de conexão** (store._is_dead): antes
+  reconectava+re-executava, dobrando o tempo com o db_lock preso; agora faz
+  rollback e sobe rápido. Retry automático só quando seguro (flag `_dirty`) — não
+  perde statement de transação multi-linha (buraco no agregado). connect() agora
+  VERIFICA o statement_timeout pós-conexão (o pooler de transação pode ignorar
+  `options` em silêncio) e loga ALTO se não pegou.
+- **Autolimite FAIL-CLOSED**: sweep_mode(None)→'soft' (era 'ok'): se a medição de
+  disco falhar, corta histórico em vez de encher às cegas até o read-only.
+- Testes: WatchdogHealthTests (vigia não assume no vão de 15min), PgConnResilienceTests
+  (57014 não reconecta; retry não perde 2º statement). Suíte 300.
+PENDÊNCIAS conhecidas (não-iminentes, documentadas): sweep_mode preso em 'hard'
+se pg_database_size não encolher pós-poda (precisa VACUUM/medida lógica; disco hoje
+~176MB, longe dos 420); advisory lock p/ 2 instâncias do bot (HF fora, 1 instância);
+contador de banda no app (coberto por alertas nativos Render/Supabase).
+
 ## Incidente 2026-07-15 (app congelou) — defesas permanentes
 
 Query pendurada no pooler (sem timeout) segurava o db_lock e congelava o app
