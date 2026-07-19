@@ -3273,9 +3273,11 @@ def discord_character_get(request: Request, discord_user_id: int = Query(gt=0)):
 
 @app.post("/api/discord/character")
 def discord_character_set(body: DiscordCharacterBody, request: Request):
-    """Membro registra o PRÓPRIO nick do Albion (escopo discord_read). Resolve
-    no gameinfo /search p/ confirmar a grafia e guardar o player Id. Funciona
-    SEM conta na plataforma: sem vínculo, grava por discord_user_id."""
+    """Grava o vínculo Discord -> nick do Albion (escopo discord_read; só o
+    bot chama). O GATE de quem pode vincular fica no bot (/registrar-membro,
+    staff) — decisão do usuário: vínculo é ato do recrutador, não autosserviço.
+    Resolve no gameinfo /search p/ confirmar a grafia e guardar o player Id.
+    Funciona SEM conta na plataforma: sem vínculo, grava por discord_user_id."""
     from albion import gameinfo
     _require_service_scope(request, "discord_read")
     account_id, org = None, 1

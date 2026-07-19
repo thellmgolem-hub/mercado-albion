@@ -148,6 +148,10 @@ que criou e não consegue nem editar nem postar (Mural) depois; erro numa
 categoria não derruba as outras e o relatório traz o erro EXATO da API
 (exc.text), não mensagem genérica. Comandos: **/camadas** (mostra o plano) e
 **/organizar-servidor** (aplica; gate = dono do servidor ou admin do Discord).
+Vínculo Discord→nick do Albion é ATO DO RECRUTADOR (decisão do usuário, o
+recrutamento confere o nick por share de tela): **/registrar-membro** (gate
+`is_recruiter` = dono/admin/Oficial/Mestre) grava via POST /api/discord/
+character; **/personagem** é SÓ consulta ("quem sou eu"), sem autosserviço.
 Exige que o bot tenha Gerenciar Cargos + Gerenciar Canais (o convite original só
 deu Send Messages=2048) — o comando devolve instrução PT se levar Forbidden.
 Testes: ServerLayersTests (test_builds_bot). Onboarding/Regras nativos do Discord

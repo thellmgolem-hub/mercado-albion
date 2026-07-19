@@ -435,7 +435,8 @@ HELP_SECTIONS = [
     ]),
     ("🎯 Tributo da guild", [
         ("/vincular", "liga seu Discord à sua conta. Peça o código a um oficial"),
-        ("/personagem", "registra seu nick do Albion (pras metas e seu perfil)"),
+        ("/personagem", "mostra o personagem do Albion vinculado a você "
+                        "(quem vincula é o recrutador)"),
         ("/fama", "sua fama por atividade: PvP, PvE, coleta, fabricação. "
                   "Ex.: `/fama nick: olegislador`"),
         ("/minhas-metas", "suas metas da semana. Só você vê"),
@@ -445,6 +446,8 @@ HELP_SECTIONS = [
         ("/quadro", "o placar da guild: metas contra o que já entrou"),
     ]),
     ("🛡️ Auditoria (oficiais)", [
+        ("/registrar-membro", "vincula o Discord de um recruta ao nick dele no "
+                              "Albion (feito no recrutamento, conferindo a tela)"),
         ("/pendentes", "a fila de reportes esperando aprovação"),
         ("/aprovar", "aprova um reporte e zera o relógio do membro"),
         ("/rejeitar", "rejeita um reporte, e o relógio volta a correr"),
@@ -1636,8 +1639,8 @@ async def handle_fama(api, discord_user_id, nick=None):
         return friendly_error(e)
     if not r.get("found"):
         if r.get("sem_registro"):
-            return ("Você ainda não registrou seu personagem. Use "
-                    "`/personagem nick:<seu nick>` uma vez, ou chame "
+            return ("Você ainda não tem personagem vinculado (um oficial faz "
+                    "isso no `/registrar-membro`). Enquanto isso, chame "
                     "`/fama nick:<personagem>` direto.")
         cands = r.get("candidatos") or []
         dica = (" Parecidos: " + ", ".join(cands)) if cands else \
@@ -1675,35 +1678,47 @@ async def handle_fama(api, discord_user_id, nick=None):
 
 
 # --------------------------------------------- vínculo conta -> personagem
-async def handle_personagem(api, discord_user_id, nick=None):
-    """Sem nick: mostra o personagem registrado. Com nick: registra/atualiza."""
-    if not nick or not nick.strip():
-        try:
-            r = await api.get("/api/discord/character",
-                              params={"discord_user_id": discord_user_id})
-        except ApiError as e:
-            return friendly_error(e)
-        if r.get("char_name"):
-            extra = ("" if r.get("char_id")
-                     else " (ainda não achei no killboard — normal se for novo)")
-            return (f"🎮 Seu personagem registrado: **{r['char_name']}**.{extra}\n"
-                    "Pra trocar: `/personagem nick:<seu nick>`.")
-        return ("Você ainda não registrou seu personagem. Use "
-                "`/personagem nick:<seu nick no Albion>`.")
+# Decisão do usuário (18/jul): vincular Discord -> nick do Albion é ATO
+# ADMINISTRATIVO do recrutamento (o recrutador confere o nick com share de
+# tela), NÃO autosserviço. /personagem só CONSULTA; quem grava é o
+# /registrar-membro (gate: dono/admin/Oficial/Mestre).
+async def handle_personagem(api, discord_user_id):
+    """Mostra o personagem vinculado ao Discord de quem chamou (só consulta)."""
+    try:
+        r = await api.get("/api/discord/character",
+                          params={"discord_user_id": discord_user_id})
+    except ApiError as e:
+        return friendly_error(e)
+    if r.get("char_name"):
+        extra = ("" if r.get("char_id")
+                 else " (ainda não achei no killboard — normal se for novo)")
+        return (f"🎮 Seu personagem registrado: **{r['char_name']}**.{extra}\n"
+                "Grafia errada? Fala com um oficial — é a staff quem vincula, "
+                "pelo `/registrar-membro`.")
+    return ("Você ainda não tem personagem vinculado. O vínculo é feito por "
+            "um **oficial** na hora do recrutamento (`/registrar-membro`) — "
+            "chama alguém da staff.")
+
+
+async def handle_registrar_membro(api, target_discord_id, nick, target_display):
+    """/registrar-membro — o RECRUTADOR vincula o Discord de um membro ao nick
+    do Albion. O gate de cargo fica no comando; aqui é só a chamada."""
     try:
         r = await api.post("/api/discord/character", json={
-            "discord_user_id": discord_user_id, "char_name": nick.strip()})
+            "discord_user_id": int(target_discord_id),
+            "char_name": nick.strip()})
     except ApiError as e:
         return friendly_error(e)
     if r.get("resolved"):
         g = r.get("guild")
-        return (f"✅ Personagem **{r['char_name']}** registrado"
-                + (f" (guilda {g})" if g else "")
-                + ". Vai servir pras metas e pro seu perfil de fama.")
+        return (f"✅ **{target_display}** vinculado ao personagem "
+                f"**{r['char_name']}**" + (f" (guilda {g})" if g else "")
+                + ". Vale pras metas, pro /fama e pro perfil dele.")
     cands = r.get("candidates") or []
-    hint = f" Parecidos: {', '.join(cands)}." if cands else ""
-    return (f"✅ Anotei **{r['char_name']}**, mas ainda não achei esse nick no "
-            f"killboard (normal se você jogou pouco ou a grafia difere).{hint}")
+    hint = f" Parecidos no killboard: {', '.join(cands)}." if cands else ""
+    return (f"⚠️ Anotei **{r['char_name']}** para **{target_display}**, mas não "
+            f"achei esse nick no killboard — confere a grafia na tela "
+            f"compartilhada e, se preciso, roda de novo.{hint}")
 
 
 # ------------------------------------------- camadas do servidor (organização)
@@ -1749,6 +1764,15 @@ def command_allowed_for(cmd_name, role_names) -> bool:
     if cmd_name in VISITOR_COMMANDS:
         return True
     return is_member_ring(role_names)
+
+
+def is_recruiter(role_names, is_owner=False, is_admin=False) -> bool:
+    """Portão do /registrar-membro (PURO): vincular Discord -> nick do Albion
+    é ato administrativo do recrutamento — dono do servidor, admin do Discord
+    ou staff (Oficial/Mestre). Aprendiz e Visitante NÃO vinculam."""
+    if is_owner or is_admin:
+        return True
+    return bool(set(role_names or []) & set(RING_STAFF))
 
 SERVER_PLAN = [
     {"cat": "📢 ENTRADA", "ring": "publico", "channels": [
@@ -2385,12 +2409,32 @@ def build_bot(api: ApiClient, members_intent: bool = True):
                        ephemeral=True)
 
     @tree.command(name="personagem",
-                  description="Registra/mostra seu personagem do Albion")
-    @app_commands.describe(nick="Seu nick EXATO no jogo (vazio = ver o atual)")
-    async def personagem_cmd(interaction: discord.Interaction, nick: str = None):
+                  description="Mostra o personagem do Albion vinculado a você")
+    async def personagem_cmd(interaction: discord.Interaction):
         await _respond(interaction,
-                       handle_personagem(api, interaction.user.id, nick),
+                       handle_personagem(api, interaction.user.id),
                        ephemeral=True)
+
+    @tree.command(name="registrar-membro",
+                  description="Vincula o Discord de um membro ao nick dele no Albion (staff)")
+    @app_commands.describe(membro="O membro do Discord a vincular",
+                           nick="Nick EXATO no Albion (confira na tela compartilhada)")
+    async def registrar_membro_cmd(interaction: discord.Interaction,
+                                   membro: discord.Member, nick: str):
+        async def _run():
+            perms = getattr(interaction.user, "guild_permissions", None)
+            is_owner = bool(interaction.guild
+                            and interaction.guild.owner_id == interaction.user.id)
+            nomes = {r.name for r in getattr(interaction.user, "roles", [])}
+            if not is_recruiter(nomes, is_owner,
+                                bool(perms and perms.administrator)):
+                return ("❌ Vincular personagem é tarefa do recrutador "
+                        "(Oficial/Mestre). Chama alguém da staff.")
+            if getattr(membro, "bot", False):
+                return "❌ Bot não tem personagem no Albion."
+            return await handle_registrar_membro(
+                api, membro.id, nick, membro.display_name)
+        await _respond(interaction, _run(), ephemeral=True)
 
     @tree.command(name="reportar",
                   description="Reporta entrega de tributo (pausa seu relógio)")

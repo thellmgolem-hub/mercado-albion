@@ -772,7 +772,9 @@ class FamaHandlerTests(unittest.TestCase):
             async def get(self, path, params=None):
                 return {"found": False, "sem_registro": True}
         out = asyncio.run(bot.handle_fama(Api(), 1))
-        self.assertIn("/personagem", out)
+        # sem vínculo: aponta o fluxo do recrutador + o atalho de consulta
+        self.assertIn("registrar-membro", out)
+        self.assertIn("/fama nick:", out)
 
     def test_fmt_escala(self):
         self.assertEqual(bot._fama_fmt(999), "999")
@@ -847,32 +849,56 @@ class ServerLayersTests(unittest.TestCase):
                   "ENTRADA", "GUILDA", "COMANDO", "#conquistas"):
             self.assertIn(t, s)
 
-    def test_personagem_registra_resolvido(self):
+    def test_registrar_membro_resolvido(self):
         class Api:
             async def post(self, path, json=None):
                 assert json["char_name"] == "olegislador"
+                assert json["discord_user_id"] == 42
                 return {"ok": True, "char_name": "olegislador", "char_id": "P1",
                         "resolved": True, "guild": "Operarius"}
-        out = asyncio.run(bot.handle_personagem(Api(), 1, "olegislador"))
+        out = asyncio.run(bot.handle_registrar_membro(
+            Api(), 42, "olegislador", "Hedon"))
         self.assertIn("olegislador", out)
         self.assertIn("Operarius", out)
+        self.assertIn("Hedon", out)
 
-    def test_personagem_nao_achado_avisa(self):
+    def test_registrar_membro_nao_achado_avisa(self):
         class Api:
             async def post(self, path, json=None):
                 return {"ok": True, "char_name": "calixta00", "char_id": None,
                         "resolved": False, "candidates": ["calixta007"]}
-        out = asyncio.run(bot.handle_personagem(Api(), 1, "calixta00"))
+        out = asyncio.run(bot.handle_registrar_membro(
+            Api(), 7, "calixta00", "Calixxxtonha"))
         self.assertIn("calixta00", out)
         self.assertIn("killboard", out)
 
-    def test_personagem_sem_nick_mostra_atual(self):
+    def test_personagem_e_so_consulta(self):
         class Api:
             async def get(self, path, params=None):
                 return {"char_name": "olegislador", "char_id": "P1",
                         "found": True}
         out = asyncio.run(bot.handle_personagem(Api(), 1))
         self.assertIn("olegislador", out)
+        # a consulta aponta pro fluxo do recrutador, não pro autosserviço
+        self.assertIn("registrar-membro", out)
+
+    def test_personagem_sem_vinculo_orienta_staff(self):
+        class Api:
+            async def get(self, path, params=None):
+                return {"char_name": None, "char_id": None, "found": False}
+        out = asyncio.run(bot.handle_personagem(Api(), 1))
+        self.assertIn("oficial", out.lower())
+
+    def test_vinculo_e_ato_do_recrutador(self):
+        # staff vincula; Aprendiz/Visitante NÃO (decisão do usuário: o
+        # recrutador confere o nick com share de tela no recrutamento)
+        self.assertTrue(bot.is_recruiter(["Oficial"]))
+        self.assertTrue(bot.is_recruiter(["Mestre"]))
+        self.assertTrue(bot.is_recruiter([], is_owner=True))
+        self.assertTrue(bot.is_recruiter([], is_admin=True))
+        self.assertFalse(bot.is_recruiter(["Aprendiz"]))
+        self.assertFalse(bot.is_recruiter(["Visitante"]))
+        self.assertFalse(bot.is_recruiter([]))
 
 
 if __name__ == "__main__":
