@@ -543,6 +543,14 @@ CREATE TABLE IF NOT EXISTS member_characters (
   char_id        TEXT,
   updated_at     REAL
 );
+CREATE TABLE IF NOT EXISTS discord_characters (
+  discord_user_id INTEGER PRIMARY KEY,
+  org_id          INTEGER NOT NULL DEFAULT 1,
+  char_name       TEXT NOT NULL,
+  char_name_norm  TEXT NOT NULL,
+  char_id         TEXT,
+  updated_at      REAL
+);
 """
 
 # Postgres: mesmos campos, tipos nativos. SERIAL para positions.id.
@@ -658,6 +666,14 @@ CREATE TABLE IF NOT EXISTS member_characters (
   char_name_norm TEXT NOT NULL,
   char_id        TEXT,
   updated_at     DOUBLE PRECISION
+);
+CREATE TABLE IF NOT EXISTS discord_characters (
+  discord_user_id BIGINT PRIMARY KEY,
+  org_id          INTEGER NOT NULL DEFAULT 1,
+  char_name       TEXT NOT NULL,
+  char_name_norm  TEXT NOT NULL,
+  char_id         TEXT,
+  updated_at      DOUBLE PRECISION
 );
 """
 

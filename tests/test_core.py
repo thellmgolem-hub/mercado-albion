@@ -2313,6 +2313,35 @@ class HistoryVwapScopeTests(unittest.TestCase):
         self.assertNotIn("item_id IN", captured["sql"])
 
 
+class DiscordCharacterFallbackTests(unittest.TestCase):
+    """/personagem SEM conta na plataforma: registro direto por discord_user_id.
+
+    Membro comum não precisa de vínculo web — o nick vai pra
+    discord_characters; com vínculo, continua indo pra member_characters."""
+
+    def test_registra_e_le_sem_vinculo(self):
+        from albion import gameinfo
+        client = TestClient(app.app)
+        original = gameinfo.resolve_player
+        gameinfo.resolve_player = lambda nome, **kw: (
+            {"id": "P1", "name": "oLegislador", "guild": "Operarius"}, None)
+        try:
+            r = client.post("/api/discord/character",
+                            json={"discord_user_id": 999888777,
+                                  "char_name": "olegislador"})
+            self.assertEqual(r.status_code, 200)
+            body = r.json()
+            self.assertTrue(body["ok"])
+            self.assertEqual(body["char_name"], "oLegislador")   # grafia oficial
+            self.assertTrue(body["resolved"])
+            g = client.get("/api/discord/character",
+                           params={"discord_user_id": 999888777})
+            self.assertTrue(g.json()["found"])
+            self.assertEqual(g.json()["char_id"], "P1")
+        finally:
+            gameinfo.resolve_player = original
+
+
 class WatchdogHealthTests(unittest.TestCase):
     """Vigia da coleta + /api/health: a plataforma se cuida e se explica."""
 

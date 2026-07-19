@@ -3238,25 +3238,54 @@ def _member_character(account_id: int):
     return {"char_name": row[0], "char_id": row[1]} if row else None
 
 
+def _discord_character_any(discord_user_id: int):
+    """Personagem do usuário: prioriza o vínculo de plataforma
+    (member_characters); sem vínculo, cai no registro direto por Discord
+    (discord_characters) — membro comum não precisa de conta na web."""
+    try:
+        a = _discord_member(discord_user_id)
+        ch = _member_character(int(a["id"]))
+        if ch:
+            return ch
+    except (AuthError, HTTPException):
+        pass
+    with aodp.db_lock:
+        try:
+            row = aodp.db.execute(
+                "SELECT char_name, char_id FROM discord_characters "
+                "WHERE discord_user_id=?", [discord_user_id]).fetchone()
+        finally:
+            try:
+                aodp.db.rollback()
+            except Exception:
+                pass
+    return {"char_name": row[0], "char_id": row[1]} if row else None
+
+
 @app.get("/api/discord/character")
 def discord_character_get(request: Request, discord_user_id: int = Query(gt=0)):
-    """Personagem já registrado do membro vinculado (escopo discord_read)."""
+    """Personagem já registrado (vínculo de plataforma OU registro Discord)."""
     _require_service_scope(request, "discord_read")
-    a = _discord_member(discord_user_id)
-    ch = _member_character(int(a["id"]))
-    return {"account_id": int(a["id"]), "char_name": (ch or {}).get("char_name"),
+    ch = _discord_character_any(discord_user_id)
+    return {"char_name": (ch or {}).get("char_name"),
             "char_id": (ch or {}).get("char_id"), "found": bool(ch)}
 
 
 @app.post("/api/discord/character")
 def discord_character_set(body: DiscordCharacterBody, request: Request):
     """Membro registra o PRÓPRIO nick do Albion (escopo discord_read). Resolve
-    no gameinfo /search p/ confirmar a grafia e guardar o player Id."""
+    no gameinfo /search p/ confirmar a grafia e guardar o player Id. Funciona
+    SEM conta na plataforma: sem vínculo, grava por discord_user_id."""
     from albion import gameinfo
     _require_service_scope(request, "discord_read")
-    a = _discord_member(body.discord_user_id)
-    org = int(a.get("org_id") or 1)
-    _org_entitlement(org, "operacao")
+    account_id, org = None, 1
+    try:
+        a = _discord_member(body.discord_user_id)
+        account_id = int(a["id"])
+        org = int(a.get("org_id") or 1)
+        _org_entitlement(org, "operacao")
+    except (AuthError, HTTPException):
+        account_id = None          # sem vínculo: registro direto por Discord
     resolved, cands = _api_guard(lambda: gameinfo.resolve_player(
         body.char_name, server=aodp.server))
     name = resolved["name"] if resolved else body.char_name.strip()
@@ -3264,11 +3293,19 @@ def discord_character_set(body: DiscordCharacterBody, request: Request):
     norm = gameinfo.norm_guild(name)
     now = time.time()
     with aodp.db_lock:
-        store.upsert(
-            aodp.db, "member_characters",
-            ["account_id", "org_id", "char_name", "char_name_norm", "char_id",
-             "updated_at"],
-            [(int(a["id"]), org, name, norm, cid, now)], ["account_id"])
+        if account_id is not None:
+            store.upsert(
+                aodp.db, "member_characters",
+                ["account_id", "org_id", "char_name", "char_name_norm",
+                 "char_id", "updated_at"],
+                [(account_id, org, name, norm, cid, now)], ["account_id"])
+        else:
+            store.upsert(
+                aodp.db, "discord_characters",
+                ["discord_user_id", "org_id", "char_name", "char_name_norm",
+                 "char_id", "updated_at"],
+                [(int(body.discord_user_id), org, name, norm, cid, now)],
+                ["discord_user_id"])
         aodp.db.commit()
     return {"ok": True, "char_name": name, "char_id": cid,
             "resolved": bool(resolved),
@@ -3289,11 +3326,7 @@ def fama(request: Request, nome: str | None = Query(default=None, max_length=32)
     if not nome:
         if not discord_user_id:
             return {"found": False, "sem_registro": True}
-        try:
-            a = _discord_member(discord_user_id)
-        except AuthError:
-            return {"found": False, "sem_registro": True}
-        ch = _member_character(int(a["id"]))
+        ch = _discord_character_any(discord_user_id)
         if not ch or not ch.get("char_id"):
             return {"found": False, "sem_registro": True}
         char_id = ch["char_id"]
