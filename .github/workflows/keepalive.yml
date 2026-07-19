@@ -1,0 +1,26 @@
+name: keepalive
+
+# O GitHub DESLIGA workflows agendados se o repositório ficar 60 dias SEM
+# commit no branch default (só commit reseta o relógio — run agendado não conta).
+# Este job faz um commit vazio 1×/mês como rede de segurança, pra o coletor
+# nunca parar silenciosamente numa fase sem desenvolvimento ativo.
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'   # dia 1 de cada mês, 03:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: commit vazio mensal (reseta o relógio de 60 dias)
+        run: |
+          git config user.name "coletor-keepalive"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "keepalive: mantém os workflows agendados vivos"
+          git push

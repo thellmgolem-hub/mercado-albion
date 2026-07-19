@@ -1104,8 +1104,14 @@ def _sweep_tick_core(count: int):
     # Poda DIÁRIA best-effort (espelha o coletor local): sem ela o sweep
     # enchia o Postgres free sem limite. Estado só em memória — no pior caso
     # (reboot) roda uma poda extra, que sai barata quando não há nada a podar.
+    # ALBION_SWEEP_NO_PRUNE=1 desliga esta poda por-tick: no coletor efêmero do
+    # GitHub Actions cada job é um PROCESSO NOVO (_SWEEP_LAST_PRUNE nasce 0), então
+    # a poda rodaria a CADA job (72×/dia) em vez de 1×/dia — carga e egress à toa.
+    # Lá a poda roda num job dedicado 1×/dia (tools/collector_prune.py).
     global _SWEEP_LAST_PRUNE
-    if time.time() - _SWEEP_LAST_PRUNE >= 86400:
+    if os.environ.get("ALBION_SWEEP_NO_PRUNE") == "1":
+        pass
+    elif time.time() - _SWEEP_LAST_PRUNE >= 86400:
         _SWEEP_LAST_PRUNE = time.time()      # antes do trabalho: sem re-entrada
         try:
             out["prune"] = aodp.snapshot_prune(vacuum=False)

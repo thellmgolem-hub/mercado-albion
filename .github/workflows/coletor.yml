@@ -1,0 +1,45 @@
+name: coletor-mercado
+
+# Coleta de preços/histórico da AODP RODANDO AQUI (banda grátis e ilimitada do
+# GitHub Actions), gravando direto no Postgres do Supabase — NÃO no Render.
+# Motivo: o free do Render tem 5 GB/mês de banda e o coletor sozinho baixava
+# ~25 GB/mês → suspensão (jul/2026). Tirando o download daqui, o Render fica
+# só servindo (banda ~0) e nunca mais é suspenso por banda.
+#
+# Requer o segredo DATABASE_URL (Settings → Secrets and variables → Actions):
+#   a string do POOLER do Supabase (porta 6543).
+# Recomendado repo PÚBLICO (minutos ilimitados; o código não tem segredo).
+
+on:
+  schedule:
+    # a cada 15 min, em minuto quebrado (foge do pico :00 onde o Actions atrasa)
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch: {}   # botão "Run workflow" pra testar na hora
+
+concurrency:
+  group: coletor-mercado    # nunca dois sweeps sobrepostos
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    # só roda depois que você criar a variável COLETOR_ATIVO=1 (Settings →
+    # Secrets and variables → Actions → Variables). Antes disso os disparos
+    # agendados são pulados na hora (0 minuto gasto). Assim posso subir o
+    # workflow agora sem ele falhar/gastar antes de você pôr o DATABASE_URL.
+    if: ${{ vars.COLETOR_ATIVO == '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: tick de coleta (preços + histórico + killboard)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          COLLECTOR_BUDGET_SEC: '480'
+          COLLECTOR_BATCH: '200'
+          ALBION_DB_SOFT_MB: '340'   # autolimite: corta histórico se o banco encher
+        run: python tools/collector_tick.py

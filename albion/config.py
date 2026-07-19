@@ -236,7 +236,10 @@ USER_AGENT = "albion-market-local/1.0 (app local de consulta de mercado)"
 # Preços sempre frescos; histórico só refeito se mais velho que SWEEP_HISTORY_TTL
 # (muda devagar — refazer a cada ciclo seria desperdício de requisições).
 SWEEP_ITEMS_PER_TICK = 100        # itens por toque (~2 chunks de preço/histórico)
-SWEEP_HISTORY_TTL = 6 * 3600      # refaz histórico do item no máx. de 6 em 6 h
+# 24h (era 6h): o histórico é série diária — refazê-lo 4×/dia só multiplicava o
+# PAYLOAD baixado (o vilão da banda que suspendeu o Render em jul/2026). Uma vez
+# por dia basta para a janela de 10 dias; corta ~4× a escrita de histórico.
+SWEEP_HISTORY_TTL = int(os.environ.get("ALBION_SWEEP_HISTORY_TTL_H", "24")) * 3600
 SWEEP_HISTORY_DAYS = 10           # janela de histórico do sweep (escala 24h) —
 # 10 dias (era 30, antes 90): medição real de 17/jul — 30d não cabe no free
 # (545 MB) e 14d encostaria no soft (340). O /historico mostra até 10 dias na
