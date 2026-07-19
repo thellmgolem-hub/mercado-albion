@@ -1814,6 +1814,11 @@ async def apply_server_plan(guild, dsc):
         for rn in (RING_INTERNO if ring == "interno" else RING_STAFF):
             if roles.get(rn):
                 ow[roles[rn]] = dsc.PermissionOverwrite(view_channel=True)
+        # o PRÓPRIO BOT sempre se enxerga: sem isto ele tranca a si mesmo pra
+        # fora das categorias que criou e não consegue nem editá-las depois
+        # nem postar o Mural no #conquistas (Forbidden aprendido ao vivo).
+        if getattr(guild, "me", None):
+            ow[guild.me] = dsc.PermissionOverwrite(view_channel=True)
         return ow
 
     cats = {c.name: c for c in guild.categories}
@@ -1854,6 +1859,8 @@ async def apply_server_plan(guild, dsc):
             for rn in RING_INTERNO:
                 if roles.get(rn):
                     await cat.set_permissions(roles[rn], view_channel=True)
+            if getattr(guild, "me", None):
+                await cat.set_permissions(guild.me, view_channel=True)
             report.append(f"{cat.name}: trancada p/ membros (Aprendiz+)")
         except Exception as exc:
             report.append(f"{cat.name}: FALHOU ({type(exc).__name__})")
