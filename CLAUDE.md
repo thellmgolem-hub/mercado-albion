@@ -142,7 +142,11 @@ fora do portão. Dados em tools/discord_bot.py: `SERVER_ROLES`, `RING_INTERNO`
 🛡️ GUILDA interno / ⚙️ COMANDO staff). `server_plan_summary()` é puro (testável);
 `apply_server_plan(guild, discord)` cria só o que FALTA — nunca apaga nem move o
 que já existe — e configura a permissão na CATEGORIA (canais herdam; ajustar
-canal a canal gera buraco de acesso). Comandos: **/camadas** (mostra o plano) e
+canal a canal gera buraco de acesso). O bot SEMPRE se inclui (guild.me
+view=True) em toda categoria que tranca — sem isso ele se tranca pra fora do
+que criou e não consegue nem editar nem postar (Mural) depois; erro numa
+categoria não derruba as outras e o relatório traz o erro EXATO da API
+(exc.text), não mensagem genérica. Comandos: **/camadas** (mostra o plano) e
 **/organizar-servidor** (aplica; gate = dono do servidor ou admin do Discord).
 Exige que o bot tenha Gerenciar Cargos + Gerenciar Canais (o convite original só
 deu Send Messages=2048) — o comando devolve instrução PT se levar Forbidden.
