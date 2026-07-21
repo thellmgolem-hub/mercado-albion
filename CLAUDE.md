@@ -68,15 +68,22 @@ O bot NÃO deve morrer junto com a plataforma. O critério é o teto da AODP
   processo do bot, em `tools/discord_bot.py` seção "SERVIÇOS LOCAIS":
   `local_search_rows` (items_db do disco), `local_origem_data`
   (data/supply_data.json), `local_gold_pts` (AODP direto), `local_fama_data`
-  (gameinfo direto, via asyncio.to_thread p/ não travar o event loop).
-  Handlers religados: /buscar, /origem, /ouro, /fama (COM nick; sem nick ainda
-  consulta a plataforma p/ achar o personagem vinculado).
+  (gameinfo direto, via asyncio.to_thread p/ não travar o event loop);
+  `local_prices_rows` e `local_history_series` (AODP direto, mesma forma de
+  /api/prices e /api/history: descarta city "0", enriquece name_pt/tier/ench e
+  calcula idade — `_age_min` trata a sentinela '0001-01-01' como None; o history
+  normaliza location->city e timestamp->ts); `_resolve_item` resolve pelo
+  items_db do disco.
+  Handlers religados: /buscar, /origem, /ouro, /fama (COM nick), **/preco,
+  /comparar, /vender, /historico**. Sem nick, /fama ainda consulta a plataforma
+  p/ achar o personagem vinculado (isso é ESTADO, mora no banco).
 Efeito: o Discord segue útil com a plataforma fora, E a plataforma recebe menos
 carga (menos chance de cair). Regressão: `SemPlataformaTests` injeta uma API que
 EXPLODE em qualquer chamada — se alguém reacoplar um handler, o teste quebra.
-PENDENTE (próxima leva): /preco, /comparar, /vender, /historico e as contas de
-/craftar e /refinar de UM item também cabem no teto da AODP e podem virar locais
-(precisam de fetch de preço + clean_price_rows anti-isca + nome PT local).
+CUIDADO ao mexer nesses handlers: o teste TEM de injetar a via LOCAL; injetando
+só uma API falsa, o teste passa a bater na REDE de verdade (a suíte pulou de 1s
+p/ 71s quando isso aconteceu, com socket SSL aberto no relatório).
+PENDENTE: /craftar e /refinar de UM item também cabem no teto da AODP.
 
 ## Auditoria de estabilidade 2026-07-19 (pós-suspensão por banda) — correções
 

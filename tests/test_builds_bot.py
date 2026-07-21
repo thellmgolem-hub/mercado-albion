@@ -109,13 +109,22 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(it["id"], "T8_2H_FIRESTAFF")
 
     def test_comparar_table_and_flip_route(self):
-        search = [{"id": "T4_BAG", "pt": "Bolsa", "tier": 4, "ench": 0}]
+        # /comparar agora resolve o item LOCAL e busca preço direto na AODP:
+        # injeta a via local (o id exato resolve pelo items_db do disco).
         prices = [
             {"city": "Caerleon", "sell_price_min": 1000, "buy_price_max": 800},
             {"city": "Martlock", "sell_price_min": 1500, "buy_price_max": 1200},
             {"city": "Lymhurst", "sell_price_min": 900, "buy_price_max": 700},
         ]
-        out = asyncio.run(bot.handle_comparar(_FakeApi(search, prices), "bolsa"))
+
+        async def _f(ids, cities=None, qualities=None):
+            return prices
+        orig = bot.local_prices_rows
+        try:
+            bot.local_prices_rows = _f
+            out = asyncio.run(bot.handle_comparar(None, "T4_BAG"))
+        finally:
+            bot.local_prices_rows = orig
         self.assertIn("Bolsa", out)
         self.assertIn("Caerleon", out)
         # rota: comprar mais barato (Lymhurst) -> vender maior ordem (Martlock)
@@ -161,19 +170,23 @@ class HandlerTests(unittest.TestCase):
             bot.local_gold_pts = orig
 
     def test_historico_grafico_e_estatisticas(self):
-        class HistApi:
-            async def get(self, path, params=None):
-                if path == "/api/search":
-                    return [{"id": "T4_BAG", "pt": "Bolsa", "tier": 4, "ench": 0}]
-                mk = lambda base, step, cnt: [
-                    {"ts": f"2026-07-{d:02d}T00:00:00",
+        def mk(base, step, cnt):
+            return [{"ts": f"2026-07-{d:02d}T00:00:00",
                      "avg_price": base + d * step, "item_count": cnt}
                     for d in range(1, 31)]
-                return [{"item_id": "T4_BAG", "city": "Martlock", "quality": 1,
-                         "data": mk(900, 5, 10)},
-                        {"item_id": "T4_BAG", "city": "Caerleon", "quality": 1,
-                         "data": mk(1000, 10, 50)}]
-        res = asyncio.run(bot.handle_historico(HistApi(), "bolsa", 30))
+        series = [{"item_id": "T4_BAG", "city": "Martlock", "quality": 1,
+                   "data": mk(900, 5, 10)},
+                  {"item_id": "T4_BAG", "city": "Caerleon", "quality": 1,
+                   "data": mk(1000, 10, 50)}]
+
+        async def _f(ids, cities=None, quality=None, time_scale=24, days=30):
+            return series
+        orig = bot.local_history_series
+        try:
+            bot.local_history_series = _f
+            res = asyncio.run(bot.handle_historico(None, "T4_BAG", 30))
+        finally:
+            bot.local_history_series = orig
         # Caerleon tem mais volume -> vem primeiro no texto e no gráfico
         self.assertTrue(res["text"].startswith("**Caerleon**"))
         self.assertIn("Martlock", res["text"])
@@ -183,12 +196,14 @@ class HandlerTests(unittest.TestCase):
         self.assertLessEqual(len(url), 2000)       # cabe no limite de URL
 
     def test_historico_sem_dados(self):
-        class EmptyApi:
-            async def get(self, path, params=None):
-                if path == "/api/search":
-                    return [{"id": "T4_BAG", "pt": "Bolsa", "tier": 4, "ench": 0}]
-                return []
-        res = asyncio.run(bot.handle_historico(EmptyApi(), "bolsa"))
+        async def _f(ids, cities=None, quality=None, time_scale=24, days=30):
+            return []
+        orig = bot.local_history_series
+        try:
+            bot.local_history_series = _f
+            res = asyncio.run(bot.handle_historico(None, "T4_BAG"))
+        finally:
+            bot.local_history_series = orig
         self.assertIsNone(res["chart_url"])
         self.assertIn("sem histórico", res["text"])
 
@@ -975,6 +990,47 @@ class SemPlataformaTests(unittest.TestCase):
             self.assertIn("olegislador", out)
         finally:
             bot.local_fama_data = orig
+
+    # --- 2ª leva: os comandos que a guilda mais usa também sobrevivem ---
+    def _com_precos(self, fn, *a):
+        """Roda o handler com a plataforma MORTA e preços locais injetados."""
+        async def _f(ids, cities=None, qualities=None):
+            return [{"city": "Martlock", "sell_price_min": 1500,
+                     "buy_price_max": 1200, "sell_age_min": 10},
+                    {"city": "Lymhurst", "sell_price_min": 900,
+                     "buy_price_max": 700, "sell_age_min": 20}]
+        orig = bot.local_prices_rows
+        try:
+            bot.local_prices_rows = _f
+            return asyncio.run(fn(self._Morta(), *a))
+        finally:
+            bot.local_prices_rows = orig
+
+    def test_preco_sem_plataforma(self):
+        out = self._com_precos(bot.handle_preco, "T4_BAG")
+        self.assertIn("Martlock", out)
+
+    def test_comparar_sem_plataforma(self):
+        out = self._com_precos(bot.handle_comparar, "T4_BAG")
+        self.assertIn("comprar em Lymhurst", out)
+
+    def test_vender_sem_plataforma(self):
+        out = self._com_precos(bot.handle_vender, "T4_BAG")
+        self.assertIn("MELHOR", out)
+
+    def test_historico_sem_plataforma(self):
+        async def _f(ids, cities=None, quality=None, time_scale=24, days=30):
+            return [{"item_id": "T4_BAG", "city": "Caerleon", "quality": 1,
+                     "data": [{"ts": f"2026-07-{d:02d}T00:00:00",
+                               "avg_price": 100 + d, "item_count": 5}
+                              for d in range(1, 20)]}]
+        orig = bot.local_history_series
+        try:
+            bot.local_history_series = _f
+            res = asyncio.run(bot.handle_historico(self._Morta(), "T4_BAG", 19))
+            self.assertIn("Caerleon", res["text"])
+        finally:
+            bot.local_history_series = orig
 
 
 if __name__ == "__main__":

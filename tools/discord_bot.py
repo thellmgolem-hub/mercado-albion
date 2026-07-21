@@ -138,13 +138,113 @@ def local_item_search(q, limit=20):
 _SUPPLY_CACHE = {}
 
 
-def _local_pt(item_id):
-    """Nome PT do item pelo items_db LOCAL (sem API)."""
+def _local_meta(item_id):
+    """Metadados do item pelo items_db LOCAL (sem API). {} se não achar."""
     base = str(item_id or "").split("@")[0]
     for it in load_items_local():
-        if it.get("id") == item_id or it.get("id") == base:
-            return it.get("pt") or item_id
-    return item_id
+        if it.get("id") == item_id:
+            return it
+    for it in load_items_local():
+        if it.get("id") == base:
+            return it
+    return {}
+
+
+def _local_pt(item_id):
+    """Nome PT do item pelo items_db LOCAL (sem API)."""
+    return _local_meta(item_id).get("pt") or item_id
+
+
+def _age_min(iso):
+    """Idade em minutos de uma data ISO da AODP (None se vazia/sem dado).
+
+    A AODP devolve '0001-01-01T00:00:00' quando não tem cotação — vira None."""
+    from datetime import datetime, timezone
+    if not iso:
+        return None
+    s = str(iso).replace("Z", "").split(".")[0]
+    try:
+        d = datetime.fromisoformat(s)
+    except ValueError:
+        return None
+    if d.year < 2000:                       # sentinela de "sem dado"
+        return None
+    d = d.replace(tzinfo=timezone.utc)
+    return max(0, int((datetime.now(timezone.utc) - d).total_seconds() // 60))
+
+
+async def _aodp_get(path, params, timeout=20):
+    """GET direto na AODP (sem plataforma, sem banco)."""
+    import httpx
+    from albion import config as _cfg
+    base = _cfg.SERVERS.get(_cfg.DEFAULT_SERVER, "")
+    async with httpx.AsyncClient(timeout=timeout) as cli:
+        r = await cli.get(f"{base}{path}", params=params)
+        r.raise_for_status()
+        return r.json() or []
+
+
+async def local_prices_rows(item_ids, cities=None, qualities=None):
+    """Mesma forma do GET /api/prices, batendo DIRETO na AODP.
+
+    Cabe no teto da AODP porque é 1 item (poucos preços) — só varredura do
+    mercado inteiro precisa do banco."""
+    from albion import config as _cfg
+    ids = list(item_ids) if isinstance(item_ids, (list, tuple)) else [item_ids]
+    cities = list(cities or _cfg.CITIES)
+    rows = await _aodp_get(
+        "/api/v2/stats/prices/" + ",".join(ids) + ".json",
+        {"locations": ",".join(cities)})
+    quals = set(qualities) if qualities else None
+    out = []
+    for r in rows:
+        if r.get("city") in (None, "0"):     # cidade inválida da AODP
+            continue
+        if quals and r.get("quality") not in quals:
+            continue
+        meta = _local_meta(r.get("item_id"))
+        out.append({**r,
+                    "name_pt": meta.get("pt", r.get("item_id")),
+                    "tier": meta.get("tier", 0),
+                    "ench": meta.get("ench", 0),
+                    "sell_age_min": _age_min(r.get("sell_price_min_date")),
+                    "buy_age_min": _age_min(r.get("buy_price_max_date"))})
+    return out
+
+
+async def local_history_series(item_ids, cities=None, quality=None,
+                               time_scale=24, days=30):
+    """Mesma forma do GET /api/history, batendo DIRETO na AODP.
+
+    A AODP usa 'location'/'timestamp' no history; normaliza p/ 'city'/'ts'."""
+    from datetime import date, timedelta
+    from albion import config as _cfg
+    ids = list(item_ids) if isinstance(item_ids, (list, tuple)) else [item_ids]
+    cities = list(cities or _cfg.CITIES)
+    hoje = date.today()
+    series = await _aodp_get(
+        "/api/v2/stats/history/" + ",".join(ids) + ".json",
+        {"locations": ",".join(cities), "time-scale": time_scale,
+         "date": (hoje - timedelta(days=days)).strftime("%Y-%m-%d"),
+         "end_date": hoje.strftime("%Y-%m-%d")}, timeout=30)
+    out = []
+    for s in series:
+        loc = s.get("location")
+        if loc in (None, "0"):
+            continue
+        if quality is not None and s.get("quality") != quality:
+            continue
+        out.append({
+            "item_id": s.get("item_id"), "city": loc,
+            "quality": s.get("quality"),
+            "name_pt": _local_pt(s.get("item_id")),
+            "data": [{"ts": p.get("timestamp"),
+                      "item_count": p.get("item_count"),
+                      "avg_price": p.get("avg_price")}
+                     for p in (s.get("data") or [])]})
+    return out
+
+
 
 
 def local_resolve_item_id(termo):
@@ -602,25 +702,29 @@ def build_image_file(build, idx):
 # tipo do discord.py aqui — portável p/ Interactions HTTP sem tocar na lógica.
 
 async def _resolve_item(api, termo):
-    """Melhor item p/ o termo (mesma busca da web); None se nada casar.
+    """Melhor item p/ o termo; None se nada casar.
 
-    Se o termo for um id exato (ex.: veio do autocomplete), prioriza esse item.
-    """
-    res = await api.get("/api/search", params={"q": termo, "limit": 5})
+    LOCAL: usa o items_db do disco (mesma base do autocomplete), sem
+    plataforma. Se o termo for um id exato (veio do autocomplete), prioriza."""
     alvo = (termo or "").strip().lower()
-    for it in res:
-        if it.get("id", "").lower() == alvo:
+    for it in load_items_local():
+        if str(it.get("id", "")).lower() == alvo:
             return it
-    return res[0] if res else None
+    hits = local_item_search(termo, limit=5)
+    return hits[0] if hits else None
 
 
 async def handle_preco(api, termo: str) -> str:
-    """/preco — resolve o id pelo termo e mostra os preços q1 por cidade."""
+    """/preco — resolve o id pelo termo e mostra os preços q1 por cidade.
+
+    LOCAL: 1 item cabe no teto da AODP, então busca direto (sem plataforma)."""
     item = await _resolve_item(api, termo)
     if not item:
         return f"Nenhum item encontrado para '{termo}'. Tente /buscar {termo}."
-    rows = await api.get("/api/prices",
-                         params={"items": item["id"], "qualities": "1"})
+    try:
+        rows = await local_prices_rows([item["id"]], qualities=[1])
+    except Exception:
+        return "Não consegui os preços agora (AODP fora?). Tente já já."
     rows = [r for r in rows
             if (r.get("sell_price_min") or 0) > 0
             or (r.get("buy_price_max") or 0) > 0]
@@ -663,12 +767,16 @@ def _bar(value, vmax, width=12):
 
 
 async def handle_comparar(api, termo: str) -> str:
-    """/comparar — preço do item entre TODAS as cidades (barras + rota de flip)."""
+    """/comparar — preço do item entre TODAS as cidades (barras + rota de flip).
+
+    LOCAL: busca direto na AODP (1 item), sem plataforma."""
     item = await _resolve_item(api, termo)
     if not item:
         return f"Nenhum item encontrado para '{termo}'. Tente /buscar {termo}."
-    rows = await api.get("/api/prices",
-                         params={"items": item["id"], "qualities": "1"})
+    try:
+        rows = await local_prices_rows([item["id"]], qualities=[1])
+    except Exception:
+        return "Não consegui os preços agora (AODP fora?). Tente já já."
     sells = [(r["city"], r.get("sell_price_min") or 0) for r in rows
              if (r.get("sell_price_min") or 0) > 0]
     buys = [(r["city"], r.get("buy_price_max") or 0) for r in rows
@@ -751,13 +859,15 @@ async def handle_historico(api, termo: str, dias: int = 30) -> dict:
         return {"text": (f"Nenhum item encontrado para '{termo}'. "
                          f"Tente /buscar {termo}."),
                 "chart_url": None, "title": None}
-    series = await api.get("/api/history",
-                           params={"items": item["id"], "days": dias,
-                                   "time_scale": 24, "quality": 1})
+    try:                       # LOCAL: 1 item cabe no teto da AODP
+        series = await local_history_series([item["id"]], quality=1,
+                                            time_scale=24, days=dias)
+    except Exception:
+        series = []
     series = [s for s in series if s.get("data")]
     if not series:
-        return {"text": (f"{item['pt']} — sem histórico no cache para {dias} "
-                         "dias. A coleta enche as janelas com o tempo."),
+        return {"text": (f"{item['pt']} — sem histórico para {dias} dias "
+                         "(a AODP só tem o que algum jogador escaneou)."),
                 "chart_url": None, "title": None}
     # cidades com mais volume primeiro (o gráfico compara as 2 maiores)
     series.sort(key=lambda s: -sum(p.get("item_count") or 0 for p in s["data"]))
@@ -1063,12 +1173,16 @@ async def handle_quadro(api, discord_user_id: int) -> str:
 
 
 async def handle_vender(api, termo: str) -> str:
-    """/vender — melhor cidade p/ VENDER o item (maior venda q1)."""
+    """/vender — melhor cidade p/ VENDER o item (maior venda q1).
+
+    LOCAL: busca direto na AODP (1 item), sem plataforma."""
     item = await _resolve_item(api, termo)
     if not item:
         return f"Nenhum item casa com '{termo}'. Tente /buscar {termo}."
-    rows = await api.get("/api/prices",
-                         params={"items": item["id"], "qualities": "1"})
+    try:
+        rows = await local_prices_rows([item["id"]], qualities=[1])
+    except Exception:
+        return "Não consegui os preços agora (AODP fora?). Tente já já."
     rows = [r for r in rows if (r.get("sell_price_min") or 0) > 0]
     if not rows:
         return code_block(f"{item['pt']} — sem cotação de venda no momento.")
