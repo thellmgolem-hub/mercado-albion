@@ -56,6 +56,28 @@ A plataforma virou multi-org (SaaS p/ outras guilds + assinantes analytics-only)
   ANTES de aceitar a 2ª guild (junto: username_norm global vs por-org; org nova
   nasce inactive). Testes: MultiTenantIsolationTests em tests/test_core.py.
 
+## Doutrina LOCAL vs PLATAFORMA (decisão do usuário, jul/2026)
+
+O bot NÃO deve morrer junto com a plataforma. O critério é o teto da AODP
+(180/min, 300/5min, URL<=4096 => ~100 itens por chamada):
+- **Precisa do banco acumulado** (varredura do mercado inteiro / série histórica
+  / estado): /recomendar, /flip, /escanear, /micro, /risco, /logistica, /guild,
+  /demanda, /sinais, /lab, /ilha, /plano, /foco, /produzir + tributo, Mural,
+  vínculo membro→nick. Isso é o núcleo irredutível da plataforma.
+- **NÃO precisa de plataforma** (repasse puro ou dado estático) => roda LOCAL no
+  processo do bot, em `tools/discord_bot.py` seção "SERVIÇOS LOCAIS":
+  `local_search_rows` (items_db do disco), `local_origem_data`
+  (data/supply_data.json), `local_gold_pts` (AODP direto), `local_fama_data`
+  (gameinfo direto, via asyncio.to_thread p/ não travar o event loop).
+  Handlers religados: /buscar, /origem, /ouro, /fama (COM nick; sem nick ainda
+  consulta a plataforma p/ achar o personagem vinculado).
+Efeito: o Discord segue útil com a plataforma fora, E a plataforma recebe menos
+carga (menos chance de cair). Regressão: `SemPlataformaTests` injeta uma API que
+EXPLODE em qualquer chamada — se alguém reacoplar um handler, o teste quebra.
+PENDENTE (próxima leva): /preco, /comparar, /vender, /historico e as contas de
+/craftar e /refinar de UM item também cabem no teto da AODP e podem virar locais
+(precisam de fetch de preço + clean_price_rows anti-isca + nome PT local).
+
 ## Auditoria de estabilidade 2026-07-19 (pós-suspensão por banda) — correções
 
 Suspensão por BANDA no Render (coletor baixava 36 GB > 5 GB free). Coletor movido

@@ -127,6 +127,96 @@ def local_item_search(q, limit=20):
     out.sort(key=lambda x: (len(x.get("pt") or ""), x.get("tier") or 9))
     return out[:limit]
 
+
+# ------------------------------------------- SERVIÇOS LOCAIS (sem plataforma)
+# DOUTRINA (decisão do usuário, jul/2026): o que NÃO precisa do banco acumulado
+# roda AQUI, no processo do bot, sem passar pela plataforma. Motivo: a API do
+# AODP limita ~100 itens por chamada — só varredura do mercado inteiro e série
+# histórica precisam do banco. Repasse puro (fama, ouro) e dado estático
+# (busca, origem) não precisam de nada. Efeito: o Discord continua útil mesmo
+# com a plataforma fora, e a plataforma recebe MUITO menos carga.
+_SUPPLY_CACHE = {}
+
+
+def _local_pt(item_id):
+    """Nome PT do item pelo items_db LOCAL (sem API)."""
+    base = str(item_id or "").split("@")[0]
+    for it in load_items_local():
+        if it.get("id") == item_id or it.get("id") == base:
+            return it.get("pt") or item_id
+    return item_id
+
+
+def local_resolve_item_id(termo):
+    """Termo -> id de item usando SÓ a busca local (id exato passa direto)."""
+    t = str(termo or "").strip()
+    if not t:
+        return None
+    for it in load_items_local():          # já é um id?
+        if it.get("id", "").lower() == t.lower():
+            return it["id"]
+    hits = local_item_search(t, limit=1)
+    return hits[0]["id"] if hits else None
+
+
+def local_origem_data(item):
+    """Mesma forma do GET /api/origin, lendo data/supply_data.json LOCAL."""
+    item_id = local_resolve_item_id(item) or item
+    if "data" not in _SUPPLY_CACHE:
+        p = Path(__file__).resolve().parent.parent / "data" / "supply_data.json"
+        try:
+            _SUPPLY_CACHE["data"] = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            _SUPPLY_CACHE["data"] = {}
+    supply = _SUPPLY_CACHE["data"]
+    srcs = supply.get(item_id) or supply.get(str(item_id).split("@")[0]) or []
+    return {"item": {"id": item_id, "name_pt": _local_pt(item_id)},
+            "sources": srcs}
+
+
+def local_search_rows(termo, limit=10):
+    """Mesma forma do GET /api/search?group=true, 100% local."""
+    out = []
+    for it in local_item_search(termo, limit=limit):
+        out.append({"id": it.get("id"), "pt": it.get("pt") or it.get("id"),
+                    "tier": it.get("tier"), "enchants": []})
+    return out
+
+
+async def local_gold_pts(count=48):
+    """Cotação do ouro DIRETO na AODP (repasse puro; não precisa do banco)."""
+    import httpx
+    from albion import config as _cfg
+    base = _cfg.SERVERS.get(_cfg.DEFAULT_SERVER, "")
+    url = f"{base}/api/v2/stats/gold.json"
+    async with httpx.AsyncClient(timeout=15) as cli:
+        r = await cli.get(url, params={"count": int(count)})
+        r.raise_for_status()
+        pts = r.json() or []
+    # a AODP devolve do mais ANTIGO p/ o mais novo; o handler espera o novo em [0]
+    pts = [p for p in pts if p.get("price")]
+    return list(reversed(pts))
+
+
+async def local_fama_data(nick):
+    """Fama por atividade DIRETO no killboard (gameinfo). Repasse puro.
+
+    Mesma forma do GET /api/fama. As funções do gameinfo são síncronas — vão
+    pra uma thread pra NÃO travar o event loop do bot (que é o mesmo do app)."""
+    import asyncio as _aio
+    from albion import gameinfo as _gi
+    from albion import config as _cfg
+    srv = _cfg.DEFAULT_SERVER
+
+    def _work():
+        resolved, cands = _gi.resolve_player(nick, server=srv)
+        if not resolved:
+            return {"found": False, "candidatos": cands or []}
+        det = _gi.player_fame(resolved["id"], server=srv)
+        return {"found": True, **det}
+    return await _aio.to_thread(_work)
+
+
 # Mural de Conquistas: intervalo do laço que busca abates novos e posta
 KILLFEED_INTERVAL = 150   # segundos (~2,5 min; abaixo dos 1000 ev/20min de pico)
 # KillArea da API -> rótulo PT-BR do local do abate (Location vem nulo)
@@ -548,9 +638,10 @@ async def handle_preco(api, termo: str) -> str:
 
 
 async def handle_buscar(api, termo: str) -> str:
-    """/buscar — lista candidatos (variantes de encanto colapsadas)."""
-    res = await api.get("/api/search",
-                        params={"q": termo, "limit": 10, "group": "true"})
+    """/buscar — lista candidatos (variantes de encanto colapsadas).
+
+    LOCAL: lê o items_db do disco; não toca na plataforma (dado estático)."""
+    res = local_search_rows(termo, limit=10)
     if not res:
         return f"Nenhum item encontrado para '{termo}'."
     lines = [f"Itens para '{termo}':", ""]
@@ -994,11 +1085,16 @@ async def handle_vender(api, termo: str) -> str:
 
 
 async def handle_ouro(api) -> str:
-    """/ouro — cotação atual + tendência simples (prata por 1 ouro)."""
-    pts = await api.get("/api/gold", params={"count": 48})
+    """/ouro — cotação atual + tendência simples (prata por 1 ouro).
+
+    LOCAL: bate direto na AODP (repasse puro, 1 chamada); sem plataforma."""
+    try:
+        pts = await local_gold_pts(48)
+    except Exception:
+        pts = []
     if not pts:
-        return "Sem cotação de ouro no cache ainda."
-    # /api/gold vem ORDER BY ts DESC (mais NOVO primeiro): pts[0]=atual, pts[-1]=~48h atrás.
+        return "Não consegui a cotação do ouro agora (AODP fora?). Tente já já."
+    # normalizado p/ o mais NOVO primeiro: pts[0]=atual, pts[-1]=~48h atrás.
     cur, old = pts[0], pts[-1]
     if not cur.get("price"):
         return "Sem cotação de ouro válida no cache ainda."
@@ -1329,8 +1425,10 @@ def _mob_name(mob):
 
 
 async def handle_origem(api, item: str) -> str:
-    """/origem — de quais mobs o item cai, por fama (GET /api/origin)."""
-    res = await api.get("/api/origin", params={"item": item})
+    """/origem — de quais mobs o item cai, por fama.
+
+    LOCAL: lê data/supply_data.json do disco (dump estático); sem plataforma."""
+    res = local_origem_data(item)
     meta = res.get("item") or {}
     nome = meta.get("name_pt") or meta.get("id", item)
     sources = res.get("sources") or []
@@ -1629,14 +1727,21 @@ def _fama_fmt(v):
 
 
 async def handle_fama(api, discord_user_id, nick=None):
-    """Fama por atividade (killboard oficial). Sem nick: usa o registrado."""
+    """Fama por atividade (killboard oficial). Sem nick: usa o registrado.
+
+    COM nick: bate DIRETO no killboard, sem plataforma (repasse puro). SEM
+    nick: precisa da plataforma só p/ descobrir o personagem vinculado."""
     try:
-        params = {"discord_user_id": discord_user_id}
         if nick:
-            params["nome"] = nick
-        r = await api.get("/api/fama", params=params)
+            r = await local_fama_data(nick)
+        else:
+            r = await api.get("/api/fama",
+                              params={"discord_user_id": discord_user_id})
     except ApiError as e:
         return friendly_error(e)
+    except Exception:
+        return ("Não consegui falar com o killboard agora — tente de novo em "
+                "alguns instantes.")
     if not r.get("found"):
         if r.get("sem_registro"):
             return ("Você ainda não tem personagem vinculado (um oficial faz "

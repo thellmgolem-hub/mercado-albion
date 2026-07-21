@@ -130,22 +130,35 @@ class HandlerTests(unittest.TestCase):
         self.assertEqual(bot._bar(0, 100), "")
         self.assertTrue(len(bot._bar(100, 100)) >= len(bot._bar(50, 100)))
 
-    def test_ouro_usa_mais_novo_como_atual(self):
-        # /api/gold vem ORDER BY ts DESC (mais NOVO primeiro): pts[0]=agora.
-        class GoldApi:
-            async def get(self, path, params=None):
-                return [{"price": 4000, "ts": "2026-07-14T00:00:00"},   # atual
-                        {"price": 3000, "ts": "2026-07-12T00:00:00"}]   # ~48h atrás
-        out = asyncio.run(bot.handle_ouro(GoldApi()))
-        self.assertIn("4.000", out)        # cotação atual = ponto mais novo
-        self.assertIn("subindo", out)      # 4000 vs 3000 -> subiu (sinal correto)
+    @staticmethod
+    def _fake_gold(pts):
+        """/ouro agora bate DIRETO na AODP (sem plataforma): injeta a via local
+        pra o teste seguir hermético (sem rede)."""
+        async def _f(count=48):
+            return pts
+        return _f
 
-    def test_ouro_preco_zero_nao_quebra(self):
-        class GoldApi:
-            async def get(self, path, params=None):
-                return [{"price": 0, "ts": "2026-07-14T00:00:00"}]
-        out = asyncio.run(bot.handle_ouro(GoldApi()))  # sem ZeroDivisionError
-        self.assertIn("válida", out)
+    def test_ouro_usa_mais_novo_como_atual(self):
+        # a via local normaliza p/ o mais NOVO primeiro: pts[0]=agora.
+        orig = bot.local_gold_pts
+        try:
+            bot.local_gold_pts = self._fake_gold(
+                [{"price": 4000, "ts": "2026-07-14T00:00:00"},    # atual
+                 {"price": 3000, "ts": "2026-07-12T00:00:00"}])   # ~48h atrás
+            out = asyncio.run(bot.handle_ouro(None))
+            self.assertIn("4.000", out)    # cotação atual = ponto mais novo
+            self.assertIn("subindo", out)  # 4000 vs 3000 -> subiu
+        finally:
+            bot.local_gold_pts = orig
+
+    def test_ouro_sem_cotacao_nao_quebra(self):
+        orig = bot.local_gold_pts
+        try:
+            bot.local_gold_pts = self._fake_gold([])   # AODP fora / sem dado
+            out = asyncio.run(bot.handle_ouro(None))   # sem ZeroDivisionError
+            self.assertIn("cotação do ouro", out)
+        finally:
+            bot.local_gold_pts = orig
 
     def test_historico_grafico_e_estatisticas(self):
         class HistApi:
@@ -472,21 +485,24 @@ class AdvancedHandlerTests(unittest.TestCase):
         self.assertIn("sem histórico", self._run(bot.handle_lab(Cold(), "bolsa")))
 
     def test_origem_e_vazio(self):
-        class Api:
-            async def get(self, path, params=None):
-                assert path == "/api/origin"
-                return {"item": {"id": "T5_2H_BOW", "name_pt": "Arco"},
-                        "sources": [{"mob": "T5_MOB_DEMON_VETERAN_BOSS", "tier": 5,
-                                     "fame": 12000, "cat": "boss"}]}
-        out = self._run(bot.handle_origem(Api(), "arco"))
-        self.assertIn("Demon Veteran Boss", out)      # mob id limpo
+        # /origem agora é LOCAL (lê o dump do disco, sem plataforma): o teste
+        # injeta a fonte local, não uma API falsa.
+        orig = bot.local_origem_data
+        try:
+            bot.local_origem_data = lambda item: {
+                "item": {"id": "T5_2H_BOW", "name_pt": "Arco"},
+                "sources": [{"mob": "T5_MOB_DEMON_VETERAN_BOSS", "tier": 5,
+                             "fame": 12000, "cat": "boss"}]}
+            out = self._run(bot.handle_origem(None, "arco"))
+            self.assertIn("Demon Veteran Boss", out)   # mob id limpo
 
-        class Empty:
-            async def get(self, path, params=None):
-                return {"item": {"id": "T5_METALBAR", "name_pt": "Barra"},
-                        "sources": []}
-        self.assertIn("não vem de mob",
-                      self._run(bot.handle_origem(Empty(), "barra")))
+            bot.local_origem_data = lambda item: {
+                "item": {"id": "T5_METALBAR", "name_pt": "Barra"},
+                "sources": []}
+            self.assertIn("não vem de mob",
+                          self._run(bot.handle_origem(None, "barra")))
+        finally:
+            bot.local_origem_data = orig
 
     def test_micro(self):
         class Api:
@@ -745,11 +761,17 @@ class FamaHandlerTests(unittest.TestCase):
              "crystal": 0, "stats_at": "2026-07-17T03:19:32Z"}
 
     def test_fama_completa(self):
-        class Api:
-            async def get(self, path, params=None):
-                assert params.get("nome") == "olegislador"
-                return FamaHandlerTests._FAMA
-        out = asyncio.run(bot.handle_fama(Api(), 1, "olegislador"))
+        # COM nick, /fama vai DIRETO no killboard (sem plataforma): injeta a
+        # via local pra o teste seguir hermético (sem rede).
+        async def _local(nick):
+            assert nick == "olegislador"
+            return FamaHandlerTests._FAMA
+        orig = bot.local_fama_data
+        try:
+            bot.local_fama_data = _local
+            out = asyncio.run(bot.handle_fama(None, 1, "olegislador"))
+        finally:
+            bot.local_fama_data = orig
         self.assertIn("olegislador", out)
         self.assertIn("Operarius", out)
         self.assertIn("1,2M", out)          # kill fame legível
@@ -760,10 +782,15 @@ class FamaHandlerTests(unittest.TestCase):
         self.assertNotIn("Pesca", out)      # zero não polui
 
     def test_nao_achado_sugere(self):
-        class Api:
-            async def get(self, path, params=None):
-                return {"found": False, "candidatos": ["olegislador"]}
-        out = asyncio.run(bot.handle_fama(Api(), 1, "olegisladorr"))
+        # com nick vai pela via LOCAL: injeta (senão o teste bate na rede)
+        async def _local(nick):
+            return {"found": False, "candidatos": ["olegislador"]}
+        orig = bot.local_fama_data
+        try:
+            bot.local_fama_data = _local
+            out = asyncio.run(bot.handle_fama(None, 1, "olegisladorr"))
+        finally:
+            bot.local_fama_data = orig
         self.assertIn("Não achei", out)
         self.assertIn("olegislador", out)
 
@@ -899,6 +926,55 @@ class ServerLayersTests(unittest.TestCase):
         self.assertFalse(bot.is_recruiter(["Aprendiz"]))
         self.assertFalse(bot.is_recruiter(["Visitante"]))
         self.assertFalse(bot.is_recruiter([]))
+
+
+class SemPlataformaTests(unittest.TestCase):
+    """DOUTRINA (decisão do usuário, jul/2026): o que NÃO precisa do banco
+    acumulado roda LOCAL, no processo do bot. Estes testes provam que o Discord
+    continua útil com a PLATAFORMA FORA — a API injetada aqui EXPLODE se alguém
+    voltar a acoplar o handler à plataforma."""
+
+    class _Morta:
+        """Plataforma caída: qualquer chamada é falha de arquitetura."""
+
+        async def get(self, *a, **k):
+            raise AssertionError("handler chamou a plataforma (era p/ ser LOCAL)")
+
+        async def post(self, *a, **k):
+            raise AssertionError("handler chamou a plataforma (era p/ ser LOCAL)")
+
+    def test_buscar_sem_plataforma(self):
+        out = asyncio.run(bot.handle_buscar(self._Morta(), "bolsa t4"))
+        self.assertIn("T4_BAG", out)
+
+    def test_origem_sem_plataforma(self):
+        # lê o dump do disco; item de coleta não vem de mob
+        out = asyncio.run(bot.handle_origem(self._Morta(), "T4_HIDE"))
+        self.assertIn("não vem de mob", out)
+
+    def test_ouro_sem_plataforma(self):
+        orig = bot.local_gold_pts
+
+        async def _f(count=48):
+            return [{"price": 7000}, {"price": 6000}]
+        try:
+            bot.local_gold_pts = _f
+            out = asyncio.run(bot.handle_ouro(self._Morta()))
+            self.assertIn("7.000", out)
+        finally:
+            bot.local_gold_pts = orig
+
+    def test_fama_com_nick_sem_plataforma(self):
+        orig = bot.local_fama_data
+
+        async def _f(nick):
+            return FamaHandlerTests._FAMA
+        try:
+            bot.local_fama_data = _f
+            out = asyncio.run(bot.handle_fama(self._Morta(), 1, "olegislador"))
+            self.assertIn("olegislador", out)
+        finally:
+            bot.local_fama_data = orig
 
 
 if __name__ == "__main__":
