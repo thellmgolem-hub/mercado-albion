@@ -243,6 +243,7 @@ class _PgConn:
 
 
 _PG_LOCK = threading.Lock()
+_STMT_TIMEOUT_CHECKED = False   # DEP-1: verifica o statement_timeout 1x/processo
 
 
 def connect(readonly: bool = False, path: str | Path | None = None):
@@ -310,7 +311,15 @@ def connect(readonly: bool = False, path: str | Path | None = None):
                       "statement_timeout (keepalives seguem ativos).",
                       flush=True)
                 conn = psycopg.connect(database_url(), **base_kw)
-            _verify_timeout(conn)
+            # DEP-1: o _verify_timeout é DIAGNÓSTICO — o pooler honra (ou não) o
+            # `options` do mesmo jeito em toda conexão da sessão, então basta
+            # conferir UMA vez por processo. Rodá-lo a cada conexão readonly
+            # somava 1 RTT ao caminho mais quente (18 endpoints, ~30-40 aberturas
+            # por pageload sob 10 usuários). Verifica no 1º open e cala depois.
+            global _STMT_TIMEOUT_CHECKED
+            if not _STMT_TIMEOUT_CHECKED:
+                _STMT_TIMEOUT_CHECKED = True
+                _verify_timeout(conn)
             return conn
         return _PgConn(_open(), reopen=_open)
 

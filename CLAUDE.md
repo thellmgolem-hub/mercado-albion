@@ -85,6 +85,45 @@ só uma API falsa, o teste passa a bater na REDE de verdade (a suíte pulou de 1
 p/ 71s quando isso aconteceu, com socket SSL aberto no relatório).
 PENDENTE: /craftar e /refinar de UM item também cabem no teto da AODP.
 
+## Auditoria de CAPACIDADE 2026-07-31 (20 usuários / 10 simultâneos) — correções
+
+Auditoria multiagente de capacidade/sobrecarga (6 frentes, verificação adversarial)
+contra os tetos do free sob a carga real da guild. FOLGADO: memória (~180-210 MB de
+512), disco Supabase (~176 de 500, autolimite fail-closed), banda Render (~1,1 GB).
+O que MORDIA foi corrigido (suíte 311):
+- **EL-1/EL-2 (CRÍTICO): auth SÍNCRONA no event loop.** `_auth_guard` (async) fazia
+  ~5-7 SELECTs por /api NO loop, segurando o db_lock — reabria o freeze de 15/jul,
+  e PERIODICAMENTE (o /api/sweep do cron segura o mesmo lock a cada 15min). Fix:
+  (a) CACHE DE SESSÃO em memória no AuthManager (chave=(hash do token, ip), TTL
+  `ALBION_SESSION_CACHE_TTL_S`=30s; SÓ cacheia sucesso; invalidação COARSE em toda
+  mutação de sessão — login/logout/troca/reset/update — e CIRÚRGICA no rotate_csrf;
+  has_admin e authenticate_service também cacheados); (b) a auth saiu do loop via
+  `run_in_threadpool(_resolve_auth_blocking, ...)`. NUNCA reverter p/ auth no loop.
+- **EGR-1 (ALTA): egress de leitura do Supabase.** `_cached_price_rows` fazia
+  `SELECT *` (~3-4 MB/page-load do dashboard) e filtrava cat/tier em Python. Fix:
+  push-down de `item_id IN (...)` (resolve ids do catálogo; ≤1500) + cache de
+  resultado server-side (`ALBION_PRICE_CACHE_TTL_S`=600s) — **só no Postgres**
+  (`_read_cache_on`); no SQLite/testes fica off (egress grátis, não contamina).
+- **DEP-1 (MÉDIA): conexão nova por request.** `_cache_connection` agora REUSA uma
+  conexão readonly POR THREAD no Postgres (`_ReusedConn`: close()→reset, não fecha;
+  gate `ALBION_RO_CONN_REUSE`); `_verify_timeout` roda 1x/processo (store.py
+  `_STMT_TIMEOUT_CHECKED`), não por conexão.
+- **EL-3/EL-4:** loops de fundo do bot (keepalive/killfeed/board) guardados em
+  `self._bg_tasks` e cancelados em `GuildBot.close()` (não vazam por restart do
+  supervisor); teto do BoundedLock 30s→`ALBION_DB_LOCK_TIMEOUT_S`=10s.
+- **DEP-3/DEP-4:** cap de `_MAX_LIVE_ITEMS`=100 em /api/prices,/flips,/sell;
+  `_aodp_get` do bot com retry de 429 (backoff). rank 10: timeout AODP 40s→25s
+  (`ALBION_AODP_TIMEOUT_S`) contra thread starvation.
+- **Higiene:** keep-alive pinga /api/health (não index.html 54KB → -577 MB/mês);
+  GZipMiddleware; erro de rede vira PT (`_fetch` no web); keepalive.yml semanal.
+RESIDUAIS ESTRUTURAIS (o free tier não deixa eliminar, decisão do usuário):
+host único (bot in-process = queda dupla no OOM/suspensão; separar exige 2º host),
+event loop único (NÃO subir --workers>1: cada worker sobe outro bot Discord),
+keeper externo (falta cron-job.org/UptimeRobot <=5min em /api/health), egress
+Supabase 5 GB é apertado por natureza. PENDENTE do usuário (segredos/config, não
+código): repo PÚBLICO, DATABASE_URL, COLETOR_ATIVO=1, PUBLIC_URL, ALBION_ALERT_WEBHOOK.
+Testes novos: session cache evict, pushdown==filtro-Python, reuso de conexão PG.
+
 ## Auditoria de estabilidade 2026-07-19 (pós-suspensão por banda) — correções
 
 Suspensão por BANDA no Render (coletor baixava 36 GB > 5 GB free). Coletor movido

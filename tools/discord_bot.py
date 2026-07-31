@@ -174,14 +174,24 @@ def _age_min(iso):
 
 
 async def _aodp_get(path, params, timeout=20):
-    """GET direto na AODP (sem plataforma, sem banco)."""
+    """GET direto na AODP (sem plataforma, sem banco).
+
+    DEP-4: um 429 (teto da AODP: 180/min) espúrio — ex. no overlap raro com o
+    takeover do vigia — NÃO pode derrubar /preco,/historico,/ouro. Espera e
+    re-tenta com backoff (2 tentativas), espelhando o client._get do app."""
+    import asyncio
     import httpx
     from albion import config as _cfg
     base = _cfg.SERVERS.get(_cfg.DEFAULT_SERVER, "")
     async with httpx.AsyncClient(timeout=timeout) as cli:
-        r = await cli.get(f"{base}{path}", params=params)
-        r.raise_for_status()
-        return r.json() or []
+        for attempt in range(3):
+            r = await cli.get(f"{base}{path}", params=params)
+            if r.status_code == 429 and attempt < 2:
+                await asyncio.sleep(1.5 * (attempt + 1))
+                continue
+            r.raise_for_status()
+            return r.json() or []
+    return []
 
 
 async def local_prices_rows(item_ids, cities=None, qualities=None):
@@ -2189,6 +2199,19 @@ def build_bot(api: ApiClient, members_intent: bool = True):
         def __init__(self):
             super().__init__(intents=intents)
             self.tree = GateTree(self)
+            # EL-3: handles dos loops de fundo (keepalive/killfeed/board). O
+            # supervisor recria o bot a cada restart fatal; sem cancelar os loops
+            # do bot ANTIGO, cada restart deixava um keepalive + um killfeed
+            # órfãos pingando pra sempre (vaza banda e memória). close() os mata.
+            self._bg_tasks = []
+
+        async def close(self):
+            # cancela os loops de fundo ANTES de fechar o gateway — assim o
+            # supervisor pode re-subir um bot novo sem acumular loops órfãos.
+            for t in getattr(self, "_bg_tasks", []):
+                t.cancel()
+            self._bg_tasks = []
+            await super().close()
 
         async def setup_hook(self):
             # Um DISCORD_GUILD_ID malformado (ValueError no int) NÃO pode derrubar
@@ -2244,7 +2267,10 @@ def build_bot(api: ApiClient, members_intent: bool = True):
             import asyncio
 
             async def loop():
-                url = public.rstrip("/") + "/"
+                # EGR-2/UP-1: pinga /api/health (~700 B, público) em vez de "/"
+                # (index.html, 54 KB) — reseta o mesmo timer de spin-down do
+                # Render e corta ~577 MB/mês de banda gasta só pra não dormir.
+                url = public.rstrip("/") + "/api/health"
                 while True:
                     try:
                         async with httpx.AsyncClient(timeout=30) as cli:
@@ -2252,7 +2278,7 @@ def build_bot(api: ApiClient, members_intent: bool = True):
                     except Exception as exc:
                         print(f"[bot] keep-alive falhou: {exc!r}", flush=True)
                     await asyncio.sleep(240)   # 4 min << 15 min do spin-down
-            asyncio.create_task(loop())
+            self._bg_tasks.append(asyncio.create_task(loop()))
 
         # ------------------------------------------- estado idempotente
         # O id da mensagem (guia/quadro) é gravado em data/bot_state.json APENAS
@@ -2356,7 +2382,7 @@ def build_bot(api: ApiClient, members_intent: bool = True):
                 while True:
                     await self.refresh_board()
                     await asyncio.sleep(6 * 3600)   # 4x/dia + após auditorias
-            asyncio.create_task(loop())
+            self._bg_tasks.append(asyncio.create_task(loop()))
 
         def schedule_board_refresh(self):
             """Re-edita o quadro após /aprovar e /rejeitar (não bloqueia)."""
@@ -2381,7 +2407,7 @@ def build_bot(api: ApiClient, members_intent: bool = True):
                     except Exception as exc:
                         print(f"[bot] mural tick falhou: {exc!r}", flush=True)
                     await asyncio.sleep(KILLFEED_INTERVAL)
-            asyncio.create_task(loop())
+            self._bg_tasks.append(asyncio.create_task(loop()))
 
         async def _killfeed_tick(self):
             import discord

@@ -54,12 +54,26 @@ async function apiError(res) {
   return error;
 }
 
+// DEP-6: quando o host dorme/cai (cold start, suspensão), fetch() rejeita com
+// TypeError('Failed to fetch') CRU, em inglês — justo no momento da 'vergonha'.
+// Traduz p/ uma mensagem PT genérica em vez de vazar o erro do navegador.
+async function _fetch(input, init) {
+  try {
+    return await fetch(input, init);
+  } catch (e) {
+    const err = new Error(
+      'Servidor indisponível no momento. Tente de novo em instantes.');
+    err.code = 'network_error';
+    throw err;
+  }
+}
+
 async function api(path, params = {}) {
   const usp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v !== null && v !== undefined && v !== '') usp.set(k, v);
   }
-  const res = await fetch(path + (usp.toString() ? '?' + usp : ''), {
+  const res = await _fetch(path + (usp.toString() ? '?' + usp : ''), {
     credentials: 'same-origin',
   });
   if (!res.ok) throw await apiError(res);
@@ -69,7 +83,7 @@ async function api(path, params = {}) {
 async function apiJson(path, method = 'POST', body = null, withCsrf = true) {
   const headers = {'Content-Type': 'application/json'};
   if (withCsrf && state.csrf) headers['X-CSRF-Token'] = state.csrf;
-  const res = await fetch(path, {
+  const res = await _fetch(path, {
     method, headers, credentials: 'same-origin',
     body: body === null ? null : JSON.stringify(body),
   });

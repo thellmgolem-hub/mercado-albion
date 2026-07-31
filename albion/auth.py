@@ -17,9 +17,11 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import os
 import re
 import secrets
 import string
+import threading
 import time
 import unicodedata
 from contextlib import contextmanager
@@ -339,7 +341,56 @@ class AuthManager:
         self.con = con
         self.lock = lock
         self._last_cleanup = 0.0   # faxina periódica disparada pelo login()
+        # CACHE DE SESSÃO em memória (defesa do event loop, jul/2026): sem ele,
+        # authenticate() fazia ~5 SELECTs sob o db_lock a CADA /api, e roda no
+        # event loop via _auth_guard — segurava o loop e reabria o freeze de
+        # 15/jul no caminho quente de toda requisição. Chave=(hash do token, ip);
+        # guarda o ctx por _sess_ttl s. Invalidação COARSE: qualquer mutação de
+        # sessão (login/logout/troca de senha/reset/update) limpa o cache inteiro
+        # — são eventos raros, então o custo de esvaziar é irrelevante e a
+        # correção é sempre garantida (nunca aceita sessão já derrubada).
+        # ALBION_SESSION_CACHE_TTL_S<=0 desliga (testes/local determinísticos).
+        self._cache_lock = threading.Lock()
+        self._sess_cache: dict = {}
+        self._svc_cache: dict = {}
+        self._has_admin_cache = (0.0, False)
+        self._sess_ttl = float(os.environ.get("ALBION_SESSION_CACHE_TTL_S", "30"))
         self._init_schema()
+
+    def _cache_get(self, store: dict, key):
+        if self._sess_ttl <= 0:
+            return None
+        with self._cache_lock:
+            hit = store.get(key)
+            if hit and hit[0] > time.monotonic():
+                return hit[1]
+            if hit:
+                store.pop(key, None)
+        return None
+
+    def _cache_put(self, store: dict, key, value):
+        if self._sess_ttl <= 0:
+            return
+        with self._cache_lock:
+            store[key] = (time.monotonic() + self._sess_ttl, value)
+
+    def _invalidate_sessions(self):
+        """Esvazia os caches de sessão/serviço/admin. Chamado em toda mutação
+        que derruba sessão — coarse de propósito (eventos raros)."""
+        with self._cache_lock:
+            self._sess_cache.clear()
+            self._svc_cache.clear()
+            self._has_admin_cache = (0.0, False)
+
+    def _evict_token(self, token_hash):
+        """Remove só as entradas (todas as IPs) de UM token. Usado pela rotação
+        de CSRF, que é frequente (/api/auth/me) — esvaziar o cache inteiro a cada
+        rotação de um usuário mataria o cache de todos."""
+        if self._sess_ttl <= 0:
+            return
+        with self._cache_lock:
+            for k in [k for k in self._sess_cache if k[0] == token_hash]:
+                self._sess_cache.pop(k, None)
 
     @contextmanager
     def _tx(self):
@@ -453,11 +504,23 @@ class AuthManager:
                     pass
 
     def has_admin(self) -> bool:
+        # Chamado em TODA requisição /api pelo _auth_guard; uma vez True quase
+        # nunca volta a False. Cache curto (mesmo TTL) tira esse SELECT do
+        # caminho quente. Só cacheia o True; o False (bootstrap pendente) sempre
+        # re-consulta pra a tela de setup destravar na hora que o admin nascer.
+        if self._sess_ttl > 0:
+            exp, val = self._has_admin_cache
+            if val and exp > time.monotonic():
+                return True
         with self._read() as con:
             row = con.execute(
                 "SELECT 1 FROM auth_accounts WHERE role='admin' AND active=1 "
                 "LIMIT 1").fetchone()
-        return bool(row)
+        result = bool(row)
+        if result and self._sess_ttl > 0:
+            with self._cache_lock:
+                self._has_admin_cache = (time.monotonic() + self._sess_ttl, True)
+        return result
 
     def account_count(self) -> int:
         with self._read() as con:
@@ -629,6 +692,7 @@ class AuthManager:
             self._audit(con, "account_updated", actor_id, account_id,
                         {"role": new_role, "active": bool(new_active),
                          "profiles": profiles})
+        self._invalidate_sessions()
         return self.get_account(account_id)
 
     def reset_password(self, actor_id, account_id):
@@ -648,6 +712,7 @@ class AuthManager:
             con.execute("DELETE FROM auth_sessions WHERE account_id=?",
                         [account_id])
             self._audit(con, "password_reset", actor_id, account_id)
+        self._invalidate_sessions()
         return {"temporary_password": pwd}
 
     def reset_device(self, actor_id, account_id):
@@ -665,6 +730,7 @@ class AuthManager:
                         "session_version=session_version+1,updated_at=? "
                         "WHERE id=?", [now, account_id])
             self._audit(con, "ip_reset", actor_id, account_id)
+        self._invalidate_sessions()
 
     def _throttle(self, con, norm, now):
         """Estado do throttle (failures, locked) — NÃO levanta: a senha CORRETA
@@ -774,6 +840,9 @@ class AuthManager:
                         "WHERE id=?", [now, now, account_id])
             self._audit(con, "login_success", account_id, account_id,
                         {"ip": ip, "new_ip": matched is None})
+        # O login APAGA as sessões antigas da conta acima; um cookie antigo
+        # ainda no cache viraria aceite indevido até o TTL. Esvazia p/ garantir.
+        self._invalidate_sessions()
         account = self.get_account(account_id)
         return {"session_token": session_token, "csrf_token": csrf_token,
                 "account": account}
@@ -783,6 +852,14 @@ class AuthManager:
             raise AuthError("Sessao ausente.", "session_missing", 401)
         now = time.time()
         token_hash = _token_hash(session_token)
+        # Cache quente: (hash do token, ip) já validado há < _sess_ttl s dispensa
+        # os ~5 SELECTs sob o db_lock. O ip entra na chave porque o vínculo por IP
+        # é verificado abaixo — um cookie roubado de OUTRO ip é chave diferente,
+        # cai no miss e é rejeitado. Mutações de sessão limpam o cache (correção).
+        cache_key = (token_hash, (ip or "0.0.0.0")[:45])
+        cached = self._cache_get(self._sess_cache, cache_key)
+        if cached is not None:
+            return cached
         with self._tx() as con:
             row = con.execute("""
                 SELECT s.account_id,s.csrf_hash,s.session_version,s.expires_at,
@@ -820,8 +897,10 @@ class AuthManager:
             account_row = con.execute(
                 self._account_select() + " WHERE id=?", [row[0]]).fetchone()
             account = self._account_dict(con, account_row)
-        return {"token_hash": token_hash, "account_id": row[0],
-                "csrf_hash": row[1], "account": account}
+        ctx = {"token_hash": token_hash, "account_id": row[0],
+               "csrf_hash": row[1], "account": account}
+        self._cache_put(self._sess_cache, cache_key, ctx)
+        return ctx
 
     def rotate_csrf(self, session_token):
         token_hash = _token_hash(session_token)
@@ -832,6 +911,9 @@ class AuthManager:
                 raise AuthError("Sessao expirada.", "session_expired", 401)
             con.execute("UPDATE auth_sessions SET csrf_hash=? WHERE token_hash=?",
                         [_token_hash(csrf_token), token_hash])
+        # o ctx cacheado guarda o csrf_hash ANTIGO; sem despejar, o próximo POST
+        # com o token novo falharia no verify_csrf. Cirúrgico: só este token.
+        self._evict_token(token_hash)
         return csrf_token
 
     @staticmethod
@@ -844,6 +926,7 @@ class AuthManager:
             con.execute("DELETE FROM auth_sessions WHERE token_hash=?",
                         [_token_hash(session_token)])
             self._audit(con, "logout", actor_id, actor_id)
+        self._invalidate_sessions()
 
     def change_password(self, account_id, current_password, new_password):
         with self._tx() as con:
@@ -868,6 +951,7 @@ class AuthManager:
             con.execute("DELETE FROM auth_sessions WHERE account_id=?",
                         [account_id])
             self._audit(con, "password_changed", account_id, account_id)
+        self._invalidate_sessions()
 
     def audit_log(self, limit=200):
         limit = max(1, min(int(limit), 1000))
@@ -939,12 +1023,19 @@ class AuthManager:
         sem sessão, não há IP nem CSRF a checar."""
         if not token or not str(token).startswith(SERVICE_TOKEN_PREFIX):
             return None
+        # O bot bate em endpoints /api com o MESMO token de serviço o tempo todo
+        # (killfeed poll, mural). Cachear o ctx tira o SELECT+UPDATE do caminho
+        # quente; last_used_at fica aproximado (aceitável). Revogar limpa o cache.
+        tok_hash = _token_hash(token)
+        cached = self._cache_get(self._svc_cache, tok_hash)
+        if cached is not None:
+            return cached
         now = time.time()
         with self._tx() as con:
             row = con.execute(
                 "SELECT id,label,scopes_json FROM auth_service_tokens "
                 "WHERE token_hash=? AND revoked_at IS NULL",
-                [_token_hash(token)]).fetchone()
+                [tok_hash]).fetchone()
             if not row:
                 return None
             con.execute("UPDATE auth_service_tokens SET last_used_at=? "
@@ -953,8 +1044,10 @@ class AuthManager:
             scopes = json.loads(row[2] or "[]")
         except ValueError:
             scopes = []
-        return {"service": True, "name": row[1], "scopes": scopes,
-                "account": None}
+        ctx = {"service": True, "name": row[1], "scopes": scopes,
+               "account": None}
+        self._cache_put(self._svc_cache, tok_hash, ctx)
+        return ctx
 
     def revoke_service_token(self, token_id, actor_id=None) -> bool:
         with self._tx() as con:
@@ -966,6 +1059,8 @@ class AuthManager:
             if ok:
                 self._audit(con, "service_token_revoked", actor_id,
                             details={"id": int(token_id)})
+        if ok:
+            self._invalidate_sessions()
         return ok
 
     def list_service_tokens(self):

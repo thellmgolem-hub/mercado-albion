@@ -1395,6 +1395,83 @@ class ApiUiTests(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json().get('fused'))
 
+    def test_cached_price_rows_pushdown_matches_python_filter(self):
+        """EGR-1: o push-down de item_id no SQL tem de devolver EXATAMENTE o que
+        o filtro em Python devolvia — senão a economia de egress dropava item em
+        silêncio. Com filtro de categoria, o SQL já exclui o que não casa."""
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from albion.client import AODP
+        wid = next(it["id"] for it in app.db.items
+                   if it.get("cat") == "weapons" and it.get("tier") == 4
+                   and it.get("ench") == 0)
+        gid = next(it["id"] for it in app.db.items
+                   if it.get("cat") == "gathering" and it.get("tier") == 4
+                   and it.get("ench") == 0)
+        srv = app.aodp.server
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "cache.db"
+            AODP(db_path=path).db.close()        # cria o schema do cache
+            con = sqlite3.connect(path)
+            con.row_factory = sqlite3.Row        # como a conexão readonly real
+            try:
+                for iid in (wid, gid):
+                    con.execute(
+                        "INSERT INTO prices VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                        (srv, iid, "Martlock", 1, 100, "2026-07-30T00:00:00",
+                         0, "", 0, "", 0, "", 0))
+                con.commit()
+                got = app._cached_price_rows(con, ["Martlock"], [1], cat="weapons")
+                ids = {r["item_id"] for r in got}
+                self.assertIn(wid, ids)
+                self.assertNotIn(gid, ids)     # gathering excluído já no SQL
+                # filtro sem casamento => lista vazia (zero egress), sem quebrar
+                self.assertEqual(app._cached_price_rows(
+                    con, ["Martlock"], [1], cat="armors", tier_min=8), [])
+            finally:
+                con.close()
+
+    def test_ro_conn_reuse_on_postgres(self):
+        """DEP-1: no Postgres a conexão readonly é reusada por thread e
+        con.close() NÃO fecha (vira reset) — sem isso cada request abria um
+        handshake TCP+TLS+auth novo contra o pooler de ~15 backends."""
+        from unittest import mock
+
+        class FakePg:
+            backend = "postgres"
+
+            def __init__(self):
+                self.closed = False
+                self.rolled = 0
+
+            def rollback(self):
+                self.rolled += 1
+
+            def close(self):
+                self.closed = True
+
+        made = []
+
+        def fake_connect(readonly=False, path=None):
+            c = FakePg()
+            made.append(c)
+            return c
+
+        app._ro_local.conn = None
+        with mock.patch.object(app.store, "backend", return_value="postgres"), \
+                mock.patch.object(app.store, "connect", side_effect=fake_connect):
+            try:
+                c1 = app._cache_connection()
+                self.assertEqual(c1.backend, "postgres")   # delega atributo
+                c1.close()                                 # reset, não fecha
+                c2 = app._cache_connection()
+                c2.close()
+                self.assertEqual(len(made), 1)             # MESMA conexão reusada
+                self.assertFalse(made[0].closed)           # nunca fechou
+                self.assertGreaterEqual(made[0].rolled, 1)  # resetou no close()
+            finally:
+                app._ro_local.conn = None
+
     def test_prod_endpoint_views(self):
         # hub Avançado/Produção: cada view responde 200 com a forma esperada
         for view in ('focus', 'refine'):
@@ -1640,6 +1717,27 @@ class AuthManagerTests(unittest.TestCase):
             self.auth.authenticate(first["session_token"], ip="10.0.0.1")
         second = self.auth.login("admin.local", new_password, ip="10.0.0.3")
         self.assertFalse(second["account"]["must_change_password"])
+
+    def test_session_cache_evicts_on_logout_and_rotate(self):
+        """Cache de sessão (EL-1, defesa do event loop): não pode servir uma
+        sessão já derrubada nem um csrf_hash velho. Se a invalidação falhar, uma
+        sessão deslogada seguiria válida até o TTL (furo) e a rotação de CSRF
+        quebraria o próximo POST — foi o bug que o teste HTTP pegou."""
+        self.assertGreater(self.auth._sess_ttl, 0)   # cache ativo no teste
+        sess = self.auth.login(
+            "admin.local", self.admin["temporary_password"], ip="10.0.0.1")
+        tok = sess["session_token"]
+        self.auth.authenticate(tok, ip="10.0.0.1")
+        self.assertTrue(self.auth._sess_cache)        # populou o cache
+        # rotação de CSRF despeja SÓ este token; o csrf novo vale, o velho não
+        new_csrf = self.auth.rotate_csrf(tok)
+        fresh = self.auth.authenticate(tok, ip="10.0.0.1")
+        self.assertTrue(self.auth.verify_csrf(fresh, new_csrf))
+        self.assertFalse(self.auth.verify_csrf(fresh, sess["csrf_token"]))
+        # logout despeja o cache -> a sessão deixa de autenticar (nada de stale)
+        self.auth.logout(tok, actor_id=self.admin["account_id"])
+        with self.assertRaises(AuthError):
+            self.auth.authenticate(tok, ip="10.0.0.1")
 
     def test_lock_never_blocks_correct_password(self):
         # 5 senhas erradas trancam o throttle, mas a senha CORRETA ainda entra

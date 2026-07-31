@@ -26,6 +26,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
 from albion import config
 from albion import stats
@@ -194,6 +195,11 @@ async def _lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Mercado Albion — Américas", lifespan=_lifespan)
+# EGR-3: comprime respostas > 500 B (assets JS/CSS e JSON de API são texto que
+# encolhe ~3-4x). Defesa de banda barata e ampla, alinhada ao "nunca mais por
+# banda"; o edge free do Render não recomprime.
+from fastapi.middleware.gzip import GZipMiddleware  # noqa: E402
+app.add_middleware(GZipMiddleware, minimum_size=500)
 db = ItemDB()
 aodp = AODP(server=config.DEFAULT_SERVER)
 auth_manager = AuthManager(aodp.db, aodp.db_lock)
@@ -726,6 +732,30 @@ def _require_entitlement(request: Request, scope: str):
     _org_entitlement(_actor_org(request), scope)
 
 
+def _resolve_auth_blocking(service_token, cookie, ip):
+    """Parte BLOQUEANTE da auth (has_admin + authenticate*): I/O de rede ao
+    Postgres segurando o db_lock. Roda numa THREAD do pool (run_in_threadpool),
+    NUNCA no event loop — senão trava o loop e, com ele, o bot Discord embarcado
+    e todo /api concorrente (era o vetor do freeze de 15/jul no caminho quente).
+    O cache de sessão do AuthManager torna o caso comum um dict-lookup; só o miss
+    toca o banco, e aí já está fora do loop. Devolve (ctx, is_service)."""
+    if not auth_manager.has_admin():
+        raise AuthError(
+            "Nenhum administrador configurado. Execute "
+            "manage_accounts.py bootstrap.", "bootstrap_required", 503)
+    if service_token:
+        # Token de SERVIÇO (bot): caminho paralelo à sessão — sem conta, sem
+        # vínculo de IP e sem CSRF. O ctx sem 'account' barra o console
+        # (_require_role) por construção.
+        ctx = auth_manager.authenticate_service(service_token)
+        if ctx is None:
+            raise AuthError("Token de servico invalido ou revogado.",
+                            "service_invalid", 401)
+        return ctx, True
+    ctx = auth_manager.authenticate(cookie, ip=ip)
+    return ctx, False
+
+
 @app.middleware("http")
 async def _auth_guard(request: Request, call_next):
     path = request.url.path
@@ -733,25 +763,15 @@ async def _auth_guard(request: Request, call_next):
     public = path in PUBLIC_AUTH_PATHS
     if config.AUTH_REQUIRED and protected and not public:
         try:
-            if not auth_manager.has_admin():
-                raise AuthError(
-                    "Nenhum administrador configurado. Execute "
-                    "manage_accounts.py bootstrap.", "bootstrap_required", 503)
-            service_token = request.headers.get("x-service-token")
-            if service_token:
-                # Token de SERVIÇO (bot): caminho paralelo à sessão — sem
-                # conta, sem vínculo de IP e sem CSRF. O ctx sem 'account'
-                # barra o console (_require_role) por construção.
-                ctx = auth_manager.authenticate_service(service_token)
-                if ctx is None:
-                    raise AuthError("Token de servico invalido ou revogado.",
-                                    "service_invalid", 401)
-                request.state.auth = ctx
-            else:
-                ctx = auth_manager.authenticate(
-                    request.cookies.get(config.AUTH_SESSION_COOKIE),
-                    ip=_client_ip(request))
-                request.state.auth = ctx
+            # Extrai os primitivos no loop (barato) e joga o I/O de auth pra uma
+            # thread — o loop segue livre p/ o heartbeat do bot e outros requests.
+            ctx, is_service = await run_in_threadpool(
+                _resolve_auth_blocking,
+                request.headers.get("x-service-token"),
+                request.cookies.get(config.AUTH_SESSION_COOKIE),
+                _client_ip(request))
+            request.state.auth = ctx
+            if not is_service:
                 password_paths = {
                     "/api/auth/me", "/api/auth/logout",
                     "/api/auth/change-password",
@@ -964,6 +984,13 @@ def _csv(value: str | None) -> list[str] | None:
 def _csv_int(value: str | None) -> list[int] | None:
     vals = _csv(value)
     return [int(v) for v in vals] if vals else None
+
+
+# DEP-3: teto de itens por consulta ao vivo (prices/flips batem na AODP). Sem
+# ele, um cliente logado podia mandar centenas de ids com max_age=0 e queimar o
+# throttle compartilhado (150/min), estancando as buscas dos outros. 100 casa com
+# o teto da AODP (~100 ids/chamada) e cobre qualquer uso legítimo do frontend.
+_MAX_LIVE_ITEMS = int(os.environ.get("ALBION_MAX_LIVE_ITEMS", "100"))
 
 
 def _resolve_items(ids: list[str]) -> list[str]:
@@ -1273,6 +1300,8 @@ def prices(items: str, cities: str | None = None, qualities: str | None = None,
     item_ids = _resolve_items(_csv(items) or [])
     if not item_ids:
         raise HTTPException(400, "Informe ao menos um item")
+    if len(item_ids) > _MAX_LIVE_ITEMS:
+        raise HTTPException(400, f"Máximo de {_MAX_LIVE_ITEMS} itens por consulta.")
     city_list = _csv(cities) or config.CITIES
     quals = _csv_int(qualities)
     rows = _api_guard(lambda: aodp.get_prices(item_ids, city_list, max_age=max_age))
@@ -1302,9 +1331,90 @@ def _city_scope(cities, buy_cities, sell_cities):
     return base, (set(buy) if buy else None), (set(sell) if sell else None)
 
 
+_ro_local = threading.local()
+
+
+class _ReusedConn:
+    """Proxy sobre uma conexão readonly reusada por thread (DEP-1): tudo delega
+    pra conexão de baixo, MENOS close(), que vira um rollback (reset) em vez de
+    fechar — assim o mesmo backend do pooler é reaproveitado entre requests em
+    vez de um handshake TCP+TLS+auth NOVO por chamada (18 endpoints de análise,
+    ~30-40 aberturas por pageload sob 10 usuários contra o pooler free de ~15).
+    O _PgConn de baixo reabre sozinho se o pooler derrubou a conexão, então o
+    reuso se auto-cura sem checagem de liveness aqui."""
+
+    def __init__(self, inner):
+        object.__setattr__(self, "_inner", inner)
+
+    def close(self):
+        try:
+            self._inner.rollback()   # encerra tx implícita; deixa limpa p/ reuso
+        except Exception:
+            # conexão morreu: descarta do thread-local pra reabrir na próxima
+            _ro_local.conn = None
+
+    def __getattr__(self, name):
+        return getattr(object.__getattribute__(self, "_inner"), name)
+
+
+def _ro_reuse_on():
+    # Só no Postgres (nuvem): no SQLite abrir/fechar é grátis e o reuso por
+    # thread contaminaria os testes que trocam o banco de fixture.
+    return (store.backend() == "postgres"
+            and os.environ.get("ALBION_RO_CONN_REUSE", "1") != "0")
+
+
 def _cache_connection():
-    """Conexão somente-leitura ao cache: SQLite local ou Postgres (prod)."""
-    return store.connect(readonly=True)
+    """Conexão somente-leitura ao cache: SQLite local ou Postgres (prod).
+
+    No Postgres reusa UMA conexão readonly por thread (o threadpool do Starlette
+    tem ~40 threads => no máx ~40 conexões reaproveitadas, em vez de abrir uma por
+    request). O chamador segue chamando con.close(); o proxy transforma isso num
+    reset e mantém a conexão viva."""
+    if not _ro_reuse_on():
+        return store.connect(readonly=True)
+    inner = getattr(_ro_local, "conn", None)
+    if inner is None:
+        inner = store.connect(readonly=True)
+        if inner is None:
+            return None
+        _ro_local.conn = inner
+    return _ReusedConn(inner)
+
+
+# CACHE DE LEITURA server-side (EGR-1): recommendations/scan puxavam ~3-4 MB de
+# `prices` do Supabase por page-load e devolviam ~12 KB de JSON — egress de ~250x
+# invisível que, com 20 usuários, estoura os 5 GB (a MESMA classe da suspensão
+# por banda, do lado do Supabase). Como os dados só mudam quando o sweep escreve
+# (a cada ~15 min na nuvem), guardar o resultado por ~10 min corta as leituras
+# repetidas para ~1 por ciclo, compartilhada entre TODOS. SÓ liga no Postgres:
+# no SQLite (local/testes) o egress é grátis e o cache contaminaria testes que
+# trocam o banco de fixture. ALBION_PRICE_CACHE_TTL_S<=0 desliga.
+_READ_CACHE_TTL = float(os.environ.get("ALBION_PRICE_CACHE_TTL_S", "600"))
+_read_cache: dict = {}
+_read_cache_lock = threading.Lock()
+
+
+def _read_cache_get(key):
+    with _read_cache_lock:
+        hit = _read_cache.get(key)
+        if hit and hit[0] > time.monotonic():
+            return hit[1]
+        if hit:
+            _read_cache.pop(key, None)
+    return None
+
+
+def _read_cache_put(key, value):
+    with _read_cache_lock:
+        if len(_read_cache) > 256:      # teto simples anti-crescimento sem fim
+            _read_cache.clear()
+        _read_cache[key] = (time.monotonic() + _READ_CACHE_TTL, value)
+
+
+def _read_cache_on(con):
+    """Cache de leitura só faz sentido no Postgres (nuvem, onde egress custa)."""
+    return _READ_CACHE_TTL > 0 and getattr(con, "backend", "sqlite") == "postgres"
 
 
 def _placeholders(vals):
@@ -1330,21 +1440,51 @@ def _item_matches(it, cat=None, sub=None, tier_min=None, tier_max=None,
 
 def _cached_price_rows(con, city_list, qualities, cat=None, sub=None,
                        tier_min=None, tier_max=None, ench=None):
-    """Le os precos ja cacheados e aplica filtros de metadados locais."""
+    """Lê os preços já cacheados e aplica os filtros de metadados.
+
+    EGR-1: quando há filtro de categoria/tier/ench, resolve os item_ids no
+    catálogo (em memória) e empurra `item_id IN (...)` pro SQL — sem isso o
+    Postgres devolvia a fatia INTEIRA de `prices` (~3 MB) e o filtro rodava em
+    Python, um egress invisível. Em Postgres o resultado é cacheado por
+    _READ_CACHE_TTL (≈1 ciclo de sweep)."""
+    ench_list = _csv_int(ench)
+    key = None
+    if _read_cache_on(con):
+        key = ("prices", aodp.server, tuple(sorted(city_list)),
+               tuple(sorted(qualities or ())), cat, sub, tier_min, tier_max,
+               tuple(sorted(ench_list or ())))
+        cached = _read_cache_get(key)
+        if cached is not None:
+            return cached
+    # push-down do filtro: resolve os ids que casam e restringe o SELECT a eles.
+    id_filter = None
+    if any(v is not None for v in (cat, sub, tier_min, tier_max, ench_list)):
+        ids = [it["id"] for it in db.items
+               if _item_matches(it, cat=cat, sub=sub, tier_min=tier_min,
+                                tier_max=tier_max, ench_list=ench_list)]
+        if not ids:
+            return []                      # filtro não casa nada: zero egress
+        # filtro amplo (muitos ids) => o IN gigante não compensa; puxa e filtra.
+        if len(ids) <= 1500:
+            id_filter = ids
     params = [aodp.server, *city_list]
-    where = [f"server=?", f"city IN ({_placeholders(city_list)})"]
+    where = ["server=?", f"city IN ({_placeholders(city_list)})"]
     if qualities:
         where.append(f"quality IN ({_placeholders(qualities)})")
         params.extend(qualities)
+    if id_filter is not None:
+        where.append(f"item_id IN ({_placeholders(id_filter)})")
+        params.extend(id_filter)
     rows = con.execute(
         f"SELECT * FROM prices WHERE {' AND '.join(where)}", params).fetchall()
-    ench_list = _csv_int(ench)
     out = []
     for r in rows:
         it = db.get(r["item_id"])
         if _item_matches(it, cat=cat, sub=sub, tier_min=tier_min,
                          tier_max=tier_max, ench_list=ench_list):
             out.append(dict(r))
+    if key is not None:
+        _read_cache_put(key, out)
     return out
 
 
@@ -1369,6 +1509,13 @@ def _history_stats(con, item_ids, city_list, qualities, days):
     """Media diaria, dias ativos e VWAP historico para medir liquidez."""
     if not item_ids or not city_list:
         return {}, None
+    key = None
+    if _read_cache_on(con):
+        key = ("hist", aodp.server, tuple(sorted(item_ids)),
+               tuple(sorted(city_list)), tuple(sorted(qualities or ())), days)
+        cached = _read_cache_get(key)
+        if cached is not None:
+            return cached
     max_ts = con.execute(
         f"""SELECT MAX(ts) AS m FROM history
             WHERE server=? AND time_scale=24
@@ -1415,6 +1562,8 @@ def _history_stats(con, item_ids, city_list, qualities, days):
             "total_volume": total,
             "vwap": vwap,
         }
+    if key is not None:
+        _read_cache_put(key, (stats, max_ts))
     return stats, max_ts
 
 
@@ -1621,6 +1770,8 @@ def flips(items: str, cities: str | None = None, qualities: str | None = None,
     item_ids = _resolve_items(_csv(items) or [])
     if not item_ids:
         raise HTTPException(400, "Informe ao menos um item")
+    if len(item_ids) > _MAX_LIVE_ITEMS:
+        raise HTTPException(400, f"Máximo de {_MAX_LIVE_ITEMS} itens por consulta.")
     city_list, buy_set, sell_set = _city_scope(cities, buy_cities, sell_cities)
     rows = _api_guard(lambda: aodp.get_prices(item_ids, city_list, max_age=max_age))
     metas = {i: db.get(i) for i in item_ids}
@@ -1869,6 +2020,8 @@ def sell(items: str, qualities: str | None = None, premium: bool = True,
     item_ids = _resolve_items(_csv(items) or [])
     if not item_ids:
         raise HTTPException(400, "Informe ao menos um item")
+    if len(item_ids) > _MAX_LIVE_ITEMS:
+        raise HTTPException(400, f"Máximo de {_MAX_LIVE_ITEMS} itens por consulta.")
     city_list = _csv(cities) or config.CITIES
     rows = _api_guard(lambda: aodp.get_prices(item_ids, city_list, max_age=max_age))
     metas = {i: db.get(i) for i in item_ids}

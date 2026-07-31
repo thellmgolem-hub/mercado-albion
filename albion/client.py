@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """Cliente da API do Albion Online Data Project com throttle e cache SQLite."""
+import os
 import sqlite3
 import threading
 import time
@@ -62,7 +63,14 @@ class AODP:
                  db_path: Path = DATA / "cache.db"):
         self.server = server
         self.base = config.SERVERS[server]
-        self.http = httpx.Client(timeout=40, headers={"User-Agent": config.USER_AGENT})
+        # Timeout do AODP: baixado de 40s (rank 10). /api/prices e /api/flips são
+        # rotas SÍNCRONAS (threadpool ~40) que batem na AODP ao vivo; sob AODP
+        # lenta, 10 chamadas seguravam threads por 40s cada e podiam esgotar o
+        # pool, travando ATÉ os endpoints de cache. 25s ainda cobre folgado a
+        # resposta normal (<5s) e limita o pior caso de thread starvation.
+        _aodp_timeout = float(os.environ.get("ALBION_AODP_TIMEOUT_S", "25"))
+        self.http = httpx.Client(timeout=_aodp_timeout,
+                                 headers={"User-Agent": config.USER_AGENT})
         self.throttle = Throttle()
         # Camada dual: SQLite local (db_path) ou Postgres (env DATABASE_URL).
         # Em prod (nuvem) o db_path é ignorado em favor do Postgres.
@@ -72,7 +80,13 @@ class AODP:
         # SQLite local mantém Lock puro: operações longas legítimas (VACUUM,
         # recarga profunda) seguram o lock por minutos sem ser defeito.
         if getattr(self.db, "backend", "sqlite") == "postgres":
-            self.db_lock = store.BoundedLock(30.0)
+            # Teto de espera: fail-fast em quem espera o lock. Baixado de 30s
+            # (EL-4): com a auth já FORA do event loop (run_in_threadpool), o
+            # lock preso não congela mais o bot — então esperar menos e devolver
+            # 503 "banco ocupado" mais cedo é melhor que empilhar fila. > que o
+            # statement_timeout (20s) não faz sentido: quem segura solta em <=20s.
+            secs = float(os.environ.get("ALBION_DB_LOCK_TIMEOUT_S", "10"))
+            self.db_lock = store.BoundedLock(secs)
         else:
             self.db_lock = threading.Lock()
         self._init_db()

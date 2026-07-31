@@ -7,7 +7,10 @@ name: keepalive
 
 on:
   schedule:
-    - cron: '0 3 1 * *'   # dia 1 de cada mês, 03:00 UTC
+    # UP-3: semanal (era mensal). Mensal dava só 1 retry contra os 60 dias de
+    # auto-disable do GitHub; 2 runs descartados seguidos matariam TODOS os
+    # agendados em silêncio. Segunda-feira 03:00 UTC = 8+ retries de folga.
+    - cron: '0 3 * * 1'   # toda segunda-feira, 03:00 UTC
   workflow_dispatch: {}
 
 permissions:
