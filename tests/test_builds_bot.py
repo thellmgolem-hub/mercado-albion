@@ -1089,6 +1089,30 @@ class SemPlataformaTests(unittest.TestCase):
         finally:
             bot.local_refine_rows = orig
 
+    def test_guildbot_nao_tem_add_listener_use_encadeamento(self):
+        """BOT-2 (bug REAL de produção, ago/2026): o supervisor do app chamava
+        `bot.add_listener(...)`, que existe no commands.Bot mas NÃO no
+        discord.Client — base do GuildBot. Resultado: AttributeError a cada
+        tentativa, o bot NUNCA conectava e ficava em backoff eterno; só o
+        /api/health denunciava (bot_ok=false). Os testes não sobem o bot, então
+        este teste trava a PROPRIEDADE que causou o bug: quem quiser observar
+        eventos tem de ENCADEAR o método existente, não registrar listener."""
+        import discord
+
+        class _Api:
+            async def get(self, *a, **k):
+                return {}
+
+            async def post(self, *a, **k):
+                return {}
+
+        b = bot.build_bot(_Api())
+        self.assertIsInstance(b, discord.Client)
+        self.assertFalse(hasattr(b, "add_listener"),
+                         "se o discord.py passar a ter add_listener, revise o "
+                         "encadeamento em app._run_discord_bot_inproc")
+        self.assertTrue(hasattr(b, "on_ready"))   # é o que o app encadeia
+
     # --- MODO PONTE: bot de pé SEM plataforma (rodando no PC, nuvem fora) ---
     def test_modo_ponte_explica_em_pt_o_que_depende_da_plataforma(self):
         """O ApiOffline falha RÁPIDO com ApiError; o membro lê uma mensagem PT

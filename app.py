@@ -131,18 +131,38 @@ async def _run_discord_bot_inproc():
         try:
             bot = _dbot.build_bot(api, members_intent=members_intent)
 
-            async def _on_ready():
+            # BOT-2 (achado no log da nuvem, ago/2026): `add_listener` é método
+            # do commands.Bot; o GuildBot estende discord.Client, que NÃO o tem
+            # — a chamada levantava AttributeError e o bot NUNCA conectava, em
+            # loop de backoff. Como o GuildBot já define on_ready, envolvemos o
+            # método existente (chain) em vez de registrar um listener novo.
+            # Só o /api/health denunciava (bot_ok=false); os testes não sobem o
+            # bot, então isso só aparece em produção — daí o valor do campo.
+            def _encadeia(nome, extra):
+                orig = getattr(bot, nome, None)
+
+                async def _wrap(*a, **k):
+                    try:
+                        await extra()
+                    except Exception:
+                        log.exception("listener %s falhou", nome)
+                    if orig is not None:
+                        return await orig(*a, **k)
+                setattr(bot, nome, _wrap)
+
+            async def _ready():
                 _BOT_STATE["connected"] = True
                 _BOT_STATE["last_ready"] = time.time()
 
-            async def _on_resumed():
+            async def _resumed():
                 _BOT_STATE["connected"] = True
 
-            async def _on_disconnect():
+            async def _disconnect():
                 _BOT_STATE["connected"] = False
-            bot.add_listener(_on_ready, "on_ready")
-            bot.add_listener(_on_resumed, "on_resumed")
-            bot.add_listener(_on_disconnect, "on_disconnect")
+
+            _encadeia("on_ready", _ready)
+            _encadeia("on_resumed", _resumed)
+            _encadeia("on_disconnect", _disconnect)
 
             log.info("bot Discord embarcado: conectando (loopback :%s)", port)
             await bot.start(token)
