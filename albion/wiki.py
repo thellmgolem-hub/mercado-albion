@@ -8,6 +8,7 @@ albion/production (cada nó é craftado na SUA cidade-bônus — ótimo teórico
 ignora transporte) e albion/craft.
 """
 import json
+import threading
 from pathlib import Path
 
 from . import config, craft, production
@@ -191,6 +192,7 @@ def production_tree(item_id, price_of, name_of, tier_of, *, focus=False,
 
 # ----------------------------------------------------------- detalhes (dump)
 _DETAILS = None
+_DETAILS_LOCK = threading.Lock()   # MEM-2: serializa o parse de 17 MB (ver abaixo)
 # campos do dump dignos de uma ficha de wiki (rótulo PT, chave @no dump)
 _DUMP_FIELDS = [
     ("item_power", "@itempower"), ("ability_power", "@abilitypower"),
@@ -238,7 +240,14 @@ def item_details(item_id, base_meta=None):
     base_meta: dict do items_db (tier, ench, cat, sub, w, maxq) — opcional."""
     global _DETAILS
     if _DETAILS is None:
-        _DETAILS = _build_details_index()
+        # MEM-2: o parse de items_raw.json (~17 MB no disco) custa ~47 MB de PICO
+        # transitório. Sem lock, N threads do pool que chegassem juntas num
+        # processo FRIO parseariam TODAS ao mesmo tempo (10 x 47 MB) e estourariam
+        # os 512 MB do free — OOM = crash duro = queda de web E bot juntos. Com o
+        # lock, uma constrói e as outras esperam e reusam (dupla checagem).
+        with _DETAILS_LOCK:
+            if _DETAILS is None:
+                _DETAILS = _build_details_index()
     base = item_id.split("@")[0]
     dump = _DETAILS.get(item_id) or _DETAILS.get(base) or {}
     out = {"id": item_id}

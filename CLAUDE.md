@@ -74,16 +74,26 @@ O bot NÃO deve morrer junto com a plataforma. O critério é o teto da AODP
   calcula idade — `_age_min` trata a sentinela '0001-01-01' como None; o history
   normaliza location->city e timestamp->ts); `_resolve_item` resolve pelo
   items_db do disco.
+  `local_craft_data` e `local_refine_rows` (produção de UM item / ranking de
+  refino: reusam albion.craft e albion.production — os MESMOS módulos da
+  plataforma, nada de matemática duplicada — com preços da AODP; o refino busca
+  os ~230 ids das 115 receitas em blocos de 90 = 3 chamadas, e aplica o mesmo
+  clean_price_rows + corte de frescor de 3d. Única perda vs plataforma: a
+  mediana histórica como 2ª âncora anti-isca, que mora no banco).
   Handlers religados: /buscar, /origem, /ouro, /fama (COM nick), **/preco,
-  /comparar, /vender, /historico**. Sem nick, /fama ainda consulta a plataforma
-  p/ achar o personagem vinculado (isso é ESTADO, mora no banco).
+  /comparar, /vender, /historico**, **/craftar, /refinar**. Sem nick, /fama ainda
+  consulta a plataforma p/ achar o personagem vinculado (ESTADO, mora no banco).
 Efeito: o Discord segue útil com a plataforma fora, E a plataforma recebe menos
 carga (menos chance de cair). Regressão: `SemPlataformaTests` injeta uma API que
 EXPLODE em qualquer chamada — se alguém reacoplar um handler, o teste quebra.
 CUIDADO ao mexer nesses handlers: o teste TEM de injetar a via LOCAL; injetando
 só uma API falsa, o teste passa a bater na REDE de verdade (a suíte pulou de 1s
-p/ 71s quando isso aconteceu, com socket SSL aberto no relatório).
-PENDENTE: /craftar e /refinar de UM item também cabem no teto da AODP.
+p/ 71s quando isso aconteceu, com socket SSL aberto no relatório). Isso REINCIDIU
+ao desacoplar /craftar e /refinar (CraftRefinarHandlerTests tinha API falsa e
+virou teste de rede) — reescrito p/ injetar local_craft_data/local_refine_rows.
+Restam na plataforma (precisam do banco): /recomendar, /flip, /escanear, /micro,
+/risco, /logistica, /guild, /demanda, /sinais, /lab, /ilha, /plano, /foco,
+/produzir, tributo, Mural e o vínculo membro→nick.
 
 ## Auditoria de CAPACIDADE 2026-07-31 (20 usuários / 10 simultâneos) — correções
 
@@ -116,6 +126,10 @@ O que MORDIA foi corrigido (suíte 311):
   (`ALBION_AODP_TIMEOUT_S`) contra thread starvation.
 - **Higiene:** keep-alive pinga /api/health (não index.html 54KB → -577 MB/mês);
   GZipMiddleware; erro de rede vira PT (`_fetch` no web); keepalive.yml semanal.
+- **MEM-2 (OOM real):** `wiki._DETAILS` usava check-then-set SEM lock — N threads
+  num processo FRIO parseariam items_raw.json (17 MB, ~47 MB de pico) ao MESMO
+  tempo (10x47 MB estoura os 512 MB = crash duro = queda de web E bot). Agora tem
+  `_DETAILS_LOCK` com dupla checagem (provado: 10 threads → 1 parse).
 RESIDUAIS ESTRUTURAIS (o free tier não deixa eliminar, decisão do usuário):
 host único (bot in-process = queda dupla no OOM/suspensão; separar exige 2º host),
 event loop único (NÃO subir --workers>1: cada worker sobe outro bot Discord),

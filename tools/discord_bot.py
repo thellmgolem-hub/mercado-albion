@@ -293,6 +293,115 @@ def local_search_rows(termo, limit=10):
     return out
 
 
+_LIVE_STALE_MIN = 3 * 24 * 60      # mesma janela de frescor do _price_lookups
+
+
+async def local_craft_data(item_id, premium=True, focus=False):
+    """Mesma conta do GET /api/craft, batendo DIRETO na AODP.
+
+    Cabe no teto: 1 item + seus insumos (~10 ids). Reusa albion.craft (o MESMO
+    módulo da plataforma) — nada de matemática duplicada. Única diferença: a
+    mediana histórica (que mora no banco) não entra como 2ª âncora anti-isca;
+    aqui a banda plausível sai só das cotações entre cidades."""
+    import asyncio as _aio
+    from albion import config as _cfg
+    from albion import craft as _craft
+
+    recipe = await _aio.to_thread(_craft.recipe_for, item_id)
+    if recipe is None:
+        return None
+    src = list(_cfg.ROYAL_CITIES) + ["Brecilien"]
+    sells = list(_cfg.CITIES)
+    all_cities = list(dict.fromkeys(src + sells))
+    ids = [item_id] + [i["id"] for i in recipe["inputs"]]
+    rows = await local_prices_rows(ids, all_cities, qualities=[1])
+    acq, bid, quotes = {}, {}, {}
+    for r in rows:
+        key = (r["item_id"], r["city"])
+        sp = r.get("sell_price_min") or 0
+        bp = r.get("buy_price_max") or 0
+        if sp > 0:
+            if key not in acq or sp < acq[key]:
+                acq[key] = sp
+            quotes.setdefault(r["item_id"], []).append(sp)
+        if bp > 0 and (key not in bid or bp > bid[key]):
+            bid[key] = bp
+
+    def _run():
+        bands = {i: _craft.anchor_band(quotes.get(i, []), None) for i in ids}
+        return _craft.studio(
+            item_id, recipe, lambda i, c: acq.get((i, c)),
+            lambda i, c: bid.get((i, c)), premium=premium, sell_mode="order",
+            focus=focus, source_cities=src, sell_cities=sells,
+            band_of=lambda i: bands.get(i, (None, None)))
+
+    res = await _aio.to_thread(_run)
+    for row in res:
+        for s in row.get("sourcing", []):
+            s["name_pt"] = _local_pt(s["id"])
+    meta = _local_meta(item_id)
+    return {
+        "item": {"id": item_id, "name_pt": meta.get("pt", item_id),
+                 "tier": meta.get("tier", 0), "ench": meta.get("ench", 0)},
+        "category": recipe.get("category"),
+        "bonus_city": _craft.unified_bonus_city(item_id, recipe.get("category")),
+        "inputs": [{"id": i["id"], "count": i["count"],
+                    "name_pt": _local_pt(i["id"])} for i in recipe["inputs"]],
+        "rows": res,
+    }
+
+
+async def local_refine_rows(tier=None, premium=True, limit=40):
+    """Mesma conta do GET /api/prod?view=refine, batendo DIRETO na AODP.
+
+    A plataforma varre a tabela `prices` INTEIRA; aqui buscamos só os ids das
+    receitas de refino (115 refinados + insumos ≈ 230 ids) em blocos de 90 — 3
+    chamadas, folgado nos 180/min da AODP. Com `tier` vira ~1 chamada. Aplica o
+    MESMO saneamento anti-isca (clean_price_rows) e o mesmo corte de frescor."""
+    import asyncio as _aio
+    from albion import config as _cfg
+    from albion import production as _prod
+    from albion.microstructure import clean_price_rows
+
+    recipes = await _aio.to_thread(_prod.craft._load, "recipes_refining.json")
+    rids = [r for r in recipes if not tier or str(r).startswith(f"T{tier}_")]
+    if not rids:
+        return []
+    ids = set()
+    for rid in rids:
+        ids.add(rid)
+        for inp in (recipes[rid].get("inputs") or []):
+            ids.add(inp["id"])
+    ids = sorted(ids)
+    cities = list(_cfg.ROYAL_CITIES)
+    raw = []
+    for i in range(0, len(ids), 90):       # teto da AODP: ~100 ids por chamada
+        raw += await local_prices_rows(ids[i:i + 90], cities, qualities=[1])
+
+    def _rank():
+        clean = clean_price_rows([dict(r) for r in raw])
+        q1 = {}
+        for r in clean:
+            sp = r.get("sell_price_min") or 0
+            age = _age_min(r.get("sell_price_min_date"))
+            if sp <= 0 or age is None or age > _LIVE_STALE_MIN:
+                continue
+            key = (r["item_id"], r["city"])
+            if key not in q1 or sp < q1[key]:
+                q1[key] = sp
+        best = []
+        for rid in rids:
+            got = _prod.refine_premium(rid, q1, premium=premium)
+            if got:
+                top = got[0]
+                top["name_pt"] = _local_pt(rid)
+                best.append(top)
+        best.sort(key=lambda r: -r["premium_pct"])
+        return best[:limit]
+
+    return await _aio.to_thread(_rank)
+
+
 async def local_gold_pts(count=48):
     """Cotação do ouro DIRETO na AODP (repasse puro; não precisa do banco)."""
     import httpx
@@ -1283,8 +1392,21 @@ async def handle_plano(api, familia: str = "WARRIOR", tier: int = 4,
 
 async def handle_craftar(api, item: str) -> str:
     """/craftar — vale a pena craftar este item? Melhor cenário de craft com a
-    lista de compras dos insumos (GET /api/craft; busca preço ao vivo)."""
-    res = await api.get("/api/craft", params={"item": item})
+    lista de compras dos insumos.
+
+    LOCAL: 1 item + insumos cabem no teto da AODP; a receita/RRR vêm do dump em
+    disco. Sem plataforma."""
+    it = await _resolve_item(api, item)
+    if not it:
+        return code_block(f"Não achei o item '{item}'.")
+    item_id = it["id"]
+    try:
+        res = await local_craft_data(item_id)
+    except Exception:
+        res = None
+    if res is None:
+        return code_block(
+            f"{_local_pt(item_id)}: esse item não tem receita de craft no dump.")
     meta = res.get("item") or {}
     nome = meta.get("name_pt") or meta.get("id", item)
     rows = res.get("rows") or []
@@ -1319,16 +1441,18 @@ async def handle_craftar(api, item: str) -> str:
 
 async def handle_refinar(api, tier: int = None) -> str:
     """/refinar — ranking de refino: pra cada material refinado, se vale mais
-    refinar o bruto ou vender o bruto, e onde (GET /api/prod?view=refine)."""
-    res = await api.get("/api/prod", params={"view": "refine"})
-    rows = res.get("rows") or []
-    if tier:
-        rows = [r for r in rows
-                if str(r.get("item_id", "")).startswith(f"T{tier}_")]
+    refinar o bruto ou vender o bruto, e onde.
+
+    LOCAL: as receitas de refino são poucas (115) e os ids cabem em 3 chamadas
+    da AODP — não precisa da varredura do banco. Sem plataforma."""
+    try:
+        rows = await local_refine_rows(tier)
+    except Exception:
+        rows = []
     if not rows:
         alvo = f" T{tier}" if tier else ""
         return code_block(
-            f"Sem dados de refino{alvo} agora (a coleta preenche com o tempo).")
+            f"Sem cotação de refino{alvo} agora (mercado frio). Tente mais tarde.")
     titulo = f"Refino{(' T' + str(tier)) if tier else ''}: refinar ou vender o bruto?"
     lines = [titulo, ""]
     for r in rows[:12]:

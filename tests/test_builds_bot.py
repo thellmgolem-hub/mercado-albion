@@ -258,74 +258,84 @@ class BuildImageFileTests(unittest.TestCase):
 
 
 class CraftRefinarHandlerTests(unittest.TestCase):
-    """/craftar e /refinar: formatam a resposta a partir de /api/craft e
-    /api/prod?view=refine sem tocar em campo inexistente (contrato do backend)."""
+    """/craftar e /refinar: formatação da resposta sem tocar campo inexistente.
+
+    Ambos são LOCAIS (rodam no processo do bot, sem plataforma), então o teste
+    injeta a via LOCAL — injetar só uma API falsa faria o handler bater na REDE
+    de verdade (armadilha documentada no CLAUDE.md: a suíte pulou p/ 71s)."""
+
+    class _Morta:
+        async def get(self, *a, **k):
+            raise AssertionError("handler chamou a plataforma (era p/ ser LOCAL)")
+
+    def _com_craft(self, payload, termo="barra de aço"):
+        async def _f(item_id, premium=True, focus=False):
+            return payload
+        orig = bot.local_craft_data
+        try:
+            bot.local_craft_data = _f
+            return asyncio.run(bot.handle_craftar(self._Morta(), termo))
+        finally:
+            bot.local_craft_data = orig
+
+    def _com_refine(self, rows, tier=None):
+        async def _f(t=None, premium=True, limit=40):
+            return [r for r in rows
+                    if not t or str(r.get("item_id", "")).startswith(f"T{t}_")]
+        orig = bot.local_refine_rows
+        try:
+            bot.local_refine_rows = _f
+            return asyncio.run(bot.handle_refinar(self._Morta(), tier))
+        finally:
+            bot.local_refine_rows = orig
 
     def test_craftar_veredito_e_lista_de_compras(self):
-        class Api:
-            async def get(self, path, params=None):
-                assert path == "/api/craft", path
-                return {
-                    "item": {"id": "T4_METALBAR", "name_pt": "Barra de Aço",
-                             "tier": 4, "ench": 0},
-                    "rows": [{
-                        "craft_city": "Thetford", "is_bonus_city": True,
-                        "rrr_pct": 36.7, "materials": 1000, "revenue": 1500,
-                        "sell_city": "Caerleon", "margin": 500, "margin_pct": 45.0,
-                        "sourcing": [{"id": "T4_ORE", "count": 2,
-                                      "buy_city": "Thetford", "unit_price": 200,
-                                      "name_pt": "Minério de Estanho"}],
-                    }],
-                }
-        out = asyncio.run(bot.handle_craftar(Api(), "barra de aço"))
+        out = self._com_craft({
+            "item": {"id": "T4_METALBAR", "name_pt": "Barra de Aço",
+                     "tier": 4, "ench": 0},
+            "rows": [{
+                "craft_city": "Thetford", "is_bonus_city": True,
+                "rrr_pct": 36.7, "materials": 1000, "revenue": 1500,
+                "sell_city": "Caerleon", "margin": 500, "margin_pct": 45.0,
+                "sourcing": [{"id": "T4_ORE", "count": 2,
+                              "buy_city": "Thetford", "unit_price": 200,
+                              "name_pt": "Minério de Estanho"}],
+            }],
+        })
         self.assertIn("Barra de Aço", out)
         self.assertIn("VALE A PENA", out)          # margem > 0
         self.assertIn("cidade-bônus", out)
         self.assertIn("Minério de Estanho", out)   # lista de compras em PT
 
     def test_craftar_margem_negativa(self):
-        class Api:
-            async def get(self, path, params=None):
-                return {"item": {"id": "T4_X", "name_pt": "Item X", "tier": 4,
-                                 "ench": 0},
-                        "rows": [{"craft_city": "Lymhurst", "rrr_pct": 20.0,
-                                  "materials": 900, "revenue": 800,
-                                  "sell_city": "Lymhurst", "margin": -100,
-                                  "margin_pct": -11.0, "sourcing": []}]}
-        out = asyncio.run(bot.handle_craftar(Api(), "x"))
+        out = self._com_craft(
+            {"item": {"id": "T4_X", "name_pt": "Item X", "tier": 4, "ench": 0},
+             "rows": [{"craft_city": "Lymhurst", "rrr_pct": 20.0,
+                       "materials": 900, "revenue": 800,
+                       "sell_city": "Lymhurst", "margin": -100,
+                       "margin_pct": -11.0, "sourcing": []}]})
         self.assertIn("NÃO compensa", out)
 
     def test_craftar_sem_rows(self):
-        class Api:
-            async def get(self, path, params=None):
-                return {"item": {"id": "T4_X", "name_pt": "Item X"}, "rows": []}
-        out = asyncio.run(bot.handle_craftar(Api(), "x"))
+        out = self._com_craft(
+            {"item": {"id": "T4_X", "name_pt": "Item X"}, "rows": []})
         self.assertIn("Item X", out)
         self.assertIn("sem cotação", out)
 
     def test_refinar_ranking_e_filtro_tier(self):
-        class Api:
-            async def get(self, path, params=None):
-                assert path == "/api/prod", path
-                assert (params or {}).get("view") == "refine"
-                return {"view": "refine", "rows": [
-                    {"item_id": "T4_METALBAR", "city": "Thetford", "margin": 300,
-                     "premium_pct": 20.0, "rrr_pct": 36.7,
-                     "name_pt": "Barra de Aço"},
-                    {"item_id": "T5_METALBAR", "city": "Thetford", "margin": -50,
-                     "premium_pct": -3.0, "rrr_pct": 36.7, "name_pt": "Barra T5"},
-                ]}
-        out = asyncio.run(bot.handle_refinar(Api(), 4))
+        out = self._com_refine([
+            {"item_id": "T4_METALBAR", "city": "Thetford", "margin": 300,
+             "premium_pct": 20.0, "rrr_pct": 36.7, "name_pt": "Barra de Aço"},
+            {"item_id": "T5_METALBAR", "city": "Thetford", "margin": -50,
+             "premium_pct": -3.0, "rrr_pct": 36.7, "name_pt": "Barra T5"},
+        ], tier=4)
         self.assertIn("Barra de Aço", out)
         self.assertIn("REFINAR", out)
         self.assertNotIn("Barra T5", out)         # filtro tier=4 exclui o T5
 
     def test_refinar_sem_dados(self):
-        class Api:
-            async def get(self, path, params=None):
-                return {"view": "refine", "rows": []}
-        out = asyncio.run(bot.handle_refinar(Api()))
-        self.assertIn("Sem dados de refino", out)
+        out = self._com_refine([])
+        self.assertIn("Sem cotação de refino", out)
 
 
 class AdvancedHandlerTests(unittest.TestCase):
@@ -1031,6 +1041,53 @@ class SemPlataformaTests(unittest.TestCase):
             self.assertIn("Caerleon", res["text"])
         finally:
             bot.local_history_series = orig
+
+    # --- 3ª leva: produção de UM item também cabe no teto da AODP ---
+    def test_craftar_sem_plataforma(self):
+        async def _f(item_id, premium=True, focus=False):
+            return {"item": {"id": item_id, "name_pt": "Espada Larga",
+                             "tier": 5, "ench": 0},
+                    "rows": [{"craft_city": "Bridgewatch", "rrr_pct": 36.7,
+                              "is_bonus_city": True, "materials": 1000,
+                              "sell_city": "Martlock", "revenue": 1800,
+                              "margin": 800, "margin_pct": 80.0,
+                              "sourcing": [{"id": "T5_PLANKS", "count": 20,
+                                            "name_pt": "Tábuas de Cedro",
+                                            "buy_city": "Lymhurst",
+                                            "unit_price": 40}]}]}
+        orig = bot.local_craft_data
+        try:
+            bot.local_craft_data = _f
+            out = asyncio.run(bot.handle_craftar(self._Morta(), "T5_MAIN_SWORD"))
+            self.assertIn("VALE A PENA", out)
+            self.assertIn("Tábuas de Cedro", out)
+        finally:
+            bot.local_craft_data = orig
+
+    def test_craftar_item_sem_receita_sem_plataforma(self):
+        async def _f(item_id, premium=True, focus=False):
+            return None                      # recurso bruto: não tem craft
+        orig = bot.local_craft_data
+        try:
+            bot.local_craft_data = _f
+            out = asyncio.run(bot.handle_craftar(self._Morta(), "T4_WOOD"))
+            self.assertIn("receita de craft", out)
+        finally:
+            bot.local_craft_data = orig
+
+    def test_refinar_sem_plataforma(self):
+        async def _f(tier=None, premium=True, limit=40):
+            return [{"item_id": "T4_PLANKS", "name_pt": "Tábuas de Pinho",
+                     "city": "Fort Sterling", "margin": 45, "premium_pct": 9.7,
+                     "rrr_pct": 36.7}]
+        orig = bot.local_refine_rows
+        try:
+            bot.local_refine_rows = _f
+            out = asyncio.run(bot.handle_refinar(self._Morta(), 4))
+            self.assertIn("REFINAR", out)
+            self.assertIn("Tábuas de Pinho", out)
+        finally:
+            bot.local_refine_rows = orig
 
 
 if __name__ == "__main__":
