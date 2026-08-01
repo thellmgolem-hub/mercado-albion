@@ -1,0 +1,2260 @@
+{
+ "nutrition_per_itemvalue": 0.1125,
+ "families": {
+  "ore": {
+   "raw_token": "ORE",
+   "refined_token": "METALBAR"
+  },
+  "wood": {
+   "raw_token": "WOOD",
+   "refined_token": "PLANKS"
+  },
+  "fiber": {
+   "raw_token": "FIBER",
+   "refined_token": "CLOTH"
+  },
+  "hide": {
+   "raw_token": "HIDE",
+   "refined_token": "LEATHER"
+  },
+  "rock": {
+   "raw_token": "ROCK",
+   "refined_token": "STONEBLOCK"
+  }
+ },
+ "items": {
+  "T1_HIDE": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 1,
+   "ench": 0,
+   "weight": 0.15,
+   "itemvalue": 0.0,
+   "nutrition": 0.0
+  },
+  "T1_ROCK": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 1,
+   "ench": 0,
+   "weight": 0.15,
+   "itemvalue": 0.0,
+   "nutrition": 0.0
+  },
+  "T1_WOOD": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 1,
+   "ench": 0,
+   "weight": 0.15,
+   "itemvalue": 0.0,
+   "nutrition": 0.0
+  },
+  "T2_CLOTH": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 2,
+   "ench": 0,
+   "weight": 0.23,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T2_FIBER": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 2,
+   "ench": 0,
+   "weight": 0.23,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T2_HIDE": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 2,
+   "ench": 0,
+   "weight": 0.23,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T2_LEATHER": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 2,
+   "ench": 0,
+   "weight": 0.23,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T2_METALBAR": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 2,
+   "ench": 0,
+   "weight": 0.23,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T2_ORE": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 2,
+   "ench": 0,
+   "weight": 0.23,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T2_PLANKS": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 2,
+   "ench": 0,
+   "weight": 0.23,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T2_ROCK": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 2,
+   "ench": 0,
+   "weight": 0.23,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T2_STONEBLOCK": {
+   "fam": "rock",
+   "kind": "refined",
+   "tier": 2,
+   "ench": 0,
+   "weight": 0.23,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T2_WOOD": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 2,
+   "ench": 0,
+   "weight": 0.23,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T3_CLOTH": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 3,
+   "ench": 0,
+   "weight": 0.34,
+   "itemvalue": 8.0,
+   "nutrition": 0.9
+  },
+  "T3_FIBER": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 3,
+   "ench": 0,
+   "weight": 0.34,
+   "itemvalue": 2.0,
+   "nutrition": 0.225
+  },
+  "T3_HIDE": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 3,
+   "ench": 0,
+   "weight": 0.34,
+   "itemvalue": 2.0,
+   "nutrition": 0.225
+  },
+  "T3_LEATHER": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 3,
+   "ench": 0,
+   "weight": 0.34,
+   "itemvalue": 8.0,
+   "nutrition": 0.9
+  },
+  "T3_METALBAR": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 3,
+   "ench": 0,
+   "weight": 0.34,
+   "itemvalue": 8.0,
+   "nutrition": 0.9
+  },
+  "T3_ORE": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 3,
+   "ench": 0,
+   "weight": 0.34,
+   "itemvalue": 2.0,
+   "nutrition": 0.225
+  },
+  "T3_PLANKS": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 3,
+   "ench": 0,
+   "weight": 0.34,
+   "itemvalue": 8.0,
+   "nutrition": 0.9
+  },
+  "T3_ROCK": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 3,
+   "ench": 0,
+   "weight": 0.34,
+   "itemvalue": 2.0,
+   "nutrition": 0.225
+  },
+  "T3_STONEBLOCK": {
+   "fam": "rock",
+   "kind": "refined",
+   "tier": 3,
+   "ench": 0,
+   "weight": 0.34,
+   "itemvalue": 8.0,
+   "nutrition": 0.9
+  },
+  "T3_WOOD": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 3,
+   "ench": 0,
+   "weight": 0.34,
+   "itemvalue": 2.0,
+   "nutrition": 0.225
+  },
+  "T4_CLOTH": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 0,
+   "weight": 0.51,
+   "itemvalue": 16.0,
+   "nutrition": 1.8
+  },
+  "T4_CLOTH_LEVEL1@1": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 1,
+   "weight": 0.51,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T4_CLOTH_LEVEL2@2": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 2,
+   "weight": 0.51,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T4_CLOTH_LEVEL3@3": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 3,
+   "weight": 0.51,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T4_CLOTH_LEVEL4@4": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 4,
+   "weight": 0.51,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T4_FIBER": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 0,
+   "weight": 0.51,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T4_FIBER_LEVEL1@1": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 1,
+   "weight": 0.51,
+   "itemvalue": 12.0,
+   "nutrition": 1.35
+  },
+  "T4_FIBER_LEVEL2@2": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 2,
+   "weight": 0.51,
+   "itemvalue": 28.0,
+   "nutrition": 3.15
+  },
+  "T4_FIBER_LEVEL3@3": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 3,
+   "weight": 0.51,
+   "itemvalue": 60.0,
+   "nutrition": 6.75
+  },
+  "T4_FIBER_LEVEL4@4": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 4,
+   "weight": 0.51,
+   "itemvalue": 124.0,
+   "nutrition": 13.95
+  },
+  "T4_HIDE": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 0,
+   "weight": 0.51,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T4_HIDE_LEVEL1@1": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 1,
+   "weight": 0.51,
+   "itemvalue": 12.0,
+   "nutrition": 1.35
+  },
+  "T4_HIDE_LEVEL2@2": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 2,
+   "weight": 0.51,
+   "itemvalue": 28.0,
+   "nutrition": 3.15
+  },
+  "T4_HIDE_LEVEL3@3": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 3,
+   "weight": 0.51,
+   "itemvalue": 60.0,
+   "nutrition": 6.75
+  },
+  "T4_HIDE_LEVEL4@4": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 4,
+   "weight": 0.51,
+   "itemvalue": 124.0,
+   "nutrition": 13.95
+  },
+  "T4_LEATHER": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 0,
+   "weight": 0.51,
+   "itemvalue": 16.0,
+   "nutrition": 1.8
+  },
+  "T4_LEATHER_LEVEL1@1": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 1,
+   "weight": 0.51,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T4_LEATHER_LEVEL2@2": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 2,
+   "weight": 0.51,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T4_LEATHER_LEVEL3@3": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 3,
+   "weight": 0.51,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T4_LEATHER_LEVEL4@4": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 4,
+   "weight": 0.51,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T4_METALBAR": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 0,
+   "weight": 0.51,
+   "itemvalue": 16.0,
+   "nutrition": 1.8
+  },
+  "T4_METALBAR_LEVEL1@1": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 1,
+   "weight": 0.51,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T4_METALBAR_LEVEL2@2": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 2,
+   "weight": 0.51,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T4_METALBAR_LEVEL3@3": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 3,
+   "weight": 0.51,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T4_METALBAR_LEVEL4@4": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 4,
+   "weight": 0.51,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T4_ORE": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 0,
+   "weight": 0.51,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T4_ORE_LEVEL1@1": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 1,
+   "weight": 0.51,
+   "itemvalue": 12.0,
+   "nutrition": 1.35
+  },
+  "T4_ORE_LEVEL2@2": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 2,
+   "weight": 0.51,
+   "itemvalue": 28.0,
+   "nutrition": 3.15
+  },
+  "T4_ORE_LEVEL3@3": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 3,
+   "weight": 0.51,
+   "itemvalue": 60.0,
+   "nutrition": 6.75
+  },
+  "T4_ORE_LEVEL4@4": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 4,
+   "weight": 0.51,
+   "itemvalue": 124.0,
+   "nutrition": 13.95
+  },
+  "T4_PLANKS": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 0,
+   "weight": 0.51,
+   "itemvalue": 16.0,
+   "nutrition": 1.8
+  },
+  "T4_PLANKS_LEVEL1@1": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 1,
+   "weight": 0.51,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T4_PLANKS_LEVEL2@2": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 2,
+   "weight": 0.51,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T4_PLANKS_LEVEL3@3": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 3,
+   "weight": 0.51,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T4_PLANKS_LEVEL4@4": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 4,
+   "weight": 0.51,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T4_ROCK": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 0,
+   "weight": 0.51,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T4_ROCK_LEVEL1@1": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 1,
+   "weight": 0.51,
+   "itemvalue": 12.0,
+   "nutrition": 1.35
+  },
+  "T4_ROCK_LEVEL2@2": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 2,
+   "weight": 0.51,
+   "itemvalue": 28.0,
+   "nutrition": 3.15
+  },
+  "T4_ROCK_LEVEL3@3": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 3,
+   "weight": 0.51,
+   "itemvalue": 60.0,
+   "nutrition": 6.75
+  },
+  "T4_STONEBLOCK": {
+   "fam": "rock",
+   "kind": "refined",
+   "tier": 4,
+   "ench": 0,
+   "weight": 0.51,
+   "itemvalue": 16.0,
+   "nutrition": 1.8
+  },
+  "T4_WOOD": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 0,
+   "weight": 0.51,
+   "itemvalue": 4.0,
+   "nutrition": 0.45
+  },
+  "T4_WOOD_LEVEL1@1": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 1,
+   "weight": 0.51,
+   "itemvalue": 12.0,
+   "nutrition": 1.35
+  },
+  "T4_WOOD_LEVEL2@2": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 2,
+   "weight": 0.51,
+   "itemvalue": 28.0,
+   "nutrition": 3.15
+  },
+  "T4_WOOD_LEVEL3@3": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 3,
+   "weight": 0.51,
+   "itemvalue": 60.0,
+   "nutrition": 6.75
+  },
+  "T4_WOOD_LEVEL4@4": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 4,
+   "ench": 4,
+   "weight": 0.51,
+   "itemvalue": 124.0,
+   "nutrition": 13.95
+  },
+  "T5_CLOTH": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 0,
+   "weight": 0.76,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T5_CLOTH_LEVEL1@1": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 1,
+   "weight": 0.76,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T5_CLOTH_LEVEL2@2": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 2,
+   "weight": 0.76,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T5_CLOTH_LEVEL3@3": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 3,
+   "weight": 0.76,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T5_CLOTH_LEVEL4@4": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 4,
+   "weight": 0.76,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T5_FIBER": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 0,
+   "weight": 0.76,
+   "itemvalue": 5.34,
+   "nutrition": 0.6008
+  },
+  "T5_FIBER_LEVEL1@1": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 1,
+   "weight": 0.76,
+   "itemvalue": 10.66,
+   "nutrition": 1.1993
+  },
+  "T5_FIBER_LEVEL2@2": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 2,
+   "weight": 0.76,
+   "itemvalue": 21.34,
+   "nutrition": 2.4007
+  },
+  "T5_FIBER_LEVEL3@3": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 3,
+   "weight": 0.76,
+   "itemvalue": 42.66,
+   "nutrition": 4.7992
+  },
+  "T5_FIBER_LEVEL4@4": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 4,
+   "weight": 0.76,
+   "itemvalue": 85.34,
+   "nutrition": 9.6008
+  },
+  "T5_HIDE": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 0,
+   "weight": 0.76,
+   "itemvalue": 5.34,
+   "nutrition": 0.6008
+  },
+  "T5_HIDE_LEVEL1@1": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 1,
+   "weight": 0.76,
+   "itemvalue": 10.66,
+   "nutrition": 1.1993
+  },
+  "T5_HIDE_LEVEL2@2": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 2,
+   "weight": 0.76,
+   "itemvalue": 21.34,
+   "nutrition": 2.4007
+  },
+  "T5_HIDE_LEVEL3@3": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 3,
+   "weight": 0.76,
+   "itemvalue": 42.66,
+   "nutrition": 4.7992
+  },
+  "T5_HIDE_LEVEL4@4": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 4,
+   "weight": 0.76,
+   "itemvalue": 85.34,
+   "nutrition": 9.6008
+  },
+  "T5_LEATHER": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 0,
+   "weight": 0.76,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T5_LEATHER_LEVEL1@1": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 1,
+   "weight": 0.76,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T5_LEATHER_LEVEL2@2": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 2,
+   "weight": 0.76,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T5_LEATHER_LEVEL3@3": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 3,
+   "weight": 0.76,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T5_LEATHER_LEVEL4@4": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 4,
+   "weight": 0.76,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T5_METALBAR": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 0,
+   "weight": 0.76,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T5_METALBAR_LEVEL1@1": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 1,
+   "weight": 0.76,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T5_METALBAR_LEVEL2@2": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 2,
+   "weight": 0.76,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T5_METALBAR_LEVEL3@3": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 3,
+   "weight": 0.76,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T5_METALBAR_LEVEL4@4": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 4,
+   "weight": 0.76,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T5_ORE": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 0,
+   "weight": 0.76,
+   "itemvalue": 5.34,
+   "nutrition": 0.6008
+  },
+  "T5_ORE_LEVEL1@1": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 1,
+   "weight": 0.76,
+   "itemvalue": 10.66,
+   "nutrition": 1.1993
+  },
+  "T5_ORE_LEVEL2@2": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 2,
+   "weight": 0.76,
+   "itemvalue": 21.34,
+   "nutrition": 2.4007
+  },
+  "T5_ORE_LEVEL3@3": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 3,
+   "weight": 0.76,
+   "itemvalue": 42.66,
+   "nutrition": 4.7992
+  },
+  "T5_ORE_LEVEL4@4": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 4,
+   "weight": 0.76,
+   "itemvalue": 85.34,
+   "nutrition": 9.6008
+  },
+  "T5_PLANKS": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 0,
+   "weight": 0.76,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T5_PLANKS_LEVEL1@1": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 1,
+   "weight": 0.76,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T5_PLANKS_LEVEL2@2": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 2,
+   "weight": 0.76,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T5_PLANKS_LEVEL3@3": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 3,
+   "weight": 0.76,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T5_PLANKS_LEVEL4@4": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 4,
+   "weight": 0.76,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T5_ROCK": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 0,
+   "weight": 0.76,
+   "itemvalue": 5.34,
+   "nutrition": 0.6008
+  },
+  "T5_ROCK_LEVEL1@1": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 1,
+   "weight": 0.76,
+   "itemvalue": 10.66,
+   "nutrition": 1.1993
+  },
+  "T5_ROCK_LEVEL2@2": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 2,
+   "weight": 0.76,
+   "itemvalue": 21.34,
+   "nutrition": 2.4007
+  },
+  "T5_ROCK_LEVEL3@3": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 3,
+   "weight": 0.76,
+   "itemvalue": 42.66,
+   "nutrition": 4.7992
+  },
+  "T5_STONEBLOCK": {
+   "fam": "rock",
+   "kind": "refined",
+   "tier": 5,
+   "ench": 0,
+   "weight": 0.76,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T5_WOOD": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 0,
+   "weight": 0.76,
+   "itemvalue": 5.34,
+   "nutrition": 0.6008
+  },
+  "T5_WOOD_LEVEL1@1": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 1,
+   "weight": 0.76,
+   "itemvalue": 10.66,
+   "nutrition": 1.1993
+  },
+  "T5_WOOD_LEVEL2@2": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 2,
+   "weight": 0.76,
+   "itemvalue": 21.34,
+   "nutrition": 2.4007
+  },
+  "T5_WOOD_LEVEL3@3": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 3,
+   "weight": 0.76,
+   "itemvalue": 42.66,
+   "nutrition": 4.7992
+  },
+  "T5_WOOD_LEVEL4@4": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 5,
+   "ench": 4,
+   "weight": 0.76,
+   "itemvalue": 85.34,
+   "nutrition": 9.6008
+  },
+  "T6_CLOTH": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 0,
+   "weight": 1.14,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T6_CLOTH_LEVEL1@1": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 1,
+   "weight": 1.14,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T6_CLOTH_LEVEL2@2": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 2,
+   "weight": 1.14,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T6_CLOTH_LEVEL3@3": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 3,
+   "weight": 1.14,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T6_CLOTH_LEVEL4@4": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 4,
+   "weight": 1.14,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T6_FIBER": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 0,
+   "weight": 1.14,
+   "itemvalue": 8.0,
+   "nutrition": 0.9
+  },
+  "T6_FIBER_LEVEL1@1": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 1,
+   "weight": 1.14,
+   "itemvalue": 16.0,
+   "nutrition": 1.8
+  },
+  "T6_FIBER_LEVEL2@2": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 2,
+   "weight": 1.14,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T6_FIBER_LEVEL3@3": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 3,
+   "weight": 1.14,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T6_FIBER_LEVEL4@4": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 4,
+   "weight": 1.14,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T6_HIDE": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 0,
+   "weight": 1.14,
+   "itemvalue": 8.0,
+   "nutrition": 0.9
+  },
+  "T6_HIDE_LEVEL1@1": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 1,
+   "weight": 1.14,
+   "itemvalue": 16.0,
+   "nutrition": 1.8
+  },
+  "T6_HIDE_LEVEL2@2": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 2,
+   "weight": 1.14,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T6_HIDE_LEVEL3@3": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 3,
+   "weight": 1.14,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T6_HIDE_LEVEL4@4": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 4,
+   "weight": 1.14,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T6_LEATHER": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 0,
+   "weight": 1.14,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T6_LEATHER_LEVEL1@1": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 1,
+   "weight": 1.14,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T6_LEATHER_LEVEL2@2": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 2,
+   "weight": 1.14,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T6_LEATHER_LEVEL3@3": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 3,
+   "weight": 1.14,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T6_LEATHER_LEVEL4@4": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 4,
+   "weight": 1.14,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T6_METALBAR": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 0,
+   "weight": 1.14,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T6_METALBAR_LEVEL1@1": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 1,
+   "weight": 1.14,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T6_METALBAR_LEVEL2@2": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 2,
+   "weight": 1.14,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T6_METALBAR_LEVEL3@3": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 3,
+   "weight": 1.14,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T6_METALBAR_LEVEL4@4": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 4,
+   "weight": 1.14,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T6_ORE": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 0,
+   "weight": 1.14,
+   "itemvalue": 8.0,
+   "nutrition": 0.9
+  },
+  "T6_ORE_LEVEL1@1": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 1,
+   "weight": 1.14,
+   "itemvalue": 16.0,
+   "nutrition": 1.8
+  },
+  "T6_ORE_LEVEL2@2": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 2,
+   "weight": 1.14,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T6_ORE_LEVEL3@3": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 3,
+   "weight": 1.14,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T6_ORE_LEVEL4@4": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 4,
+   "weight": 1.14,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T6_PLANKS": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 0,
+   "weight": 1.14,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T6_PLANKS_LEVEL1@1": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 1,
+   "weight": 1.14,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T6_PLANKS_LEVEL2@2": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 2,
+   "weight": 1.14,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T6_PLANKS_LEVEL3@3": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 3,
+   "weight": 1.14,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T6_PLANKS_LEVEL4@4": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 4,
+   "weight": 1.14,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T6_ROCK": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 0,
+   "weight": 1.14,
+   "itemvalue": 8.0,
+   "nutrition": 0.9
+  },
+  "T6_ROCK_LEVEL1@1": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 1,
+   "weight": 1.14,
+   "itemvalue": 16.0,
+   "nutrition": 1.8
+  },
+  "T6_ROCK_LEVEL2@2": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 2,
+   "weight": 1.14,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T6_ROCK_LEVEL3@3": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 3,
+   "weight": 1.14,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T6_STONEBLOCK": {
+   "fam": "rock",
+   "kind": "refined",
+   "tier": 6,
+   "ench": 0,
+   "weight": 1.14,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T6_WOOD": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 0,
+   "weight": 1.14,
+   "itemvalue": 8.0,
+   "nutrition": 0.9
+  },
+  "T6_WOOD_LEVEL1@1": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 1,
+   "weight": 1.14,
+   "itemvalue": 16.0,
+   "nutrition": 1.8
+  },
+  "T6_WOOD_LEVEL2@2": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 2,
+   "weight": 1.14,
+   "itemvalue": 32.0,
+   "nutrition": 3.6
+  },
+  "T6_WOOD_LEVEL3@3": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 3,
+   "weight": 1.14,
+   "itemvalue": 64.0,
+   "nutrition": 7.2
+  },
+  "T6_WOOD_LEVEL4@4": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 6,
+   "ench": 4,
+   "weight": 1.14,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T7_CLOTH": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 0,
+   "weight": 1.71,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T7_CLOTH_LEVEL1@1": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 1,
+   "weight": 1.71,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T7_CLOTH_LEVEL2@2": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 2,
+   "weight": 1.71,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T7_CLOTH_LEVEL3@3": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 3,
+   "weight": 1.71,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T7_CLOTH_LEVEL4@4": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 4,
+   "weight": 1.71,
+   "itemvalue": 2048.0,
+   "nutrition": 230.4
+  },
+  "T7_FIBER": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 0,
+   "weight": 1.71,
+   "itemvalue": 12.8,
+   "nutrition": 1.44
+  },
+  "T7_FIBER_LEVEL1@1": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 1,
+   "weight": 1.71,
+   "itemvalue": 25.6,
+   "nutrition": 2.88
+  },
+  "T7_FIBER_LEVEL2@2": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 2,
+   "weight": 1.71,
+   "itemvalue": 51.2,
+   "nutrition": 5.76
+  },
+  "T7_FIBER_LEVEL3@3": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 3,
+   "weight": 1.71,
+   "itemvalue": 102.4,
+   "nutrition": 11.52
+  },
+  "T7_FIBER_LEVEL4@4": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 4,
+   "weight": 1.71,
+   "itemvalue": 204.8,
+   "nutrition": 23.04
+  },
+  "T7_HIDE": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 0,
+   "weight": 1.71,
+   "itemvalue": 12.8,
+   "nutrition": 1.44
+  },
+  "T7_HIDE_LEVEL1@1": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 1,
+   "weight": 1.71,
+   "itemvalue": 25.6,
+   "nutrition": 2.88
+  },
+  "T7_HIDE_LEVEL2@2": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 2,
+   "weight": 1.71,
+   "itemvalue": 51.2,
+   "nutrition": 5.76
+  },
+  "T7_HIDE_LEVEL3@3": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 3,
+   "weight": 1.71,
+   "itemvalue": 102.4,
+   "nutrition": 11.52
+  },
+  "T7_HIDE_LEVEL4@4": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 4,
+   "weight": 1.71,
+   "itemvalue": 204.8,
+   "nutrition": 23.04
+  },
+  "T7_LEATHER": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 0,
+   "weight": 1.71,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T7_LEATHER_LEVEL1@1": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 1,
+   "weight": 1.71,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T7_LEATHER_LEVEL2@2": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 2,
+   "weight": 1.71,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T7_LEATHER_LEVEL3@3": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 3,
+   "weight": 1.71,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T7_LEATHER_LEVEL4@4": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 4,
+   "weight": 1.71,
+   "itemvalue": 2048.0,
+   "nutrition": 230.4
+  },
+  "T7_METALBAR": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 0,
+   "weight": 1.71,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T7_METALBAR_LEVEL1@1": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 1,
+   "weight": 1.71,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T7_METALBAR_LEVEL2@2": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 2,
+   "weight": 1.71,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T7_METALBAR_LEVEL3@3": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 3,
+   "weight": 1.71,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T7_METALBAR_LEVEL4@4": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 4,
+   "weight": 1.71,
+   "itemvalue": 2048.0,
+   "nutrition": 230.4
+  },
+  "T7_ORE": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 0,
+   "weight": 1.71,
+   "itemvalue": 12.8,
+   "nutrition": 1.44
+  },
+  "T7_ORE_LEVEL1@1": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 1,
+   "weight": 1.71,
+   "itemvalue": 25.6,
+   "nutrition": 2.88
+  },
+  "T7_ORE_LEVEL2@2": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 2,
+   "weight": 1.71,
+   "itemvalue": 51.2,
+   "nutrition": 5.76
+  },
+  "T7_ORE_LEVEL3@3": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 3,
+   "weight": 1.71,
+   "itemvalue": 102.4,
+   "nutrition": 11.52
+  },
+  "T7_ORE_LEVEL4@4": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 4,
+   "weight": 1.71,
+   "itemvalue": 204.8,
+   "nutrition": 23.04
+  },
+  "T7_PLANKS": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 0,
+   "weight": 1.71,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T7_PLANKS_LEVEL1@1": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 1,
+   "weight": 1.71,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T7_PLANKS_LEVEL2@2": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 2,
+   "weight": 1.71,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T7_PLANKS_LEVEL3@3": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 3,
+   "weight": 1.71,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T7_PLANKS_LEVEL4@4": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 4,
+   "weight": 1.71,
+   "itemvalue": 2048.0,
+   "nutrition": 230.4
+  },
+  "T7_ROCK": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 0,
+   "weight": 1.71,
+   "itemvalue": 12.8,
+   "nutrition": 1.44
+  },
+  "T7_ROCK_LEVEL1@1": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 1,
+   "weight": 1.71,
+   "itemvalue": 25.6,
+   "nutrition": 2.88
+  },
+  "T7_ROCK_LEVEL2@2": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 2,
+   "weight": 1.71,
+   "itemvalue": 51.2,
+   "nutrition": 5.76
+  },
+  "T7_ROCK_LEVEL3@3": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 3,
+   "weight": 1.71,
+   "itemvalue": 102.4,
+   "nutrition": 11.52
+  },
+  "T7_STONEBLOCK": {
+   "fam": "rock",
+   "kind": "refined",
+   "tier": 7,
+   "ench": 0,
+   "weight": 1.71,
+   "itemvalue": 128.0,
+   "nutrition": 14.4
+  },
+  "T7_WOOD": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 0,
+   "weight": 1.71,
+   "itemvalue": 12.8,
+   "nutrition": 1.44
+  },
+  "T7_WOOD_LEVEL1@1": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 1,
+   "weight": 1.71,
+   "itemvalue": 25.6,
+   "nutrition": 2.88
+  },
+  "T7_WOOD_LEVEL2@2": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 2,
+   "weight": 1.71,
+   "itemvalue": 51.2,
+   "nutrition": 5.76
+  },
+  "T7_WOOD_LEVEL3@3": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 3,
+   "weight": 1.71,
+   "itemvalue": 102.4,
+   "nutrition": 11.52
+  },
+  "T7_WOOD_LEVEL4@4": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 7,
+   "ench": 4,
+   "weight": 1.71,
+   "itemvalue": 204.8,
+   "nutrition": 23.04
+  },
+  "T8_CLOTH": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 0,
+   "weight": 2.56,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T8_CLOTH_LEVEL1@1": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 1,
+   "weight": 2.56,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T8_CLOTH_LEVEL2@2": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 2,
+   "weight": 2.56,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T8_CLOTH_LEVEL3@3": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 3,
+   "weight": 2.56,
+   "itemvalue": 2048.0,
+   "nutrition": 230.4
+  },
+  "T8_CLOTH_LEVEL4@4": {
+   "fam": "fiber",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 4,
+   "weight": 2.56,
+   "itemvalue": 4096.0,
+   "nutrition": 460.8
+  },
+  "T8_FIBER": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 0,
+   "weight": 2.56,
+   "itemvalue": 25.6,
+   "nutrition": 2.88
+  },
+  "T8_FIBER_LEVEL1@1": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 1,
+   "weight": 2.56,
+   "itemvalue": 51.2,
+   "nutrition": 5.76
+  },
+  "T8_FIBER_LEVEL2@2": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 2,
+   "weight": 2.56,
+   "itemvalue": 102.4,
+   "nutrition": 11.52
+  },
+  "T8_FIBER_LEVEL3@3": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 3,
+   "weight": 2.56,
+   "itemvalue": 204.8,
+   "nutrition": 23.04
+  },
+  "T8_FIBER_LEVEL4@4": {
+   "fam": "fiber",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 4,
+   "weight": 2.56,
+   "itemvalue": 409.6,
+   "nutrition": 46.08
+  },
+  "T8_HIDE": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 0,
+   "weight": 2.56,
+   "itemvalue": 25.6,
+   "nutrition": 2.88
+  },
+  "T8_HIDE_LEVEL1@1": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 1,
+   "weight": 2.56,
+   "itemvalue": 51.2,
+   "nutrition": 5.76
+  },
+  "T8_HIDE_LEVEL2@2": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 2,
+   "weight": 2.56,
+   "itemvalue": 102.4,
+   "nutrition": 11.52
+  },
+  "T8_HIDE_LEVEL3@3": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 3,
+   "weight": 2.56,
+   "itemvalue": 204.8,
+   "nutrition": 23.04
+  },
+  "T8_HIDE_LEVEL4@4": {
+   "fam": "hide",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 4,
+   "weight": 2.56,
+   "itemvalue": 409.6,
+   "nutrition": 46.08
+  },
+  "T8_LEATHER": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 0,
+   "weight": 2.56,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T8_LEATHER_LEVEL1@1": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 1,
+   "weight": 2.56,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T8_LEATHER_LEVEL2@2": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 2,
+   "weight": 2.56,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T8_LEATHER_LEVEL3@3": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 3,
+   "weight": 2.56,
+   "itemvalue": 2048.0,
+   "nutrition": 230.4
+  },
+  "T8_LEATHER_LEVEL4@4": {
+   "fam": "hide",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 4,
+   "weight": 2.56,
+   "itemvalue": 4096.0,
+   "nutrition": 460.8
+  },
+  "T8_METALBAR": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 0,
+   "weight": 2.56,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T8_METALBAR_LEVEL1@1": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 1,
+   "weight": 2.56,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T8_METALBAR_LEVEL2@2": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 2,
+   "weight": 2.56,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T8_METALBAR_LEVEL3@3": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 3,
+   "weight": 2.56,
+   "itemvalue": 2048.0,
+   "nutrition": 230.4
+  },
+  "T8_METALBAR_LEVEL4@4": {
+   "fam": "ore",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 4,
+   "weight": 2.56,
+   "itemvalue": 4096.0,
+   "nutrition": 460.8
+  },
+  "T8_ORE": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 0,
+   "weight": 2.56,
+   "itemvalue": 25.6,
+   "nutrition": 2.88
+  },
+  "T8_ORE_LEVEL1@1": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 1,
+   "weight": 2.56,
+   "itemvalue": 51.2,
+   "nutrition": 5.76
+  },
+  "T8_ORE_LEVEL2@2": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 2,
+   "weight": 2.56,
+   "itemvalue": 102.4,
+   "nutrition": 11.52
+  },
+  "T8_ORE_LEVEL3@3": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 3,
+   "weight": 2.56,
+   "itemvalue": 204.8,
+   "nutrition": 23.04
+  },
+  "T8_ORE_LEVEL4@4": {
+   "fam": "ore",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 4,
+   "weight": 2.56,
+   "itemvalue": 409.6,
+   "nutrition": 46.08
+  },
+  "T8_PLANKS": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 0,
+   "weight": 2.56,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T8_PLANKS_LEVEL1@1": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 1,
+   "weight": 2.56,
+   "itemvalue": 512.0,
+   "nutrition": 57.6
+  },
+  "T8_PLANKS_LEVEL2@2": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 2,
+   "weight": 2.56,
+   "itemvalue": 1024.0,
+   "nutrition": 115.2
+  },
+  "T8_PLANKS_LEVEL3@3": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 3,
+   "weight": 2.56,
+   "itemvalue": 2048.0,
+   "nutrition": 230.4
+  },
+  "T8_PLANKS_LEVEL4@4": {
+   "fam": "wood",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 4,
+   "weight": 2.56,
+   "itemvalue": 4096.0,
+   "nutrition": 460.8
+  },
+  "T8_ROCK": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 0,
+   "weight": 2.56,
+   "itemvalue": 25.6,
+   "nutrition": 2.88
+  },
+  "T8_ROCK_LEVEL1@1": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 1,
+   "weight": 2.56,
+   "itemvalue": 51.2,
+   "nutrition": 5.76
+  },
+  "T8_ROCK_LEVEL2@2": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 2,
+   "weight": 2.56,
+   "itemvalue": 102.4,
+   "nutrition": 11.52
+  },
+  "T8_ROCK_LEVEL3@3": {
+   "fam": "rock",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 3,
+   "weight": 2.56,
+   "itemvalue": 204.8,
+   "nutrition": 23.04
+  },
+  "T8_STONEBLOCK": {
+   "fam": "rock",
+   "kind": "refined",
+   "tier": 8,
+   "ench": 0,
+   "weight": 2.56,
+   "itemvalue": 256.0,
+   "nutrition": 28.8
+  },
+  "T8_WOOD": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 0,
+   "weight": 2.56,
+   "itemvalue": 25.6,
+   "nutrition": 2.88
+  },
+  "T8_WOOD_LEVEL1@1": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 1,
+   "weight": 2.56,
+   "itemvalue": 51.2,
+   "nutrition": 5.76
+  },
+  "T8_WOOD_LEVEL2@2": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 2,
+   "weight": 2.56,
+   "itemvalue": 102.4,
+   "nutrition": 11.52
+  },
+  "T8_WOOD_LEVEL3@3": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 3,
+   "weight": 2.56,
+   "itemvalue": 204.8,
+   "nutrition": 23.04
+  },
+  "T8_WOOD_LEVEL4@4": {
+   "fam": "wood",
+   "kind": "raw",
+   "tier": 8,
+   "ench": 4,
+   "weight": 2.56,
+   "itemvalue": 409.6,
+   "nutrition": 46.08
+  }
+ },
+ "_fonte": "items_raw.json (ao-bin-dumps): @itemvalue, @weight, @tier"
+}
