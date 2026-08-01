@@ -917,6 +917,13 @@ def _has_column(conn, table: str, col: str) -> bool:
     return any(r[1] == col for r in cur.fetchall())
 
 
+class ReadOnlyMigration(RuntimeError):
+    """Migração de schema que NÃO pôde escrever (banco somente-leitura).
+
+    Subclasse de RuntimeError p/ não quebrar quem já capturava RuntimeError;
+    o _is_readonly_error a reconhece, então o boot degrada em vez de morrer."""
+
+
 def add_column(conn, table: str, coldef: str) -> None:
     """Adiciona uma coluna de forma idempotente nos dois backends.
 
@@ -941,8 +948,15 @@ def add_column(conn, table: str, coldef: str) -> None:
             if "duplicate column" not in str(e).lower():
                 raise
     if not _has_column(conn, table, col):
-        raise RuntimeError(
-            f"migração falhou: {table}.{col} não existe após ADD COLUMN")
+        # SCHEMA-1: num banco SOMENTE-LEITURA (disco cheio no free tier) o
+        # ALTER falha e a coluna segue ausente. Levantar RuntimeError aqui
+        # derrubava o boot em crash-loop — e a mensagem não casa o
+        # _is_readonly_error, então nem o except de init_schema salvava. O app
+        # tem de SUBIR degradado (leitura funciona; /api/health conta o porquê)
+        # em vez de morrer sem nem conseguir explicar.
+        raise ReadOnlyMigration(
+            f"migração falhou: {table}.{col} não existe após ADD COLUMN "
+            "(banco somente-leitura? disco cheio?)")
 
 
 def ensure_default_org(conn) -> None:
@@ -983,6 +997,8 @@ def _is_readonly_error(exc) -> bool:
     """True se for erro de Postgres em modo somente-leitura (o que acontece no
     plano free quando o disco enche). Serve p/ o app subir degradado em vez de
     entrar em crash-loop no boot."""
+    if isinstance(exc, ReadOnlyMigration):
+        return True            # SCHEMA-1: migração que não pôde escrever
     s = str(exc).lower()
     return "read-only" in s or "read only" in s or "readonlysql" in s
 

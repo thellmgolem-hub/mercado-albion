@@ -183,6 +183,8 @@ async def _lifespan(app: FastAPI):
     TestClient dispara o lifespan ao entrar no context manager — mesmo gatilho
     dos antigos eventos de startup, comportamento preservado."""
     log.info("servidor iniciando (backend=%s)", store.backend())
+    if store.backend() == "postgres":
+        _avisa_pooler()       # PG-5: confere a porta do pooler no 1º boot
     _start_auto_collector()   # no-op na nuvem/testes (guardas internas)
     _start_cloud_watchdog()   # no-op no SQLite/testes (guardas internas)
     bot_task = None
@@ -200,6 +202,12 @@ app = FastAPI(title="Mercado Albion — Américas", lifespan=_lifespan)
 # banda"; o edge free do Render não recomprime.
 from fastapi.middleware.gzip import GZipMiddleware  # noqa: E402
 app.add_middleware(GZipMiddleware, minimum_size=500)
+# GZIP-1 (aceito, não corrigido): o gzip também passa por PNG do /icon, que já
+# vem comprimido — gasta um pouco de CPU sem encolher. A revisão classificou
+# como cosmético. NÃO vale um middleware próprio: filtrar por content-type exige
+# reescrever o wrapper ASGI, e um middleware caseiro com bug custaria MUITO mais
+# que o desperdício que ele evitaria. Os ícones ainda são servidos do disco com
+# cache de 7 dias no navegador, então o volume é pequeno.
 db = ItemDB()
 aodp = AODP(server=config.DEFAULT_SERVER)
 auth_manager = AuthManager(aodp.db, aodp.db_lock)
@@ -533,8 +541,17 @@ def health():
     vigia_ativo_ha = (round(time.time() - _WATCHDOG["ativo_desde"])
                       if _WATCHDOG.get("mode") == "ativo"
                       and _WATCHDOG.get("ativo_desde") else None)
-    coletor_externo_ok = not (vigia_ativo_ha is not None
-                              and vigia_ativo_ha > _WATCHDOG_STUCK_S)
+    if vigia_ativo_ha is not None:
+        coletor_externo_ok = vigia_ativo_ha <= _WATCHDOG_STUCK_S
+    else:
+        # CFG-3: sem o vigia (ALBION_NO_WATCHDOG=1 é a postura PRIMÁRIA no
+        # Render), a regra antiga dava SEMPRE True — o dead-man-switch ficava
+        # cego justamente na configuração que rodamos, e a morte do coletor do
+        # GitHub Actions passava como saúde verde. Sem vigia, quem denuncia essa
+        # morte é a IDADE da coleta: passou de 2 ciclos (_CRON_LATE_S), o
+        # coletor externo parou. sweep_age None = ainda não coletou nesta base
+        # (deploy novo): não grita aqui, o campo coleta_ok já cobre.
+        coletor_externo_ok = sweep_age is None or sweep_age < _CRON_LATE_S
     # Killboard é feed secundário: frescor vira campo próprio, não derruba o `ok`
     # (que segue a coleta de PREÇOS, o feed econômico primário).
     intel_stale = (intel_age is not None
@@ -1388,11 +1405,39 @@ class _ReusedConn:
         try:
             self._inner.rollback()   # encerra tx implícita; deixa limpa p/ reuso
         except Exception:
-            # conexão morreu: descarta do thread-local pra reabrir na próxima
+            # Conexão morreu: fecha de verdade a de baixo (senão o backend fica
+            # pendurado no pooler), tira do thread-local e devolve a vaga ao
+            # contador — sem isso o teto de reuso vazaria a cada morte.
+            global _ro_reuse_count
+            try:
+                self._inner.close()
+            except Exception:
+                pass
             _ro_local.conn = None
+            with _ro_reuse_lock:
+                _ro_reuse_count = max(0, _ro_reuse_count - 1)
 
     def __getattr__(self, name):
         return getattr(object.__getattribute__(self, "_inner"), name)
+
+
+def _avisa_pooler():
+    """PG-5: o reuso de conexão (e a rotatividade do app em geral) SÓ é seguro
+    contra o pooler de TRANSAÇÃO do Supabase (porta 6543), que solta o backend
+    entre statements. Apontado à porta 5432 (conexão direta), N conexões
+    persistentes consomem N backends reais e o free tier esgota. Nada validava
+    isso; agora loga ALTO uma vez, na mesma linguagem do alerta de
+    statement_timeout, pra o operador ver no log do primeiro boot."""
+    try:
+        url = store.database_url() or ""
+    except Exception:
+        return
+    if url and ":6543" not in url:
+        print("[app] ALERTA: DATABASE_URL nao aponta a porta 6543 (pooler de "
+              "TRANSACAO do Supabase). Com reuso de conexao isso consome "
+              "backends reais e o free tier esgota. Use a Connection string > "
+              "Transaction pooler, ou desligue o reuso com "
+              "ALBION_RO_CONN_REUSE=0.", flush=True)
 
 
 def _ro_reuse_on():
@@ -1402,19 +1447,37 @@ def _ro_reuse_on():
             and os.environ.get("ALBION_RO_CONN_REUSE", "1") != "0")
 
 
+# CONN-1: teto de conexões REUSADAS. O threadpool do Starlette tem ~40 threads;
+# uma conexão persistente por thread daria ~40 conexões de cliente contra um
+# pooler free que o próprio código assume ter ~15 backends. Acima do teto, a
+# thread volta ao comportamento antigo (abre/fecha por request) — mais lento,
+# porém sem risco de "too many connections" para TODO mundo.
+_RO_REUSE_MAX = int(os.environ.get("ALBION_RO_CONN_MAX", "10"))
+_ro_reuse_count = 0
+_ro_reuse_lock = threading.Lock()
+
+
 def _cache_connection():
     """Conexão somente-leitura ao cache: SQLite local ou Postgres (prod).
 
-    No Postgres reusa UMA conexão readonly por thread (o threadpool do Starlette
-    tem ~40 threads => no máx ~40 conexões reaproveitadas, em vez de abrir uma por
-    request). O chamador segue chamando con.close(); o proxy transforma isso num
-    reset e mantém a conexão viva."""
+    No Postgres reusa UMA conexão readonly por thread, até _RO_REUSE_MAX threads
+    (o resto abre/fecha como antes). O chamador segue chamando con.close(); o
+    proxy transforma isso num reset e mantém a conexão viva."""
+    global _ro_reuse_count
     if not _ro_reuse_on():
         return store.connect(readonly=True)
     inner = getattr(_ro_local, "conn", None)
     if inner is None:
+        with _ro_reuse_lock:
+            pode = _ro_reuse_count < _RO_REUSE_MAX
+            if pode:
+                _ro_reuse_count += 1
+        if not pode:
+            return store.connect(readonly=True)   # sem reuso: fecha de verdade
         inner = store.connect(readonly=True)
         if inner is None:
+            with _ro_reuse_lock:
+                _ro_reuse_count -= 1
             return None
         _ro_local.conn = inner
     return _ReusedConn(inner)
@@ -1565,6 +1628,20 @@ def _cached_price_rows(con, city_list, qualities, cat=None, sub=None,
 
 
 def _cache_coverage(con):
+    """Cobertura do cache (quantos itens distintos há em cada tabela).
+
+    PG-4: são três COUNT(DISTINCT) sobre as tabelas MAIORES — a consulta mais
+    cara do endpoint — e rodavam a CADA page-load, fora do cache. Quando uma
+    delas estourava o statement_timeout, o painel via history_items=0 e entrava
+    em laço de retry (web/app.js), multiplicando a carga justo no aperto. O
+    valor é minúsculo e muda devagar: cachear é barato e mata o laço."""
+    key = None
+    if _read_cache_on(con):
+        key = ("cov", aodp.server)
+        hit = _read_cache_get(key)
+        if hit is not None:
+            return hit
+
     def one(table):
         # tabela pode não existir (ex.: price_snapshots não migra ao Postgres)
         try:
@@ -1573,12 +1650,15 @@ def _cache_coverage(con):
             return (row[0] if row else 0) or 0
         except Exception:
             return 0
-    return {
+    out = {
         "catalog_items": len(db.items),
         "price_items": one("prices"),
         "history_items": one("history"),
         "snapshot_items": one("price_snapshots"),
     }
+    if key is not None:
+        _read_cache_put(key, out)
+    return out
 
 
 def _history_stats(con, item_ids, city_list, qualities, days):

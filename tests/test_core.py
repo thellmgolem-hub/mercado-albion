@@ -2459,6 +2459,41 @@ class WatchdogHealthTests(unittest.TestCase):
         self.assertFalse(app._cron_late(600))    # 10 min sem tick = ainda normal
         self.assertFalse(app._cron_late(900))    # 1 ciclo perdido = ainda cobre
 
+    def test_coletor_externo_ok_denuncia_coletor_morto_sem_vigia(self):
+        """CFG-3: com ALBION_NO_WATCHDOG=1 (postura PRIMÁRIA no Render) o vigia
+        nunca fica ativo, e a regra antiga derivava coletor_externo_ok SÓ do
+        estado do vigia — logo era SEMPRE True. O dead-man-switch ficava cego
+        justamente na configuração que rodamos: o coletor do GitHub Actions podia
+        morrer e a saúde seguia verde. Sem vigia, quem denuncia é a IDADE da
+        coleta."""
+        from unittest import mock
+        client = TestClient(app.app)
+        parado = {"mode": "desligado", "started": False, "ativo_desde": None,
+                  "takeovers": 0}
+        with mock.patch.dict(app._WATCHDOG, parado, clear=False):
+            # coleta MUITO velha (coletor externo morto) -> denuncia
+            with mock.patch.object(app, "_last_sweep_age",
+                                   return_value=app._CRON_LATE_S + 60):
+                d = client.get("/api/health").json()
+            self.assertFalse(d["coletor_externo_ok"])
+            self.assertFalse(d["ok"])
+            # coleta fresca -> tudo certo (sem alarme falso)
+            with mock.patch.object(app, "_last_sweep_age", return_value=60):
+                d2 = client.get("/api/health").json()
+            self.assertTrue(d2["coletor_externo_ok"])
+            # base nova (nunca coletou) NÃO grita aqui: coleta_ok já cobre
+            with mock.patch.object(app, "_last_sweep_age", return_value=None):
+                d3 = client.get("/api/health").json()
+            self.assertTrue(d3["coletor_externo_ok"])
+            self.assertFalse(d3["coleta_ok"])
+
+    def test_limiar_de_coleta_acompanha_a_cadencia_do_coletor(self):
+        """CFG-1: o limiar de 'coletando' era 300s, herdado do cron de 1 min.
+        Com o coletor a cada 15 min ele marcaria 'parada' quase sempre — alarme
+        falso constante. Tem de folgar acima de um ciclo (900s)."""
+        self.assertGreater(app._COLETA_FRESH_S, 900)
+        self.assertLessEqual(app._COLETA_FRESH_S, app._CRON_LATE_S)
+
     def test_health_endpoint_shape_and_public(self):
         client = TestClient(app.app)
         r = client.get("/api/health")
