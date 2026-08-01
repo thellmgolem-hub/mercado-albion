@@ -894,19 +894,23 @@ HELP_SECTIONS = [
         ("/plano", "monta um plano de produção pra vários trabalhadores"),
         ("/craftar", "diz se vale craftar um item, com a margem e a lista de compras. "
                      "Ex.: `/craftar cajado de fogo t4`"),
-        ("/refinar", "ranking do refino: onde compensa refinar o bruto ou vender bruto. "
-                     "Ex.: `/refinar tier: 4`"),
-        ("/refino", "plano de refino de uma família: quanto dá, quanto de foco "
-                    "gasta e onde parar. Ex.: `/refino familia: madeira tier: 5`"),
-        ("/refino-estoque", "você diz quanto tem de recurso bruto em cada tier e "
-                            "ele mostra o que sai, o gargalo e o foco. "
-                            "Ex.: `/refino-estoque t4: 1200 t5: 300`"),
-        ("/refino-ranking", "com o seu foco e a sua prata, o que compensa refinar "
-                            "agora (por lucro total). Ex.: `/refino-ranking prata: 2000000`"),
-        ("/foco", "ranking de prata por ponto de foco (craft e refino)"),
         ("/produzir", "pra fazer N de um item, a lista de compras de recurso bruto. "
                       "Ex.: `/produzir espada larga t5 quantidade: 20`"),
         ("/guild", "decisões da guild: fabricar-vs-comprar, o que mais se perde, regear"),
+    ]),
+    # Seção própria: a ajuda tem teto de 1024 chars POR CAMPO do embed — juntar
+    # o refino com Ilha & Produção estourava o limite e CORTAVA o /guild.
+    ("⚙️ Refino", [
+        ("/refino", "plano de refino: quanto dá com o seu foco e a sua prata, e "
+                    "onde parar. Ex.: `/refino familia: madeira tier: 5`"),
+        ("/refino-estoque", "você diz quanto tem de bruto em cada tier e ele mostra "
+                            "o que sai, o gargalo e o foco. "
+                            "Ex.: `/refino-estoque t4: 1200 t5: 300`"),
+        ("/refino-ranking", "com o seu foco e a sua prata, o que compensa refinar "
+                            "agora. Ex.: `/refino-ranking prata: 2000000`"),
+        ("/refinar", "ranking rápido: compensa refinar o bruto ou vender bruto. "
+                     "Ex.: `/refinar tier: 4`"),
+        ("/foco", "ranking de prata por ponto de foco (craft e refino)"),
     ]),
     ("📈 Análise avançada", [
         ("/escanear", "varre uma categoria inteira e lista os melhores flips. "

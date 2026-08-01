@@ -95,6 +95,48 @@ Restam na plataforma (precisam do banco): /recomendar, /flip, /escanear, /micro,
 /risco, /logistica, /guild, /demanda, /sinais, /lab, /ilha, /plano, /foco,
 /produzir, tributo, Mural e o vínculo membro→nick.
 
+## Estúdio de Refino (ferramenta 2) — albion/refining.py, ago/2026
+
+Ferramenta independente (como as builds): **dado estático do dump + preços ao
+vivo, ZERO leitura das tabelas do banco**. Um motor puro, três consumidores —
+aba **Refino** na web, 3 comandos LOCAIS no Discord e o endpoint `/api/refino`.
+
+O que ela modela e as calculadoras de refino do mercado NÃO (verificado):
+- **O foco é ESTOQUE, não interruptor** (10.000/dia com Premium, teto 30.000).
+  Todo plano sai em 2 fases — com foco (RRR alto) e sem foco (RRR baixo) — e
+  `plan(allow_no_focus="auto")` **não executa** a fase sem foco quando ela é
+  negativa: o erro que mais custa prata é seguir no automático depois que o foco
+  acaba. `advice` diz isso em PT; `break_even_raw_price` dá o teto de preço do
+  bruto com e sem foco.
+- **O RRR cria operações EXTRAS que gastam foco.** O que volta é insumo e é
+  refinado de novo: estoque E rende `E/(c·(1-RRR))` unidades (com RRR 53,9% é
+  +117%), e o foco escala junto. Contar foco por "unidade final" subestima pela
+  metade.
+- **Cascata de tiers** (`cascade`): refinar T5 exige 1 refinado T4 por operação,
+  que exige T3… A árvore inteira até o T2, com bruto e foco por degrau.
+- **Modo coletor** (`from_stock`): estoque bruto por tier → produção, gargalo
+  (bruto / refinado de baixo / prata / foco) e sobras. O que falta do tier de
+  baixo é COMPRADO (senão o coletor trava em zero, que era a dor real). O foco é
+  alocado por **ganho incremental** (`focus_gain_per_point` = quanto o foco
+  ADICIONA por ponto), não por margem/foco — ordenar pelo ingênuo manda o foco
+  pro degrau errado. `products`/`kept` separam produto final do que virou insumo.
+- **Taxa de uso da estação**: `itemvalue × 0,1125 × taxa/100` por operação
+  (nutrição do dump). `data/refine_data.json` (gerado por
+  `scripts/build_refine_data.py`) traz itemvalue/peso/nutrição dos 248 itens.
+Consumidores: `/api/refino?view=plano|estoque|ranking` (app.py, preços via AODP
+com `_refino_prices`, sem tocar `prices`/`history`); aba **Refino** (web, 3
+subabas); **/refino**, **/refino-estoque**, **/refino-ranking** no bot (seção
+SERVIÇOS LOCAIS: `local_refine_plan/stock/ranking`, 1 chamada da AODP cada, e o
+plano cai pra melhor cidade cotada quando a cidade-bônus está sem cotação).
+Testes: `tests/test_refining.py` (18) + 4 em `SemPlataformaTests`. A ajuda do bot
+ganhou seção própria "⚙️ Refino" — o embed corta em 1024 chars POR CAMPO e
+juntar com Ilha & Produção comia o /guild.
+Correção junto: `/api/auth/bootstrap-status` agora devolve `ready` quando a auth
+está DESLIGADA — sem isso `tools/run_local.py` travava na tela de acesso pedindo
+um admin que o modo local nem usa.
+Limite honesto: o ranking não conhece LIQUIDEZ (o total é teto teórico; o mercado
+pode não absorver) e a venda assume ordem na cidade do refino.
+
 ## Auditoria de CAPACIDADE 2026-07-31 (20 usuários / 10 simultâneos) — correções
 
 Auditoria multiagente de capacidade/sobrecarga (6 frentes, verificação adversarial)
