@@ -23,7 +23,61 @@ import urllib.error
 import urllib.request
 
 URL_PADRAO = "https://mercado-albion.onrender.com"
-TIMEOUT_S = 30            # free tier dormido leva ~30-60s pra acordar
+TIMEOUT_S = 75            # free tier dormido leva ~30-60s pra ACORDAR: espera
+
+
+def _sonda_camadas(url: str) -> str:
+    """Diz EM QUE CAMADA a coisa quebra — DNS, TCP, TLS ou HTTP.
+
+    Aprendido na prática (ago/2026): quando o serviço está SUSPENSO no Render, o
+    TCP conecta na hora e o TLS fecha normal (a borda do Render está viva), mas a
+    requisição HTTP fica pendurada SEM UM BYTE de resposta — a borda espera um
+    backend que não existe. Isso é MUITO diferente de 'dormindo' (que responde
+    em 30-60s) ou de URL errada (que quebra no DNS). Sem essa distinção o
+    diagnóstico vira chute."""
+    import socket
+    import ssl
+    from urllib.parse import urlparse
+    p = urlparse(url if "://" in url else "https://" + url)
+    host = p.hostname or ""
+    porta = p.port or (443 if p.scheme != "http" else 80)
+    try:
+        socket.gethostbyname(host)
+    except Exception:
+        return ("O endereço não existe (falha de DNS). Confira a URL — talvez o "
+                "serviço tenha sido renomeado ou apagado.")
+    try:
+        s = socket.create_connection((host, porta), timeout=15)
+    except Exception:
+        return ("O servidor não aceita conexão. Costuma ser rede/firewall no "
+                "seu lado, ou o serviço removido.")
+    try:
+        if porta == 443:
+            s = ssl.create_default_context().wrap_socket(s, server_hostname=host)
+        s.settimeout(40)
+        s.send(f"HEAD /api/health HTTP/1.1\r\nHost: {host}\r\n"
+               "Connection: close\r\n\r\n".encode())
+        try:
+            if s.recv(64):
+                return ("O servidor até responde, mas devolveu algo inesperado "
+                        "em vez do JSON de saúde.")
+        except Exception:
+            return ("A borda do Render está DE PÉ (conexão e certificado ok), "
+                    "mas NÃO há serviço rodando atrás dela — nenhum byte de "
+                    "resposta. Isso é SUSPENSÃO ou serviço parado, não sono "
+                    "(dormindo ele acorda em ~60s). Vá ao painel do Render, "
+                    "serviço 'mercado-albion': se houver 'Resume Service', "
+                    "clique; senão force um 'Manual Deploy'. Confira também a "
+                    "data de reset da cota — o ciclo do Render conta da criação "
+                    "da conta, não do dia 1º do mês.")
+        return "Resposta inesperada do servidor."
+    except Exception as e:
+        return f"Falha na conexão segura ({type(e).__name__})."
+    finally:
+        try:
+            s.close()
+        except Exception:
+            pass
 
 
 def _buscar(url: str):
@@ -44,11 +98,11 @@ def _buscar(url: str):
                           f"(HTTP {e.code}). Cheque a cota no painel.")
         return None, f"O servidor respondeu HTTP {e.code}. {corpo}".strip()
     except urllib.error.URLError as e:
-        return None, (f"Não consegui falar com {url} ({e.reason}). "
-                      "Ou está fora do ar, ou suspenso, ou a URL está errada.")
-    except Exception as e:                       # timeout, JSON quebrado, etc.
-        return None, (f"Sem resposta de {url} em {TIMEOUT_S}s ({type(e).__name__}). "
-                      "No free tier isso costuma ser sono profundo ou suspensão.")
+        # pode ser DNS, recusa de conexão OU timeout: a sonda diz qual.
+        return None, f"Não consegui falar com {url}. {_sonda_camadas(url)}"
+    except Exception:                            # timeout, JSON quebrado, etc.
+        return None, (f"Sem resposta de {url} em {TIMEOUT_S}s. "
+                      f"{_sonda_camadas(url)}")
 
 
 def _minutos(seg):
