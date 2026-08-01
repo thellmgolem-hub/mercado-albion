@@ -913,6 +913,10 @@ document.querySelectorAll('#tabs button').forEach((b) => {
       state.prodLineLoaded = true;
       initProdLine();
     }
+    if (b.dataset.tab === 'refino' && !state.refinoLoaded) {
+      state.refinoLoaded = true;
+      initRefino();
+    }
     // o picker da meta precisa de state.meta — se o init ainda não terminou,
     // tenta de novo no próximo clique (sem marcar como carregada)
     if (b.dataset.tab === 'guild' && !state.guildLoaded && state.meta) {
@@ -2563,6 +2567,206 @@ function showIslandSub(view) {
 
 const islItemCell = (id, pt) => `<div class="cell-item">${iconImg(id)}<div class="nm">${esc(pt || id)}</div></div>`;
 
+// ============================================================ REFINO
+// Estúdio de Refino: foco e prata como recursos ESCASSOS. Bate no /api/refino,
+// que NÃO lê as tabelas do banco (preços vêm da AODP, receitas do dump) — a aba
+// não pesa na plataforma. A mesma conta roda no /refino do Discord.
+
+const refCard = (v, k, cls = '') =>
+  `<div class="pl-statcard ${cls}"><div class="pl-stat-v">${v}</div>` +
+  `<div class="pl-stat-k">${esc(k)}</div></div>`;
+
+function refCommonParams() {
+  const budget = $('refBudget').value;
+  const p = {
+    familia: $('refFamily').value,
+    focus: +$('refFocus').value || 0,
+    fee_per_100: +$('refFee').value || 0,
+    spec_fce: +$('refSpec').value || 0,
+    ench: +$('refEnch').value || 0,
+  };
+  if (budget !== '' && +budget > 0) p.budget = +budget;
+  if ($('refCity').value) p.city = $('refCity').value;
+  return p;
+}
+
+function showRefSub(view) {
+  document.querySelectorAll('#refSubtabs button').forEach((b) =>
+    b.classList.toggle('active', b.dataset.ref === view));
+  document.querySelectorAll('#tab-refino .subtab').forEach((s) =>
+    s.classList.toggle('active', s.id === 'ref-' + view));
+  state.refSub = view;
+}
+
+function initRefino() {
+  const sel = $('refCity');
+  const royal = (state.meta && state.meta.royal_cities) || [];
+  royal.forEach((c) => {
+    const o = document.createElement('option');
+    o.value = c;
+    o.textContent = cityLabel(c);
+    sel.appendChild(o);
+  });
+  loadRefPlan();
+}
+
+async function loadRefPlan() {
+  const st = $('refPlanStatus');
+  st.className = 'status';
+  st.textContent = 'calculando…';
+  $('refPlanCards').innerHTML = '';
+  try {
+    const res = await api('/api/refino', {
+      view: 'plano', tier: +$('refTier').value, ...refCommonParams(),
+    });
+    const t = res.total || {}, uf = res.unit_focus, up = res.unit_plain;
+    const bonus = res.is_bonus_city ? ' (cidade-bônus)' : '';
+    st.textContent = `${res.name_pt} em ${res.city}${bonus} — insumos: `
+      + `${up.raw_count}x ${res.raw_pt}`
+      + (up.prev_id ? ` + 1x ${res.prev_pt}` : '')
+      + ` · taxa da estação ${fmt(up.station_fee)}/un`;
+    $('refPlanCards').innerHTML = `<div class="pl-cards">
+      ${refCard(fmt(t.qty), 'unidades')}
+      ${refCard(`<span class="silver">${fmt(t.profit)}</span>`, 'lucro',
+    'big ' + ((t.profit || 0) >= 0 ? 'pos' : 'neg'))}
+      ${refCard(fmt(t.invested), 'prata investida')}
+      ${refCard(fmtPct(t.roi_pct), 'retorno')}
+      ${refCard(fmt(t.focus_used), `foco (${fmtDec(res.focus_days, 1)} dia/s)`)}
+      ${refCard(esc(res.limiter || '—'), 'o que te limita')}
+    </div>`;
+    // fases: com foco / sem foco — a linha onde o jogador costuma errar
+    renderTable('refPlanTable', [
+      { key: 'ph', label: 'Fase', align: 'l', value: (o) => o.phase, html: (o) => esc(o.phase) },
+      { key: 'rrr', label: 'RRR', value: (o) => o.rrr_pct, html: (o) => fmtPct(o.rrr_pct) },
+      { key: 'qty', label: 'Unidades', value: (o) => o.qty, html: (o) => fmt(o.qty) },
+      { key: 'un', label: 'Margem/un', value: (o) => o.margin_unit,
+        html: (o) => `<span class="${o.margin_unit >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(o.margin_unit)}</span>` },
+      { key: 'foc', label: 'Foco', value: (o) => o.focus_used, html: (o) => fmt(o.focus_used) },
+      { key: 'inv', label: 'Investe', value: (o) => o.invested, html: (o) => fmt(o.invested) },
+      { key: 'pro', label: 'Lucro', value: (o) => o.profit,
+        html: (o) => `<span class="${o.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(o.profit)}</span>` },
+    ], res.phases || [], { sortKey: null });
+    renderTable('refCascadeTable', [
+      { key: 'tier', label: 'Degrau', align: 'l', value: (o) => -o.tier,
+        html: (o) => `T${o.tier} ${esc(o.name_pt || o.refined_id)}` },
+      { key: 'ops', label: 'Operações', value: (o) => o.ops, html: (o) => fmt(o.ops) },
+      { key: 'raw', label: 'Bruto necessário', align: 'l', value: (o) => o.raw_needed,
+        html: (o) => `${fmt(o.raw_needed)} ${esc(o.raw_pt || o.raw_id)}` },
+      { key: 'prev', label: 'Exige do tier de baixo', align: 'l', value: (o) => o.prev_needed,
+        html: (o) => o.prev_id ? `${fmt(o.prev_needed)} un` : '—' },
+      { key: 'rrr', label: 'RRR', value: (o) => o.rrr_pct, html: (o) => fmtPct(o.rrr_pct) },
+      { key: 'foc', label: 'Foco', value: (o) => o.focus, html: (o) => fmt(o.focus) },
+    ], (res.cascade || {}).steps || [], { sortKey: 'tier' });
+    const be = res.focus_break_even_price || {};
+    $('refPlanHint').innerHTML =
+      `<b>${esc(res.advice || '')}</b><br>`
+      + `Com foco a margem é ${fmt(uf ? uf.margin : null)}/un (RRR ${fmtPct(uf ? uf.rrr_pct : null)}, `
+      + `${fmtDec(uf ? uf.focus_cost : 0, 0)} de foco por unidade); sem foco, `
+      + `${fmt(up.margin)}/un (RRR ${fmtPct(up.rrr_pct)}). `
+      + (be.com_foco ? `Break-even do bruto: até <b>${fmt(be.com_foco)}</b> com foco e `
+        + `<b>${fmt(be.sem_foco)}</b> sem foco (hoje ${fmt(be.raw_price_now)}). ` : '')
+      + `O retorno de recursos devolve insumo, então o mesmo estoque rende mais operações — `
+      + `e cada operação extra <b>também gasta foco</b>.`;
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = e.message || 'falha ao calcular';
+    $('refPlanTable').innerHTML = '';
+    $('refCascadeTable').innerHTML = '';
+  }
+}
+
+async function loadRefStock() {
+  const st = $('refStockStatus');
+  st.className = 'status';
+  st.textContent = 'calculando…';
+  $('refStockCards').innerHTML = '';
+  const stock = [2, 3, 4, 5, 6, 7, 8]
+    .map((t) => [t, +$('refT' + t).value || 0]).filter(([, v]) => v > 0)
+    .map(([t, v]) => `${t}:${v}`).join(',');
+  if (!stock) {
+    st.className = 'status warn';
+    st.textContent = 'informe quanto você tem de recurso BRUTO em pelo menos um tier';
+    return;
+  }
+  try {
+    const res = await api('/api/refino', { view: 'estoque', stock, ...refCommonParams() });
+    const prods = (res.products || []).map((p) => `${fmt(p.qty)}x ${p.name_pt}`).join(' · ');
+    st.textContent = `${res.city} — você fica com: ${prods || 'nada (nada compensa refinar)'}`;
+    $('refStockCards').innerHTML = `<div class="pl-cards">
+      ${refCard(`<span class="silver">${fmt(res.profit)}</span>`, 'ganho vs vender o bruto',
+    'big ' + ((res.profit || 0) >= 0 ? 'pos' : 'neg'))}
+      ${refCard(fmt(res.focus_used), 'foco usado')}
+      ${refCard(fmt(res.silver_spent), 'gasto comprando o degrau de baixo')}
+      ${refCard(fmt(res.focus_left), 'foco que sobra')}
+    </div>`;
+    renderTable('refStockTable', [
+      { key: 'tier', label: 'Degrau', align: 'l', value: (o) => o.tier,
+        html: (o) => `T${o.tier} ${esc(o.name_pt || o.refined_id)}` },
+      { key: 'made', label: 'Produz', value: (o) => o.made, html: (o) => fmt(o.made) },
+      { key: 'kept', label: 'Fica com você', value: (o) => o.kept,
+        html: (o) => o.kept ? fmt(o.kept) : '<span class="muted">vira insumo</span>' },
+      { key: 'foc', label: 'Com foco', value: (o) => o.made_focus, html: (o) => fmt(o.made_focus) },
+      { key: 'raw', label: 'Bruto usado', value: (o) => o.raw_used, html: (o) => fmt(o.raw_used) },
+      { key: 'buy', label: 'Compra do tier de baixo', align: 'l', value: (o) => o.prev_bought,
+        html: (o) => o.prev_bought ? `${fmt(o.prev_bought)} × ${esc(o.prev_pt || '')} (${fmt(o.prev_cost)})` : '—' },
+      { key: 'gar', label: 'Trava em', align: 'l', value: (o) => o.bottleneck,
+        html: (o) => esc(o.bottleneck) },
+      { key: 'pro', label: 'Valor agregado', value: (o) => o.profit,
+        html: (o) => `<span class="${o.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(o.profit)}</span>` },
+    ], res.rows || [], { sortKey: 'tier', sortDir: 1 });
+    const sobra = Object.entries(res.leftovers_pt || {})
+      .map(([k, v]) => `${fmt(v)}x ${k}`).join(' · ');
+    $('refStockHint').innerHTML =
+      'O <b>valor agregado</b> de cada degrau já desconta o insumo a preço de mercado — '
+      + 'somar a coluna é legítimo (é a cadeia inteira), somar as receitas não seria. '
+      + (sobra ? `<br>Sobra sem uso: ${esc(sobra)}.` : '')
+      + '<br>Um degrau só entra se pagar: quando o foco acaba e a operação fica negativa, '
+      + 'o plano <b>para</b> em vez de queimar prata no automático.';
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = e.message || 'falha ao calcular';
+    $('refStockTable').innerHTML = '';
+  }
+}
+
+async function loadRefRank() {
+  const st = $('refRankStatus');
+  st.className = 'status';
+  st.textContent = 'calculando…';
+  try {
+    const p = refCommonParams();
+    delete p.familia;                       // o ranking varre todas as famílias
+    delete p.city;
+    const res = await api('/api/refino', {
+      view: 'ranking', tier_min: +$('refTierMin').value,
+      tier_max: +$('refTierMax').value, sort: $('refSort').value, ...p,
+    });
+    const rows = res.rows || [];
+    st.textContent = `${rows.length} refinados cotados com ${fmt(res.focus)} de foco`
+      + (res.budget ? ` e ${fmt(res.budget)} de prata` : ' e prata ilimitada');
+    renderTable('refRankTable', [
+      { key: 'item', label: 'Refinado', align: 'l', value: (o) => o.name_pt,
+        html: (o) => islItemCell(o.item_id, o.name_pt) },
+      { key: 'city', label: 'Cidade', align: 'l', value: (o) => o.city,
+        html: (o) => esc(o.city) + (o.is_bonus_city ? ' <span class="tag">bônus</span>' : '') },
+      { key: 'qty', label: 'Unidades', value: (o) => o.qty, html: (o) => fmt(o.qty) },
+      { key: 'pro', label: 'Lucro total', value: (o) => o.profit,
+        html: (o) => `<span class="${o.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(o.profit)}</span>` },
+      { key: 'roi', label: 'Retorno', value: (o) => o.roi_pct, html: (o) => fmtPct(o.roi_pct) },
+      { key: 'fgain', label: 'O foco agrega', value: (o) => o.focus_gain_per_point,
+        title: 'prata que o foco ADICIONA por ponto (não a margem total dividida pelo foco)',
+        html: (o) => fmtDec(o.focus_gain_per_point, 2) },
+      { key: 'un', label: 'Margem/un', value: (o) => o.margin_unit, html: (o) => fmt(o.margin_unit) },
+      { key: 'lim', label: 'Trava em', align: 'l', value: (o) => o.limiter,
+        html: (o) => esc(o.limiter || '—') },
+    ], rows, { sortKey: null });
+  } catch (e) {
+    st.className = 'status err';
+    st.textContent = e.message || 'falha ao calcular';
+    $('refRankTable').innerHTML = '';
+  }
+}
+
 // famílias de laborer + rótulo PT; as com troféu de TIPO (+10) vs só geral (+5)
 const HAPPY_FAMILIES = [
   ['WARRIOR', 'Ferreiro (WARRIOR)'], ['HUNTER', 'Flecheiro (HUNTER)'],
@@ -4022,15 +4226,24 @@ async function init() {
   }, 'buscar item… ex.: arco 4.1', {
     batchLabel: 'Adicionar visíveis',
     onBatchSelect: (items) => {
-      let added = 0;
+      // REG-1: o servidor recusa mais de 100 itens por consulta ao vivo (teto da
+      // AODP). O picker traz até 150, então adicionar tudo dava erro 400 no
+      // cálculo. Para no limite e avisa em PT, em vez de encher e quebrar.
+      const LIMITE = 100;
+      let added = 0, cortou = false;
       for (const it of items) {
+        if (state.flipsItems.length >= LIMITE) { cortou = true; break; }
         if (!state.flipsItems.some((x) => x.id === it.id)) {
           state.flipsItems.push(it);
           added += 1;
         }
       }
       renderFlipsItems();
-      toast(added ? `${added} itens adicionados` : 'itens já estavam na lista');
+      if (cortou) {
+        toast(`${added} itens adicionados — limite de ${LIMITE} por cálculo`);
+      } else {
+        toast(added ? `${added} itens adicionados` : 'itens já estavam na lista');
+      }
     },
   });
 
@@ -4053,6 +4266,11 @@ async function init() {
     b.addEventListener('click', () => showAvSub(b.dataset.av)));
   document.querySelectorAll('#islandSubtabs button').forEach((b) =>
     b.addEventListener('click', () => showIslandSub(b.dataset.isl)));
+  document.querySelectorAll('#refSubtabs button').forEach((b) =>
+    b.addEventListener('click', () => showRefSub(b.dataset.ref)));
+  $('refPlanBtn').addEventListener('click', loadRefPlan);
+  $('refStockBtn').addEventListener('click', loadRefStock);
+  $('refRankBtn').addEventListener('click', loadRefRank);
   [['#prodView', loadAvProd], ['#guildView', loadAvGuild],
    ['#logiView', loadAvLogi], ['#demandaView', loadAvDemanda],
    ['#riscoView', loadAvRisco]]

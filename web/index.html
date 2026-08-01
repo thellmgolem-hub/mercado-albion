@@ -41,6 +41,7 @@
   <button data-tab="consultor">Consultor</button>
   <button data-tab="scanner">Scanner</button>
   <button data-tab="avancado">Avançado</button>
+  <button data-tab="refino">Refino</button>
   <button data-tab="ilha">Ilha</button>
   <button data-tab="linhaProducao">Linha de Produção</button>
   <button data-tab="guild" id="guildTabButton" hidden>Guild</button>
@@ -713,6 +714,132 @@
     <p class="hint">Como agir: o <b>selo</b> (seguro/médio/especulativo) é calibrado aos tercis do mercado.
        Em <b>Correlação</b>, pares "andam juntos" concentram risco; "hedge" (corr baixa/negativa) diversifica.
        O perfil cobre os itens mais líquidos.</p>
+  </div>
+</section>
+
+<!-- ============================ REFINO ============================ -->
+<section class="tab" id="tab-refino">
+  <nav class="subtabs" id="refSubtabs">
+    <button data-ref="plano" class="active">Planejar</button>
+    <button data-ref="estoque">Sou coletor</button>
+    <button data-ref="ranking">Onde refinar</button>
+  </nav>
+
+  <!-- controles comuns às três visões -->
+  <div class="controls" id="refCommon">
+    <div class="field"><label>Recurso</label>
+      <select id="refFamily">
+        <option value="wood">Tronco → Tábua</option>
+        <option value="ore">Minério → Barra</option>
+        <option value="fiber">Fibra → Tecido</option>
+        <option value="hide">Couro cru → Couro</option>
+        <option value="rock">Pedra → Bloco</option>
+      </select></div>
+    <div class="field"><label>Foco disponível</label>
+      <input type="number" id="refFocus" value="10000" min="0" max="30000" step="500"></div>
+    <div class="field"><label>Prata p/ investir</label>
+      <input type="number" id="refBudget" value="" min="0" step="100000"
+             placeholder="vazio = ilimitada"></div>
+    <div class="field"><label>Taxa da estação (/100 nutri.)</label>
+      <input type="number" id="refFee" value="500" min="0" max="5000" step="50"></div>
+    <div class="field"><label>Especialização (FCE)</label>
+      <input type="number" id="refSpec" value="0" min="0" max="100000" step="1000"
+             title="Focus Cost Efficiency: barateia o foco, não muda o RRR"></div>
+    <div class="field"><label>Encantamento</label>
+      <select id="refEnch">
+        <option value="0">0 (normal)</option><option value="1">1</option>
+        <option value="2">2</option><option value="3">3</option><option value="4">4</option>
+      </select></div>
+    <div class="field"><label>Cidade</label>
+      <select id="refCity"><option value="">cidade-bônus (melhor RRR)</option></select></div>
+  </div>
+
+  <!-- refino: PLANEJAR -->
+  <div class="subtab active" id="ref-plano">
+    <div class="section-head"><div>
+      <h1>Planejar um refino</h1>
+      <div class="sub">Quanto seu <b>foco</b> e sua <b>prata</b> rendem neste material, e
+        <b>onde parar</b>. O foco é estoque (10.000/dia com Premium, teto 30.000): o plano sai em
+        duas fases — enquanto há foco (RRR alto) e depois sem foco (RRR baixo). Se a fase sem foco
+        der prejuízo, ela não entra: a recomendação é parar e vender o bruto.</div>
+    </div></div>
+    <div class="controls">
+      <div class="field"><label>Tier do refinado</label>
+        <select id="refTier">
+          <option>2</option><option>3</option><option>4</option>
+          <option selected>5</option><option>6</option><option>7</option><option>8</option>
+        </select></div>
+      <div class="field"><label>&nbsp;</label>
+        <button class="primary" id="refPlanBtn">Calcular</button></div>
+    </div>
+    <div id="refPlanStatus" class="status"></div>
+    <div id="refPlanCards" class="cards"></div>
+    <div id="refPlanTable" class="table-wrap"></div>
+    <div class="section-head" style="margin-top:12px"><div>
+      <h2 style="margin:0;font-size:1.05rem">Cascata: de onde vem cada degrau</h2>
+      <div class="sub">Refinar T<i>n</i> exige <b>1 refinado T<i>n−1</i></b> por operação. Aqui está
+        a árvore inteira até o T2 — o bruto de cada tier e o foco de cada degrau, se você fizer
+        tudo em vez de comprar pronto.</div>
+    </div></div>
+    <div id="refCascadeTable" class="table-wrap"></div>
+    <p class="hint" id="refPlanHint"></p>
+  </div>
+
+  <!-- refino: SOU COLETOR -->
+  <div class="subtab" id="ref-estoque">
+    <div class="section-head"><div>
+      <h1>Sou coletor: o que sai do meu estoque?</h1>
+      <div class="sub">Informe quanto tem de recurso <b>bruto</b> por tier. A cascata sobe sozinha
+        (o refinado de um degrau vira insumo do próximo), o que faltar do tier de baixo é
+        <b>comprado</b>, e o foco vai para o degrau onde <b>agrega</b> mais prata por ponto — não
+        para o de maior margem.</div>
+    </div></div>
+    <div class="controls" id="refStockControls">
+      <div class="field"><label>T2</label><input type="number" id="refT2" value="0" min="0" step="50"></div>
+      <div class="field"><label>T3</label><input type="number" id="refT3" value="0" min="0" step="50"></div>
+      <div class="field"><label>T4</label><input type="number" id="refT4" value="0" min="0" step="50"></div>
+      <div class="field"><label>T5</label><input type="number" id="refT5" value="0" min="0" step="50"></div>
+      <div class="field"><label>T6</label><input type="number" id="refT6" value="0" min="0" step="50"></div>
+      <div class="field"><label>T7</label><input type="number" id="refT7" value="0" min="0" step="50"></div>
+      <div class="field"><label>T8</label><input type="number" id="refT8" value="0" min="0" step="50"></div>
+      <div class="field"><label>&nbsp;</label>
+        <button class="primary" id="refStockBtn">Calcular</button></div>
+    </div>
+    <div id="refStockStatus" class="status"></div>
+    <div id="refStockCards" class="cards"></div>
+    <div id="refStockTable" class="table-wrap"></div>
+    <p class="hint" id="refStockHint"></p>
+  </div>
+
+  <!-- refino: ONDE REFINAR -->
+  <div class="subtab" id="ref-ranking">
+    <div class="section-head"><div>
+      <h1>Onde refinar agora</h1>
+      <div class="sub">Com <b>este</b> foco e <b>esta</b> prata, quanto cada refinado renderia no
+        total. Diferente do ranking por margem unitária: aqui o que manda é o <b>lucro absoluto</b>
+        dentro dos seus limites.</div>
+    </div></div>
+    <div class="controls">
+      <div class="field"><label>Tier mínimo</label>
+        <select id="refTierMin"><option>2</option><option>3</option><option selected>4</option>
+          <option>5</option><option>6</option><option>7</option><option>8</option></select></div>
+      <div class="field"><label>Tier máximo</label>
+        <select id="refTierMax"><option>2</option><option>3</option><option>4</option>
+          <option>5</option><option>6</option><option selected>7</option><option>8</option></select></div>
+      <div class="field"><label>Ordenar por</label>
+        <select id="refSort">
+          <option value="profit">Lucro total</option>
+          <option value="roi">Retorno % (ROI)</option>
+          <option value="focus">O que o foco agrega</option>
+          <option value="unit">Margem por unidade</option>
+        </select></div>
+      <div class="field"><label>&nbsp;</label>
+        <button class="primary" id="refRankBtn">Calcular</button></div>
+    </div>
+    <div id="refRankStatus" class="status"></div>
+    <div id="refRankTable" class="table-wrap"></div>
+    <p class="hint">O total é o <b>teto</b> dos seus limites — o mercado pode não absorver tudo de
+      uma vez. Parcele as vendas e confira o volume em <b>Item → Histórico</b>.</p>
   </div>
 </section>
 

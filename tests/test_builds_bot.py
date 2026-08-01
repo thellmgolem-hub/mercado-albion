@@ -1089,6 +1089,115 @@ class SemPlataformaTests(unittest.TestCase):
         finally:
             bot.local_refine_rows = orig
 
+    # --- MODO PONTE: bot de pé SEM plataforma (rodando no PC, nuvem fora) ---
+    def test_modo_ponte_explica_em_pt_o_que_depende_da_plataforma(self):
+        """O ApiOffline falha RÁPIDO com ApiError; o membro lê uma mensagem PT
+        que lista o que ainda funciona, em vez de 'O aplicativo não respondeu'."""
+        api = bot.ApiOffline()
+        with self.assertRaises(bot.ApiError) as ctx:
+            asyncio.run(api.get("/api/recommendations"))
+        self.assertEqual(ctx.exception.code, "plataforma_offline")
+        msg = bot.friendly_error(ctx.exception)
+        self.assertIn("plataforma está fora", msg)
+        self.assertIn("/preco", msg)          # aponta o que AINDA funciona
+        self.assertIn("/craftar", msg)
+
+    def test_modo_ponte_nao_atrapalha_os_locais(self):
+        """Com o ApiOffline no lugar da plataforma, os comandos LOCAIS seguem
+        respondendo normalmente (é o ponto do modo ponte)."""
+        async def _f(count=48):
+            return [{"price": 7000}, {"price": 6000}]
+        orig = bot.local_gold_pts
+        try:
+            bot.local_gold_pts = _f
+            out = asyncio.run(bot.handle_ouro(bot.ApiOffline()))
+            self.assertIn("7.000", out)
+        finally:
+            bot.local_gold_pts = orig
+
+    # --- 4ª leva: o Estúdio de Refino (plano/coletor/ranking) é 100% local ---
+    # ATENÇÃO: injete a via LOCAL (local_refine_*), NUNCA só a API falsa — sem
+    # isso o teste passa a bater na AODP DE VERDADE (a suíte pula de 1s p/ 70s).
+
+    def test_refino_plano_sem_plataforma(self):
+        async def _f(fam, tier, **k):
+            return {"item_id": "T5_PLANKS", "name_pt": "Tábuas de Cedro",
+                    "raw_pt": "Troncos de Cedro", "prev_pt": "Tábuas de Pinho",
+                    "city": "Fort Sterling", "is_bonus_city": True,
+                    "unit_focus": {"rrr_pct": 53.9, "eff_cost": 610, "margin": 190,
+                                   "focus_cost": 94, "silver_per_focus": 2.03,
+                                   "raw_id": "T5_WOOD", "raw_count": 3,
+                                   "prev_id": "T4_PLANKS", "gross_cost": 1323,
+                                   "sell_unit": 875},
+                    "unit_plain": {"rrr_pct": 36.7, "eff_cost": 837, "margin": -37,
+                                   "raw_id": "T5_WOOD", "raw_count": 3,
+                                   "prev_id": "T4_PLANKS", "gross_cost": 1323,
+                                   "sell_unit": 875},
+                    "phases": [{"phase": "com foco", "qty": 106, "focus_used": 9964,
+                                "invested": 66536, "profit": 20182,
+                                "margin_unit": 190}],
+                    "total": {"qty": 106, "focus_used": 9964, "invested": 66536,
+                              "profit": 20182, "roi_pct": 30.3, "raw_used": 146,
+                              "prev_used": 49},
+                    "limiter": "foco (parada recomendada)", "focus_days": 1.0,
+                    "advice": "SÓ é lucrativo COM foco — pare e venda o bruto",
+                    "focus_break_even_price": {"com_foco": 457, "sem_foco": 299,
+                                               "raw_price_now": 319}}
+        orig = bot.local_refine_plan
+        try:
+            bot.local_refine_plan = _f
+            out = asyncio.run(bot.handle_refino(self._Morta(), "wood", 5, 10000))
+            self.assertIn("Tábuas de Cedro", out)
+            self.assertIn("SÓ é lucrativo COM foco", out)
+            self.assertIn("Break-even", out)
+        finally:
+            bot.local_refine_plan = orig
+
+    def test_refino_estoque_sem_plataforma(self):
+        async def _f(fam, stock, **k):
+            return {"family": fam, "city": "Fort Sterling",
+                    "rows": [{"tier": 4, "refined_id": "T4_PLANKS",
+                              "raw_id": "T4_WOOD", "name_pt": "Tábuas de Pinho",
+                              "raw_pt": "Troncos de Pinho",
+                              "prev_pt": "Tábuas de Castanheira",
+                              "made": 948, "made_focus": 0, "raw_used": 1200,
+                              "raw_left": 0, "prev_bought": 205, "prev_cost": 51042,
+                              "focus_used": 0, "profit": 34507,
+                              "bottleneck": "bruto T4", "kept": 948}],
+                    "products": [{"item_id": "T4_PLANKS", "qty": 948, "tier": 4}],
+                    "profit": 34507, "focus_used": 0, "focus_left": 10000,
+                    "silver_spent": 51042, "leftovers": {},
+                    "top_refined": "T4_PLANKS", "top_qty": 948}
+        orig = bot.local_refine_stock
+        try:
+            bot.local_refine_stock = _f
+            out = asyncio.run(bot.handle_refino_estoque(
+                self._Morta(), "wood", 0, 0, 1200, 0, 0, 0, 0, 10000))
+            self.assertIn("REFINO DO COLETOR", out)
+            self.assertIn("Você fica com", out)
+            self.assertIn("Tábuas de Pinho", out)
+        finally:
+            bot.local_refine_stock = orig
+
+    def test_refino_estoque_vazio_nao_chama_nada(self):
+        out = asyncio.run(bot.handle_refino_estoque(self._Morta(), "wood"))
+        self.assertIn("recurso BRUTO", out)
+
+    def test_refino_ranking_sem_plataforma(self):
+        async def _f(**k):
+            return [{"item_id": "T5_METALBAR", "name_pt": "Barra de Aço Titânio",
+                     "city": "Thetford", "is_bonus_city": True, "qty": 106,
+                     "profit": 40852, "roi_pct": 43.5, "silver_per_focus": 4.1,
+                     "focus_gain_per_point": 4.1, "limiter": "foco"}]
+        orig = bot.local_refine_ranking
+        try:
+            bot.local_refine_ranking = _f
+            out = asyncio.run(bot.handle_refino_ranking(self._Morta(), 10000))
+            self.assertIn("ONDE REFINAR", out)
+            self.assertIn("Barra de Aço Titânio", out)
+        finally:
+            bot.local_refine_ranking = orig
+
 
 if __name__ == "__main__":
     unittest.main()

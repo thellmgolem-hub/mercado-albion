@@ -402,6 +402,152 @@ async def local_refine_rows(tier=None, premium=True, limit=40):
     return await _aio.to_thread(_rank)
 
 
+async def _local_refine_prices(ids, cities=None):
+    """Cotações q1 saneadas {(item, cidade): menor venda} p/ o Estúdio de Refino.
+
+    Busca só os ids pedidos na AODP (blocos de 90; teto ~100/chamada) e aplica o
+    MESMO saneamento anti-isca e o mesmo corte de frescor da plataforma."""
+    import asyncio as _aio
+    from albion import config as _cfg
+    from albion.microstructure import clean_price_rows
+
+    cities = list(cities or _cfg.ROYAL_CITIES)
+    ids = sorted(set(ids))
+    raw = []
+    for i in range(0, len(ids), 90):
+        raw += await local_prices_rows(ids[i:i + 90], cities, qualities=[1])
+
+    def _clean():
+        q1 = {}
+        for r in clean_price_rows([dict(x) for x in raw]):
+            sp = r.get("sell_price_min") or 0
+            age = _age_min(r.get("sell_price_min_date"))
+            if sp <= 0 or age is None or age > _LIVE_STALE_MIN:
+                continue
+            key = (r["item_id"], r["city"])
+            if key not in q1 or sp < q1[key]:
+                q1[key] = sp
+        return q1
+
+    return await _aio.to_thread(_clean)
+
+
+async def local_refine_plan(fam, tier, *, ench=0, city=None, focus=10000,
+                            budget=None, spec_fce=0, fee_per_100=None,
+                            premium=True, cities=None):
+    """Plano de refino de UM material (LOCAL: AODP direto, sem plataforma).
+
+    Busca só os ids da família/tier envolvidos — 1 chamada — e roda o mesmo
+    albion.refining que a web usa."""
+    import asyncio as _aio
+    from albion import config as _cfg
+    from albion import refining as _rf
+
+    cities = list(cities or _cfg.ROYAL_CITIES)
+    rid = _rf.refined_id(fam, tier, ench)
+    ids = {rid, _rf.raw_id(fam, tier, ench)}
+    if tier > 2:
+        ids.add(_rf.refined_id(fam, tier - 1, ench))
+    q1 = await _local_refine_prices(ids, cities)
+    fee = _rf.DEFAULT_STATION_FEE if fee_per_100 is None else fee_per_100
+
+    def _work():
+        po = lambda i, c: q1.get((i, c))
+        def _plan(c):
+            return _rf.plan(rid, c, po, focus_available=focus, budget=budget,
+                            spec_fce=spec_fce, fee_per_100=fee, premium=premium)
+        if city:
+            return _plan(city)
+        # sem cidade escolhida: tenta a cidade-bônus e, se ela estiver sem
+        # cotação (comum em tier alto), cai pra melhor cidade cotada em vez de
+        # devolver "sem dados" — o refino fora do bônus rende menos, não zero
+        prefer = _rf.bonus_city(fam)
+        got = _plan(prefer) if prefer else None
+        if got and got["phases"]:
+            return got
+        cands = [p for p in (_plan(c) for c in cities) if p and p["phases"]]
+        if not cands:
+            return got
+        return max(cands, key=lambda p: p["total"]["profit"])
+
+    res = await _aio.to_thread(_work)
+    if res:
+        res["name_pt"] = _local_pt(rid)
+        res["raw_pt"] = _local_pt(_rf.raw_id(fam, tier, ench))
+        if tier > 2:
+            res["prev_pt"] = _local_pt(_rf.refined_id(fam, tier - 1, ench))
+    return res
+
+
+async def local_refine_stock(fam, stock, *, ench=0, city=None, focus=10000,
+                             budget=None, spec_fce=0, fee_per_100=None,
+                             premium=True, cities=None):
+    """Modo COLETOR (LOCAL): estoque bruto por tier -> o que sai da cascata.
+
+    Precisa dos ids de TODOS os tiers da família (bruto + refinado): ~14 ids,
+    1 chamada da AODP."""
+    import asyncio as _aio
+    from albion import config as _cfg
+    from albion import refining as _rf
+
+    cities = list(cities or _cfg.ROYAL_CITIES)
+    ids = set()
+    for t in range(2, 9):
+        ids.add(_rf.refined_id(fam, t, ench))
+        ids.add(_rf.raw_id(fam, t, ench))
+    q1 = await _local_refine_prices(ids, cities)
+    city = city or _rf.bonus_city(fam)
+    fee = _rf.DEFAULT_STATION_FEE if fee_per_100 is None else fee_per_100
+
+    def _work():
+        return _rf.from_stock(fam, stock, city, lambda i, c: q1.get((i, c)),
+                              focus_available=focus, budget=budget, ench=ench,
+                              spec_fce=spec_fce, fee_per_100=fee, premium=premium)
+
+    res = await _aio.to_thread(_work)
+    for row in (res or {}).get("rows", []):
+        row["name_pt"] = _local_pt(row["refined_id"])
+        row["raw_pt"] = _local_pt(row["raw_id"])
+        row["prev_pt"] = _local_pt(row["prev_id"]) if row.get("prev_id") else None
+    return res
+
+
+async def local_refine_ranking(*, focus=10000, budget=None, spec_fce=0,
+                               fee_per_100=None, premium=True, tiers=None,
+                               families=None, ench=0, cities=None, sort="profit",
+                               limit=12):
+    """Ranking "onde ponho meu foco e minha prata" (LOCAL: AODP direto).
+
+    Todas as famílias x tiers pedidos = até ~70 ids -> 1 chamada da AODP."""
+    import asyncio as _aio
+    from albion import config as _cfg
+    from albion import refining as _rf
+
+    cities = list(cities or _cfg.ROYAL_CITIES)
+    tiers = list(tiers or [4, 5, 6, 7])
+    families = list(families or _rf.FAMILIES)
+    ids = set()
+    for fam in families:
+        for t in tiers:
+            ids.add(_rf.refined_id(fam, t, ench))
+            ids.add(_rf.raw_id(fam, t, ench))
+            if t > 2:
+                ids.add(_rf.refined_id(fam, t - 1, ench))
+    q1 = await _local_refine_prices(ids, cities)
+    fee = _rf.DEFAULT_STATION_FEE if fee_per_100 is None else fee_per_100
+
+    def _work():
+        return _rf.ranking(lambda i, c: q1.get((i, c)), cities=cities,
+                           focus_available=focus, budget=budget, ench=ench,
+                           spec_fce=spec_fce, fee_per_100=fee, premium=premium,
+                           tiers=tiers, families=families, sort=sort, limit=limit)
+
+    rows = await _aio.to_thread(_work)
+    for r in rows:
+        r["name_pt"] = _local_pt(r["item_id"])
+    return rows
+
+
 async def local_gold_pts(count=48):
     """Cotação do ouro DIRETO na AODP (repasse puro; não precisa do banco)."""
     import httpx
@@ -490,6 +636,31 @@ class ApiClient:
         await self._client.aclose()
 
 
+class ApiOffline:
+    """MODO PONTE: bot rodando SEM plataforma (ela caiu, está suspensa, ou você
+    subiu o bot no seu PC pra guilda não ficar sem nada).
+
+    Os comandos LOCAIS (doutrina LOCAL vs PLATAFORMA) funcionam normalmente —
+    eles nem tocam nesta classe. Os que PRECISAM do banco acumulado recebem um
+    ApiError, que o _respond transforma em mensagem amigável em PT em vez de
+    "O aplicativo não respondeu". Falha rápido: não tenta a rede à toa."""
+
+    OFFLINE_MSG = (
+        "A plataforma está fora do ar agora, então esta análise (que depende do "
+        "histórico coletado) não roda. Os comandos que consultam o mercado ao "
+        "vivo seguem funcionando: /preco, /comparar, /vender, /historico, "
+        "/craftar, /refinar, /buscar, /origem, /ouro e /fama.")
+
+    async def get(self, path, params=None):
+        raise ApiError(503, self.OFFLINE_MSG, "plataforma_offline")
+
+    async def post(self, path, json=None):
+        raise ApiError(503, self.OFFLINE_MSG, "plataforma_offline")
+
+    async def aclose(self):
+        return None
+
+
 # ------------------------------------------------------------- formatação
 def fmt_silver(v):
     """1234567.8 -> '1.234.568' (separador de milhar PT-BR); None/0 -> '-'."""
@@ -568,6 +739,9 @@ def friendly_error(exc: ApiError) -> str:
                                 "'operação' ativo — fale com o admin da guild."),
         "entitlement_expired": ("O plano 'operação' da sua organização expirou "
                                 "— fale com o admin da guild."),
+        # MODO PONTE: a plataforma está fora e o comando depende do histórico.
+        # A mensagem já vem pronta do ApiOffline (lista o que AINDA funciona).
+        "plataforma_offline": exc.detail,
     }
     if exc.code == "db_busy":
         return ("⏳ O banco de dados está ocupado neste instante. Tenta de "
@@ -722,6 +896,13 @@ HELP_SECTIONS = [
                      "Ex.: `/craftar cajado de fogo t4`"),
         ("/refinar", "ranking do refino: onde compensa refinar o bruto ou vender bruto. "
                      "Ex.: `/refinar tier: 4`"),
+        ("/refino", "plano de refino de uma família: quanto dá, quanto de foco "
+                    "gasta e onde parar. Ex.: `/refino familia: madeira tier: 5`"),
+        ("/refino-estoque", "você diz quanto tem de recurso bruto em cada tier e "
+                            "ele mostra o que sai, o gargalo e o foco. "
+                            "Ex.: `/refino-estoque t4: 1200 t5: 300`"),
+        ("/refino-ranking", "com o seu foco e a sua prata, o que compensa refinar "
+                            "agora (por lucro total). Ex.: `/refino-ranking prata: 2000000`"),
         ("/foco", "ranking de prata por ponto de foco (craft e refino)"),
         ("/produzir", "pra fazer N de um item, a lista de compras de recurso bruto. "
                       "Ex.: `/produzir espada larga t5 quantidade: 20`"),
@@ -1400,10 +1581,15 @@ async def handle_craftar(api, item: str) -> str:
     if not it:
         return code_block(f"Não achei o item '{item}'.")
     item_id = it["id"]
+    # REG-4: separar "item sem receita" (res=None) de "não consegui os preços"
+    # (exceção). Antes os dois viravam a mesma frase e o bot MENTIA dizendo que
+    # um item craftável não tem receita quando o problema era a AODP fora.
     try:
         res = await local_craft_data(item_id)
     except Exception:
-        res = None
+        return code_block(
+            f"{_local_pt(item_id)}: não consegui os preços agora "
+            "(mercado fora do ar?). Tente de novo em instantes.")
     if res is None:
         return code_block(
             f"{_local_pt(item_id)}: esse item não tem receita de craft no dump.")
@@ -1447,8 +1633,10 @@ async def handle_refinar(api, tier: int = None) -> str:
     da AODP — não precisa da varredura do banco. Sem plataforma."""
     try:
         rows = await local_refine_rows(tier)
-    except Exception:
-        rows = []
+    except Exception:                    # REG-4: AODP fora != mercado sem dado
+        return code_block(
+            "Não consegui os preços agora (mercado fora do ar?). "
+            "Tente de novo em instantes.")
     if not rows:
         alvo = f" T{tier}" if tier else ""
         return code_block(
@@ -1463,6 +1651,178 @@ async def handle_refinar(api, tier: int = None) -> str:
             f"({r.get('premium_pct')}%) em {r.get('city', '?')} "
             f"(RRR {r.get('rrr_pct')}%)")
     lines += ["", "margem = refinar o bruto e vender vs. comprar o refinado pronto."]
+    return code_block("\n".join(lines))
+
+
+# ------------------------------------------------- Estúdio de Refino (LOCAL)
+# Planejador de refino com FOCO e PRATA como recursos escassos. Roda inteiro no
+# processo do bot (AODP direto + albion.refining) — a plataforma pode estar fora.
+
+_FAM_PT = {"ore": "Minério → Barra", "wood": "Tronco → Tábua",
+           "fiber": "Fibra → Tecido", "hide": "Couro cru → Couro",
+           "rock": "Pedra → Bloco"}
+
+
+def _fase_linha(ph):
+    return (f"  {ph['phase']:<9} {ph['qty']:>6} un  "
+            f"foco {fmt_silver(ph['focus_used']):>7}  "
+            f"investe {fmt_silver(ph['invested']):>11}  "
+            f"lucro {fmt_silver(ph['profit']):>11}  "
+            f"({fmt_silver(ph['margin_unit'])}/un)")
+
+
+async def handle_refino(api, familia: str = "wood", tier: int = 5,
+                        foco: int = 10000, prata: int = None,
+                        cidade: str = None, taxa: int = 500,
+                        especializacao: int = 0, encantamento: int = 0) -> str:
+    """/refino — plano de refino: quanto dá, quanto de foco vai, onde parar.
+
+    LOCAL: 1 chamada da AODP (3 ids). Sem plataforma."""
+    from albion import refining as _rf
+    try:
+        res = await local_refine_plan(familia, tier, ench=encantamento,
+                                      city=cidade, focus=foco, budget=prata,
+                                      spec_fce=especializacao, fee_per_100=taxa)
+    except Exception:
+        res = None
+    if not res:
+        return code_block(
+            f"Sem cotação completa p/ refinar T{tier} de {_FAM_PT.get(familia, familia)} "
+            "agora (mercado frio ou item sem ordem). Tente outro tier/cidade.")
+    u_f, u_p = res["unit_focus"], res["unit_plain"]
+    nome = res.get("name_pt") or res["item_id"]
+    bonus = " (cidade-bônus)" if res["is_bonus_city"] else ""
+    lines = [f"REFINO — {nome} em {res['city']}{bonus}", ""]
+    lines.append(f"Por unidade:  insumos {fmt_silver(u_p['gross_cost'])} "
+                 f"({u_p['raw_count']}x {res.get('raw_pt') or u_p['raw_id']}"
+                 + (f" + 1x {res.get('prev_pt') or u_p['prev_id']}" if u_p['prev_id'] else "")
+                 + f")  ->  vende {fmt_silver(u_p['sell_unit'])}")
+    if u_f:
+        lines.append(f"  com foco: RRR {u_f['rrr_pct']}% | custo real "
+                     f"{fmt_silver(u_f['eff_cost'])} | margem {fmt_silver(u_f['margin'])}"
+                     f" | {u_f['focus_cost']:.0f} de foco ({u_f['silver_per_focus']}/foco)")
+    lines.append(f"  sem foco: RRR {u_p['rrr_pct']}% | custo real "
+                 f"{fmt_silver(u_p['eff_cost'])} | margem {fmt_silver(u_p['margin'])}")
+    lines.append("")
+    lines.append(f"Plano com {fmt_silver(foco)} de foco"
+                 + (f" e {fmt_silver(prata)} de prata:" if prata else " (prata livre):"))
+    for ph in res["phases"]:
+        lines.append(_fase_linha(ph))
+    t = res["total"]
+    if not res["phases"]:
+        lines.append("  (nenhuma operação cabe nos limites informados)")
+    else:
+        lines.append(f"  TOTAL     {t['qty']:>6} un  foco {fmt_silver(t['focus_used']):>7}"
+                     f"  investe {fmt_silver(t['invested']):>11}"
+                     f"  lucro {fmt_silver(t['profit']):>11}  (ROI {t['roi_pct']}%)")
+        lines.append(f"  material: {fmt_silver(t['raw_used'])} de bruto"
+                     + (f" + {fmt_silver(t['prev_used'])} de {res.get('prev_pt')}"
+                        if t["prev_used"] else ""))
+    lines.append("")
+    lines.append(f"Limitador: {res['limiter']}  |  foco = "
+                 f"{res['focus_days']} dia(s) de regeneração")
+    lines.append(f"AVISO: {res['advice']}")
+    be = res.get("focus_break_even_price") or {}
+    if be.get("com_foco"):
+        lines.append(f"Break-even do bruto: até {fmt_silver(be['com_foco'])} com foco / "
+                     f"{fmt_silver(be['sem_foco'])} sem foco (hoje: "
+                     f"{fmt_silver(be['raw_price_now'])})")
+    lines.append(f"Taxa da estação: {taxa}/100 nutrição "
+                 f"({fmt_silver(_rf.station_fee(res['item_id'], taxa))}/un)")
+    return code_block("\n".join(lines))
+
+
+async def handle_refino_estoque(api, familia: str = "wood", t2: int = 0,
+                                t3: int = 0, t4: int = 0, t5: int = 0,
+                                t6: int = 0, t7: int = 0, t8: int = 0,
+                                foco: int = 10000, cidade: str = None,
+                                taxa: int = 500, prata: int = None,
+                                especializacao: int = 0) -> str:
+    """/refino-estoque — "sou coletor, tenho isto: o que consigo refinar?"
+
+    Sobe a cascata de tiers com o refinado de baixo alimentando o de cima,
+    compra o que faltar e diz onde trava. LOCAL: 1 chamada da AODP."""
+    stock = {t: v for t, v in ((2, t2), (3, t3), (4, t4), (5, t5), (6, t6),
+                               (7, t7), (8, t8)) if v}
+    if not stock:
+        return code_block("Informe quanto você tem de recurso BRUTO em pelo menos "
+                          "um tier (ex.: t4: 1200, t5: 300).")
+    try:
+        res = await local_refine_stock(familia, stock, city=cidade, focus=foco,
+                                       budget=prata, spec_fce=especializacao,
+                                       fee_per_100=taxa)
+    except Exception:
+        res = None
+    if not res or not res.get("rows"):
+        return code_block(
+            "Com esse estoque nada compensa refinar agora (ou falta cotação). "
+            "Vender o bruto é o melhor uso — confira com /refinar.")
+    lines = [f"REFINO DO COLETOR — {_FAM_PT.get(familia, familia)} em {res['city']}",
+             f"estoque: " + ", ".join(f"T{t}={fmt_silver(v)}" for t, v in sorted(stock.items())),
+             ""]
+    for r in res["rows"]:
+        lines.append(f"T{r['tier']} {r['name_pt']}: produz {fmt_silver(r['made'])} un"
+                     f" ({r['made_focus']} c/ foco)")
+        lines.append(f"     usa {fmt_silver(r['raw_used'])} de bruto"
+                     + (f" (sobram {fmt_silver(r['raw_left'])})" if r["raw_left"] else "")
+                     + (f" | compra {fmt_silver(r['prev_bought'])} de {r['prev_pt']}"
+                        f" ({fmt_silver(r['prev_cost'])})" if r["prev_bought"] else "")
+                     + f" | foco {fmt_silver(r['focus_used'])}")
+        lines.append(f"     agrega {fmt_silver(r['profit'])} de valor"
+                     f" | trava em: {r['bottleneck']}")
+    lines.append("")
+    prods = res.get("products") or []
+    if prods:
+        lines.append("Você fica com: " + ", ".join(
+            f"{fmt_silver(p['qty'])}x {_local_pt(p['item_id'])}" for p in prods))
+    lines.append(f"Ganho total de refinar (vs vender o bruto): "
+                 f"{fmt_silver(res['profit'])}")
+    lines.append(f"Foco usado: {fmt_silver(res['focus_used'])} "
+                 f"(sobra {fmt_silver(res['focus_left'])})"
+                 + (f" | comprou {fmt_silver(res['silver_spent'])} de refinado"
+                    if res["silver_spent"] else ""))
+    if res.get("leftovers"):
+        sobras = ", ".join(f"{fmt_silver(v)}x {_local_pt(k)}"
+                           for k, v in list(res["leftovers"].items())[:5])
+        lines.append(f"Sobra sem uso: {sobras}")
+    lines.append("")
+    lines.append("O foco vai primeiro pro tier onde ele AGREGA mais prata por "
+                 "ponto (não onde a margem é maior).")
+    return code_block("\n".join(lines))
+
+
+async def handle_refino_ranking(api, foco: int = 10000, prata: int = None,
+                                tier_min: int = 4, tier_max: int = 7,
+                                ordem: str = "profit", taxa: int = 500,
+                                especializacao: int = 0) -> str:
+    """/refino-ranking — com ESTE foco e ESTA prata, o que refinar agora?
+
+    Diferente de /refinar (margem unitária), aqui o ranking respeita os seus
+    limites e ordena por lucro ABSOLUTO. LOCAL: 1 chamada da AODP."""
+    tiers = list(range(max(tier_min, 2), min(tier_max, 8) + 1))
+    try:
+        rows = await local_refine_ranking(focus=foco, budget=prata, tiers=tiers,
+                                          spec_fce=especializacao, fee_per_100=taxa,
+                                          sort=ordem, limit=10)
+    except Exception:
+        rows = []
+    if not rows:
+        return code_block("Sem cotação suficiente p/ ranquear refino agora "
+                          "(mercado frio). Tente mais tarde.")
+    titulo = {"profit": "lucro total", "roi": "retorno %",
+              "focus": "prata por foco", "unit": "margem por unidade"}
+    lines = [f"ONDE REFINAR — ordenado por {titulo.get(ordem, ordem)}",
+             f"com {fmt_silver(foco)} de foco"
+             + (f" e {fmt_silver(prata)} de prata" if prata else " e prata livre"), ""]
+    for r in rows:
+        nome = r.get("name_pt") or r["item_id"]
+        b = "*" if r["is_bonus_city"] else " "
+        lines.append(f"{b}{nome:<26} {r['city']:<14} {fmt_silver(r['qty']):>7} un")
+        lines.append(f"   lucro {fmt_silver(r['profit']):>11} | ROI {r['roi_pct']}% | "
+                     f"prata/foco {r['silver_per_focus']} | trava: {r['limiter']}")
+    lines += ["", "* = cidade-bônus da família (RRR maior).",
+              "Quantidade é o TETO teórico dos seus limites — o mercado pode não",
+              "absorver tudo de uma vez; parcele as vendas."]
     return code_block("\n".join(lines))
 
 
@@ -2989,6 +3349,96 @@ def build_bot(api: ApiClient, members_intent: bool = True):
                           tier: app_commands.Range[int, 2, 8] = None):
         await _respond(interaction, handle_refinar(api, tier))
 
+    _FAM_CHOICES = [
+        app_commands.Choice(name="Minério → Barra", value="ore"),
+        app_commands.Choice(name="Tronco → Tábua", value="wood"),
+        app_commands.Choice(name="Fibra → Tecido", value="fiber"),
+        app_commands.Choice(name="Couro cru → Couro", value="hide"),
+        app_commands.Choice(name="Pedra → Bloco", value="rock")]
+
+    @tree.command(name="refino",
+                  description="Plano de refino: quanto dá, quanto de foco e onde parar")
+    @app_commands.describe(
+        familia="O que você quer refinar",
+        tier="Tier do refinado (2-8)",
+        foco="Foco disponível (padrão 10.000 = 1 dia de premium)",
+        prata="Prata para comprar insumo (vazio = ilimitada)",
+        cidade="Onde refinar (padrão: a cidade-bônus da família)",
+        taxa="Taxa da estação por 100 de nutrição (padrão 500)",
+        especializacao="Focus Cost Efficiency da sua spec (barateia o foco)",
+        encantamento="Encantamento do recurso (0-4)")
+    @app_commands.choices(familia=_FAM_CHOICES)
+    async def refino_cmd(interaction: discord.Interaction,
+                         familia: str = "wood",
+                         tier: app_commands.Range[int, 2, 8] = 5,
+                         foco: app_commands.Range[int, 0, 30000] = 10000,
+                         prata: app_commands.Range[int, 0, 2_000_000_000] = None,
+                         cidade: str = None,
+                         taxa: app_commands.Range[int, 0, 5000] = 500,
+                         especializacao: app_commands.Range[int, 0, 100000] = 0,
+                         encantamento: app_commands.Range[int, 0, 4] = 0):
+        await _respond(interaction, handle_refino(
+            api, familia, tier, foco, prata, cidade, taxa, especializacao,
+            encantamento))
+
+    @tree.command(name="refino-estoque",
+                  description="Sou coletor: tenho tanto de bruto — o que consigo refinar?")
+    @app_commands.describe(
+        familia="Recurso que você coletou",
+        t2="Quanto você tem de bruto T2", t3="Quanto você tem de bruto T3",
+        t4="Quanto você tem de bruto T4", t5="Quanto você tem de bruto T5",
+        t6="Quanto você tem de bruto T6", t7="Quanto você tem de bruto T7",
+        t8="Quanto você tem de bruto T8",
+        foco="Foco disponível (padrão 10.000)",
+        prata="Prata p/ comprar o refinado que faltar no tier de baixo",
+        cidade="Onde refinar (padrão: a cidade-bônus da família)",
+        taxa="Taxa da estação por 100 de nutrição (padrão 500)",
+        especializacao="Focus Cost Efficiency da sua spec")
+    @app_commands.choices(familia=_FAM_CHOICES)
+    async def refino_estoque_cmd(
+            interaction: discord.Interaction, familia: str = "wood",
+            t2: app_commands.Range[int, 0, 10_000_000] = 0,
+            t3: app_commands.Range[int, 0, 10_000_000] = 0,
+            t4: app_commands.Range[int, 0, 10_000_000] = 0,
+            t5: app_commands.Range[int, 0, 10_000_000] = 0,
+            t6: app_commands.Range[int, 0, 10_000_000] = 0,
+            t7: app_commands.Range[int, 0, 10_000_000] = 0,
+            t8: app_commands.Range[int, 0, 10_000_000] = 0,
+            foco: app_commands.Range[int, 0, 30000] = 10000,
+            prata: app_commands.Range[int, 0, 2_000_000_000] = None,
+            cidade: str = None,
+            taxa: app_commands.Range[int, 0, 5000] = 500,
+            especializacao: app_commands.Range[int, 0, 100000] = 0):
+        await _respond(interaction, handle_refino_estoque(
+            api, familia, t2, t3, t4, t5, t6, t7, t8, foco, cidade, taxa,
+            prata, especializacao))
+
+    @tree.command(name="refino-ranking",
+                  description="Com este foco e esta prata, o que compensa refinar agora?")
+    @app_commands.describe(
+        foco="Foco disponível (padrão 10.000)",
+        prata="Prata disponível (vazio = ilimitada)",
+        tier_min="Tier mínimo (padrão 4)", tier_max="Tier máximo (padrão 7)",
+        ordem="Como ordenar o ranking",
+        taxa="Taxa da estação por 100 de nutrição (padrão 500)",
+        especializacao="Focus Cost Efficiency da sua spec")
+    @app_commands.choices(ordem=[
+        app_commands.Choice(name="Lucro total", value="profit"),
+        app_commands.Choice(name="Retorno % (ROI)", value="roi"),
+        app_commands.Choice(name="Prata por foco", value="focus"),
+        app_commands.Choice(name="Margem por unidade", value="unit")])
+    async def refino_ranking_cmd(
+            interaction: discord.Interaction,
+            foco: app_commands.Range[int, 0, 30000] = 10000,
+            prata: app_commands.Range[int, 0, 2_000_000_000] = None,
+            tier_min: app_commands.Range[int, 2, 8] = 4,
+            tier_max: app_commands.Range[int, 2, 8] = 7,
+            ordem: str = "profit",
+            taxa: app_commands.Range[int, 0, 5000] = 500,
+            especializacao: app_commands.Range[int, 0, 100000] = 0):
+        await _respond(interaction, handle_refino_ranking(
+            api, foco, prata, tier_min, tier_max, ordem, taxa, especializacao))
+
     @tree.command(name="guild",
                   description="Decisões da guild: fabricar-vs-comprar, o que perde, regear")
     @app_commands.describe(tipo="Que análise da guild")
@@ -3161,17 +3611,18 @@ def main():
     bot_token = os.environ.get("DISCORD_BOT_TOKEN", "").strip()
     service_token = os.environ.get("ALBION_SERVICE_TOKEN", "").strip()
     api_url = os.environ.get("ALBION_API_URL", API_URL_DEFAULT).strip()
-    missing = [name for name, val in
-               (("DISCORD_BOT_TOKEN", bot_token),
-                ("ALBION_SERVICE_TOKEN", service_token)) if not val]
-    if missing:
-        print("Faltam variaveis de ambiente: " + ", ".join(missing))
-        print("  DISCORD_BOT_TOKEN     -> Developer Portal > Bot > Reset Token")
-        print("  ALBION_SERVICE_TOKEN  -> python manage_accounts.py "
-              "service-token create --label discord_bot "
-              "--scopes discord_link,discord_read")
+    # O token do DISCORD é o único indispensável: sem ele não há bot.
+    if not bot_token:
+        print("Falta a variavel de ambiente DISCORD_BOT_TOKEN")
+        print("  DISCORD_BOT_TOKEN -> Developer Portal > Bot > Reset Token")
         print("Guia completo: docs/BOT_DISCORD.md")
         sys.exit(1)
+    # MODO PONTE: sem token de serviço (ou com ALBION_MODO_PONTE=1) o bot sobe
+    # SEM plataforma. Serve os comandos LOCAIS — que é o que a guilda mais usa —
+    # e responde os demais com uma mensagem PT explicando, em vez de deixar o
+    # Discord mostrar "O aplicativo não respondeu". Serve pra rodar no PC quando
+    # a nuvem está fora (suspensa/dormindo/em manutenção).
+    ponte = (not service_token) or os.environ.get("ALBION_MODO_PONTE") == "1"
 
     try:
         import discord  # noqa: F401 — valida a dependência antes de conectar
@@ -3181,9 +3632,17 @@ def main():
         print("(precisa ser discord.py 2.x — o bot usa app_commands)")
         sys.exit(1)
 
-    api = ApiClient(api_url, service_token)
+    if ponte:
+        api = ApiOffline()
+        print("[bot] MODO PONTE: sem plataforma. Funcionam /preco, /comparar, "
+              "/vender, /historico, /craftar, /refinar, /buscar, /origem, "
+              "/ouro e /fama (com nick). As análises que dependem do histórico "
+              "avisam que a plataforma está fora.", flush=True)
+    else:
+        api = ApiClient(api_url, service_token)
     bot = build_bot(api)
-    print(f"[bot] iniciando (API {api_url}) — Ctrl+C para sair", flush=True)
+    print(f"[bot] iniciando ({'MODO PONTE' if ponte else 'API ' + api_url}) — "
+          "Ctrl+C para sair", flush=True)
     try:
         bot.run(bot_token, log_handler=None)
     finally:

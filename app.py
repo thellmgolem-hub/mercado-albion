@@ -387,6 +387,10 @@ _CRON_LATE_S = int(os.environ.get("ALBION_CRON_LATE_S", "1800"))
 # Se o vigia ficar ATIVO (coletando no Render) por mais que isto, é sinal de que
 # o coletor externo morreu — o /api/health expõe isso p/ o alarme não ficar cego.
 _WATCHDOG_STUCK_S = int(os.environ.get("ALBION_WATCHDOG_STUCK_S", "1500"))
+# Idade máxima do último ciclo de coleta p/ o /api/health dizer "coletando".
+# Tem de acompanhar a CADÊNCIA REAL do coletor (GitHub Actions, 15 min) — o
+# valor antigo (300s) era do cron de 1 minuto e daria alarme falso permanente.
+_COLETA_FRESH_S = int(os.environ.get("ALBION_COLETA_FRESH_S", "1500"))
 
 
 def _cron_late(age_s) -> bool:
@@ -504,13 +508,25 @@ def health():
                     pass
     except Exception:
         db_ok = False
-    size_mb = _db_size_mb_cached()
+    # PG-3: a medição de disco pega o db_lock; num engasgo ela levantaria
+    # TimeoutError e o /api/health — que é PÚBLICO e é o alvo do vigia externo e
+    # do keep-alive — viraria 503, gerando ALARME FALSO no Discord na frente da
+    # guilda. A saúde nunca pode depender da fila de escrita: falha vira None, e
+    # o campo db_measure_ok já reporta isso honestamente.
+    try:
+        size_mb = _db_size_mb_cached()
+    except Exception:
+        size_mb = None
     db_measure_ok = size_mb is not None
     mode = store.sweep_mode(size_mb, config.DB_SOFT_LIMIT_MB,
                             config.DB_HARD_LIMIT_MB)
     sweep_age = _last_sweep_age()
     intel_age = _last_intel_age()
-    collecting = sweep_age is not None and sweep_age < 300
+    # CFG-1: o limiar de 300s vinha do cron ANTIGO de 1 minuto. Com o coletor no
+    # GitHub Actions rodando a cada 15 min, 300s marcaria "coleta parada" quase
+    # sempre — alarme falso constante no /saude e no vigia externo. 1500s = 25min
+    # dá 1 ciclo de folga sem mascarar uma parada real (que passa de 30min).
+    collecting = sweep_age is not None and sweep_age < _COLETA_FRESH_S
     # Vigia ATIVO por muito tempo = o coletor externo (GitHub Actions) MORREU: a
     # coleta segue fresca (o vigia cobre), MAS volta a gastar banda no Render —
     # precisa AVISAR, senão a queda do Actions fica mascarada por saúde verde.
@@ -788,6 +804,15 @@ async def _auth_guard(request: Request, call_next):
                                         "csrf_invalid", 403)
         except AuthError as exc:
             return _auth_json(exc)
+        except TimeoutError:
+            # PG-2: o @app.exception_handler NÃO alcança middleware (o
+            # ExceptionMiddleware do Starlette fica DENTRO da pilha do usuário),
+            # então sem este except um engasgo do db_lock viraria HTTP 500 CRU em
+            # TODA rota /api — justo o caso pro qual a resposta amigável existe.
+            return _db_busy_json()
+        except Exception:
+            log.exception("falha inesperada na autenticacao (%s)", path)
+            return _db_busy_json("db_unavailable")
     response = await call_next(request)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
@@ -808,21 +833,30 @@ async def _auth_exception_handler(_request, exc):
     return _auth_json(exc)
 
 
+def _db_busy_json(code="db_busy"):
+    """Corpo único do 503 de banco ocupado — usado pelo handler de exceção E
+    pelo _auth_guard (que o handler NÃO alcança; ver PG-2 abaixo)."""
+    return JSONResponse(status_code=503, content={
+        "detail": "Banco de dados ocupado neste instante — tente de novo em "
+                  "alguns segundos.", "code": code})
+
+
 @app.exception_handler(TimeoutError)
 async def _db_busy_handler(_request, exc):
     """Espera pelo db_lock estourou o teto (BoundedLock): o banco está num
     engasgo passageiro. Resposta rápida e honesta em vez de pendurar a thread —
     o frontend/bot mostram 'tente de novo' e o app segue vivo."""
-    return JSONResponse(status_code=503, content={
-        "detail": "Banco de dados ocupado neste instante — tente de novo em "
-                  "alguns segundos.", "code": "db_busy"})
+    return _db_busy_json()
 
 
 @app.get("/api/auth/bootstrap-status")
 def auth_bootstrap_status():
     # NÃO expõe account_count a não-autenticados (era reconhecimento numa LAN);
     # o frontend só usa ready + command.
-    return {"ready": auth_manager.has_admin(),
+    # Com a auth DESLIGADA (tools/run_local.py na própria máquina) não existe
+    # bootstrap a fazer: sem isto o front travava na tela de acesso pedindo um
+    # admin que o modo local nem usa — justamente o modo "abrir e usar".
+    return {"ready": (not config.AUTH_REQUIRED) or auth_manager.has_admin(),
             "command": ".\\.venv\\Scripts\\python.exe -B "
                        "manage_accounts.py bootstrap --username admin"}
 
@@ -991,6 +1025,10 @@ def _csv_int(value: str | None) -> list[int] | None:
 # throttle compartilhado (150/min), estancando as buscas dos outros. 100 casa com
 # o teto da AODP (~100 ids/chamada) e cobre qualquer uso legítimo do frontend.
 _MAX_LIVE_ITEMS = int(os.environ.get("ALBION_MAX_LIVE_ITEMS", "100"))
+
+# Janela de frescor de uma cotação ao vivo (mesma do _price_lookups e do bot):
+# preço mais velho que isso não entra em conta de refino/produção.
+_LIVE_STALE_MIN = 3 * 24 * 60
 
 
 def _resolve_items(ids: list[str]) -> list[str]:
@@ -1390,7 +1428,18 @@ def _cache_connection():
 # repetidas para ~1 por ciclo, compartilhada entre TODOS. SÓ liga no Postgres:
 # no SQLite (local/testes) o egress é grátis e o cache contaminaria testes que
 # trocam o banco de fixture. ALBION_PRICE_CACHE_TTL_S<=0 desliga.
-_READ_CACHE_TTL = float(os.environ.get("ALBION_PRICE_CACHE_TTL_S", "600"))
+# TETO POR TAMANHO, não por contagem (PG-1, achado da revisão de prontidão): a
+# 1ª versão limitava a 256 ENTRADAS sem olhar o peso de cada uma. A consulta
+# PADRÃO do painel (sem filtro de categoria) cacheia a fatia INTEIRA de `prices`
+# — medido: ~46 MB por entrada na escala da nuvem, +~17 MB do histórico. Meia
+# dúzia de combinações de filtro passaria de 300 MB num host de 512 MB = OOM =
+# site e bot mortos juntos (a MESMA falha que o lock do wiki fechou, em escala
+# maior). Agora: só entra no cache resultado PEQUENO, no máximo _READ_CACHE_MAX
+# entradas (descarte da mais velha), e nunca resultado vazio (REG-2: cachear
+# vazio travava o painel por 10 min depois que o dado chegava).
+_READ_CACHE_TTL = float(os.environ.get("ALBION_PRICE_CACHE_TTL_S", "180"))
+_READ_CACHE_MAX_ROWS = int(os.environ.get("ALBION_PRICE_CACHE_MAX_ROWS", "4000"))
+_READ_CACHE_MAX = 8              # entradas; com o teto de linhas, poucos MB
 _read_cache: dict = {}
 _read_cache_lock = threading.Lock()
 
@@ -1405,10 +1454,37 @@ def _read_cache_get(key):
     return None
 
 
+def _cache_too_big(value) -> bool:
+    """True se o valor é grande demais p/ caber na RAM do free tier.
+
+    Cobre as duas formas guardadas: lista de linhas (_cached_price_rows) e a
+    tupla (stats, max_ts) do _history_stats."""
+    if isinstance(value, tuple) and value and isinstance(value[0], dict):
+        return len(value[0]) > _READ_CACHE_MAX_ROWS
+    try:
+        return len(value) > _READ_CACHE_MAX_ROWS
+    except TypeError:
+        return False
+
+
+def _cache_vazio(value) -> bool:
+    if isinstance(value, tuple) and value and isinstance(value[0], dict):
+        return not value[0]
+    try:
+        return not value
+    except TypeError:
+        return False
+
+
 def _read_cache_put(key, value):
+    # Resultado grande NÃO entra (a consulta cara segue indo ao banco, que é o
+    # comportamento anterior ao cache — lento, porém vivo). Vazio também não.
+    if _cache_too_big(value) or _cache_vazio(value):
+        return
     with _read_cache_lock:
-        if len(_read_cache) > 256:      # teto simples anti-crescimento sem fim
-            _read_cache.clear()
+        if len(_read_cache) >= _READ_CACHE_MAX:
+            mais_velha = min(_read_cache, key=lambda k: _read_cache[k][0])
+            _read_cache.pop(mais_velha, None)
         _read_cache[key] = (time.monotonic() + _READ_CACHE_TTL, value)
 
 
@@ -1929,6 +2005,138 @@ def craft_margin(item: str, premium: bool = True, sell_mode: str = "order",
                    for i in recipe["inputs"]],
         "rows": res,
     }
+
+
+def _refino_prices(ids, cities, max_age):
+    """Cotações q1 saneadas p/ o Estúdio de Refino: {(item, cidade): menor venda}.
+
+    Bate na AODP ao vivo (poucos ids: 3 no plano, ~14 na cascata, ~90 no
+    ranking) — NÃO varre a tabela `prices` do banco. Mesmo saneamento anti-isca
+    do /refinar (clean_price_rows)."""
+    from albion.microstructure import clean_price_rows
+    rows = _api_guard(lambda: aodp.get_prices(sorted(set(ids)), cities,
+                                              max_age=max_age))
+    q1 = {}
+    for r in clean_price_rows([dict(x) for x in rows]):
+        if r.get("quality") != 1:
+            continue
+        sp = r.get("sell_price_min") or 0
+        age = age_minutes(r.get("sell_price_min_date"))
+        if sp <= 0 or age is None or age > _LIVE_STALE_MIN:
+            continue
+        key = (r["item_id"], r["city"])
+        if key not in q1 or sp < q1[key]:
+            q1[key] = sp
+    return q1
+
+
+@app.get("/api/refino")
+def refino(view: str = "plano", familia: str = "wood",
+           tier: int = Query(5, ge=2, le=8), ench: int = Query(0, ge=0, le=4),
+           city: str | None = None, focus: int = Query(10000, ge=0, le=30000),
+           budget: int | None = Query(None, ge=0, le=2_000_000_000),
+           spec_fce: int = Query(0, ge=0, le=100000),
+           fee_per_100: int = Query(500, ge=0, le=5000),
+           premium: bool = True, sell_mode: str = "order",
+           stock: str | None = None, tier_min: int = Query(4, ge=2, le=8),
+           tier_max: int = Query(7, ge=2, le=8), sort: str = "profit",
+           families: str | None = None, cities: str | None = None,
+           max_age: int = Query(config.PRICES_TTL, ge=0)):
+    """Estúdio de Refino — foco e prata como recursos ESCASSOS.
+
+    views:
+      plano   — um material: quanto dá, quanto de foco vai, onde parar;
+      estoque — coletor: `stock` = "3:500,4:1200,5:300" (bruto por tier);
+      ranking — com este foco e esta prata, o que refinar agora.
+
+    Não toca as tabelas do banco: preços vêm da AODP (poucos ids) e as receitas
+    do dump em disco. É a mesma conta do /refino do Discord (albion.refining)."""
+    from albion import refining as rf
+    if familia not in rf.FAMILIES:
+        raise HTTPException(400, f"Família inválida: {familia}")
+    city_list = _csv(cities) or list(config.ROYAL_CITIES)
+    name = lambda i: (db.get(i) or {}).get("pt", i)
+
+    if view == "estoque":
+        parsed = {}
+        for part in (stock or "").split(","):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                t, qty = part.split(":")
+                t, qty = int(t), int(float(qty))
+            except ValueError:
+                raise HTTPException(400, 'stock usa "tier:qtd" (ex.: "4:1200,5:300")')
+            if 2 <= t <= 8 and qty > 0:
+                parsed[t] = qty
+        if not parsed:
+            raise HTTPException(400, "Informe o estoque bruto (ex.: 4:1200,5:300)")
+        ids = {rf.refined_id(familia, t, ench) for t in range(2, 9)}
+        ids |= {rf.raw_id(familia, t, ench) for t in range(2, 9)}
+        q1 = _refino_prices(ids, city_list, max_age)
+        res = rf.from_stock(familia, parsed, city or rf.bonus_city(familia),
+                            lambda i, c: q1.get((i, c)), focus_available=focus,
+                            budget=budget, ench=ench, spec_fce=spec_fce,
+                            fee_per_100=fee_per_100, premium=premium,
+                            sell_mode=sell_mode)
+        for r in res.get("rows", []):
+            r["name_pt"], r["raw_pt"] = name(r["refined_id"]), name(r["raw_id"])
+            r["prev_pt"] = name(r["prev_id"]) if r.get("prev_id") else None
+        for p in res.get("products", []):
+            p["name_pt"] = name(p["item_id"])
+        res["leftovers_pt"] = {name(k): v for k, v in (res.get("leftovers") or {}).items()}
+        return {"view": "estoque", "stock": parsed, **res}
+
+    if view == "ranking":
+        fams = _csv(families) or list(rf.FAMILIES)
+        fams = [f for f in fams if f in rf.FAMILIES]
+        tiers = list(range(min(tier_min, tier_max), max(tier_min, tier_max) + 1))
+        ids = set()
+        for f in fams:
+            for t in tiers:
+                ids |= {rf.refined_id(f, t, ench), rf.raw_id(f, t, ench)}
+                if t > 2:
+                    ids.add(rf.refined_id(f, t - 1, ench))
+        q1 = _refino_prices(ids, city_list, max_age)
+        rows = rf.ranking(lambda i, c: q1.get((i, c)), cities=city_list,
+                          focus_available=focus, budget=budget, ench=ench,
+                          spec_fce=spec_fce, fee_per_100=fee_per_100,
+                          premium=premium, sell_mode=sell_mode, tiers=tiers,
+                          families=fams, sort=sort, limit=40)
+        for r in rows:
+            r["name_pt"] = name(r["item_id"])
+        return {"view": "ranking", "focus": focus, "budget": budget, "rows": rows}
+
+    # view=plano (padrão)
+    rid = rf.refined_id(familia, tier, ench)
+    ids = {rid, rf.raw_id(familia, tier, ench)}
+    if tier > 2:
+        ids.add(rf.refined_id(familia, tier - 1, ench))
+    q1 = _refino_prices(ids, city_list, max_age)
+    po = lambda i, c: q1.get((i, c))
+    kw = dict(focus_available=focus, budget=budget, spec_fce=spec_fce,
+              fee_per_100=fee_per_100, premium=premium, sell_mode=sell_mode)
+    if city:
+        res = rf.plan(rid, city, po, **kw)
+    else:
+        res = rf.plan(rid, rf.bonus_city(familia), po, **kw)
+        if not res or not res["phases"]:      # cidade-bônus sem cotação: melhor cotada
+            cands = [p for p in (rf.plan(rid, c, po, **kw) for c in city_list)
+                     if p and p["phases"]]
+            res = max(cands, key=lambda p: p["total"]["profit"]) if cands else res
+    if not res:
+        raise HTTPException(404, "Sem cotação suficiente p/ esse refino agora")
+    res["name_pt"] = name(rid)
+    res["raw_pt"] = name(rf.raw_id(familia, tier, ench))
+    res["prev_pt"] = name(rf.refined_id(familia, tier - 1, ench)) if tier > 2 else None
+    res["bonus_city"] = rf.bonus_city(familia)
+    res["cascade"] = rf.cascade(familia, tier, res["total"]["qty"] or 1,
+                                res["city"], ench=ench, focus=True,
+                                spec_fce=spec_fce)
+    for s in res["cascade"]["steps"]:
+        s["name_pt"], s["raw_pt"] = name(s["refined_id"]), name(s["raw_id"])
+    return {"view": "plano", "familia": familia, "tier": tier, **res}
 
 
 _supply_cache = {}
