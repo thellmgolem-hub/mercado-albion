@@ -172,13 +172,65 @@ O que MORDIA foi corrigido (suíte 311):
   num processo FRIO parseariam items_raw.json (17 MB, ~47 MB de pico) ao MESMO
   tempo (10x47 MB estoura os 512 MB = crash duro = queda de web E bot). Agora tem
   `_DETAILS_LOCK` com dupla checagem (provado: 10 threads → 1 parse).
+
+### Revisão de PRONTIDÃO DE DEPLOY (ago/2026) — o que a suíte SQLite não pega
+
+Antes do deploy rodou uma 2ª revisão adversarial focada no que só ATIVA no
+Postgres (a suíte roda em SQLite e nunca executa esses caminhos). Ela BLOQUEOU o
+deploy e o culpado era o próprio fix EGR-1 acima — lição a não repetir:
+- **PG-1 (bloqueava):** o cache de leitura tinha teto por CONTAGEM (256 entradas)
+  e NENHUM por tamanho. A consulta padrão do painel (sem filtro) cacheia a fatia
+  INTEIRA de `prices`: ~46 MB/entrada na nuvem + ~17 MB do histórico; meia dúzia
+  de filtros passava de 300 MB em 512 MB = OOM = web e bot mortos juntos. Agora
+  `_READ_CACHE_MAX_ROWS` (4000) + máx. 8 entradas + NUNCA vazio (REG-2) + TTL
+  180s. **Regra: todo cache novo precisa de teto em BYTES/LINHAS, não em chaves.**
+- **PG-2/REG-3:** exceção dentro de `_auth_guard` virava HTTP **500 cru** — o
+  `@app.exception_handler` NÃO alcança middleware (o ExceptionMiddleware fica
+  DENTRO da pilha do usuário). O middleware agora devolve `_db_busy_json()`.
+- **PG-3:** `/api/health` chamava a medição de disco (que pega o db_lock) fora de
+  try/except: engasgo virava 503 no endpoint PÚBLICO que o vigia externo
+  monitora = alarme falso no Discord. Agora falha vira None + `db_measure_ok`.
+- **CFG-1:** o limiar de "coletando" era 300s, do cron ANTIGO de 1 min → com o
+  coletor a cada 15 min marcaria "parada" quase sempre. Agora `_COLETA_FRESH_S`.
+- **CFG-3 (alarme cego):** `coletor_externo_ok` vinha SÓ do estado do vigia, e a
+  postura primária é `ALBION_NO_WATCHDOG=1` → era SEMPRE True. Sem vigia, quem
+  denuncia a morte do coletor é a IDADE da coleta (`_CRON_LATE_S`).
+- **CONN-1/PG-5:** teto de conexões reusadas (`ALBION_RO_CONN_MAX`=10; o close de
+  conexão morta devolve a vaga) e aviso ALTO no boot se o `DATABASE_URL` não for
+  o pooler de TRANSAÇÃO (:6543), do qual o reuso depende.
+- **SCHEMA-1:** `add_column` levantava RuntimeError que não casava
+  `_is_readonly_error` → crash-loop em banco somente-leitura. Agora
+  `store.ReadOnlyMigration` (subclasse), reconhecida: o app SOBE degradado.
+- **REG-1/REG-4:** o botão "Adicionar visíveis" mandava 150 itens contra o cap de
+  100 (agora para no limite e avisa em PT); `/craftar` e `/refinar` diziam "sem
+  receita" quando o problema era a AODP fora (agora separam os casos).
+- **REG-5:** teto do BoundedLock 10s→**25s**: 10s ficava ABAIXO do
+  statement_timeout (20s) e estourava ANTES de o dono soltar — invertia a defesa.
+- **BOOT-1:** `store.connect` roda no IMPORT; Postgres fora por segundos matava o
+  uvicorn em crash-loop. Agora `AODP._connect_com_retry` (5x, 3s, só no PG).
+- **GZIP-1:** aceito e NÃO corrigido (recomprimir PNG é cosmético; um middleware
+  ASGI caseiro custaria mais que o desperdício).
+Ferramenta nova: **`python tools/verificar_nuvem.py [url]`** — lê o /api/health
+público e explica o estado em PT (banco, coleta, killboard, disco, bot) com o que
+fazer; exit 0/1/2 p/ monitor. É o "sabe antes da guilda" na mão do usuário.
+
 RESIDUAIS ESTRUTURAIS (o free tier não deixa eliminar, decisão do usuário):
 host único (bot in-process = queda dupla no OOM/suspensão; separar exige 2º host),
 event loop único (NÃO subir --workers>1: cada worker sobe outro bot Discord),
 keeper externo (falta cron-job.org/UptimeRobot <=5min em /api/health), egress
 Supabase 5 GB é apertado por natureza. PENDENTE do usuário (segredos/config, não
-código): repo PÚBLICO, DATABASE_URL, COLETOR_ATIVO=1, PUBLIC_URL, ALBION_ALERT_WEBHOOK.
-Testes novos: session cache evict, pushdown==filtro-Python, reuso de conexão PG.
+código): repo PÚBLICO, secret DATABASE_URL, vars COLETOR_ATIVO=1 e PUBLIC_URL,
+secret ALBION_ALERT_WEBHOOK — e conferir se o projeto do Supabase PAUSOU (o free
+pausa após 7 dias sem atividade; foi o caso durante a suspensão do Render).
+Testes novos: session cache evict, pushdown==filtro-Python, reuso de conexão PG,
+coletor_externo_ok denuncia coletor morto sem vigia, limiar de coleta vs cadência.
+
+**LIÇÃO DE PROCESSO (ago/2026):** duas sessões de agente no MESMO diretório
+custaram caro — um descarte do working tree apagou trabalho não commitado das
+duas, e um teste chegou a ler um arquivo NO MEIO da gravação da outra sessão
+(diagnóstico falso de comando faltando no /ajuda). Se houver 2 agentes: um por
+vez, ou worktrees separados; e **commitar em lotes pequenos, na hora** — commit
+sobrevive a `git checkout/restore`, diretório não.
 
 ## Auditoria de estabilidade 2026-07-19 (pós-suspensão por banda) — correções
 
