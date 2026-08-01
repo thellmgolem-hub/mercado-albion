@@ -74,24 +74,50 @@ class AODP:
         self.throttle = Throttle()
         # Camada dual: SQLite local (db_path) ou Postgres (env DATABASE_URL).
         # Em prod (nuvem) o db_path é ignorado em favor do Postgres.
-        self.db = store.connect(path=db_path)
+        # BOOT-1: este connect roda no IMPORT do app. Se o Postgres estiver
+        # indisponível por alguns segundos (pooler acordando, manutenção do
+        # Supabase), a exceção subiria pelo `import app` e o uvicorn MORRERIA —
+        # crash-loop, e o /api/health nem existe pra contar o porquê. Retry curto
+        # com backoff cobre o transitório sem mudar semântica nenhuma.
+        self.db = self._connect_com_retry(db_path)
         # Postgres (nuvem): lock com espera MÁXIMA — um engasgo do banco vira
         # erro rápido em quem espera, nunca congela o app (incidente 15/jul).
         # SQLite local mantém Lock puro: operações longas legítimas (VACUUM,
         # recarga profunda) seguram o lock por minutos sem ser defeito.
         if getattr(self.db, "backend", "sqlite") == "postgres":
-            # Teto de espera: fail-fast em quem espera o lock. Baixado de 30s
-            # (EL-4): com a auth já FORA do event loop (run_in_threadpool), o
-            # lock preso não congela mais o bot — então esperar menos e devolver
-            # 503 "banco ocupado" mais cedo é melhor que empilhar fila. > que o
-            # statement_timeout (20s) não faz sentido: quem segura solta em <=20s.
-            secs = float(os.environ.get("ALBION_DB_LOCK_TIMEOUT_S", "10"))
+            # Teto de espera: fail-fast em quem espera o lock. 25s fica logo
+            # ACIMA do statement_timeout (20s) DE PROPÓSITO (REG-5): quem segura
+            # o lock é solto pelo timeout em <=20s, então esperar 25s significa
+            # que só falha quem topou com um travamento REAL. O valor anterior
+            # (10s) invertia a defesa — estourava ANTES do dono soltar, gerando
+            # 503 e alarme falso no vigia externo com o banco apenas ocupado.
+            secs = float(os.environ.get("ALBION_DB_LOCK_TIMEOUT_S", "25"))
             self.db_lock = store.BoundedLock(secs)
         else:
             self.db_lock = threading.Lock()
         self._init_db()
 
     # ---------------------------------------------------------------- DB
+
+    @staticmethod
+    def _connect_com_retry(db_path, tentativas=5, espera=3.0):
+        """Conecta ao banco tolerando indisponibilidade passageira no boot.
+
+        Só re-tenta no POSTGRES: no SQLite a falha é de disco/permissão e
+        insistir não ajuda (e travaria a CLI local por 15s à toa)."""
+        ultimo = None
+        for i in range(tentativas):
+            try:
+                return store.connect(path=db_path)
+            except Exception as exc:
+                if store.backend() != "postgres":
+                    raise
+                ultimo = exc
+                if i < tentativas - 1:
+                    print(f"[client] banco indisponivel ({exc!r}); tentativa "
+                          f"{i + 2}/{tentativas} em {espera:.0f}s", flush=True)
+                    time.sleep(espera)
+        raise ultimo
 
     def _init_db(self):
         with self.db_lock:
