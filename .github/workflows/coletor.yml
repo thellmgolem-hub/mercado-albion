@@ -36,6 +36,40 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: pip install -r requirements.txt
+      # Diagnostico: diz SE o segredo chegou e se tem cara de pooler, sem NUNCA
+      # imprimir o valor (o log deste repo e PUBLICO). Existe porque o modo de
+      # falha mais comum e' criar o DATABASE_URL na aba errada (Variables em vez
+      # de Secrets) — dai o job roda, o segredo vem vazio e o tick morre em 0s.
+      - name: conferir o segredo DATABASE_URL (nao revela o valor)
+        env:
+          SEGREDO: ${{ secrets.DATABASE_URL }}
+          VARIAVEL: ${{ vars.DATABASE_URL }}
+        run: |
+          if [ -n "$SEGREDO" ]; then
+            echo "secrets.DATABASE_URL ...... PRESENTE (${#SEGREDO} caracteres)"
+            case "$SEGREDO" in
+              *:6543*) echo "porta ..................... 6543 (pooler de transacao) OK" ;;
+              *:5432*) echo "porta ..................... 5432 = conexao DIRETA. Troque pelo Transaction pooler (:6543)." ;;
+              *)       echo "porta ..................... nao identificada" ;;
+            esac
+            case "$SEGREDO" in
+              postgresql://*|postgres://*) echo "prefixo ................... postgresql:// OK" ;;
+              *) echo "prefixo ................... NAO comeca com postgresql:// (copiou a string errada?)" ;;
+            esac
+          else
+            echo "secrets.DATABASE_URL ...... AUSENTE (vazio)"
+            if [ -n "$VARIAVEL" ]; then
+              echo ">>> ACHEI o DATABASE_URL na aba VARIABLES, nao em SECRETS."
+              echo ">>> Apague a variavel (ela guarda a SENHA do banco em claro) e"
+              echo ">>> recrie em Settings > Secrets and variables > Actions > aba Secrets."
+            else
+              echo ">>> Nao existe nem secret nem variable com esse nome NESTE repositorio."
+              echo ">>> Crie em: Settings > Secrets and variables > Actions >"
+              echo ">>>          aba 'Secrets' > 'New repository secret'"
+              echo ">>>          Name: DATABASE_URL"
+            fi
+            exit 1
+          fi
       - name: tick de coleta (preços + histórico + killboard)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
