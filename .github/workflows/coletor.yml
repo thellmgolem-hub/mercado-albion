@@ -56,6 +56,12 @@ jobs:
               postgresql://*|postgres://*) echo "prefixo ................... postgresql:// OK" ;;
               *) echo "prefixo ................... NAO comeca com postgresql:// (copiou a string errada?)" ;;
             esac
+            case "$SEGREDO" in
+              *'[YOUR-PASSWORD]'*|*'[SUA-SENHA]'*|*'[password]'*)
+                echo "senha ..................... AINDA E' O PLACEHOLDER [YOUR-PASSWORD]."
+                echo ">>> O Supabase copia a URI com esse marcador. Troque pela senha real do banco." ;;
+              *) echo "senha ..................... preenchida" ;;
+            esac
           else
             echo "secrets.DATABASE_URL ...... AUSENTE (vazio)"
             if [ -n "$VARIAVEL" ]; then
