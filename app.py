@@ -411,14 +411,25 @@ _BOOT_TS = time.time()
 # AODP e recriando a banda que suspendeu a plataforma, além de MASCARAR a morte
 # do Actions (saúde ficava verde). 1800s (30 min = 2 ciclos perdidos) faz o
 # vigia só assumir quando o Actions morreu DE VERDADE.
-_CRON_LATE_S = int(os.environ.get("ALBION_CRON_LATE_S", "1800"))
+# CADÊNCIA REAL vs DECLARADA (medido em 1/ago/2026 — LEIA ANTES DE MEXER):
+# o coletor.yml pede `7,22,37,52 * * * *` (a cada 15 min = 96 runs/dia), mas o
+# GitHub ENGOLE a maioria dos disparos agendados: em 14 dias foram 56 runs, com
+# intervalo MEDIANO de 268 min (mín 209, máx 607) — cerca de 4 por DIA. Schedule
+# é o evento de MENOR prioridade do Actions e não tem garantia de entrega.
+# Calibrar o alarme pela cadência DECLARADA faz o /api/health gritar "coleta
+# parada" ~100% do tempo mesmo funcionando — e alarme que grita sempre é alarme
+# que ninguém olha (pior que não ter). Os valores abaixo seguem o MEDIDO.
+# Se um dia a cadência real melhorar, é só baixar por env, sem redeploy.
+_CRON_LATE_S = int(os.environ.get("ALBION_CRON_LATE_S", "64800"))      # 18 h
 # Se o vigia ficar ATIVO (coletando no Render) por mais que isto, é sinal de que
 # o coletor externo morreu — o /api/health expõe isso p/ o alarme não ficar cego.
 _WATCHDOG_STUCK_S = int(os.environ.get("ALBION_WATCHDOG_STUCK_S", "1500"))
-# Idade máxima do último ciclo de coleta p/ o /api/health dizer "coletando".
-# Tem de acompanhar a CADÊNCIA REAL do coletor (GitHub Actions, 15 min) — o
-# valor antigo (300s) era do cron de 1 minuto e daria alarme falso permanente.
-_COLETA_FRESH_S = int(os.environ.get("ALBION_COLETA_FRESH_S", "1500"))
+# Idade máxima do último ciclo p/ o /api/health dizer "coletando". 12 h fica
+# ACIMA do pior intervalo observado (607 min = 10,1 h) com folga. Detecção lenta
+# é o preço honesto de uma cadência errática: com o Actions entregando entre 3,5
+# e 10 h, não existe alarme rápido que não seja falso. Para detectar mais rápido,
+# a saída é CONSERTAR a cadência (ver docs), não apertar o limiar.
+_COLETA_FRESH_S = int(os.environ.get("ALBION_COLETA_FRESH_S", "43200"))  # 12 h
 
 
 def _cron_late(age_s) -> bool:

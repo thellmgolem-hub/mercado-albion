@@ -2497,12 +2497,28 @@ class WatchdogHealthTests(unittest.TestCase):
             self.assertTrue(d3["coletor_externo_ok"])
             self.assertFalse(d3["coleta_ok"])
 
-    def test_limiar_de_coleta_acompanha_a_cadencia_do_coletor(self):
-        """CFG-1: o limiar de 'coletando' era 300s, herdado do cron de 1 min.
-        Com o coletor a cada 15 min ele marcaria 'parada' quase sempre — alarme
-        falso constante. Tem de folgar acima de um ciclo (900s)."""
-        self.assertGreater(app._COLETA_FRESH_S, 900)
-        self.assertLessEqual(app._COLETA_FRESH_S, app._CRON_LATE_S)
+    def test_limiar_de_coleta_segue_a_cadencia_REAL_e_nao_a_declarada(self):
+        """O limiar acompanha a cadência MEDIDA, não a que o cron pede.
+
+        Medição de 1/ago/2026 (56 runs em 14 dias, API do GitHub): o
+        coletor.yml pede `7,22,37,52 * * * *` (a cada 15 min = 96/dia), mas o
+        GitHub entrega ~4 runs por DIA — intervalo mediano de 268 min e MÁXIMO
+        observado de 607 min. `schedule` é o evento de MENOR prioridade do
+        Actions e não tem garantia de entrega.
+
+        Se o limiar ficar abaixo do pior intervalo real, o /api/health grita
+        'coleta parada' com tudo funcionando. Alarme que grita sempre é PIOR que
+        alarme nenhum: o operador aprende a ignorar e a parada de verdade passa
+        batida. Foi o erro que este teste existe para impedir."""
+        PIOR_INTERVALO_S = 607 * 60          # medido, não estimado
+        self.assertGreater(
+            app._COLETA_FRESH_S, PIOR_INTERVALO_S,
+            "limiar abaixo do pior intervalo REAL => alarme falso permanente")
+        self.assertLessEqual(
+            app._COLETA_FRESH_S, app._CRON_LATE_S,
+            "'coletando' não pode ser mais tolerante que 'coletor vivo'")
+        # nem tão frouxo que uma parada de mais de um dia passe despercebida
+        self.assertLessEqual(app._CRON_LATE_S, 24 * 3600)
 
     def test_health_endpoint_shape_and_public(self):
         client = TestClient(app.app)
