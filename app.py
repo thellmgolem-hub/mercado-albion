@@ -597,6 +597,8 @@ def health():
         # medição de disco falhando NÃO pode passar por 'ok' silencioso
         "db_mode": mode if db_measure_ok else "unknown",
         "db_measure_ok": db_measure_ok,
+        # porta do pooler de transação (bool; None fora do PG) — ver _usa_pooler
+        "db_pooler": _usa_pooler(),
         "coleta_ok": collecting,
         "coletor_externo_ok": coletor_externo_ok,
         "sweep_age_s": round(sweep_age) if sweep_age is not None else None,
@@ -1450,6 +1452,25 @@ class _ReusedConn:
 
     def __getattr__(self, name):
         return getattr(object.__getattribute__(self, "_inner"), name)
+
+
+def _usa_pooler():
+    """True/False se o DATABASE_URL aponta ao pooler de TRANSAÇÃO (:6543);
+    None fora do Postgres. Exposto no /api/health como `db_pooler` — é um
+    booleano, não vaza host nem senha. Serve a dois donos: (a) o aviso do
+    _avisa_pooler só vive no log do primeiro boot, que ninguém relê, e o reuso
+    de conexão depende dessa porta; (b) na hora de configurar o coletor do
+    GitHub Actions, saber se a string que o app USA é a do pooler diz se ela
+    pode ser copiada pra lá — o runner do Actions não tem IPv6 e a conexão
+    direta (:5432) do Supabase é só IPv6, então uma string que funciona aqui
+    pode falhar lá."""
+    try:
+        if store.backend() != "postgres":
+            return None
+        url = store.database_url() or ""
+    except Exception:
+        return None
+    return (":6543" in url) if url else None
 
 
 def _avisa_pooler():

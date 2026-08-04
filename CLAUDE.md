@@ -489,5 +489,11 @@ o front avisa) e missing_prices (insumo sem cotação de compra).
   `build_supply_data.py` (refino/craft/oferta).
 - RRR de refino/craft é DERIVADO de data/craft_data.json (craftingmodifiers do
   dump), não mais hardcoded; oferta (mobs->itens) em data/supply_data.json.
+- **Suíte**: `python -m unittest discover -s tests -t . -p "test_*.py"` — o
+  `-t .` NÃO é opcional. Sem ele o unittest importa os testes como módulos
+  top-level e pula `tests/__init__.py`, que desliga a auth antes de qualquer
+  módulo carregar `albion.config` (lido UMA vez no import); o sintoma são ~13
+  falhas 503 `bootstrap_required` em testes de endpoint, que parecem regressão
+  de produto e não são. `tests/test_core.py` agora falha cedo explicando isso.
 - O frontend é vanilla JS servido de `web/` — sem build step.
 - Console Windows usa cp1252: nunca dê print de bytes da API sem tratar encoding.

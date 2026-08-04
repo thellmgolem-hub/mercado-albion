@@ -182,6 +182,17 @@ def avaliar(d: dict):
             f"O banco chegou no limite duro ({mb} MB) e a coleta está pausada "
             "(leitura segue). Precisa liberar espaço no Supabase.")
 
+    # --- porta do banco (pooler de transação) ---
+    pooler = d.get("db_pooler")
+    if pooler is False:
+        _linha(False, "Conexão do banco", "porta 5432 (conexão direta)")
+        problemas.append(
+            "O DATABASE_URL do app aponta à conexão DIRETA (porta 5432), não ao "
+            "Transaction pooler (6543). Duas consequências: o reuso de conexão "
+            "consome backends reais e esgota o free tier; e essa mesma string "
+            "NÃO serve para o coletor do GitHub Actions (o runner não tem IPv6). "
+            "Troque no Render pela Connection string > Transaction pooler.")
+
     # --- bot do Discord ---
     if d.get("bot_ok"):
         rs = d.get("bot_restarts") or 0

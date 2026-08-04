@@ -36,50 +36,61 @@ jobs:
           python-version: '3.12'
           cache: pip
       - run: pip install -r requirements.txt
-      # Diagnostico: diz SE o segredo chegou e se tem cara de pooler, sem NUNCA
-      # imprimir o valor (o log deste repo e PUBLICO). Existe porque o modo de
-      # falha mais comum e' criar o DATABASE_URL na aba errada (Variables em vez
-      # de Secrets) — dai o job roda, o segredo vem vazio e o tick morre em 0s.
+      # Diagnostico do segredo. Escreve o veredito como ANNOTATION (::error /
+      # ::notice) e nao so' no log: o log do Actions exige LOGIN pra ler, a
+      # anotacao e' legivel pela API publica. Sem isso, diagnosticar este
+      # workflow de fora e' impossivel. Nunca imprime o valor (o repo e publico
+      # e a string carrega a senha do banco).
       - name: conferir o segredo DATABASE_URL (nao revela o valor)
         env:
           SEGREDO: ${{ secrets.DATABASE_URL }}
           VARIAVEL: ${{ vars.DATABASE_URL }}
         run: |
-          if [ -n "$SEGREDO" ]; then
-            echo "secrets.DATABASE_URL ...... PRESENTE (${#SEGREDO} caracteres)"
-            case "$SEGREDO" in
-              *:6543*) echo "porta ..................... 6543 (pooler de transacao) OK" ;;
-              *:5432*) echo "porta ..................... 5432 = conexao DIRETA. Troque pelo Transaction pooler (:6543)." ;;
-              *)       echo "porta ..................... nao identificada" ;;
-            esac
-            case "$SEGREDO" in
-              postgresql://*|postgres://*) echo "prefixo ................... postgresql:// OK" ;;
-              *) echo "prefixo ................... NAO comeca com postgresql:// (copiou a string errada?)" ;;
-            esac
-            case "$SEGREDO" in
-              *'[YOUR-PASSWORD]'*|*'[SUA-SENHA]'*|*'[password]'*)
-                echo "senha ..................... AINDA E' O PLACEHOLDER [YOUR-PASSWORD]."
-                echo ">>> O Supabase copia a URI com esse marcador. Troque pela senha real do banco." ;;
-              *) echo "senha ..................... preenchida" ;;
-            esac
-          else
-            echo "secrets.DATABASE_URL ...... AUSENTE (vazio)"
+          FALHOU=0
+          erro() { echo "::error title=DATABASE_URL::$1"; FALHOU=1; }
+          if [ -z "$SEGREDO" ]; then
             if [ -n "$VARIAVEL" ]; then
-              echo ">>> ACHEI o DATABASE_URL na aba VARIABLES, nao em SECRETS."
-              echo ">>> Apague a variavel (ela guarda a SENHA do banco em claro) e"
-              echo ">>> recrie em Settings > Secrets and variables > Actions > aba Secrets."
+              erro "Criado na aba VARIABLES, nao em SECRETS. Apague a variavel (ela guarda a senha do banco em claro) e recrie em Settings > Secrets and variables > Actions > aba Secrets > New repository secret."
             else
-              echo ">>> Nao existe nem secret nem variable com esse nome NESTE repositorio."
-              echo ">>> Crie em: Settings > Secrets and variables > Actions >"
-              echo ">>>          aba 'Secrets' > 'New repository secret'"
-              echo ">>>          Name: DATABASE_URL"
+              erro "Nao existe secret DATABASE_URL neste repositorio. Crie em Settings > Secrets and variables > Actions > aba Secrets > New repository secret, com o Name exatamente DATABASE_URL."
             fi
             exit 1
           fi
+          echo "secrets.DATABASE_URL: PRESENTE (${#SEGREDO} caracteres)"
+          case "$SEGREDO" in
+            *'[YOUR-PASSWORD]'*|*'[SUA-SENHA]'*|*'[password]'*)
+              erro "A string ainda tem o marcador [YOUR-PASSWORD] no lugar da senha. O Supabase copia a URI assim de proposito; troque pela senha real do banco (colchetes inclusive)." ;;
+          esac
+          case "$SEGREDO" in
+            postgresql://*|postgres://*) : ;;
+            *) erro "A string nao comeca com postgresql:// — foi copiada a linha errada do painel do Supabase." ;;
+          esac
+          case "$SEGREDO" in
+            *:6543/*) echo "porta: 6543 (Transaction pooler) OK" ;;
+            *:5432/*) erro "A string usa a porta 5432 (Direct connection). O runner do GitHub nao tem IPv6 e a conexao direta do Supabase e' so' IPv6 — use o Transaction pooler, porta 6543." ;;
+            *) erro "Nao identifiquei a porta. A URI do Transaction pooler termina em :6543/postgres." ;;
+          esac
+          [ "$FALHOU" = "0" ] || exit 1
+          echo "::notice title=DATABASE_URL::formato OK (${#SEGREDO} caracteres, prefixo postgresql://, porta 6543)"
       - name: tick de coleta (preços + histórico + killboard)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           COLLECTOR_BUDGET_SEC: '480'
           COLLECTOR_BATCH: '200'
           ALBION_DB_SOFT_MB: '340'   # autolimite: corta histórico se o banco encher
-        run: python tools/collector_tick.py
+        run: |
+          CODE=0
+          python tools/collector_tick.py > tick.log 2>&1 || CODE=$?
+          cat tick.log
+          if [ "$CODE" -ne 0 ]; then
+            # Mesmo motivo do passo acima: publica a causa como anotacao, que se
+            # le' sem login. Sanitiza qualquer string de conexao antes (o GitHub
+            # ja mascara o segredo exato; isto cobre variacoes).
+            RESUMO=$(tail -n 30 tick.log \
+              | sed -E 's#postgres(ql)?://[^[:space:]"]*#<URL-DO-BANCO>#g' \
+              | sed -E 's#(password|senha|pwd)=[^[:space:]"\&]*#\1=<oculta>#g' \
+              | grep -v '^[[:space:]]*$' \
+              | awk '{printf "%s ~ ", $0}' | cut -c1-1200)
+            echo "::error title=tick de coleta falhou::${RESUMO}"
+            exit "$CODE"
+          fi

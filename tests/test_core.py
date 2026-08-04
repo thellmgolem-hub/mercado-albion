@@ -11,6 +11,25 @@ from fastapi.testclient import TestClient
 # fluxos de autenticacao sao cobertos isoladamente abaixo.
 os.environ.setdefault("ALBION_AUTH_DISABLED", "1")
 
+from albion import config as _config
+
+# Armadilha de invocacao (custou uma hora em ago/2026): `python -m unittest
+# discover -s tests` SEM `-t .` poe tests/ no sys.path e importa os modulos como
+# TOP-LEVEL, pulando tests/__init__.py — que e quem desliga a auth antes de
+# qualquer modulo carregar albion.config. O setdefault acima nao salva: com
+# discover, test_advisor.py importa config ANTES deste arquivo rodar, e
+# AUTH_REQUIRED e lido UMA vez no import. O sintoma sao 13 falhas 503
+# (bootstrap_required) em testes de endpoint sem relacao aparente entre si —
+# parece regressao de produto e nao e. Falhar aqui, dizendo o comando certo,
+# troca esse rastro falso por uma linha.
+if _config.AUTH_REQUIRED:
+    raise RuntimeError(
+        "Auth LIGADA na suite: os testes de endpoint vao dar 503 em cascata. "
+        "Rode como PACOTE, com o top-level dir explicito:\n"
+        '    python -m unittest discover -s tests -t . -p "test_*.py"\n'
+        "ou nomeie o modulo (python -m unittest tests.test_core). Usar "
+        "`discover -s tests` sem `-t .` pula o tests/__init__.py.")
+
 import app
 from albion.auth import AuthError, AuthManager
 from albion import stats, survival
@@ -2519,6 +2538,41 @@ class WatchdogHealthTests(unittest.TestCase):
             "'coletando' não pode ser mais tolerante que 'coletor vivo'")
         # nem tão frouxo que uma parada de mais de um dia passe despercebida
         self.assertLessEqual(app._CRON_LATE_S, 24 * 3600)
+
+    def test_db_pooler_expoe_a_porta_sem_vazar_a_string(self):
+        """`db_pooler` no /api/health responde 'a string do app é a do pooler?'.
+
+        Vale por dois motivos. (1) O aviso do _avisa_pooler só existe no log do
+        PRIMEIRO boot, que ninguém relê — e o reuso de conexão (DEP-1) depende
+        dessa porta. (2) Ao configurar o coletor do GitHub Actions, é a resposta
+        a 'posso copiar a string que o Render usa?': o runner do Actions não tem
+        IPv6 e a conexão direta (:5432) do Supabase é só IPv6, então uma string
+        que funciona no Render pode falhar lá.
+
+        O campo é BOOLEANO de propósito: o endpoint é PÚBLICO e a string carrega
+        a senha do banco — nada de host, usuário ou porta literal na resposta."""
+        from unittest import mock
+        casos = [
+            ("postgresql://u:p@aws-0.pooler.supabase.com:6543/postgres", True),
+            ("postgresql://u:p@db.abc.supabase.co:5432/postgres", False),
+            ("", None),
+        ]
+        for url, esperado in casos:
+            with mock.patch.object(app.store, "backend", return_value="postgres"), \
+                 mock.patch.object(app.store, "database_url", return_value=url):
+                self.assertIs(app._usa_pooler(), esperado, f"url={url!r}")
+        # fora do Postgres (SQLite local/testes) a pergunta não se aplica
+        with mock.patch.object(app.store, "backend", return_value="sqlite"):
+            self.assertIsNone(app._usa_pooler())
+        # e o valor sai no payload público sem derrubar o endpoint
+        d = TestClient(app.app).get("/api/health").json()
+        self.assertIn("db_pooler", d)
+        self.assertIn(d["db_pooler"], (True, False, None))
+        # nenhuma resposta pode conter pedaço de string de conexão
+        import json as _json
+        bruto = _json.dumps(d)
+        self.assertNotIn("postgres://", bruto)
+        self.assertNotIn("6543", bruto)
 
     def test_health_endpoint_shape_and_public(self):
         client = TestClient(app.app)
